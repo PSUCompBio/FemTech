@@ -2,6 +2,7 @@ SET(ex1_src ex1.cpp)
 
 ADD_EXECUTABLE(db ${ex1_src})
 
+LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
 TARGET_LINK_LIBRARIES(db digitalbrain)
 
 #file(COPY input.inp DESTINATION .)
