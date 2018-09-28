@@ -1,7 +1,10 @@
-#include <stdio.h>
-int ReadInputFile()
+#include "digitalbrain.h"
+
+void ReadInputFile()
 {
    // printf() displays the string inside quotation
    printf("Hello, World and Digital Brain!!\n");
-   return 0;
+   //fopen(fp,"r");
+   //InitializeGlobalVariables();
+   //return 0;
 }
