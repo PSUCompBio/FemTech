@@ -1,5 +1,6 @@
 Set(io_src
-    io.cpp
+    input/ReadInputFile.cpp
+    output/WriteVTU.cpp
     )
 
 add_library(io OBJECT ${io_src})
