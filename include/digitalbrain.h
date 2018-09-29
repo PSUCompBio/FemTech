@@ -1,13 +1,16 @@
+
 #include <stdio.h>
 //#include <cmath>
 //#include <vector>
-//#include <fstream>
-//#include <sstream>
-//#include <string>
-//#include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <string>
+#include <iomanip>
 //#include <thread>
 //#include <mutex>
 //#include <cmath>
+
 
 
 //#include "GlobalVariables.h"
@@ -16,4 +19,4 @@
 //#include "BC.h"
 //#include "Constraint.h"
 
-void ReadInputFile();
+void ReadInputFile(const char* str);
