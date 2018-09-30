@@ -11,5 +11,6 @@ int main(int argc, char **argv){
    //read inputfile and initalize
    ReadInputFile(argv[1]);
 
+   FreeArrays();
    return 0;
 }
