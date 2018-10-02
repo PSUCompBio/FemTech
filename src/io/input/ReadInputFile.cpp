@@ -16,88 +16,88 @@ int MAX_ELEMENT_TYPE_SIZE = 10;
 void ReadInputFile(const char* inputfile){
 	char str[80];
 	int i,j;
-   // printf() displays the string inside quotation
-  printf("Hello Digital Brain!!\n");
-  FILE *fp;
-  fp	= fopen(inputfile, "r");
+	// printf() displays the string inside quotation
+	printf("Hello Digital Brain!!\n");
+	FILE *fp;
+	fp	= fopen(inputfile, "r");
 	if (fp == NULL)
-        exit(EXIT_FAILURE);
+		exit(EXIT_FAILURE);
 
-  printf("Will simulate using %s \n", inputfile);
+	printf("Will simulate using %s \n", inputfile);
 
 	int flag;
 	int dummyint;
 	double dummyfloat;
 	int counter;
 
-/* Parse Input file and get global vaiables */
+/*	Parse Input file and get global vaiables */
 	while (fscanf(fp,"%s",&str) != EOF) {
 		if(strcmp(str, "*PART")==0){
-				//printf("%s\n",str);
-				flag=0;
-				while (flag!=1){
-						fscanf(fp,"%s",&str);
-						//printf("i:%s\n",str);
-						if (strcmp(str,"tmid")==0) {
-							flag=1;
-							nparts++;
-						}
-				}
+			//printf("%s\n",str);
+			flag=0;
+			while (flag!=1){
+				fscanf(fp,"%s",&str);
+				//printf("i:%s\n",str);
+					if (strcmp(str,"tmid")==0) {
+						flag=1;
+						nparts++;
+					}
+			}
 		}
 		if(strcmp(str, "*ELEMENT_SOLID")==0){
+			//printf("%s\n",str);
+			for(i=0;i<11;i++){
+				fscanf(fp,"%s",&str);
 				//printf("%s\n",str);
-				for(i=0;i<11;i++){
-					fscanf(fp,"%s",&str);
-					//printf("%s\n",str);
-				}
-				max_nnodes_per_element = 8;
-				flag=0;
-				while ( flag != 1 ){
-					fscanf(fp,"%s", &str);
-					//printf("%s\n",str);
-					if (strcmp(str,"*NODE")==0) {
-							flag=1;
-					}
-					else {
-						  nelements++;
-							for(i=0;i<9;i++){
-									dummyint=0;
-									fscanf(fp,"%d ",&dummyint);
-									//printf("%d ",dummyint);
-							}
-				  }
-				  //printf("\n");
-				}
-		 }
-	  if(strcmp(str, "*NODE")==0){
+			}
+			max_nnodes_per_element = 8;
+			flag=0;
+			while ( flag != 1 ){
+				fscanf(fp,"%s", &str);
 				//printf("%s\n",str);
-				for(i=0;i<7;i++){
-					fscanf(fp,"%s",&str);
-					//printf("sq:%s\n",str);
-				}
-				ndim=3;
-				flag=0;
-				while( flag != 1 ){
-					fscanf(fp,"%s", &str);
-					//printf("%s\n",str);
-					if (strcmp(str,"*END")==0) {
+				if (strcmp(str,"*NODE")==0) {
 						flag=1;
-						//printf("%s\n",str);
-					}
-					else {
-						nnodes++;
-						for(i=0;i<ndim;i++){
-								dummyfloat=0.0;
-								fscanf(fp,"%lf",&dummyfloat);
-								//printf("%f ",dummyfloat);
-						}
-						for(i=0;i<2;i++){
-								fscanf(fp,"%d",&dummyint);
-								//printf("%d ",dummyint);
-						}
-						//printf("\n");
+				}
+				else {
+					nelements++;
+					for(i=0;i<9;i++){
+							dummyint=0;
+							fscanf(fp,"%d ",&dummyint);
+							//printf("%d ",dummyint);
 					}
 				}
+				//printf("\n");
+			}
+		 }
+		if(strcmp(str, "*NODE")==0){
+			//printf("%s\n",str);
+			for(i=0;i<7;i++){
+				fscanf(fp,"%s",&str);
+				//printf("sq:%s\n",str);
+			}
+			ndim=3;
+			flag=0;
+			while( flag != 1 ){
+				fscanf(fp,"%s", &str);
+				//printf("%s\n",str);
+				if (strcmp(str,"*END")==0) {
+					flag=1;
+					//printf("%s\n",str);
+				}
+				else {
+					nnodes++;
+					for(i=0;i<ndim;i++){
+							dummyfloat=0.0;
+							fscanf(fp,"%lf",&dummyfloat);
+							//printf("%f ",dummyfloat);
+					}
+					for(i=0;i<2;i++){
+							fscanf(fp,"%d",&dummyint);
+							//printf("%d ",dummyint);
+					}
+					//printf("\n");
+				}
+			}
 		}
 	}
 
@@ -134,82 +134,82 @@ void ReadInputFile(const char* inputfile){
 	/* Read input and place values into arrays */
 	while (fscanf(fp,"%s",&str) != EOF) {
 		if(strcmp(str, "*PART")==0){
-				//printf("%s\n",str);
-				flag=0;
-				while (flag!=1){
-						fscanf(fp,"%s",&str);
-						//printf("i:%s\n",str);
-						if (strcmp(str,"tmid")==0) {
-							flag=1;
-						}
+			//printf("%s\n",str);
+			flag=0;
+			while (flag!=1){
+				fscanf(fp,"%s",&str);
+				//printf("i:%s\n",str);
+				if (strcmp(str,"tmid")==0) {
+					flag=1;
 				}
+			}
 		}
 		if(strcmp(str, "*ELEMENT_SOLID")==0){
+			//printf("%s\n",str);
+			for(i=0;i<11;i++){
+				fscanf(fp,"%s",&str);
 				//printf("%s\n",str);
-				for(i=0;i<11;i++){
-					fscanf(fp,"%s",&str);
+			}
+			flag=0;
+			counter=0;
+			while ( flag != 1 ){
+				fscanf(fp,"%s", &str);
+				//printf("%s\n",str);
+				if (strcmp(str,"*NODE")==0) {
+						flag=1;
+				}
+				else {
+					// read eid
+					dummyint=0;
+					//fscanf(fp,"%d",&dummyint);
+					dummyint = atoi(str);
+					//printf("counter:%d, e:%d ",counter,dummyint);
+					// read pid
+					fscanf(fp,"%d",&pid[counter]);
+					//printf("p:%d ",pid[counter]);
+					// read nodes
+					for(i=0;i<max_nnodes_per_element;i++){
+							fscanf(fp,"%d",&connectivity[max_nnodes_per_element*counter+i]);
+							//printf("n%d:%d ",i+1,connectivity[max_nnodes_per_element*counter+i]);
+					}
+
+				}
+				//printf("\n");
+				counter++;
+			}
+			}
+		if(strcmp(str, "*NODE")==0){
+			//printf("%s\n",str);
+			for(i=0;i<7;i++){
+				fscanf(fp,"%s",&str);
+				//printf("sq:%s\n",str);
+			}
+			flag=0;
+			counter=0;
+			while( flag != 1 ){
+				fscanf(fp,"%s", &str);
+				//printf("%s\n",str);
+				if (strcmp(str,"*END")==0) {
+					flag=1;
 					//printf("%s\n",str);
 				}
-				flag=0;
-				counter=0;
-				while ( flag != 1 ){
-					fscanf(fp,"%s", &str);
-					//printf("%s\n",str);
-					if (strcmp(str,"*NODE")==0) {
-							flag=1;
+				else {
+					//nnodes++;
+					dummyint = atoi(str);
+					//printf("counter:%d, nid:%d ",counter,dummyint);
+					for(i=0;i<ndim;i++){
+							fscanf(fp,"%lf",&coordinates[ndim*counter+i]);
+							//printf("%5.5f  ",coordinates[ndim*counter+i]);
 					}
-					else {
-							// read eid
-							dummyint=0;
-							//fscanf(fp,"%d",&dummyint);
-							dummyint = atoi(str);
-							//printf("counter:%d, e:%d ",counter,dummyint);
-							// read pid
-							fscanf(fp,"%d",&pid[counter]);
-							//printf("p:%d ",pid[counter]);
-							// read nodes
-							for(i=0;i<max_nnodes_per_element;i++){
-									fscanf(fp,"%d",&connectivity[max_nnodes_per_element*counter+i]);
-									//printf("n%d:%d ",i+1,connectivity[max_nnodes_per_element*counter+i]);
-							}
-
-				  }
-				  printf("\n");
+					//read tc and rc from k file
+					for(i=0;i<2;i++){
+							fscanf(fp,"%d",&dummyint);
+							//printf("%d ",dummyint);
+					}
+					//printf("\n");
 					counter++;
 				}
-		 }
-	  if(strcmp(str, "*NODE")==0){
-				//printf("%s\n",str);
-				for(i=0;i<7;i++){
-					fscanf(fp,"%s",&str);
-					//printf("sq:%s\n",str);
-				}
-				flag=0;
-				counter=0;
-				while( flag != 1 ){
-					fscanf(fp,"%s", &str);
-					//printf("%s\n",str);
-					if (strcmp(str,"*END")==0) {
-						flag=1;
-						//printf("%s\n",str);
-					}
-					else {
-						//nnodes++;
-						dummyint = atoi(str);
-						//printf("counter:%d, nid:%d ",counter,dummyint);
-						for(i=0;i<ndim;i++){
-								fscanf(fp,"%lf",&coordinates[ndim*counter+i]);
-								//printf("%5.5f  ",coordinates[ndim*counter+i]);
-						}
-						//read tc and rc from k file
-						for(i=0;i<2;i++){
-								fscanf(fp,"%d",&dummyint);
-								//printf("%d ",dummyint);
-						}
-						//printf("\n");
-						counter++;
-					}
-				}
+			}
 		}
 	}
 
@@ -222,8 +222,26 @@ void ReadInputFile(const char* inputfile){
 	}
 
 	//assign element type
+	int nodecounter = 0;
 	for(i=0;i<nelements;i++){
-		ElementType[i]="C3D8";
+		nodecounter = 1;
+		//printf("number of nodes in this element %d: \n",i);
+		for (j = 1; j < max_nnodes_per_element; j++) {
+			//printf("%d %d\n", connectivity[max_nnodes_per_element*i + (j - 1)], connectivity[max_nnodes_per_element*i + j]);
+			if (connectivity[max_nnodes_per_element*i + (j-1)] == connectivity[max_nnodes_per_element*i + j]) {
+				//printf("duplicate\n");
+			}
+			else {
+				nodecounter++;
+			}
+		}
+		//printf("nodecounter = %d\n",nodecounter);
+		if (nodecounter == 8) {
+			ElementType[i] = "C3D8";
+		}
+		if (nodecounter == 4) {
+			ElementType[i] = "C3D4";
+		}
 		//printf("%s \n",ElementType[i]);
 	}
 
