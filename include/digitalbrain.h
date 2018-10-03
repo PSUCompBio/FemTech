@@ -19,6 +19,8 @@
 //#include "BC.h"
 //#include "Constraint.h"
 
+//#include"mpi.h"
+
 void ReadInputFile(const char* str);
 void WriteVTU(char * str);
 void FreeArrays();
