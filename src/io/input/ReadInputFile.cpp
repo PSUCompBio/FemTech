@@ -31,12 +31,12 @@ void ReadInputFile(const char* inputfile){
 	int counter;
 
 /*	Parse Input file and get global vaiables */
-	while (fscanf(fp,"%s",&str) != EOF) {
+	while (fscanf(fp,"%s",str) != EOF) {
 		if(strcmp(str, "*PART")==0){
 			//printf("%s\n",str);
 			flag=0;
 			while (flag!=1){
-				fscanf(fp,"%s",&str);
+				fscanf(fp,"%s",str);
 				//printf("i:%s\n",str);
 					if (strcmp(str,"tmid")==0) {
 						flag=1;
@@ -47,13 +47,13 @@ void ReadInputFile(const char* inputfile){
 		if(strcmp(str, "*ELEMENT_SOLID")==0){
 			//printf("%s\n",str);
 			for(i=0;i<11;i++){
-				fscanf(fp,"%s",&str);
+				fscanf(fp,"%s",str);
 				//printf("%s\n",str);
 			}
 			max_nnodes_per_element = 8;
 			flag=0;
 			while ( flag != 1 ){
-				fscanf(fp,"%s", &str);
+				fscanf(fp,"%s", str);
 				//printf("%s\n",str);
 				if (strcmp(str,"*NODE")==0) {
 						flag=1;
@@ -72,13 +72,13 @@ void ReadInputFile(const char* inputfile){
 		if(strcmp(str, "*NODE")==0){
 			//printf("%s\n",str);
 			for(i=0;i<7;i++){
-				fscanf(fp,"%s",&str);
+				fscanf(fp,"%s",str);
 				//printf("sq:%s\n",str);
 			}
 			ndim=3;
 			flag=0;
 			while( flag != 1 ){
-				fscanf(fp,"%s", &str);
+				fscanf(fp,"%s", str);
 				//printf("%s\n",str);
 				if (strcmp(str,"*END")==0) {
 					flag=1;
@@ -132,12 +132,12 @@ void ReadInputFile(const char* inputfile){
 	rewind(fp);
 
 	/* Read input and place values into arrays */
-	while (fscanf(fp,"%s",&str) != EOF) {
+	while (fscanf(fp,"%s",str) != EOF) {
 		if(strcmp(str, "*PART")==0){
 			//printf("%s\n",str);
 			flag=0;
 			while (flag!=1){
-				fscanf(fp,"%s",&str);
+				fscanf(fp,"%s",str);
 				//printf("i:%s\n",str);
 				if (strcmp(str,"tmid")==0) {
 					flag=1;
@@ -147,13 +147,13 @@ void ReadInputFile(const char* inputfile){
 		if(strcmp(str, "*ELEMENT_SOLID")==0){
 			//printf("%s\n",str);
 			for(i=0;i<11;i++){
-				fscanf(fp,"%s",&str);
+				fscanf(fp,"%s",str);
 				//printf("%s\n",str);
 			}
 			flag=0;
 			counter=0;
 			while ( flag != 1 ){
-				fscanf(fp,"%s", &str);
+				fscanf(fp,"%s", str);
 				//printf("%s\n",str);
 				if (strcmp(str,"*NODE")==0) {
 						flag=1;
@@ -181,13 +181,13 @@ void ReadInputFile(const char* inputfile){
 		if(strcmp(str, "*NODE")==0){
 			//printf("%s\n",str);
 			for(i=0;i<7;i++){
-				fscanf(fp,"%s",&str);
+				fscanf(fp,"%s",str);
 				//printf("sq:%s\n",str);
 			}
 			flag=0;
 			counter=0;
 			while( flag != 1 ){
-				fscanf(fp,"%s", &str);
+				fscanf(fp,"%s", str);
 				//printf("%s\n",str);
 				if (strcmp(str,"*END")==0) {
 					flag=1;
@@ -237,10 +237,10 @@ void ReadInputFile(const char* inputfile){
 		}
 		//printf("nodecounter = %d\n",nodecounter);
 		if (nodecounter == 8) {
-			ElementType[i] = "C3D8";
+			ElementType[i] = (char *)"C3D8";
 		}
 		if (nodecounter == 4) {
-			ElementType[i] = "C3D4";
+			ElementType[i] = (char *)"C3D4";
 		}
 		//printf("%s \n",ElementType[i]);
 	}
