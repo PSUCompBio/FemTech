@@ -6,3 +6,7 @@ add_subdirectory(elements)
 add_subdirectory(fem)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 add_library(digitalbrain $<TARGET_OBJECTS:timestep> $<TARGET_OBJECTS:math> $<TARGET_OBJECTS:materials> $<TARGET_OBJECTS:io> $<TARGET_OBJECTS:elements> $<TARGET_OBJECTS:fem>)
+
+if(ENABLE_MPI)
+	target_link_libraries(digitalbrain ${MPI_LIBRARIES})
+endif(ENABLE_MPI)

@@ -1,5 +1,5 @@
 #include <stdio.h>
-//#include <cmath>
+#include <cmath>
 //#include <vector>
 #include <fstream>
 #include <sstream>
@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <cstring>
 #include <cstdlib>
+#include <math.h>
 
 //#include <thread>
 //#include <mutex>
@@ -19,7 +20,7 @@
 //#include "BC.h"
 //#include "Constraint.h"
 
-//#include"mpi.h"
+#include"mpi.h"
 
 void ReadInputFile(const char* str);
 void WriteVTU(char * str);
