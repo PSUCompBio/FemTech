@@ -1,9 +1,9 @@
 SET(ex1_src ex1.cpp)
 
-ADD_EXECUTABLE(db ${ex1_src})
+ADD_EXECUTABLE(ex1 ${ex1_src})
 
 LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
-TARGET_LINK_LIBRARIES(db digitalbrain)
+TARGET_LINK_LIBRARIES(ex1 digitalbrain)
 
 file(COPY 1-elt-cube.k DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
