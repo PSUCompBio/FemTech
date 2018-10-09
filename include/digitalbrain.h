@@ -19,8 +19,10 @@
 //#include "Materials.h"
 //#include "BC.h"
 //#include "Constraint.h"
-
-#include"mpi.h"
+#if PARALLEL
+	#include "mpi.h"
+	#include "parmetis.h"
+#endif
 
 void ReadInputFile(const char* str);
 void WriteVTU(char * str);

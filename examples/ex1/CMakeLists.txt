@@ -5,6 +5,19 @@ ADD_EXECUTABLE(ex1 ${ex1_src})
 LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
 TARGET_LINK_LIBRARIES(ex1 digitalbrain)
 
+# NOTE: once Cmake release version 3.13 the following
+# option can be used to set up properties of ex1 in
+# Visual Studio. Only the 1st one (VS_DEBUGGER_COMMAND)
+# works with Cmake version 3.12. version 3.13 supports the
+# second option. for more information see:
+# https://stackoverflow.com/questions/52649753/how-to-send-visual-studio-configuration-options-from-cmake
+#
+#if(WIN32)
+	#set_target_properties(ex1 PROPERTIES
+	#	VS_DEBUGGER_COMMAND "C:/Program Files/Microsoft MPI/Bin/mpiexec.exe"
+	#	VS_DEBUGGER_COMMAND_ARGUMENTS "-n 2 \"$(TargetPath)\" 1-elt-cube.k")
+#endif(WIN32)
+
 file(COPY 1-elt-cube.k DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)

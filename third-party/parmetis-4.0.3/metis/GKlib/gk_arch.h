@@ -63,9 +63,9 @@ typedef ptrdiff_t ssize_t;
 //#define rint(x) ((int)((x)+0.5))  
 
 /* MSC does not have INFINITY defined */
-#ifndef INFINITY
-#define INFINITY FLT_MAX
-#endif
+//#ifndef INFINITY
+//#define INFINITY FLT_MAX
+//#endif
 #endif
 
 #endif
