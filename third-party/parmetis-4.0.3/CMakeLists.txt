@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 2.8)
 project(ParMETIS)
 
-set(GKLIB_PATH METIS/GKlib CACHE PATH "path to GKlib")
-set(METIS_PATH METIS CACHE PATH "path to METIS")
+set(GKLIB_PATH ${CMAKE_SOURCE_DIR}/third-party/parmetis-4.0.3/metis/GKlib CACHE PATH "path to GKlib")
+set(METIS_PATH ${CMAKE_SOURCE_DIR}/third-party/parmetis-4.0.3/metis CACHE PATH "path to METIS")
 
 # Symlink ./metis to wherever metis is. This allows files to be
 # included from metis/libmetis/.
-execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${METIS_PATH} metis)
+#execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${METIS_PATH} metis)
 
 # Search for MPI.
 # GK commented this out as it seems to be creating problems
