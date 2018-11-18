@@ -31,17 +31,18 @@ void WriteVTU(char* outfile){
 	//element connectivity
 	fprintf(fp,"\t\t\t<Cells>\n");
 	fprintf(fp,"\t\t\t\t<DataArray type=\"Int32\" Name=\"connectivity\" format=\"ascii\">\n");
-	for(i=0;i<nelements;i++){
-		for(j=0;j<max_nnodes_per_element;j++){
-			fprintf(fp,"\t\t\t\t\t%d",connectivity[max_nnodes_per_element*i+j]);
-    }
-    fprintf(fp,"\n");
+	for (i = 0; i < nelements; i++) {
+		for (j = eptr[i]; j < eptr[i + 1]; j++) {
+			fprintf(fp, "\t\t\t\t\t%d", connectivity[j]);
+		}
+		fprintf(fp, "\n");
 	}
+
 	// write offsets
 	fprintf(fp,"\t\t\t\t</DataArray>\n");
 	fprintf(fp,"\t\t\t\t<DataArray type=\"Int32\" Name=\"offsets\" format=\"ascii\">\n");
 	for(i=0;i<nelements;i++){
-		fprintf(fp,"\t\t\t\t\t%d\n",i*max_nnodes_per_element+8);
+		fprintf(fp, "\t\t\t\t\t%d\n",eptr[i+1]);
 	}
 	fprintf(fp,"\t\t\t\t</DataArray>\n");
 

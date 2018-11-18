@@ -19,5 +19,6 @@ TARGET_LINK_LIBRARIES(ex1 digitalbrain)
 #endif(WIN32)
 
 file(COPY 1-elt-cube.k DESTINATION .)
+file(COPY mixed-hex-tet.k DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)

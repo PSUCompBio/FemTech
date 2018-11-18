@@ -1,13 +1,13 @@
 #include "digitalbrain.h"
 
-/* Globla Variables */
+/* Global Variables */
 int nparts=0;
 int nelements=0;
 int nnodes=0;
 int ndim=0;
-int max_nnodes_per_element=0;
 double *coordinates;
 int *connectivity;
+int *eptr;
 int *pid;
 int *mid;
 char **ElementType;
@@ -29,6 +29,11 @@ void ReadInputFile(const char* inputfile){
 	int dummyint;
 	double dummyfloat;
 	int counter;
+	const int LENGTH_LINE = 100;
+	char line[LENGTH_LINE];
+	char * pch;
+	int len=0;
+	int nnodes_in_connectivity = 0;
 
 /*	Parse Input file and get global vaiables */
 	while (fscanf(fp,"%s",str) != EOF) {
@@ -50,8 +55,8 @@ void ReadInputFile(const char* inputfile){
 				fscanf(fp,"%s",str);
 				//printf("%s\n",str);
 			}
-			max_nnodes_per_element = 8;
 			flag=0;
+			
 			while ( flag != 1 ){
 				fscanf(fp,"%s", str);
 				//printf("%s\n",str);
@@ -60,15 +65,37 @@ void ReadInputFile(const char* inputfile){
 				}
 				else {
 					nelements++;
-					for(i=0;i<9;i++){
-							dummyint=0;
-							fscanf(fp,"%d ",&dummyint);
-							//printf("%d ",dummyint);
+					fgets(line, LENGTH_LINE, fp);
+					printf("line: %s\n", line);
+					pch = strtok(line, " ,.-");
+					int j = 0;
+					int k = 0;
+					int dummyint_last = -1;
+					while (pch != NULL){
+						//printf("%s\n", pch);
+						dummyint = atoi(pch);
+						//printf("dummyint = %d\n", dummyint);
+						if (k>0 && dummyint != dummyint_last) {
+							// different vertex
+							j++;
+						}
+						else if (k>0 && dummyint == dummyint_last) {
+							//same vertex
+							//printf("same vertex; vert not counted...\n");
+						}
+						if (k > 0) {
+							dummyint_last = dummyint;
+						}
+						pch = strtok(NULL, " ,.-");
+						k++;
 					}
+					printf("this element has %d different nodes\n", j);
+					nnodes_in_connectivity = nnodes_in_connectivity + j;
 				}
-				//printf("\n");
+				printf("\n");
 			}
 		 }
+
 		if(strcmp(str, "*NODE")==0){
 			//printf("%s\n",str);
 			for(i=0;i<7;i++){
@@ -104,13 +131,15 @@ void ReadInputFile(const char* inputfile){
 	printf("ndim=%d\n",ndim);
 	printf("nnodes=%d\n",nnodes);
 	printf("nelements=%d\n",nelements);
+	printf("nnodes_in_connect = %d\n", nnodes_in_connectivity);
 	printf("nparts=%d\n",nparts);
-
+	
 	/* initalize arrays */
 	coordinates = (double*)malloc((ndim*nnodes)* sizeof(double));
 	pid = (int*)malloc((nelements)* sizeof(int));
 	mid = (int*)malloc((nelements)* sizeof(int));
-	connectivity = (int*)malloc((max_nnodes_per_element*nelements)* sizeof(int));
+	eptr = (int*)malloc((nelements+1) * sizeof(int));
+	connectivity = (int*)malloc(nnodes_in_connectivity * sizeof(int));
 	ElementType = (char**)malloc((MAX_ELEMENT_TYPE_SIZE*nelements)* sizeof(char));
 
 	//initalize coordinates
@@ -119,13 +148,16 @@ void ReadInputFile(const char* inputfile){
 			coordinates[ndim*i+j]=0.0;
 		}
 	}
-	//initalize connectivity
+	//initalize material, part and pointer arrays
 	for (i=0;i<nelements;i++){
 		mid[i]=0;
 		pid[i]=0;
-		for (j=0;j<max_nnodes_per_element;j++){
-			connectivity[max_nnodes_per_element*i+j]=0;
-		}
+		eptr[i] = 0;
+	}
+
+	//initalize connectivity
+	for (j = 0; j < nnodes_in_connectivity; j++) {
+		connectivity[j] = 0;
 	}
 
 	/*rewind input file */
@@ -152,6 +184,9 @@ void ReadInputFile(const char* inputfile){
 			}
 			flag=0;
 			counter=0;
+			int j = 0;
+			int start_counter = 0;
+			int end_counter = 0;
 			while ( flag != 1 ){
 				fscanf(fp,"%s", str);
 				//printf("%s\n",str);
@@ -159,20 +194,40 @@ void ReadInputFile(const char* inputfile){
 						flag=1;
 				}
 				else {
-					// read eid
-					dummyint=0;
-					//fscanf(fp,"%d",&dummyint);
-					dummyint = atoi(str);
-					//printf("counter:%d, e:%d ",counter,dummyint);
-					// read pid
-					fscanf(fp,"%d",&pid[counter]);
-					//printf("p:%d ",pid[counter]);
-					// read nodes
-					for(i=0;i<max_nnodes_per_element;i++){
-							fscanf(fp,"%d",&connectivity[max_nnodes_per_element*counter+i]);
-							//printf("n%d:%d ",i+1,connectivity[max_nnodes_per_element*counter+i]);
+					fgets(line, LENGTH_LINE, fp);
+					printf("line: %s\n", line);
+					pch = strtok(line, " ,.-");
+					nnodes_in_connectivity = 0;
+					int k = 0;
+					int dummyint_last = -1;
+					while (pch != NULL) {
+						//printf("%s\n", pch);
+						dummyint = atoi(pch);
+						//printf("dummyint = %d\n", dummyint);
+						if (k == 0) {
+							pid[counter] = dummyint;
+						}
+						if (k > 0 && dummyint != dummyint_last) {
+							// different vertex
+							connectivity[j] = dummyint;
+							j++;
+							nnodes_in_connectivity++;
+						}
+						else if (k > 0 && dummyint == dummyint_last) {
+							//same vertex
+							//printf("same vertex; vert not counted...\n");
+						}
+						if (k > 0) {
+							dummyint_last = dummyint;
+						}
+						pch = strtok(NULL, " ,.-");
+						k++;
 					}
-
+					end_counter = start_counter + nnodes_in_connectivity;
+					eptr[counter] = start_counter;
+					eptr[counter+1] = end_counter;
+					printf("this element has %d different nodes, start %d -> end %d\n", nnodes_in_connectivity, start_counter,end_counter);
+					start_counter = end_counter;
 				}
 				//printf("\n");
 				counter++;
@@ -216,34 +271,21 @@ void ReadInputFile(const char* inputfile){
 	// remove 1 from connectivity so node referencing
 	// is correct
 	for(i=0;i<nelements;i++){
-		for(j=0;j<max_nnodes_per_element;j++){
-		 connectivity[max_nnodes_per_element*i+j]--;
+		for(j=eptr[i];j<eptr[i+1];j++){
+		 connectivity[j]--;
 		}
 	}
 
 	//assign element type
-	int nodecounter = 0;
-	for(i=0;i<nelements;i++){
-		nodecounter = 1;
-		//printf("number of nodes in this element %d: \n",i);
-		for (j = 1; j < max_nnodes_per_element; j++) {
-			//printf("%d %d\n", connectivity[max_nnodes_per_element*i + (j - 1)], connectivity[max_nnodes_per_element*i + j]);
-			if (connectivity[max_nnodes_per_element*i + (j-1)] == connectivity[max_nnodes_per_element*i + j]) {
-				//printf("duplicate\n");
-			}
-			else {
-				nodecounter++;
-			}
-		}
-		//printf("nodecounter = %d\n",nodecounter);
-		if (nodecounter == 8) {
+	for (i = 0; i < nelements; i++) {
+		if ((eptr[i + 1] - eptr[i]) == 8) {
 			ElementType[i] = (char *)"C3D8";
 		}
-		if (nodecounter == 4) {
+		if ((eptr[i + 1] - eptr[i]) == 4) {
 			ElementType[i] = (char *)"C3D4";
 		}
-		//printf("%s \n",ElementType[i]);
 	}
+	
 
 	/*close input file */
 	fclose(fp);
