@@ -39,7 +39,7 @@ mkdir build
 cd bulid
 ccmake ..
 make -j8
-(for parallel on ACI-B) qsub -A open -l walltime=1:00:00 -l nodes=1:ppn=2 -I
+(for interactive parallel on ACI-B) qsub -A open -l walltime=1:00:00 -l nodes=1:ppn=2 -I
 ```
 
 ## Mac OS
@@ -50,9 +50,9 @@ make -j8
 - open terminal (navigate to desired directory)
 ```
 git clone https://github.com/PSUCompBio/digitalbrain
-cd cross-compiling-test
+cd digitalbrain
 mkdir build
 cd bulid
-ccmake ..
+ccmake .. (configure as needed)
 make -j8
 ```
