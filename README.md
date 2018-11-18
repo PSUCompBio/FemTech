@@ -43,6 +43,9 @@ make -j8
 ```
 
 ## Mac OS
+#### Software required
+- Xcode with developer command line tools (https://www.embarcadero.com/starthere/berlin/mobdevsetup/ios/en/installing_the_xcode_command_line_tools_on_a_mac.html)
+- CMake (https://cmake.org/download/)
 #### To compile
 - open terminal (navigate to desired directory)
 ```
