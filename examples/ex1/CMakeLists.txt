@@ -2,8 +2,13 @@ SET(ex1_src ex1.cpp)
 
 ADD_EXECUTABLE(ex1 ${ex1_src})
 
-LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
-TARGET_LINK_LIBRARIES(ex1 digitalbrain)
+if(ENABLE_MPI)
+  LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/third-party/parmetis-4.0.3/libparmetis)
+  TARGET_LINK_LIBRARIES(ex1 digitalbrain parmetis)
+else()
+  LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
+  TARGET_LINK_LIBRARIES(ex1 digitalbrain)
+endif(ENABLE_MPI)
 
 # NOTE: once Cmake release version 3.13 the following
 # option can be used to set up properties of ex1 in
