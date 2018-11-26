@@ -16,14 +16,14 @@ int MAX_ELEMENT_TYPE_SIZE = 10;
 void ReadInputFile(const char* inputfile){
 	char str[80];
 	int i,j;
-	// printf() displays the string inside quotation
-	printf("Hello Digital Brain!!\n");
+	// //printf() displays the string inside quotation
+	//printf("Hello Digital Brain!!\n");
 	FILE *fp;
 	fp	= fopen(inputfile, "r");
 	if (fp == NULL)
 		exit(EXIT_FAILURE);
 
-	printf("Will simulate using %s \n", inputfile);
+	//printf("Will simulate using %s \n", inputfile);
 
 	int flag;
 	int dummyint;
@@ -38,11 +38,11 @@ void ReadInputFile(const char* inputfile){
 /*	Parse Input file and get global vaiables */
 	while (fscanf(fp,"%s",str) != EOF) {
 		if(strcmp(str, "*PART")==0){
-			//printf("%s\n",str);
+			////printf("%s\n",str);
 			flag=0;
 			while (flag!=1){
 				fscanf(fp,"%s",str);
-				//printf("i:%s\n",str);
+				////printf("i:%s\n",str);
 					if (strcmp(str,"tmid")==0) {
 						flag=1;
 						nparts++;
@@ -50,38 +50,38 @@ void ReadInputFile(const char* inputfile){
 			}
 		}
 		if(strcmp(str, "*ELEMENT_SOLID")==0){
-			//printf("%s\n",str);
+			////printf("%s\n",str);
 			for(i=0;i<11;i++){
 				fscanf(fp,"%s",str);
-				//printf("%s\n",str);
+				////printf("%s\n",str);
 			}
 			flag=0;
 			
 			while ( flag != 1 ){
 				fscanf(fp,"%s", str);
-				//printf("%s\n",str);
+				////printf("%s\n",str);
 				if (strcmp(str,"*NODE")==0) {
 						flag=1;
 				}
 				else {
 					nelements++;
 					fgets(line, LENGTH_LINE, fp);
-					printf("line: %s\n", line);
+					//printf("line: %s\n", line);
 					pch = strtok(line, " ,.-");
 					int j = 0;
 					int k = 0;
 					int dummyint_last = -1;
 					while (pch != NULL){
-						//printf("%s\n", pch);
+						////printf("%s\n", pch);
 						dummyint = atoi(pch);
-						//printf("dummyint = %d\n", dummyint);
+						////printf("dummyint = %d\n", dummyint);
 						if (k>0 && dummyint != dummyint_last) {
 							// different vertex
 							j++;
 						}
 						else if (k>0 && dummyint == dummyint_last) {
 							//same vertex
-							//printf("same vertex; vert not counted...\n");
+							////printf("same vertex; vert not counted...\n");
 						}
 						if (k > 0) {
 							dummyint_last = dummyint;
@@ -89,50 +89,50 @@ void ReadInputFile(const char* inputfile){
 						pch = strtok(NULL, " ,.-");
 						k++;
 					}
-					printf("this element has %d different nodes\n", j);
+					//printf("this element has %d different nodes\n", j);
 					nnodes_in_connectivity = nnodes_in_connectivity + j;
 				}
-				printf("\n");
+				//printf("\n");
 			}
 		 }
 
 		if(strcmp(str, "*NODE")==0){
-			//printf("%s\n",str);
+			////printf("%s\n",str);
 			for(i=0;i<7;i++){
 				fscanf(fp,"%s",str);
-				//printf("sq:%s\n",str);
+				////printf("sq:%s\n",str);
 			}
 			ndim=3;
 			flag=0;
 			while( flag != 1 ){
 				fscanf(fp,"%s", str);
-				//printf("%s\n",str);
+				////printf("%s\n",str);
 				if (strcmp(str,"*END")==0) {
 					flag=1;
-					//printf("%s\n",str);
+					////printf("%s\n",str);
 				}
 				else {
 					nnodes++;
 					for(i=0;i<ndim;i++){
 							dummyfloat=0.0;
 							fscanf(fp,"%lf",&dummyfloat);
-							//printf("%f ",dummyfloat);
+							////printf("%f ",dummyfloat);
 					}
 					for(i=0;i<2;i++){
 							fscanf(fp,"%d",&dummyint);
-							//printf("%d ",dummyint);
+							////printf("%d ",dummyint);
 					}
-					//printf("\n");
+					////printf("\n");
 				}
 			}
 		}
 	}
 
-	printf("ndim=%d\n",ndim);
-	printf("nnodes=%d\n",nnodes);
-	printf("nelements=%d\n",nelements);
-	printf("nnodes_in_connect = %d\n", nnodes_in_connectivity);
-	printf("nparts=%d\n",nparts);
+	//printf("ndim=%d\n",ndim);
+	//printf("nnodes=%d\n",nnodes);
+	//printf("nelements=%d\n",nelements);
+	//printf("nnodes_in_connect = %d\n", nnodes_in_connectivity);
+	//printf("nparts=%d\n",nparts);
 	
 	/* initalize arrays */
 	coordinates = (double*)malloc((ndim*nnodes)* sizeof(double));
@@ -166,21 +166,21 @@ void ReadInputFile(const char* inputfile){
 	/* Read input and place values into arrays */
 	while (fscanf(fp,"%s",str) != EOF) {
 		if(strcmp(str, "*PART")==0){
-			//printf("%s\n",str);
+			////printf("%s\n",str);
 			flag=0;
 			while (flag!=1){
 				fscanf(fp,"%s",str);
-				//printf("i:%s\n",str);
+				////printf("i:%s\n",str);
 				if (strcmp(str,"tmid")==0) {
 					flag=1;
 				}
 			}
 		}
 		if(strcmp(str, "*ELEMENT_SOLID")==0){
-			//printf("%s\n",str);
+			////printf("%s\n",str);
 			for(i=0;i<11;i++){
 				fscanf(fp,"%s",str);
-				//printf("%s\n",str);
+				////printf("%s\n",str);
 			}
 			flag=0;
 			counter=0;
@@ -189,21 +189,21 @@ void ReadInputFile(const char* inputfile){
 			int end_counter = 0;
 			while ( flag != 1 ){
 				fscanf(fp,"%s", str);
-				//printf("%s\n",str);
+				////printf("%s\n",str);
 				if (strcmp(str,"*NODE")==0) {
 						flag=1;
 				}
 				else {
 					fgets(line, LENGTH_LINE, fp);
-					printf("line: %s\n", line);
+					//printf("line: %s\n", line);
 					pch = strtok(line, " ,.-");
 					nnodes_in_connectivity = 0;
 					int k = 0;
 					int dummyint_last = -1;
 					while (pch != NULL) {
-						//printf("%s\n", pch);
+						////printf("%s\n", pch);
 						dummyint = atoi(pch);
-						//printf("dummyint = %d\n", dummyint);
+						////printf("dummyint = %d\n", dummyint);
 						if (k == 0) {
 							pid[counter] = dummyint;
 						}
@@ -215,7 +215,7 @@ void ReadInputFile(const char* inputfile){
 						}
 						else if (k > 0 && dummyint == dummyint_last) {
 							//same vertex
-							//printf("same vertex; vert not counted...\n");
+							////printf("same vertex; vert not counted...\n");
 						}
 						if (k > 0) {
 							dummyint_last = dummyint;
@@ -226,42 +226,42 @@ void ReadInputFile(const char* inputfile){
 					end_counter = start_counter + nnodes_in_connectivity;
 					eptr[counter] = start_counter;
 					eptr[counter+1] = end_counter;
-					printf("this element has %d different nodes, start %d -> end %d\n", nnodes_in_connectivity, start_counter,end_counter);
+					//printf("this element has %d different nodes, start %d -> end %d\n", nnodes_in_connectivity, start_counter,end_counter);
 					start_counter = end_counter;
 				}
-				//printf("\n");
+				////printf("\n");
 				counter++;
 			}
 			}
 		if(strcmp(str, "*NODE")==0){
-			//printf("%s\n",str);
+			////printf("%s\n",str);
 			for(i=0;i<7;i++){
 				fscanf(fp,"%s",str);
-				//printf("sq:%s\n",str);
+				////printf("sq:%s\n",str);
 			}
 			flag=0;
 			counter=0;
 			while( flag != 1 ){
 				fscanf(fp,"%s", str);
-				//printf("%s\n",str);
+				////printf("%s\n",str);
 				if (strcmp(str,"*END")==0) {
 					flag=1;
-					//printf("%s\n",str);
+					////printf("%s\n",str);
 				}
 				else {
 					//nnodes++;
 					dummyint = atoi(str);
-					//printf("counter:%d, nid:%d ",counter,dummyint);
+					////printf("counter:%d, nid:%d ",counter,dummyint);
 					for(i=0;i<ndim;i++){
 							fscanf(fp,"%lf",&coordinates[ndim*counter+i]);
-							//printf("%5.5f  ",coordinates[ndim*counter+i]);
+							////printf("%5.5f  ",coordinates[ndim*counter+i]);
 					}
 					//read tc and rc from k file
 					for(i=0;i<2;i++){
 							fscanf(fp,"%d",&dummyint);
-							//printf("%d ",dummyint);
+							////printf("%d ",dummyint);
 					}
-					//printf("\n");
+					////printf("\n");
 					counter++;
 				}
 			}
