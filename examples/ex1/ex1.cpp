@@ -47,24 +47,20 @@ void GetMyArrays(
 
     // Retrieving eptr and eind to int vectors to copy later to local eptr and eind
     const size_t My_Elements_Size = elmdist[world_rank + 1] - elmdist[world_rank];
-    My_Eptr.resize(My_Elements_Size + 1);
     part_size = My_Elements_Size;
-    std::vector<Element> My_Elements;
-    for (size_t i = 0, n = 0; i < My_Eptr.size(); i++)
+    const size_t From = world_rank * nelements / world_size;
+    const size_t To = From + My_Elements_Size - 1;
+    My_Eptr.push_back(0);
+    for (size_t i = 0, n = 0; i < All_Elements.size(); i++)
     {
-        My_Eptr[i] = n;
-        const int I = world_rank * nelements / world_size + i;
-        n += All_Elements[I].Nodes.size();
-        if (i < My_Elements_Size)
+        if (i >= From && i <= To)
         {
-            My_Elements.push_back(All_Elements[I]);
-        }
-    }
-    for (size_t i = 0; i < My_Elements.size(); i++)
-    {
-        for (size_t j = 0; j < My_Elements[i].Nodes.size(); j++)
-        {
-            My_Eind.push_back(My_Elements[i].Nodes[j]);
+            n += All_Elements[i].Nodes.size();
+            My_Eptr.push_back(n);
+            for (size_t j = 0; j < All_Elements[i].Nodes.size(); j++)
+            {
+                My_Eind.push_back(All_Elements[i].Nodes[j]);
+            }
         }
     }
 }
