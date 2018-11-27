@@ -4,12 +4,20 @@
 void strip_ext(char *);
 
 
-void WriteVTU(char* outfile){
+void WriteVTU(char* outfile, int world_size, int world_rank){
 	FILE *fp;
 	int i,j;
-
+	char s[1000];
 	strip_ext(outfile);
-	strcat(outfile,".vtu");
+
+#if PARALLEL
+	printf("write_VTU processor: %d\n", world_rank);
+	sprintf(s, ".vtu.%04d", world_rank);
+	strcat(outfile, s);
+#else
+	strcat(outfile, ".vtu");
+#endif
+
 	printf("new name: %s",outfile);
 	fp=fopen(outfile,"w");
 

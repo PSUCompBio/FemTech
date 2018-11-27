@@ -1,5 +1,5 @@
 #include "digitalbrain.h"
-#include <vector>
+
 
 //-------------------------------------------------------------------------------------------
 // An element that contains a set of nodes
@@ -247,7 +247,7 @@ int main(int argc, char **argv)
 	//deallocate(elmdist)
 	//deallocate(nelempa)
 
-   
+	WriteVTU(argv[1],world_size, world_rank);
     FreeArrays();
 
 #if PARALLEL
