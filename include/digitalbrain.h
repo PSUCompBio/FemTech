@@ -25,5 +25,6 @@
 #endif
 
 void ReadInputFile(const char* str);
+void PartitionMesh(const char* str);
 void WriteVTU(char * str, int, int);
 void FreeArrays();

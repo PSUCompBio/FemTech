@@ -18,7 +18,7 @@ void WriteVTU(char* outfile, int world_size, int world_rank){
 	strcat(outfile, ".vtu");
 #endif
 
-	printf("new name: %s",outfile);
+	printf("new name: %s\n",outfile);
 	fp=fopen(outfile,"w");
 
 	fprintf(fp,"<?xml version=\"1.0\"?>\n");
