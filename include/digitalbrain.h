@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <cmath>
-//#include <vector>
+#include <vector>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -25,5 +25,5 @@
 #endif
 
 void ReadInputFile(const char* str);
-void WriteVTU(char * str);
+void WriteVTU(char * str, int, int);
 void FreeArrays();
