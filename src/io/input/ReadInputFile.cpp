@@ -13,7 +13,8 @@ int *mid;
 char **ElementType;
 int MAX_ELEMENT_TYPE_SIZE = 10;
 
-void ReadInputFile(const char* inputfile){
+bool ReadInputFile(const char* inputfile)
+{
 	char str[80];
 	int i,j;
 	// //printf() displays the string inside quotation
@@ -21,7 +22,9 @@ void ReadInputFile(const char* inputfile){
 	FILE *fp;
 	fp	= fopen(inputfile, "r");
 	if (fp == NULL)
-		exit(EXIT_FAILURE);
+	{
+        return false;
+	}
 
 	//printf("Will simulate using %s \n", inputfile);
 
@@ -289,5 +292,5 @@ void ReadInputFile(const char* inputfile){
 
 	/*close input file */
 	fclose(fp);
-	return;
+	return true;
 }

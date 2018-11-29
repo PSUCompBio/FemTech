@@ -1,13 +1,15 @@
 #include "digitalbrain.h"
 
 //-------------------------------------------------------------------------------------------
-// Creates eptr array for processor and returns it size.
+// Creates eptr array for processor and returns its size.
 // But it doesn't create eind array. MyEind pointer just points to part of the global "connectivity" array.
 // Returns size of that local part of the "connectivity" array.
 // Returns size of part array
+
+int world_rank;
+int world_size;
+//-------------------------------------------------------------------------------------------
 static void GetMyArrays(
-    const int world_size,
-    const int world_rank,
     const int nelements,
     const idx_t *elmdist,
     idx_t **MyEptr,
@@ -52,42 +54,34 @@ static void GetMyArrays(
     free(NodesCountPerElement);   
 }
 //-------------------------------------------------------------------------------------------
-void PartitionMesh(const char* InpuFileName)
+void MPI_Initialize()
 {
-    
 #if PARALLEL
     printf("This is a parallel build!\n");
     // Initialize the MPI environment
     MPI_Init(NULL, NULL);
 
     // Get the number of processes
-    int world_size;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
     // Get the rank of the process
-    int world_rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
     // Get the name of the processor
     char processor_name[MPI_MAX_PROCESSOR_NAME];
     int name_len;
     MPI_Get_processor_name(processor_name, &name_len);
-    MPI_Comm comm;
-    MPI_Comm_dup(MPI_COMM_WORLD, &comm);
 
     // Print off a hello world message
     printf("Hello world from processor %s, rank %d out of %d processors\n", processor_name, world_rank, world_size);
 #else 
     printf("This is NOT a parallel build!\n");
-    int world_rank = 0;
-    int world_size = 1;
-    MPI_Comm comm = MPI_COMM_WORLD;
 #endif
-
-    //read inputfile and initalize
-    printf("Let's do some stuff on processor ID %d\n", world_rank);
-    printf("This is argv[1]: %s\n", InpuFileName);
-    ReadInputFile(InpuFileName);
+}
+//-------------------------------------------------------------------------------------------
+void PartitionMesh()
+{
+    printf("Let's do some stuff on processor ID %d\n", world_rank);  
     
     // Options for ParMETIS
     idx_t options[3];
@@ -145,7 +139,7 @@ void PartitionMesh(const char* InpuFileName)
     // MyEindSize equals to value of MyEptr[MyEptrSize-1]
     idx_t *MyEptr, *MyEind;
     size_t MyEptrSize, MyEindSize, partArraySize;
-    GetMyArrays(world_size, world_rank, nelements, elmdist, &MyEptr, &MyEptrSize, &MyEind, &MyEindSize, &partArraySize);
+    GetMyArrays(nelements, elmdist, &MyEptr, &MyEptrSize, &MyEind, &MyEindSize, &partArraySize);
     printf("\nSize of eptr array in processor %d = %d", world_rank, MyEptrSize);
     printf("\neptr array in processor %d = ", world_rank);
     for (size_t i = 0; i < MyEptrSize; i++)
@@ -167,6 +161,8 @@ void PartitionMesh(const char* InpuFileName)
     idx_t *part = (idx_t *)calloc(partArraySize, sizeof(idx_t));
     
     printf("\nCalling ParMETIS_V3_PartMeshKway in processor %d", world_rank);
+    MPI_Comm comm;
+    MPI_Comm_dup(MPI_COMM_WORLD, &comm);
     const int Result = ParMETIS_V3_PartMeshKway(
             elmdist,
             MyEptr,
@@ -205,12 +201,4 @@ void PartitionMesh(const char* InpuFileName)
     free(elmdist);
     free(ubvec);
     free(tpwgts);
-
-    WriteVTU((char *)InpuFileName, world_size, world_rank);
-    FreeArrays();
-
-#if PARALLEL
-    // Finalize the MPI environment.
-    MPI_Finalize();
-#endif
 }

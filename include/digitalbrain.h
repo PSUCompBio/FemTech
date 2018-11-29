@@ -24,7 +24,12 @@
 	#include "parmetis.h"
 #endif
 
-void ReadInputFile(const char* str);
-void PartitionMesh(const char* str);
-void WriteVTU(char * str, int, int);
+void MPI_Initialize();
+
+bool ReadInputFile(const char* str);
+
+void PartitionMesh();
+
+void WriteVTU(char* str);
+
 void FreeArrays();
