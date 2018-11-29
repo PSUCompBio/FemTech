@@ -4,7 +4,7 @@
 void strip_ext(char *);
 
 
-void WriteVTU(char* outfile, int world_size, int world_rank){
+void WriteVTU(char* outfile){
 	FILE *fp;
 	int i,j;
 	char s[1000];
