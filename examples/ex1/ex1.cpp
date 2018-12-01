@@ -10,9 +10,28 @@ int main(int argc, char **argv)
     size_t partArraySize;
     if (ReadInputFile(argv[1], &elmdist, &MyEptr, &MyEind, &partArraySize))
     {
+		// After reading inputfile this block of code should work.
+		//printf("nelements = %d\n", nelements);
+		//printf("nnodes = %d\n", nnodes);
+		//for (int i = 0; i < nelements; i++) {
+		//	for (int j = MyEptr[i]; j < MyEptr[i + 1]; j++) {
+		//		printf("%d", MyEind[j]);
+		//	}
+		//}
+
         if (PartitionMesh(elmdist, MyEptr, MyEind, world_size, partArraySize, &edgecut, &part))
         {
             ExitStatus = EXIT_SUCCESS;
+			// After partitioning MyEptr and MyEind are redefined.
+			// This block of code should work and be updated.
+			//printf("nelements = %d\n", nelements);
+			//printf("nnodes = %d\n", nnodes);
+			//for (int i = 0; i < nelements; i++) {
+			//	for (int j = MyEptr[i]; j < MyEptr[i + 1]; j++) {
+			//		printf("%d", MyEind[j]);
+			//	}
+			//}
+
             PARTOUTPUT *Parts = SendReceivePartitioningOutput(edgecut, part, partArraySize);
             if (Parts != NULL)
             {
@@ -26,6 +45,9 @@ int main(int argc, char **argv)
                         printf("%d ", Parts[i].part[j]);
                     }
                     printf("\n");
+
+					//printf("p%d\n", world_rank);
+
                     free(Parts[i].part);
                 }
                 free(Parts);
@@ -38,6 +60,6 @@ int main(int argc, char **argv)
     }
     
     MPI_Finalize();
-    
+	printf("p%d: nelements=%d\n", world_rank,nelements);
     return ExitStatus;
 }
