@@ -1,62 +1,8 @@
 #include "digitalbrain.h"
 
 //-------------------------------------------------------------------------------------------
-// Creates eptr array for processor and returns its size.
-// But it doesn't create eind array. MyEind pointer just points to part of the global "connectivity" array.
-// Returns size of that local part of the "connectivity" array.
-// Returns size of part array
-
-int world_rank;
-int world_size;
-//-------------------------------------------------------------------------------------------
-static void GetMyArrays(
-    const int nelements,
-    const idx_t *elmdist,
-    idx_t **MyEptr,
-    size_t *MyEptrSize,
-    idx_t **MyEind,
-    size_t *MyEindSize,
-    size_t *partArraysize)
-{
-    const size_t MyElemensCount = elmdist[world_rank + 1] - elmdist[world_rank];
-    *MyEptrSize = MyElemensCount + 1;
-    *partArraysize = MyElemensCount;
-    *MyEindSize = 0;
-    *MyEptr = NULL;
-    *MyEind = NULL;
-    
-    int *NodesCountPerElement = (int *)malloc(nelements * sizeof(int));
-    for (int i = 1; i <= nelements; i++)
-    {
-        NodesCountPerElement[i - 1] = eptr[i] - eptr[i - 1];
-    }
-    
-    *MyEptr = (idx_t *)malloc(*MyEptrSize * sizeof(idx_t));
-
-    const size_t From = world_rank * nelements / world_size;
-    const size_t To = From + MyElemensCount - 1;
-    (*MyEptr)[0] = 0;
-    for (int i = 0, j = 0, n = 0, ie = 0; i < nelements; i++)
-    {
-        if (i >= From && i <= To)
-        {
-            n += NodesCountPerElement[i];
-            (*MyEptr)[++j] = n;
-            (*MyEindSize) += NodesCountPerElement[i];
-        }
-        if ((*MyEind) == NULL && i == From)
-        {
-            *MyEind = &connectivity[ie];
-        }
-        ie += NodesCountPerElement[i];
-    }
-    
-    free(NodesCountPerElement);   
-}
-//-------------------------------------------------------------------------------------------
 void MPI_Initialize()
 {
-#if PARALLEL
     printf("This is a parallel build!\n");
     // Initialize the MPI environment
     MPI_Init(NULL, NULL);
@@ -74,12 +20,14 @@ void MPI_Initialize()
 
     // Print off a hello world message
     printf("Hello world from processor %s, rank %d out of %d processors\n", processor_name, world_rank, world_size);
-#else 
-    printf("This is NOT a parallel build!\n");
-#endif
 }
 //-------------------------------------------------------------------------------------------
-void PartitionMesh()
+/*
+  This function must be called if/when ReadInputFile() returns true.
+  part array is output of this function. So the caller MUST FREE it when this function returns true.
+*/
+bool PartitionMesh(
+    idx_t *elmdist, idx_t *MyEptr, idx_t *MyEind, const idx_t NParts, const size_t partArraySize, idx_t *edgecut, idx_t **part)
 {
     printf("Let's do some stuff on processor ID %d\n", world_rank);  
     
@@ -90,7 +38,7 @@ void PartitionMesh()
     options[2] = 15; //seed for random number generator
 
     // Number of partitions (one for each process)
-    idx_t nparts = world_size; // number of parts equals number of processes
+    idx_t nparts = NParts; // number of parts equals number of processes
 
     // Strange weight arrays needed by ParMETIS
     idx_t ncon = 1; // number of balance constraints
@@ -98,7 +46,6 @@ void PartitionMesh()
     // Prepare remaining arguments for ParMETIS
     idx_t* elmwgt = NULL;
     idx_t wgtflag = 0; // we don't use weights
-    idx_t edgecut = 0; // output of ParMETIS_V3_PartMeshKway function
     idx_t numflag = 0; // we are using C-style arrays
     idx_t ncommonnodes = 2; // number of nodes elements must have in common
     
@@ -115,52 +62,12 @@ void PartitionMesh()
         ubvec[i] = (real_t)1.05; // weight tolerance (same weight tolerance for every weight there is)
     }
 
-    //ELMDIST: THIS ARRAY DESCRIBES HOW THE ELEMENTS OF THE MESH ARE DISTRIBUTED AMONG THE PROCESSORS.
-    //         IT IS ANALOGOUS TO THE VTXDIST ARRAY. ITS CONTENTS ARE IDENTICAL FOR EVERY PROCESSOR.
-    //         Size of this array equals to p + 1, where p is count of processors
-    idx_t *elmdist = (idx_t *)malloc((world_size + 1) * sizeof(idx_t));
-    for (int i = 0, n = 0; i <= world_size; i++)
-    {
-        elmdist[i] = n;
-        n += (nelements / world_size);
-    }
-    elmdist[world_size] += (nelements % world_size);
-     
-    printf("\nelmdist array = ");
-    for (int i = 0; i <= world_size; i++)
-    {
-        printf("%d  ", elmdist[i]);
-    }
-
-    // Creating local eptr array
-    // Size of this array equals to n + 1, where n is count of mesh elements local to processor
-    // This array indicates ranges in eind array
-    // MyEind points to part of "connectivity" array. Size of this part is returned in MyEindSize.
-    // MyEindSize equals to value of MyEptr[MyEptrSize-1]
-    idx_t *MyEptr, *MyEind;
-    size_t MyEptrSize, MyEindSize, partArraySize;
-    GetMyArrays(nelements, elmdist, &MyEptr, &MyEptrSize, &MyEind, &MyEindSize, &partArraySize);
-    printf("\nSize of eptr array in processor %d = %d", world_rank, MyEptrSize);
-    printf("\neptr array in processor %d = ", world_rank);
-    for (size_t i = 0; i < MyEptrSize; i++)
-    {
-        printf("%d  ", MyEptr[i]);
-    }
-
-    printf("\nSize of eind array in processor %d = %d", world_rank, MyEindSize);
-    printf("\neind array in processor %d = ", world_rank);
-    for (size_t i = 0; i < MyEindSize; i++)
-    {
-        printf("%d  ", MyEind[i]);
-    }
-    
     // part array is output of ParMETIS_V3_PartMeshKway() function
-    // Size of this array is resolved in GetMyArrays() function and equals to count of mesh elements local to processor
+    // Size of this array equals to count of mesh elements local to processor
     // This array indicates which processor i-th element belongs to
-    printf("\nSize of part array in processor %d = %d", world_rank, partArraySize);
-    idx_t *part = (idx_t *)calloc(partArraySize, sizeof(idx_t));
+    *edgecut = 0; // output of ParMETIS_V3_PartMeshKway function
+    *part = (idx_t *)calloc(partArraySize, sizeof(idx_t));
     
-    printf("\nCalling ParMETIS_V3_PartMeshKway in processor %d", world_rank);
     MPI_Comm comm;
     MPI_Comm_dup(MPI_COMM_WORLD, &comm);
     const int Result = ParMETIS_V3_PartMeshKway(
@@ -176,29 +83,21 @@ void PartitionMesh()
             tpwgts,
             ubvec,
             options,
-            &edgecut,
-            part,
+            edgecut,
+            *part,
             &comm);
 
     if (Result == METIS_OK)
     {
-        printf("\nPartitioning complete without error in processor %d", world_rank);    
-        printf("\nedgecut in processor %d = %d", world_rank, edgecut);
-        printf("\npart array in processor %d = ", world_rank);
-        for (size_t i = 0; i < partArraySize; i++)
-        {
-            printf("%d  ", part[i]);
-        }
-        printf("\n");
+        printf("\nPartitioning complete without error in processor %d\n", world_rank);    
     }
     else
     {
+        free(*part);
         printf("\nParMETIS returned error code %d\n", Result);
     }
 
-    free(part);
-    free(MyEptr);
-    free(elmdist);
     free(ubvec);
     free(tpwgts);
+    return Result == METIS_OK;
 }
