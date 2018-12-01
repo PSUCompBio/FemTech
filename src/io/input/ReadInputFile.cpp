@@ -12,285 +12,223 @@ int *pid;
 int *mid;
 char **ElementType;
 int MAX_ELEMENT_TYPE_SIZE = 10;
+int world_rank;
+int world_size;
 
-bool ReadInputFile(const char* inputfile)
+#define MAX_LINE 128
+
+//-------------------------------------------------------------------------------------------
+/*
+   Converts line into array of int or double if line contains
+   valid int/double separated by whitespase or tab.
+*/
+static size_t LineToArray(
+    const bool IntOrFloat,      // If true, will be converted to int else to double
+    const bool CheckLastVal,    // If true, if next column's value is the same as the last column's one, next coulmns won't be fetched
+    const int ColumnToStart,    // One-based index of column to start to fetch
+    const int ColumnCount,      // Number of columns to fetch. Will be used if greater than zero
+    const char *ConstLine,      // Line to convert
+    void **Array);              // Output array, int or double
+//-------------------------------------------------------------------------------------------
+/*
+   elmdist, processor's eptr and eind arrays are created in this function.
+   So the caller MUST FREE them when/if the function returns true.
+*/
+bool ReadInputFile(
+    const char *FileName,
+    idx_t **elmdist,
+    idx_t **MyEptr,
+    idx_t **MyEind,
+    size_t *partArraySize)
 {
-	char str[80];
-	int i,j;
-	// //printf() displays the string inside quotation
-	//printf("Hello Digital Brain!!\n");
-	FILE *fp;
-	fp	= fopen(inputfile, "r");
-	if (fp == NULL)
-	{
+    if (world_size < 1 || world_rank < 0 || world_rank >= world_size)
+    {
         return false;
-	}
+    }
 
-	//printf("Will simulate using %s \n", inputfile);
+    FILE *File;
+    if (FileName == NULL || strlen(FileName) == 0 || (File = fopen(FileName, "rt")) == NULL)
+    {
+        return false;
+    }
 
-	int flag;
-	int dummyint;
-	double dummyfloat;
-	int counter;
-	const int LENGTH_LINE = 100;
-	char line[LENGTH_LINE];
-	char * pch;
-	int len=0;
-	int nnodes_in_connectivity = 0;
+    char Line[MAX_LINE];
+    size_t AllElementsCount = 0;
+    long ElementsSectionPos = 0;
+    while (fgets(Line, sizeof(Line), File) != NULL)
+    {
+        if (strcmp(Line, "*ELEMENT_SOLID\n") == 0)
+        {
+            ElementsSectionPos = ftell(File);
+            while (fgets(Line, sizeof(Line), File) != NULL)
+            {
+                if (LineToArray(true, true, 3, 0, Line, NULL) > 0)
+                {
+                    AllElementsCount++;
+                }
+                if (strcmp(Line, "*NODE\n") == 0)
+                {
+                    break;
+                }
+            }
+        }
+    }
 
-/*	Parse Input file and get global vaiables */
-	while (fscanf(fp,"%s",str) != EOF) {
-		if(strcmp(str, "*PART")==0){
-			////printf("%s\n",str);
-			flag=0;
-			while (flag!=1){
-				fscanf(fp,"%s",str);
-				////printf("i:%s\n",str);
-					if (strcmp(str,"tmid")==0) {
-						flag=1;
-						nparts++;
-					}
-			}
-		}
-		if(strcmp(str, "*ELEMENT_SOLID")==0){
-			////printf("%s\n",str);
-			for(i=0;i<11;i++){
-				fscanf(fp,"%s",str);
-				////printf("%s\n",str);
-			}
-			flag=0;
-			
-			while ( flag != 1 ){
-				fscanf(fp,"%s", str);
-				////printf("%s\n",str);
-				if (strcmp(str,"*NODE")==0) {
-						flag=1;
-				}
-				else {
-					nelements++;
-					fgets(line, LENGTH_LINE, fp);
-					//printf("line: %s\n", line);
-					pch = strtok(line, " ,.-");
-					int j = 0;
-					int k = 0;
-					int dummyint_last = -1;
-					while (pch != NULL){
-						////printf("%s\n", pch);
-						dummyint = atoi(pch);
-						////printf("dummyint = %d\n", dummyint);
-						if (k>0 && dummyint != dummyint_last) {
-							// different vertex
-							j++;
-						}
-						else if (k>0 && dummyint == dummyint_last) {
-							//same vertex
-							////printf("same vertex; vert not counted...\n");
-						}
-						if (k > 0) {
-							dummyint_last = dummyint;
-						}
-						pch = strtok(NULL, " ,.-");
-						k++;
-					}
-					//printf("this element has %d different nodes\n", j);
-					nnodes_in_connectivity = nnodes_in_connectivity + j;
-				}
-				//printf("\n");
-			}
-		 }
+    if (AllElementsCount == 0 || fseek(File, ElementsSectionPos, SEEK_SET) != 0)
+    {
+        fclose(File);
+        return false;
+    }
 
-		if(strcmp(str, "*NODE")==0){
-			////printf("%s\n",str);
-			for(i=0;i<7;i++){
-				fscanf(fp,"%s",str);
-				////printf("sq:%s\n",str);
-			}
-			ndim=3;
-			flag=0;
-			while( flag != 1 ){
-				fscanf(fp,"%s", str);
-				////printf("%s\n",str);
-				if (strcmp(str,"*END")==0) {
-					flag=1;
-					////printf("%s\n",str);
-				}
-				else {
-					nnodes++;
-					for(i=0;i<ndim;i++){
-							dummyfloat=0.0;
-							fscanf(fp,"%lf",&dummyfloat);
-							////printf("%f ",dummyfloat);
-					}
-					for(i=0;i<2;i++){
-							fscanf(fp,"%d",&dummyint);
-							////printf("%d ",dummyint);
-					}
-					////printf("\n");
-				}
-			}
-		}
-	}
+    //ELMDIST: THIS ARRAY DESCRIBES HOW THE ELEMENTS OF THE MESH ARE DISTRIBUTED AMONG THE PROCESSORS.
+    //         IT IS ANALOGOUS TO THE VTXDIST ARRAY. ITS CONTENTS ARE IDENTICAL FOR EVERY PROCESSOR.
+    //         Size of this array equals to p + 1, where p is count of processors       
+    *elmdist = (idx_t *)calloc(world_size + 1, sizeof(idx_t));
+    for (int i = 0, n = 0; i <= world_size; i++)
+    {
+        (*elmdist)[i] = n;
+        n += (AllElementsCount / world_size);
+    }
+    (*elmdist)[world_size] += (AllElementsCount % world_size);
 
-	//printf("ndim=%d\n",ndim);
-	//printf("nnodes=%d\n",nnodes);
-	//printf("nelements=%d\n",nelements);
-	//printf("nnodes_in_connect = %d\n", nnodes_in_connectivity);
-	//printf("nparts=%d\n",nparts);
-	
-	/* initalize arrays */
-	coordinates = (double*)malloc((ndim*nnodes)* sizeof(double));
-	pid = (int*)malloc((nelements)* sizeof(int));
-	mid = (int*)malloc((nelements)* sizeof(int));
-	eptr = (int*)malloc((nelements+1) * sizeof(int));
-	connectivity = (int*)malloc(nnodes_in_connectivity * sizeof(int));
-	ElementType = (char**)malloc((MAX_ELEMENT_TYPE_SIZE*nelements)* sizeof(char));
+    const size_t MyElementsCount = (*elmdist)[world_rank + 1] - (*elmdist)[world_rank];
+    const size_t MyEptrSize = MyElementsCount + 1;
+    *partArraySize = MyElementsCount;
+    size_t MyEindSize = 0;
 
-	//initalize coordinates
-	for (i=0;i<nnodes;i++){
-		for (j=0;j<ndim;j++){
-			coordinates[ndim*i+j]=0.0;
-		}
-	}
-	//initalize material, part and pointer arrays
-	for (i=0;i<nelements;i++){
-		mid[i]=0;
-		pid[i]=0;
-		eptr[i] = 0;
-	}
+    size_t *NodesCountPerElement = (size_t *)calloc(AllElementsCount, sizeof(size_t));
+    size_t i = 0;
+    while (fgets(Line, sizeof(Line), File) != NULL)
+    {
+        const size_t n = LineToArray(true, true, 3, 0, Line, NULL);
+        if (n == 0)
+        {
+            continue;
+        }
+        else if (i < AllElementsCount)
+        {
+            NodesCountPerElement[i] = n;
+        }
+        if (strcmp(Line, "*NODE\n") == 0)
+        {
+            break;
+        }
+        i++;
+    }
+    const size_t From = world_rank * AllElementsCount / world_size;
+    const size_t To = From + MyElementsCount - 1;
+    *MyEptr = (idx_t *)calloc(MyEptrSize, sizeof(idx_t));
+    for (size_t i = 0, j = 0, n = 0; i < AllElementsCount; i++)
+    {
+        if (i >= From && i <= To)
+        {
+            n += NodesCountPerElement[i];
+            (*MyEptr)[++j] = n;
+            MyEindSize += NodesCountPerElement[i];
+        }
+    }
+    free(NodesCountPerElement);
 
-	//initalize connectivity
-	for (j = 0; j < nnodes_in_connectivity; j++) {
-		connectivity[j] = 0;
-	}
+    if (MyEindSize != ((*MyEptr)[MyElementsCount]) || fseek(File, ElementsSectionPos, SEEK_SET) != 0)
+    {
+        fclose(File);
+        free(*MyEptr);
+        free(*elmdist);
+        return false;
+    }
 
-	/*rewind input file */
-	rewind(fp);
+    i = 0;
+    size_t ei = 0;
+    *MyEind = (idx_t *)calloc(MyEindSize, sizeof(idx_t));
+    while (fgets(Line, sizeof(Line), File) != NULL)
+    {
+        int *Nodes;
+        const size_t n = LineToArray(true, true, 3, 0, Line, (void**)&Nodes);
+        if (n == 0)
+        {
+            continue;
+        }
+        else if (i >= From && i <= To)
+        {
+            for (size_t j = 0; j < n; j++)
+            {
+                (*MyEind)[ei++] = Nodes[j];
+            }
+        }
+        free(Nodes);
+        if (strcmp(Line, "*NODE\n") == 0)
+        {
+            break;
+        }
+        i++;
+    }
 
-	/* Read input and place values into arrays */
-	while (fscanf(fp,"%s",str) != EOF) {
-		if(strcmp(str, "*PART")==0){
-			////printf("%s\n",str);
-			flag=0;
-			while (flag!=1){
-				fscanf(fp,"%s",str);
-				////printf("i:%s\n",str);
-				if (strcmp(str,"tmid")==0) {
-					flag=1;
-				}
-			}
-		}
-		if(strcmp(str, "*ELEMENT_SOLID")==0){
-			////printf("%s\n",str);
-			for(i=0;i<11;i++){
-				fscanf(fp,"%s",str);
-				////printf("%s\n",str);
-			}
-			flag=0;
-			counter=0;
-			int j = 0;
-			int start_counter = 0;
-			int end_counter = 0;
-			while ( flag != 1 ){
-				fscanf(fp,"%s", str);
-				////printf("%s\n",str);
-				if (strcmp(str,"*NODE")==0) {
-						flag=1;
-				}
-				else {
-					fgets(line, LENGTH_LINE, fp);
-					//printf("line: %s\n", line);
-					pch = strtok(line, " ,.-");
-					nnodes_in_connectivity = 0;
-					int k = 0;
-					int dummyint_last = -1;
-					while (pch != NULL) {
-						////printf("%s\n", pch);
-						dummyint = atoi(pch);
-						////printf("dummyint = %d\n", dummyint);
-						if (k == 0) {
-							pid[counter] = dummyint;
-						}
-						if (k > 0 && dummyint != dummyint_last) {
-							// different vertex
-							connectivity[j] = dummyint;
-							j++;
-							nnodes_in_connectivity++;
-						}
-						else if (k > 0 && dummyint == dummyint_last) {
-							//same vertex
-							////printf("same vertex; vert not counted...\n");
-						}
-						if (k > 0) {
-							dummyint_last = dummyint;
-						}
-						pch = strtok(NULL, " ,.-");
-						k++;
-					}
-					end_counter = start_counter + nnodes_in_connectivity;
-					eptr[counter] = start_counter;
-					eptr[counter+1] = end_counter;
-					//printf("this element has %d different nodes, start %d -> end %d\n", nnodes_in_connectivity, start_counter,end_counter);
-					start_counter = end_counter;
-				}
-				////printf("\n");
-				counter++;
-			}
-			}
-		if(strcmp(str, "*NODE")==0){
-			////printf("%s\n",str);
-			for(i=0;i<7;i++){
-				fscanf(fp,"%s",str);
-				////printf("sq:%s\n",str);
-			}
-			flag=0;
-			counter=0;
-			while( flag != 1 ){
-				fscanf(fp,"%s", str);
-				////printf("%s\n",str);
-				if (strcmp(str,"*END")==0) {
-					flag=1;
-					////printf("%s\n",str);
-				}
-				else {
-					//nnodes++;
-					dummyint = atoi(str);
-					////printf("counter:%d, nid:%d ",counter,dummyint);
-					for(i=0;i<ndim;i++){
-							fscanf(fp,"%lf",&coordinates[ndim*counter+i]);
-							////printf("%5.5f  ",coordinates[ndim*counter+i]);
-					}
-					//read tc and rc from k file
-					for(i=0;i<2;i++){
-							fscanf(fp,"%d",&dummyint);
-							////printf("%d ",dummyint);
-					}
-					////printf("\n");
-					counter++;
-				}
-			}
-		}
-	}
-
-	// remove 1 from connectivity so node referencing
-	// is correct
-	for(i=0;i<nelements;i++){
-		for(j=eptr[i];j<eptr[i+1];j++){
-		 connectivity[j]--;
-		}
-	}
-
-	//assign element type
-	for (i = 0; i < nelements; i++) {
-		if ((eptr[i + 1] - eptr[i]) == 8) {
-			ElementType[i] = (char *)"C3D8";
-		}
-		if ((eptr[i + 1] - eptr[i]) == 4) {
-			ElementType[i] = (char *)"C3D4";
-		}
-	}
-	
-
-	/*close input file */
-	fclose(fp);
-	return true;
+    fclose(File);
+    return true;
 }
+//-------------------------------------------------------------------------------------------
+static size_t LineToArray(
+    const bool IntOrFloat, const bool CheckLastVal, const int ColumnToStart,
+    const int ColumnCount, const char *ConstLine, void **Array)
+{
+    size_t Result = 0;
+    char Line[MAX_LINE];
+    strcpy(Line, ConstLine);
+    double LastVal = INT_MAX;
+    int Column = 0;
+    char *T = strtok(Line, " \t");
+    while (T != NULL)
+    {
+        char *EndPtr;
+        const double Val = strtod(T, &EndPtr);
+        if (EndPtr == T)
+        {
+            // Error. Token in a line cannot be converted to number.
+            return 0;
+        }
+        T = strtok(NULL, " \t");
+        if (++Column < ColumnToStart)
+        {
+            // Skip columns to go to required ones.
+            continue;
+        }
+        if ((CheckLastVal && Val == LastVal) || (ColumnCount > 0 && Result >= ColumnCount))
+        {
+            // Stop fetching columns.
+            break;
+        }
+        LastVal = Val;
+        Result += 1;
+    }
+
+    if (Result == 0 || Array == NULL)
+    {
+        return Result;
+    }
+
+    strcpy(Line, ConstLine);
+    *Array = calloc(Result, IntOrFloat ? sizeof(int) : sizeof(double));
+    size_t i = 0;
+    Column = 0;
+    T = strtok(Line, " \t");
+    while (T != NULL && i < Result)
+    {
+        const double Val = strtod(T, NULL);
+        T = strtok(NULL, " \t");
+        if (++Column < ColumnToStart)
+        {
+            continue;
+        }
+        if (IntOrFloat)
+        {
+            ((int *)*Array)[i] = Val;
+        }
+        else
+        {
+            ((double *)*Array)[i] = Val;
+        }
+        i++;
+    }
+    return Result;
+}
+
