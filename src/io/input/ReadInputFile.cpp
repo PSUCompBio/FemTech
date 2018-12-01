@@ -65,6 +65,7 @@ bool ReadInputFile(
                 if (LineToArray(true, true, 3, 0, Line, NULL) > 0)
                 {
                     AllElementsCount++;
+					//printf("P%d: Line: %s", world_rank, Line);
                 }
                 if (strcmp(Line, "*NODE\n") == 0)
                 {
@@ -95,7 +96,7 @@ bool ReadInputFile(
     const size_t MyEptrSize = MyElementsCount + 1;
     *partArraySize = MyElementsCount;
     size_t MyEindSize = 0;
-
+	//printf("P%d: MyElementsCount: %d\n", world_rank, MyElementsCount);
     size_t *NodesCountPerElement = (size_t *)calloc(AllElementsCount, sizeof(size_t));
     size_t i = 0;
     while (fgets(Line, sizeof(Line), File) != NULL)
@@ -163,6 +164,24 @@ bool ReadInputFile(
         i++;
     }
 
+	idx_t *eptr = *MyEptr;
+	idx_t *eind = *MyEind;
+	printf("\neptr in processor %d = ", world_rank);
+	for (size_t i = 0; i < MyEptrSize; i++){
+		printf("%d ", eptr[i]);
+	}
+	printf("\n");
+
+	printf("\neind in processor %d = \n", world_rank);
+	for (size_t i = 0; i < MyEptrSize - 1; i++){
+		printf("p%d, element %d: ",world_rank, i);
+		for (size_t j = eptr[i]; j < eptr[i + 1]; j++){
+			printf("%d ", eind[j]);
+		}
+		printf("\n");
+	}
+	printf("\n");
+	
     fclose(File);
     return true;
 }
