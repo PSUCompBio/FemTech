@@ -15,20 +15,7 @@ int MAX_ELEMENT_TYPE_SIZE = 10;
 int world_rank;
 int world_size;
 
-#define MAX_LINE 128
 
-//-------------------------------------------------------------------------------------------
-/*
-   Converts line into array of int or double if line contains
-   valid int/double separated by whitespase or tab.
-*/
-static size_t LineToArray(
-    const bool IntOrFloat,      // If true, will be converted to int else to double
-    const bool CheckLastVal,    // If true, if next column's value is the same as the last column's one, next coulmns won't be fetched
-    const int ColumnToStart,    // One-based index of column to start to fetch
-    const int ColumnCount,      // Number of columns to fetch. Will be used if greater than zero
-    const char *ConstLine,      // Line to convert
-    void **Array);              // Output array, int or double
 //-------------------------------------------------------------------------------------------
 /*
    elmdist, processor's eptr and eind arrays are created in this function.
@@ -39,21 +26,23 @@ bool ReadInputFile(
     idx_t **elmdist,
     idx_t **MyEptr,
     idx_t **MyEind,
-    size_t *partArraySize)
+    int   *partArraySize)
 {
     if (world_size < 1 || world_rank < 0 || world_rank >= world_size)
     {
+        printf("\nERROR( proc %d ): 'world_size' and/or 'world_rank' variable is not valid.\n", world_rank);
         return false;
     }
 
     FILE *File;
     if (FileName == NULL || strlen(FileName) == 0 || (File = fopen(FileName, "rt")) == NULL)
     {
+        printf("\nERROR( proc %d ): Failed to open input file.\n", world_rank);
         return false;
     }
 
-    char Line[MAX_LINE];
-    size_t AllElementsCount = 0;
+    char Line[MAX_FILE_LINE];
+    int AllElementsCount = 0;
     long ElementsSectionPos = 0;
     while (fgets(Line, sizeof(Line), File) != NULL)
     {
@@ -78,6 +67,14 @@ bool ReadInputFile(
     if (AllElementsCount == 0 || fseek(File, ElementsSectionPos, SEEK_SET) != 0)
     {
         fclose(File);
+        if (AllElementsCount == 0)
+        {
+            printf("\nERROR( proc %d ): No elemens found. This means input file is empty or contains invalid data.\n", world_rank);
+        }
+        else
+        {
+            printf("\nERROR( proc %d ): 'fseek()' call failed.\n", world_rank);
+        }
         return false;
     }
 
@@ -92,16 +89,16 @@ bool ReadInputFile(
     }
     (*elmdist)[world_size] += (AllElementsCount % world_size);
 
-    const size_t MyElementsCount = (*elmdist)[world_rank + 1] - (*elmdist)[world_rank];
-    const size_t MyEptrSize = MyElementsCount + 1;
+    const int MyElementsCount = (*elmdist)[world_rank + 1] - (*elmdist)[world_rank];
+    const int MyEptrSize = MyElementsCount + 1;
     *partArraySize = MyElementsCount;
-    size_t MyEindSize = 0;
-	//printf("P%d: MyElementsCount: %d\n", world_rank, MyElementsCount);
-    size_t *NodesCountPerElement = (size_t *)calloc(AllElementsCount, sizeof(size_t));
-    size_t i = 0;
+    int MyEindSize = 0;
+
+    int *NodesCountPerElement = (int *)calloc(AllElementsCount, sizeof(int));
+    int i = 0;
     while (fgets(Line, sizeof(Line), File) != NULL)
     {
-        const size_t n = LineToArray(true, true, 3, 0, Line, NULL);
+        const int n = LineToArray(true, true, 3, 0, Line, NULL);
         if (n == 0)
         {
             continue;
@@ -116,10 +113,10 @@ bool ReadInputFile(
         }
         i++;
     }
-    const size_t From = world_rank * AllElementsCount / world_size;
-    const size_t To = From + MyElementsCount - 1;
+    const int From = world_rank * AllElementsCount / world_size;
+    const int To = From + MyElementsCount - 1;
     *MyEptr = (idx_t *)calloc(MyEptrSize, sizeof(idx_t));
-    for (size_t i = 0, j = 0, n = 0; i < AllElementsCount; i++)
+    for (int i = 0, j = 0, n = 0; i < AllElementsCount; i++)
     {
         if (i >= From && i <= To)
         {
@@ -135,25 +132,33 @@ bool ReadInputFile(
         fclose(File);
         free(*MyEptr);
         free(*elmdist);
+        if (MyEindSize != ((*MyEptr)[MyElementsCount]))
+        {
+            printf("\nERROR( proc %d ): Size of 'eind' array is not vald.\n", world_rank);
+        }
+        else
+        {
+            printf("\nERROR( proc %d ): 'fseek()' call failed.\n", world_rank);
+        }
         return false;
     }
 
     i = 0;
-    size_t ei = 0;
+    int ei = 0;
     *MyEind = (idx_t *)calloc(MyEindSize, sizeof(idx_t));
     while (fgets(Line, sizeof(Line), File) != NULL)
     {
         int *Nodes;
-        const size_t n = LineToArray(true, true, 3, 0, Line, (void**)&Nodes);
+        const int n = LineToArray(true, true, 3, 0, Line, (void**)&Nodes);
         if (n == 0)
         {
             continue;
         }
         else if (i >= From && i <= To)
         {
-            for (size_t j = 0; j < n; j++)
+            for (int j = 0; j < n; j++)
             {
-                (*MyEind)[ei++] = Nodes[j];
+                (*MyEind)[ei++] = Nodes[j] - 1; // Subtracting 1 from node numbers
             }
         }
         free(Nodes);
@@ -164,34 +169,45 @@ bool ReadInputFile(
         i++;
     }
 
-	idx_t *eptr = *MyEptr;
-	idx_t *eind = *MyEind;
-	printf("\neptr in processor %d = ", world_rank);
-	for (size_t i = 0; i < MyEptrSize; i++){
-		printf("%d ", eptr[i]);
-	}
-	printf("\n");
+    idx_t *eptr = *MyEptr;
+    idx_t *eind = *MyEind;
+    
+    printf("\neptr array in processor %d before partitioning = ", world_rank);
+    for (int i = 0; i < MyEptrSize ; i++)
+    {
+        printf("%d ", eptr[i]);
+    }
+    printf("\n");
 
-	printf("\neind in processor %d = \n", world_rank);
-	for (size_t i = 0; i < MyEptrSize - 1; i++){
-		printf("p%d, element %d: ",world_rank, i);
-		for (size_t j = eptr[i]; j < eptr[i + 1]; j++){
-			printf("%d ", eind[j]);
-		}
-		printf("\n");
-	}
-	printf("\n");
-	
+    printf("\neind array in processor %d before partitioning =", world_rank);
+    for (int i = 0; i < MyEptrSize - 1; i++)
+    {
+        printf(" (%d)  ", i);
+        for (int j = eptr[i]; j < eptr[i + 1]; j++)
+        {
+            printf("%d ", eind[j]);
+        }
+    }
+    printf("\n");
+
     fclose(File);
     return true;
 }
 //-------------------------------------------------------------------------------------------
-static size_t LineToArray(
-    const bool IntOrFloat, const bool CheckLastVal, const int ColumnToStart,
-    const int ColumnCount, const char *ConstLine, void **Array)
+/*
+   Converts line into array of int or double if line contains
+   valid int/double separated by whitespase or tab.
+*/
+int LineToArray(
+    const bool IntOrFloat,      // If true, will be converted to int else to double
+    const bool CheckLastVal,    // If true, if next column's value is the same as the last column's one, next coulmns won't be fetched
+    const int ColumnToStart,    // One-based index of column to start to fetch
+    const int ColumnCount,      // Number of columns to fetch. Will be used if greater than zero
+    const char *ConstLine,      // Line to convert
+    void **Array)               // Output array, int or double
 {
-    size_t Result = 0;
-    char Line[MAX_LINE];
+    int Result = 0;
+    char Line[MAX_FILE_LINE];
     strcpy(Line, ConstLine);
     double LastVal = INT_MAX;
     int Column = 0;
@@ -227,7 +243,7 @@ static size_t LineToArray(
 
     strcpy(Line, ConstLine);
     *Array = calloc(Result, IntOrFloat ? sizeof(int) : sizeof(double));
-    size_t i = 0;
+    int i = 0;
     Column = 0;
     T = strtok(Line, " \t");
     while (T != NULL && i < Result)

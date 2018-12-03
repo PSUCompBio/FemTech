@@ -24,7 +24,7 @@ void WriteVTU(char* outfile){
 	fprintf(fp,"<?xml version=\"1.0\"?>\n");
 	fprintf(fp,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n");
 	fprintf(fp,"\t<UnstructuredGrid>\n");
-	fprintf(fp,"\t\t<Piece NumberOfPoints=\"%d\" NumberOfCells=\"%d\">\n",nnodes,nelements);
+	fprintf(fp,"\t\t<Piece NumberOfPoints=\"%d\" NumberO fCells=\"%d\">\n",nnodes,nelements);
 	// write coordinates
 	fprintf(fp,"\t\t\t<Points>\n");
 	fprintf(fp,"\t\t\t\t<DataArray type=\"Float64\" NumberOfComponents=\"%d\" format=\"ascii\">\n",ndim);

@@ -3,7 +3,7 @@
 //-------------------------------------------------------------------------------------------
 void MPI_Initialize()
 {
-    printf("This is a parallel build!\n");
+    //printf("This is a parallel build!\n");
     // Initialize the MPI environment
     MPI_Init(NULL, NULL);
 
@@ -27,9 +27,9 @@ void MPI_Initialize()
   part array is output of this function. So the caller MUST FREE it when this function returns true.
 */
 bool PartitionMesh(
-    idx_t *elmdist, idx_t *MyEptr, idx_t *MyEind, const idx_t NParts, const size_t partArraySize, idx_t *edgecut, idx_t **part)
+    idx_t *elmdist, idx_t *MyEptr, idx_t *MyEind, const idx_t NParts, const int partArraySize, idx_t *edgecut, idx_t **part)
 {
-    printf("Let's do some stuff on processor ID %d\n", world_rank);  
+    //printf("Let's do some stuff on processor ID %d\n", world_rank);  
     
     // Options for ParMETIS
     idx_t options[3];
@@ -49,7 +49,7 @@ bool PartitionMesh(
     idx_t numflag = 0; // we are using C-style arrays
     idx_t ncommonnodes = 2; // number of nodes elements must have in common
     
-    const size_t tpwgts_size = ncon * nparts;
+    const int tpwgts_size = ncon * nparts;
     real_t *tpwgts = (real_t *)malloc(tpwgts_size * sizeof(real_t));
     for (int i = 0; i < tpwgts_size; i++)
     {
@@ -87,14 +87,10 @@ bool PartitionMesh(
             *part,
             &comm);
 
-    if (Result == METIS_OK)
-    {
-        printf("\nPartitioning complete without error in processor %d\n", world_rank);    
-    }
-    else
+    if (Result != METIS_OK)
     {
         free(*part);
-        printf("\nParMETIS returned error code %d\n", Result);
+        printf("\nERROR( proc %d ): ParMETIS returned error code %d\n", world_rank, Result);
     }
 
     free(ubvec);
