@@ -25,45 +25,68 @@
 
 
 //-------------------------------------------------------------------------------------------
+#define MAX_FILE_LINE 128
+
 // Partitioning output
 typedef struct
 {
     idx_t edgecut;
     idx_t *part;
-    size_t part_size;
+    int part_size;
 } PARTOUTPUT;
 
 // Element that contains "Count" nodes
 typedef struct
 {
     int *Nodes;
-    size_t Count;
-} ELEMENT;
+    int Count;
+    int PartNumber; 
+} ELEMENT, *PELEMENT;
 
+// Partition that contains "Count" elements
+typedef struct
+{
+    PELEMENT *Elements;
+    int Count;
+    idx_t *Eptr;
+} PARTITION;
 
 //-------------------------------------------------------------------------------------------
 void MPI_Initialize();
+
+int LineToArray(
+    const bool IntOrFloat,
+    const bool CheckLastVal,
+    const int ColumnToStart,
+    const int ColumnCount,
+    const char *ConstLine,
+    void **Array);
 
 bool ReadInputFile(
     const char *FileName,
     idx_t **elmdist,
     idx_t **MyEptr,
     idx_t **MyEind,
-    size_t *partArraySize);
+    int   *partArraySize);
 
 bool PartitionMesh(
     idx_t *elmdist,
     idx_t *MyEptr,
     idx_t *MyEind,
     const idx_t NParts,
-    const size_t partArraySize,
+    const int partArraySize,
     idx_t *edgecut,
     idx_t **part);
 
 PARTOUTPUT *SendReceivePartitioningOutput(
     const idx_t edgecut,
     idx_t *part,
-    const size_t partArraySize);
+    const int partArraySize);
+
+bool CreatePartitions(
+    const char *FileName,
+    int NParts,
+    const PARTOUTPUT *Parts);
 
 void WriteVTU(char* str);
 
