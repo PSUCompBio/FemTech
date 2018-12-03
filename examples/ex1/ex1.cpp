@@ -12,7 +12,7 @@ int main(int argc, char **argv)
     
     if (ReadInputFile(argv[1], &elmdist, &MyEptr, &MyEind, &partArraySize))
     {
-        if (PartitionMesh(elmdist, MyEptr, MyEind, NParts, partArraySize, &edgecut, &part))
+        if (PartitionMesh(elmdist, MyEptr, MyEind, world_size, partArraySize, &edgecut, &part))
         {
             ExitStatus = EXIT_SUCCESS;
             PARTOUTPUT *Parts = SendReceivePartitioningOutput(edgecut, part, partArraySize);
@@ -34,6 +34,6 @@ int main(int argc, char **argv)
     }
     
     MPI_Finalize();
-    
+	  printf("p%d: nelements=%d\n", world_rank,nelements);
     return ExitStatus;
 }

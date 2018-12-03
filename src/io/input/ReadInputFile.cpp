@@ -54,6 +54,7 @@ bool ReadInputFile(
                 if (LineToArray(true, true, 3, 0, Line, NULL) > 0)
                 {
                     AllElementsCount++;
+					//printf("P%d: Line: %s", world_rank, Line);
                 }
                 if (strcmp(Line, "*NODE\n") == 0)
                 {
