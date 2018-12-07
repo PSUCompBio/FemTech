@@ -49,6 +49,5 @@ int main(int argc, char **argv)
     }
     
     MPI_Finalize();
-	  printf("p%d: nelements=%d\n", world_rank,nelements);
     return ExitStatus;
 }
