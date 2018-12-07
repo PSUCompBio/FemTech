@@ -1,8 +1,9 @@
 #include "digitalbrain.h"
 
 static ELEMENT *ReadAllElements(const char *FileName, int *Count);
+static void FreeParMETISOutput(PARTOUTPUT *Parts);
 //-------------------------------------------------------------------------------------------
-bool CreatePartitions(const char *FileName, int NParts, const PARTOUTPUT *Parts)
+int CreatePartitions(const char *FileName, int NParts, PARTOUTPUT *Parts, PARTITION **PartitionsP)
 {
     // Reading elements for temporary use
     int AllElementsCount;
@@ -10,9 +11,22 @@ bool CreatePartitions(const char *FileName, int NParts, const PARTOUTPUT *Parts)
     if (AllElements == NULL)
     {
         printf("\nERROR( proc %d ): Couldn't read elements from input file.\n", world_rank);
-        return false;
+        FreeParMETISOutput(Parts);
+        return 0;
     }
     
+    // Printing all elements
+    printf("\nAll elements = ");
+    for (int i = 0; i < AllElementsCount; i++)
+    {
+        printf(" (%d)  ", i);
+        for (int j = 0; j < AllElements[i].Count; j++)
+        {
+            printf("%d ", AllElements[i].Nodes[j]);
+        }
+    }
+    printf("\n");
+
     // Calculating number of parts using part arrays and assigning part number/id for each element
     int nparts = 0;
     for (int i = 0, ei = 0; i < world_size; i++)
@@ -36,13 +50,15 @@ bool CreatePartitions(const char *FileName, int NParts, const PARTOUTPUT *Parts)
             free(AllElements[i].Nodes);
         }
         free(AllElements);
-        return false;
+        FreeParMETISOutput(Parts);
+        return 0;
     }
 
     NParts = nparts + 1;
     
     // Creating partitions
     PARTITION *Partitions = (PARTITION *)calloc(NParts, sizeof(PARTITION));
+    *PartitionsP = Partitions;
     for (int i = 0; i < NParts; i++)
     {
         for (int j = 0; j < world_size; j++)
@@ -55,7 +71,7 @@ bool CreatePartitions(const char *FileName, int NParts, const PARTOUTPUT *Parts)
                 }
             }
         }
-        Partitions[i].Elements = (PELEMENT *)calloc(Partitions[i].Count, sizeof(PELEMENT));
+        Partitions[i].Elements = (ELEMENT *)calloc(Partitions[i].Count, sizeof(ELEMENT));
     }
 
     // Assigning elements to partitions
@@ -63,13 +79,17 @@ bool CreatePartitions(const char *FileName, int NParts, const PARTOUTPUT *Parts)
     {
         for (int j = 0; j < Partitions[i].Count; j++)
         {
-            if (Partitions[i].Elements[j] == NULL)
+            if (Partitions[i].Elements[j].Nodes == NULL)
             {
                 for (int k = 0; k < AllElementsCount; k++)
                 {
                     if (AllElements[k].PartNumber == i)
                     {
-                        Partitions[i].Elements[j] = &AllElements[k];
+                        Partitions[i].Elements[j] = AllElements[k];
+                        Partitions[i].Elements[j].Nodes = (int *)calloc(AllElements[k].Count, sizeof(int));
+                        memcpy(Partitions[i].Elements[j].Nodes, AllElements[k].Nodes, AllElements[k].Count * sizeof(int));
+                        free(AllElements[k].Nodes);
+                        AllElements[k].Nodes = NULL;
                         AllElements[k].PartNumber = -1;
                         break;
                     }
@@ -87,23 +107,13 @@ bool CreatePartitions(const char *FileName, int NParts, const PARTOUTPUT *Parts)
             Partitions[i].Eptr[j] = n;
             if (j < Partitions[i].Count)
             {
-                n += Partitions[i].Elements[j]->Count;
+                n += Partitions[i].Elements[j].Count;
             }
         }
     }
     
     
     // Printing partitions
-    printf("\nAll elements = ");
-    for (int i = 0; i < AllElementsCount; i++)
-    {
-        printf(" (%d)  ", i);
-        for (int j = 0; j < AllElements[i].Count; j++)
-        {
-            printf("%d ", AllElements[i].Nodes[j]);
-        }
-    }
-    printf("\n");
     for (int i = 0; i < NParts; i++)
     {
         printf("\nPartition %d:\n", i);
@@ -116,9 +126,9 @@ bool CreatePartitions(const char *FileName, int NParts, const PARTOUTPUT *Parts)
         for (int j = 0; j < Partitions[i].Count; j++)
         {
             printf(" (%d)  ", j);
-            for (int k = 0; k < Partitions[i].Elements[j]->Count; k++)
+            for (int k = 0; k < Partitions[i].Elements[j].Count; k++)
             {
-                printf("%d ", Partitions[i].Elements[j]->Nodes[k]);
+                printf("%d ", Partitions[i].Elements[j].Nodes[k]);
             }
         }
         printf("\n");
@@ -126,19 +136,17 @@ bool CreatePartitions(const char *FileName, int NParts, const PARTOUTPUT *Parts)
     printf("\n");
 
     // Freeing arrays
-    for (int i = 0; i < NParts; i++)
-    {
-        free(Partitions[i].Eptr);
-        free(Partitions[i].Elements);
-    }
-    free(Partitions);
+    FreeParMETISOutput(Parts);
     for (int i = 0; i < AllElementsCount; i++)
     {
-        free(AllElements[i].Nodes);
+        if (AllElements[i].Nodes != NULL)
+        {
+            free(AllElements[i].Nodes);
+        }
     }
     free(AllElements);
-
-    return true;
+    
+    return NParts;
 }
 
 //-------------------------------------------------------------------------------------------
@@ -162,7 +170,7 @@ static ELEMENT *ReadAllElements(const char *FileName, int *Count)
             ElementsSectionPos = ftell(File);
             while (fgets(Line, sizeof(Line), File) != NULL)
             {
-                if (LineToArray(true, true, 3, 0, Line, NULL) > 0)
+                if (LineToArray(true, true, 1, 0, Line, NULL) > 0)
                 {
                     AllElementsCount++;
                 }
@@ -171,6 +179,7 @@ static ELEMENT *ReadAllElements(const char *FileName, int *Count)
                     break;
                 }
             }
+            break;
         }
     }
 
@@ -185,23 +194,23 @@ static ELEMENT *ReadAllElements(const char *FileName, int *Count)
     int i = 0;
     while (fgets(Line, sizeof(Line), File) != NULL)
     {
-        int *Nodes;
-        const int n = LineToArray(true, true, 3, 0, Line, (void**)&Nodes);
-        if (n == 0)
+        int *IDs, *Nodes;
+        const int ni = LineToArray(true, false, 1, 2, Line, (void**)&IDs);
+        const int nn = LineToArray(true, true, 3, 0, Line, (void**)&Nodes);
+        if (ni != 2 || nn == 0)
         {
             continue;
         }
         else if (i < AllElementsCount)
         {
-            Result[i].Count = n;
-            Result[i].Nodes = (int *)malloc(n * sizeof(int));
+            Result[i].Id = IDs[0];
+            Result[i].PId = IDs[1];
+            Result[i].Count = nn;
+            Result[i].Nodes = (int *)malloc(nn * sizeof(int));
             Result[i].PartNumber = 0;
-            for (int j = 0; j < n; j++)
-            {
-                Nodes[j] -= 1; // Subtracting 1 from node numbers
-            }
-            memcpy(Result[i].Nodes, Nodes, n * sizeof(int));
+            memcpy(Result[i].Nodes, Nodes, nn * sizeof(int));
         }
+        free(IDs);
         free(Nodes);
         if (strcmp(Line, "*NODE\n") == 0)
         {
@@ -213,4 +222,12 @@ static ELEMENT *ReadAllElements(const char *FileName, int *Count)
     fclose(File);
     return Result;
 }
-
+//-------------------------------------------------------------------------------------------
+static void FreeParMETISOutput(PARTOUTPUT *Parts)
+{
+    for (int i = 0; i < world_size; i++)
+    {
+        free(Parts[i].part);
+    }
+    free(Parts);
+}

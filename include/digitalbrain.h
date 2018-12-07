@@ -26,8 +26,26 @@
 
 //-------------------------------------------------------------------------------------------
 #define MAX_FILE_LINE 128
+#define MAX_ELEMENT_TYPE_SIZE  10
 
-// Partitioning output
+// Describes single node that contains ID and coordinates
+typedef struct
+{
+    int Id;
+    double XYZ[3];
+} NODE;
+
+// Element that contains "Count" nodes
+typedef struct
+{
+    int Id;
+    int PId;
+    int *Nodes;
+    int Count;
+    int PartNumber; 
+} ELEMENT;
+
+// Partitioning output. Size of "part" is "part_size" 
 typedef struct
 {
     idx_t edgecut;
@@ -35,18 +53,10 @@ typedef struct
     int part_size;
 } PARTOUTPUT;
 
-// Element that contains "Count" nodes
-typedef struct
-{
-    int *Nodes;
-    int Count;
-    int PartNumber; 
-} ELEMENT, *PELEMENT;
-
 // Partition that contains "Count" elements
 typedef struct
 {
-    PELEMENT *Elements;
+    ELEMENT *Elements;
     int Count;
     idx_t *Eptr;
 } PARTITION;
@@ -83,11 +93,20 @@ PARTOUTPUT *SendReceivePartitioningOutput(
     idx_t *part,
     const int partArraySize);
 
-bool CreatePartitions(
+int CreatePartitions(
     const char *FileName,
     int NParts,
-    const PARTOUTPUT *Parts);
+    PARTOUTPUT *Parts,
+    PARTITION **PartitionsP);
 
-void WriteVTU(char* str);
+bool PrepareVTUData(
+    const char *FileName,
+    const int PartIdx,
+    const int NParts,
+    const PARTITION Partition);
+
+void WriteVTU(
+    const char* FileName,
+    const int PartIdx);
 
 void FreeArrays();

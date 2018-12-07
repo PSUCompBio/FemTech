@@ -25,5 +25,6 @@ PARTOUTPUT *SendReceivePartitioningOutput(const idx_t edgecut, idx_t *part, cons
         MPI_Send(&partArraySize, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
         MPI_Send(part, partArraySize, MPI_INT, 0, 0, MPI_COMM_WORLD);        
     }
+    free(part);
     return Result;
 }
