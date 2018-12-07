@@ -24,7 +24,7 @@ void MPI_Initialize()
 //-------------------------------------------------------------------------------------------
 /*
   This function must be called if/when ReadInputFile() returns true.
-  part array is output of this function. So the caller MUST FREE it when this function returns true.
+  part array is output of this function.
 */
 bool PartitionMesh(
     idx_t *elmdist, idx_t *MyEptr, idx_t *MyEind, const idx_t NParts, const int partArraySize, idx_t *edgecut, idx_t **part)
@@ -95,5 +95,9 @@ bool PartitionMesh(
 
     free(ubvec);
     free(tpwgts);
+    free(elmdist);
+    free(MyEptr);
+    free(MyEind);
+    
     return Result == METIS_OK;
 }

@@ -11,7 +11,6 @@ int *eptr;
 int *pid;
 int *mid;
 char **ElementType;
-int MAX_ELEMENT_TYPE_SIZE = 10;
 int world_rank;
 int world_size;
 
@@ -19,7 +18,6 @@ int world_size;
 //-------------------------------------------------------------------------------------------
 /*
    elmdist, processor's eptr and eind arrays are created in this function.
-   So the caller MUST FREE them when/if the function returns true.
 */
 bool ReadInputFile(
     const char *FileName,
@@ -60,6 +58,7 @@ bool ReadInputFile(
                     break;
                 }
             }
+            break;
         }
     }
 
@@ -157,7 +156,7 @@ bool ReadInputFile(
         {
             for (int j = 0; j < n; j++)
             {
-                (*MyEind)[ei++] = Nodes[j] - 1; // Subtracting 1 from node numbers
+                (*MyEind)[ei++] = Nodes[j];
             }
         }
         free(Nodes);

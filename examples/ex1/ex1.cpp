@@ -8,7 +8,7 @@ int main(int argc, char **argv)
     int ExitStatus = EXIT_FAILURE, partArraySize;
     idx_t *elmdist, *MyEptr, *MyEind, *part, edgecut;
     
-    const int NParts = (argc < 3 || atoi(argv[2]) == 0) ? world_size : atoi(argv[2]); // Number of partitions
+    int NParts = (argc < 3 || atoi(argv[2]) == 0) ? world_size : atoi(argv[2]); // Number of partitions
     
     if (ReadInputFile(argv[1], &elmdist, &MyEptr, &MyEind, &partArraySize))
     {
@@ -19,18 +19,33 @@ int main(int argc, char **argv)
             if (Parts != NULL)
             {
                 // I am processor 0
-                CreatePartitions(argv[1], NParts, Parts);
-                for (int i = 0; i < world_size; i++)
+                PARTITION *Partitions;
+                NParts = CreatePartitions(argv[1], NParts, Parts, &Partitions);
+                bool Success = true;
+                for (int i = 0; Success && i < NParts; i++)
                 {
-                    free(Parts[i].part);
+                    Success = PrepareVTUData(argv[1], i, NParts, Partitions[i]);
+                    if (Success)
+                    {
+                        WriteVTU(argv[1], i);
+                        FreeArrays();
+                    }
                 }
-                free(Parts);
+                if (NParts > 0)
+                {
+                    for (int i = 0; i < NParts; i++)
+                    {
+                        free(Partitions[i].Eptr);
+                        free(Partitions[i].Elements);
+                    }
+                    free(Partitions);                
+                }
+                if (!Success)
+                {
+                    ExitStatus = EXIT_FAILURE;
+                }
             }
-            free(part);
         }
-        free(elmdist);
-        free(MyEptr);
-        free(MyEind);
     }
     
     MPI_Finalize();
