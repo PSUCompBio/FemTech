@@ -196,14 +196,14 @@ void WriteVTU(const char* FileName, const int PartIdx){
 	strip_ext(outfile);
 
 #if PARALLEL
-	printf("write_VTU processor: %d\n", PartIdx);
+	printf("\nwrite_VTU partition: %d\n", PartIdx);
 	sprintf(s, ".vtu.%04d", PartIdx);
 	strcat(outfile, s);
 #else
 	strcat(outfile, ".vtu");
 #endif
 
-	printf("new name: %s\n",outfile);
+	printf("\nnew name: %s\n",outfile);
 	fp=fopen(outfile,"w");
 
 	fprintf(fp,"<?xml version=\"1.0\"?>\n");
