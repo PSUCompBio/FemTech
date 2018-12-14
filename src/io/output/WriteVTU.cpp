@@ -1,5 +1,6 @@
 #include "digitalbrain.h"
 
+#include <stdlib.h>
 
 static void strip_ext(char *);
 //-------------------------------------------------------------------------------------------
@@ -279,4 +280,48 @@ void strip_ext(char *fname){
     if (end > fname && *end == '.') {
         *end = '\0';
     }
+}
+//-------------------------------------------------------------------------------------------
+int compare (const void * a, const void * b) {
+  return ( *(int*)a - *(int*)b );
+}
+//-------------------------------------------------------------------------------------------
+int unique(int arr[], int n) {
+    int temp[n], j = 0;
+    for (int i=0; i < n-1; i++) {
+      if (arr[i] != arr[i+1]) {
+        temp[j++] = arr[i];
+      }
+    }
+    temp[j++] = arr[n-1];
+    for (int i = 0; i < j; i++) {
+      arr[i] = temp[i];
+    }
+    return j;
+}
+//-------------------------------------------------------------------------------------------
+void updateConnectivityGlobalToLocal(void) {
+  int totalSize = eptr[nelements]-eptr[0];
+  int *newConnectivity = (int*)malloc(totalSize*sizeof(int));   
+  int *sorted = (int*)malloc(totalSize*sizeof(int));   
+  memcpy(sorted, connectivity, totalSize*sizeof(int));
+  qsort(sorted, totalSize, sizeof(int), compare);
+  int uniqueSize = unique(sorted, totalSize);
+  for(int i = 0; i < totalSize; ++i) {
+    int j;
+    for (j = 0; j < uniqueSize; ++j) {
+      if (sorted[j] == connectivity[i]) {
+        break;
+      }
+    }
+    newConnectivity[i] = j+1;
+  }
+  // printf("New Connectivity : \n");
+  // for (int i = 0; i < totalSize; ++i) {
+  //   printf("%d\t", newConnectivity[i]);
+  // }
+  // printf("\n");
+  memcpy(connectivity, newConnectivity, totalSize*sizeof(int));
+  free(newConnectivity);
+  free(sorted);
 }

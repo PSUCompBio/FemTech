@@ -27,6 +27,7 @@ int main(int argc, char **argv)
                     Success = PrepareVTUData(argv[1], i, NParts, Partitions[i]);
                     if (Success)
                     {
+                        updateConnectivityGlobalToLocal();
                         WriteVTU(argv[1], i);
                         
                         // Printing coordinates
