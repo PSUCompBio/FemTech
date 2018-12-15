@@ -15,6 +15,7 @@ bool PrepareVTUData(const char *FileName, const int PartIdx, const int NParts, c
     ElementType = NULL;
     nelements = 0;
     nnodes = 0;
+    nCoordinates = 0;
     
     static NODE *Nodes = NULL;
     static int NodeIDsCount;
@@ -140,7 +141,7 @@ bool PrepareVTUData(const char *FileName, const int PartIdx, const int NParts, c
     }
     
     memcpy(eptr, Partition.Eptr, (nelements + 1) * sizeof(int));
-    
+
     for (int i = 0, ci = 0, ni = 0; i < nelements; i++)
     {
         pid[i] = Partition.Elements[i].PId;
@@ -153,7 +154,7 @@ bool PrepareVTUData(const char *FileName, const int PartIdx, const int NParts, c
         {
             strcpy(ElementType[i], "C3D4");
         }
-        
+
         for (int j = 0; j < Partition.Elements[i].Count; j++)
         {
             connectivity[ni++] = Partition.Elements[i].Nodes[j];
@@ -210,11 +211,11 @@ void WriteVTU(const char* FileName, const int PartIdx){
 	fprintf(fp,"<?xml version=\"1.0\"?>\n");
 	fprintf(fp,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n");
 	fprintf(fp,"\t<UnstructuredGrid>\n");
-	fprintf(fp,"\t\t<Piece NumberOfPoints=\"%d\" NumberOfCells=\"%d\">\n",nnodes,nelements);
+	fprintf(fp,"\t\t<Piece NumberOfPoints=\"%d\" NumberOfCells=\"%d\">\n",nCoordinates,nelements);
 	// write coordinates
 	fprintf(fp,"\t\t\t<Points>\n");
 	fprintf(fp,"\t\t\t\t<DataArray type=\"Float64\" NumberOfComponents=\"%d\" format=\"ascii\">\n",ndim);
-	for(i=0;i<nnodes;i++){
+	for(i=0;i<nCoordinates;i++){
 		for(j=0;j<ndim;j++){
 			fprintf(fp,"\t\t\t\t\t%.6e",coordinates[ndim*i+j]);
 		}
@@ -306,22 +307,30 @@ void updateConnectivityGlobalToLocal(void) {
   int *sorted = (int*)malloc(totalSize*sizeof(int));   
   memcpy(sorted, connectivity, totalSize*sizeof(int));
   qsort(sorted, totalSize, sizeof(int), compare);
-  int uniqueSize = unique(sorted, totalSize);
+  nCoordinates = unique(sorted, totalSize);
   for(int i = 0; i < totalSize; ++i) {
     int j;
-    for (j = 0; j < uniqueSize; ++j) {
+    for (j = 0; j < nCoordinates; ++j) {
       if (sorted[j] == connectivity[i]) {
         break;
       }
     }
-    newConnectivity[i] = j+1;
+    newConnectivity[i] = j;
   }
-  // printf("New Connectivity : \n");
-  // for (int i = 0; i < totalSize; ++i) {
-  //   printf("%d\t", newConnectivity[i]);
-  // }
-  // printf("\n");
+  // Reoder co-ordinates 
+  double *newCoordinates = (double*)malloc(ndim*nCoordinates*sizeof(double));
+  for (int j = 0; j < nCoordinates; ++j) {
+    int i;
+    for(i = 0; i < totalSize; ++i) {
+      if (sorted[j] == connectivity[i]) {
+        break;
+      }
+    }
+    memcpy(newCoordinates+ndim*j, coordinates+ndim*i, ndim*sizeof(double));
+  }
   memcpy(connectivity, newConnectivity, totalSize*sizeof(int));
+  memcpy(coordinates, newCoordinates, ndim*nCoordinates*sizeof(double));
+  free(newCoordinates);
   free(newConnectivity);
   free(sorted);
 }
