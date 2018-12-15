@@ -4,6 +4,7 @@
 int nparts=0;
 int nelements=0;
 int nnodes=0;
+int nCoordinates=0;
 int ndim=0;
 double *coordinates;
 int *connectivity;

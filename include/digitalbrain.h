@@ -110,3 +110,4 @@ void WriteVTU(
     const int PartIdx);
 
 void FreeArrays();
+void updateConnectivityGlobalToLocal(void);
