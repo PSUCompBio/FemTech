@@ -288,7 +288,10 @@ int compare (const void * a, const void * b) {
 }
 //-------------------------------------------------------------------------------------------
 int unique(int arr[], int n) {
-    int temp[n], j = 0;
+	//int temp[n];
+	int *temp;
+	int j = 0;
+	temp = (int *)calloc(n, sizeof(int));
     for (int i=0; i < n-1; i++) {
       if (arr[i] != arr[i+1]) {
         temp[j++] = arr[i];
@@ -298,6 +301,7 @@ int unique(int arr[], int n) {
     for (int i = 0; i < j; i++) {
       arr[i] = temp[i];
     }
+	free(temp);
     return j;
 }
 //-------------------------------------------------------------------------------------------
