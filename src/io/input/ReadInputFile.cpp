@@ -20,13 +20,8 @@ int world_size;
 /*
    elmdist, processor's eptr and eind arrays are created in this function.
 */
-bool ReadInputFile(
-    const char *FileName,
-    idx_t **elmdist,
-    idx_t **MyEptr,
-    idx_t **MyEind,
-    int   *partArraySize)
-{
+bool ReadInputFile(const char *FileName){
+
     if (world_size < 1 || world_rank < 0 || world_rank >= world_size)
     {
         printf("\nERROR( proc %d ): 'world_size' and/or 'world_rank' variable is not valid.\n", world_rank);
@@ -77,7 +72,7 @@ bool ReadInputFile(
         }
         return false;
     }
-
+#if 0
     //ELMDIST: THIS ARRAY DESCRIBES HOW THE ELEMENTS OF THE MESH ARE DISTRIBUTED AMONG THE PROCESSORS.
     //         IT IS ANALOGOUS TO THE VTXDIST ARRAY. ITS CONTENTS ARE IDENTICAL FOR EVERY PROCESSOR.
     //         Size of this array equals to p + 1, where p is count of processors       
@@ -189,7 +184,7 @@ bool ReadInputFile(
         }
     }
     printf("\n");
-
+#endif
     fclose(File);
     return true;
 }
