@@ -16,10 +16,6 @@ int world_rank;
 int world_size;
 
 
-//-------------------------------------------------------------------------------------------
-/*
-   elmdist, processor's eptr and eind arrays are created in this function.
-*/
 bool ReadInputFile(const char *FileName){
     if (world_size < 1 || world_rank < 0 || world_rank >= world_size) {
         printf("\nERROR( proc %d ): 'world_size' and/or 'world_rank' variable is not valid.\n", world_rank);
