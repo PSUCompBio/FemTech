@@ -28,9 +28,6 @@
 #define MAX_FILE_LINE 128
 #define MAX_ELEMENT_TYPE_SIZE  10
 
-
-void MPI_Initialize();
-
 int LineToArray(
     const bool IntOrFloat,
     const bool CheckLastVal,
