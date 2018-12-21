@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 	//printf("\n");
 
     //WriteVTU(argv[1], i);                    
-    //FreeArrays();
+    FreeArrays();
     MPI_Finalize();
     return 0;
 }
