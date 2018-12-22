@@ -1,35 +1,17 @@
 #include "digitalbrain.h"
 
-//-------------------------------------------------------------------------------------------
-void MPI_Initialize()
-{
-    //printf("This is a parallel build!\n");
-    // Initialize the MPI environment
-    MPI_Init(NULL, NULL);
-
-    // Get the number of processes
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
-    // Get the rank of the process
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
-    // Get the name of the processor
-    char processor_name[MPI_MAX_PROCESSOR_NAME];
-    int name_len;
-    MPI_Get_processor_name(processor_name, &name_len);
-
-    // Print off a hello world message
-    printf("Hello world from processor %s, rank %d out of %d processors\n", processor_name, world_rank, world_size);
-}
-//-------------------------------------------------------------------------------------------
-/*
-  This function must be called if/when ReadInputFile() returns true.
-  part array is output of this function.
-*/
-bool PartitionMesh(
-    idx_t *elmdist, idx_t *MyEptr, idx_t *MyEind, const idx_t NParts, const int partArraySize, idx_t *edgecut, idx_t **part)
-{
-    //printf("Let's do some stuff on processor ID %d\n", world_rank);  
+bool PartitionMesh(){
+	
+	//
+	// Arrays below need to be defined. They used to be sent in to function
+	//
+	idx_t *elmdist; //Add comment or description here
+	idx_t *MyEptr; //Add comment or description here
+	idx_t *MyEind; //Add comment or description here
+	idx_t NParts; //Add comment or description here
+	int partArraySize; //Add comment or description here
+	idx_t *edgecut; //Add comment or description here
+	idx_t **part; //Add comment or description here
     
     // Options for ParMETIS
     idx_t options[3];

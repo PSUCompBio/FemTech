@@ -1,8 +1,16 @@
 #include "digitalbrain.h"
 
-int main(int argc, char **argv)
-{
-    MPI_Initialize();   
+int main(int argc, char **argv){
+  
+	// Initialize the MPI environment
+	MPI_Init(NULL, NULL);
+
+	// Get the number of processes
+	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+	// Get the rank of the process
+	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
 	ReadInputFile(argv[1]);
 	//PartitionMesh();
 
