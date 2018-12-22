@@ -9,8 +9,9 @@ int main(int argc, char **argv){
 	// Get the rank of the process
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-	ReadInputFile(argv[1]);
-	//PartitionMesh();
+	if (ReadInputFile(argv[1])) {
+	    PartitionMesh();
+	}
 
 	// Printing local arrays of processor (this section can be removed)
 	printf("\neptr array in processor %d after partitioning = ", world_rank);

@@ -1,5 +1,6 @@
 extern int nparts;
 extern int nelements;
+extern int nallelements;
 extern int nnodes;
 extern int nCoordinates;
 extern int ndim;
