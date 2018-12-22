@@ -2,7 +2,8 @@
 
 /* Global Variables */
 int nparts=0;
-int nelements=0;
+int nelements=0;        // number of elements in processor
+int nallelements=0;     // number of all elements in mesh
 int nnodes=0;
 int nCoordinates=0;
 int ndim=0;
@@ -33,14 +34,13 @@ bool ReadInputFile(const char *FileName){
     // Counting number of elements in elements section of mesh file
     // And fixing elements and nodes sections' positions in the file
     char Line[MAX_FILE_LINE];
-    int AllElementsCount = 0;
     long ElementsSectionPos = 0, NodesSectionPos = 0xFFFFFFFF;
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (strcmp(Line, "*ELEMENT_SOLID\n") == 0) {
             ElementsSectionPos = ftell(File);
             while (fgets(Line, sizeof(Line), File) != NULL) {
                 if (LineToArray(true, false, 2, 1, Line, NULL) > 0 && LineToArray(true, true, 3, 0, Line, NULL) > 0) {
-                    AllElementsCount++;
+                    nallelements++;
                 }
                 if (strcmp(Line, "*NODE\n") == 0) {
                     NodesSectionPos = ftell(File);
@@ -53,9 +53,9 @@ bool ReadInputFile(const char *FileName){
 
     // Checking if elements were found in mesh file
     // And checking if we can be back to elements section in the file
-    if (AllElementsCount == 0 || fseek(File, ElementsSectionPos, SEEK_SET) != 0) {
+    if (nallelements == 0 || fseek(File, ElementsSectionPos, SEEK_SET) != 0) {
         fclose(File);
-        if (AllElementsCount == 0) {
+        if (nallelements == 0) {
             printf("\nERROR( proc %d ): No elemens found. This means input file is empty or contains invalid data.\n", world_rank);
         }
         else {
@@ -65,21 +65,21 @@ bool ReadInputFile(const char *FileName){
     }
     
     // Determining number/count of elements processor will hold
-    nelements = AllElementsCount / world_size;
+    nelements = nallelements / world_size;
     if (world_rank == world_size - 1) {
-        nelements += (AllElementsCount % world_size);
+        nelements += (nallelements % world_size);
     }
 
     // Creating and initializing a temp array to hold number/count of nodes in each element of the mesh
     // Will be used to initialize "eptr" array and calculate size of "connectivity" array
-    int *NodesCountPerElement = (int *)calloc(AllElementsCount, sizeof(int));
+    int *NodesCountPerElement = (int *)calloc(nallelements, sizeof(int));
     int i = 0;
     while (fgets(Line, sizeof(Line), File) != NULL) {
         const int n = LineToArray(true, true, 3, 0, Line, NULL);
         if (n == 0) {
             continue;
         }
-        else if (i < AllElementsCount) {
+        else if (i < nallelements) {
             NodesCountPerElement[i] = n;
         }
         if (strcmp(Line, "*NODE\n") == 0) {
@@ -89,13 +89,13 @@ bool ReadInputFile(const char *FileName){
     }
 
     // Fixing range of lines (in elements section of mesh file) from which processor will read its own elements
-    const int From = world_rank * AllElementsCount / world_size;
+    const int From = world_rank * nallelements / world_size;
     const int To = From + nelements - 1;
     
     // Creating and initializing "eptr" array, and determining size of "connectivity" array of processor
     eptr = (int *)calloc(nelements + 1, sizeof(int));
     int ConnectivitySize = 0;
-    for (int i = 0, j = 0, n = 0; i < AllElementsCount; i++) {
+    for (int i = 0, j = 0, n = 0; i < nallelements; i++) {
         if (i >= From && i <= To) {
             n += NodesCountPerElement[i];
             j = j + 1;
@@ -169,6 +169,7 @@ bool ReadInputFile(const char *FileName){
     if (fseek(File, NodesSectionPos, SEEK_SET) != 0) {
         fclose(File);
         FreeArrays();
+        printf("\nERROR( proc %d ): 'fseek()' call failed.\n", world_rank);
         return false;
     }
     
@@ -221,6 +222,7 @@ bool ReadInputFile(const char *FileName){
     if (coordinates == NULL || nnodes != ConnectivitySize) {
         fclose(File);
         FreeArrays();
+        printf("\nERROR( proc %d ): Failed to initialize 'coordinates' array.\n", world_rank);
         return false;
     }
     
