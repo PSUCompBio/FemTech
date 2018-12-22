@@ -17,28 +17,33 @@ int world_size;
 
 
 bool ReadInputFile(const char *FileName){
+    // Checking MPI variables validity
     if (world_size < 1 || world_rank < 0 || world_rank >= world_size) {
         printf("\nERROR( proc %d ): 'world_size' and/or 'world_rank' variable is not valid.\n", world_rank);
         return false;
     }
 
+    // Checking if mesh file can be opened or not
     FILE *File;
     if (FileName == NULL || strlen(FileName) == 0 || (File = fopen(FileName, "rt")) == NULL) {
         printf("\nERROR( proc %d ): Failed to open input file.\n", world_rank);
         return false;
     }
 
+    // Counting number of elements in elements section of mesh file
+    // And fixing elements and nodes sections' positions in the file
     char Line[MAX_FILE_LINE];
     int AllElementsCount = 0;
-    long ElementsSectionPos = 0;
+    long ElementsSectionPos = 0, NodesSectionPos = 0xFFFFFFFF;
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (strcmp(Line, "*ELEMENT_SOLID\n") == 0) {
             ElementsSectionPos = ftell(File);
             while (fgets(Line, sizeof(Line), File) != NULL) {
-                if (LineToArray(true, true, 3, 0, Line, NULL) > 0) {
+                if (LineToArray(true, false, 2, 1, Line, NULL) > 0 && LineToArray(true, true, 3, 0, Line, NULL) > 0) {
                     AllElementsCount++;
                 }
                 if (strcmp(Line, "*NODE\n") == 0) {
+                    NodesSectionPos = ftell(File);
                     break;
                 }
             }
@@ -46,6 +51,8 @@ bool ReadInputFile(const char *FileName){
         }
     }
 
+    // Checking if elements were found in mesh file
+    // And checking if we can be back to elements section in the file
     if (AllElementsCount == 0 || fseek(File, ElementsSectionPos, SEEK_SET) != 0) {
         fclose(File);
         if (AllElementsCount == 0) {
@@ -57,11 +64,14 @@ bool ReadInputFile(const char *FileName){
         return false;
     }
     
+    // Determining number/count of elements processor will hold
     nelements = AllElementsCount / world_size;
     if (world_rank == world_size - 1) {
         nelements += (AllElementsCount % world_size);
     }
 
+    // Creating and initializing a temp array to hold number/count of nodes in each element of the mesh
+    // Will be used to initialize "eptr" array and calculate size of "connectivity" array
     int *NodesCountPerElement = (int *)calloc(AllElementsCount, sizeof(int));
     int i = 0;
     while (fgets(Line, sizeof(Line), File) != NULL) {
@@ -77,23 +87,29 @@ bool ReadInputFile(const char *FileName){
         }
         i++;
     }
-    int ConnectivitySize = 0;
+
+    // Fixing range of lines (in elements section of mesh file) from which processor will read its own elements
     const int From = world_rank * AllElementsCount / world_size;
     const int To = From + nelements - 1;
+    
+    // Creating and initializing "eptr" array, and determining size of "connectivity" array of processor
     eptr = (int *)calloc(nelements + 1, sizeof(int));
+    int ConnectivitySize = 0;
     for (int i = 0, j = 0, n = 0; i < AllElementsCount; i++) {
         if (i >= From && i <= To) {
             n += NodesCountPerElement[i];
-            eptr[++j] = n;
+            j = j + 1;
+            eptr[j] = n;
             ConnectivitySize += NodesCountPerElement[i];
         }
     }
     free(NodesCountPerElement);
-
+    
+    // Checking if calculated size of connectivity array is valid
+    // And checking if we can be back to elements section of mesh file
     if (ConnectivitySize != eptr[nelements] || fseek(File, ElementsSectionPos, SEEK_SET) != 0) {
         fclose(File);
-        free(eptr);
-        eptr = NULL;
+        FreeArrays();
         if (ConnectivitySize != eptr[nelements]) {
             printf("\nERROR( proc %d ): Size of 'eind' array is not vald.\n", world_rank);
         }
@@ -103,20 +119,45 @@ bool ReadInputFile(const char *FileName){
         return false;
     }
 
-    i = 0;
-    int ei = 0;
+    // Creating and initializing "connectivity", "pid" and "ElementType" arrays for processor
     connectivity = (int *)calloc(ConnectivitySize, sizeof(int));
+    pid = (int *)calloc(nelements, sizeof(int));
+    ElementType = (char **)calloc(nelements, sizeof(char *));
+    for (int i = 0; i < nelements; i++) {
+        ElementType[i] = (char *)calloc(MAX_ELEMENT_TYPE_SIZE, sizeof(char));
+    }
+    i = 0;
+    int ci = 0, pi = 0;
     while (fgets(Line, sizeof(Line), File) != NULL) {
-        int *Nodes;
-        const int n = LineToArray(true, true, 3, 0, Line, (void**)&Nodes);
-        if (n == 0) {
+        int *PIDs, *Nodes;
+        const int np = LineToArray(true, false, 2, 1, Line, (void**)&PIDs);
+        const int nn = LineToArray(true, true, 3, 0, Line, (void**)&Nodes);
+        if (np == 0 || nn == 0) {
+            if (np > 0) {
+                free(PIDs);
+            }
+            if (nn > 0) {
+                free(Nodes);
+            }
             continue;
         }
         else if (i >= From && i <= To) {
-            for (int j = 0; j < n; j++) {
-                connectivity[ei++] = Nodes[j] - 1;
+            pid[pi] = PIDs[0];
+            
+            if (nn == 8) {
+                strcpy(ElementType[pi], "C3D8");
+            }
+            else if (nn == 4) {
+                strcpy(ElementType[pi], "C3D4");
+            }
+            pi = pi + 1;
+             
+            for (int j = 0; j < nn; j++) {
+                connectivity[ci] = Nodes[j] - 1;
+                ci = ci + 1;
             }
         }
+        free(PIDs);
         free(Nodes);
         if (strcmp(Line, "*NODE\n") == 0) {
             break;
@@ -124,12 +165,71 @@ bool ReadInputFile(const char *FileName){
         i++;
     }
 
+    // Checking if we can go to nodes section of mesh file
+    if (fseek(File, NodesSectionPos, SEEK_SET) != 0) {
+        fclose(File);
+        FreeArrays();
+        return false;
+    }
+    
+    // "nnodes" is not unique node numbers for now
+    // "coordinates" array will contain "ndim" coordinates for each element of "connectivity" array
+    nnodes = 0;
+    ndim = 0;
+    coordinates = NULL;
+    
+    // Initializing "coordinates" array
+    while (fgets(Line, sizeof(Line), File) != NULL) {
+        if (ndim == 0 && strstr(Line, "nid") != NULL) {
+            if (strstr(Line, "x") != NULL) {
+                ndim++;
+            }
+            if (strstr(Line, "y") != NULL) {
+                ndim++;
+            }
+            if (strstr(Line, "z") != NULL) {
+                ndim++;
+            }
+            if (ndim == 2 || ndim == 3) {
+                coordinates = (double *)calloc(ConnectivitySize * ndim, sizeof(double));
+            }
+            continue;
+        }
+        
+        if (coordinates != NULL) {
+            double *NodeData;
+            if (LineToArray(false, false, 1, ndim + 1, Line, (void**)&NodeData) == (ndim + 1)) {
+                const int NodeID = NodeData[0] - 1;
+                // Searching node id in "connectivity" array
+                for (int i = 0; i < ConnectivitySize; i++) {
+                    if (connectivity[i] == NodeID) {
+                        // Node found. Getting coordinates of it
+                        memcpy(&coordinates[i * ndim], &NodeData[1], ndim * sizeof(double));
+                        nnodes++;
+                    }
+                }
+                free(NodeData);
+            }
+        }
+        
+        if (strcmp(Line, "*END\n") == 0) {
+            break;
+        }
+    }
+    
+    // Checking if "coordinates" array is OK
+    if (coordinates == NULL || nnodes != ConnectivitySize) {
+        fclose(File);
+        FreeArrays();
+        return false;
+    }
+    
+    // Printing local arrays of processor (this section can be removed)
     printf("\neptr array in processor %d before partitioning = ", world_rank);
     for (int i = 0; i <= nelements ; i++) {
         printf("%d ", eptr[i]);
     }
     printf("\n");
-
     printf("\neind array in processor %d before partitioning =", world_rank);
     for (int i = 0; i < nelements; i++) {
         printf(" (%d)  ", i);
@@ -138,7 +238,22 @@ bool ReadInputFile(const char *FileName){
         }
     }
     printf("\n");
+    printf("\nType/PartID of element in processor %d before partitioning = ", world_rank);
+    for (int i = 0; i < nelements ; i++) {
+        printf("%s/%d  ", ElementType[i], pid[i]);
+    }
+    printf("\n");
+    printf("\nSize of coordinates array in processor %d before partitioning = %d\n", world_rank, nnodes * ndim);
+    printf("\nCoordinates array in processor %d before partitioning =", world_rank);
+    for (int i = 0; i < nnodes; i++) {
+        printf(" (%d)  ", i);
+        for (int j = 0; j < ndim; j++) {
+            printf("%.*f ", 1, coordinates[ndim * i + j]);
+        }
+    }
+    printf("\n");
 
+    // Everything is OK for now. Closing the mesh file, returning TRUE.
     fclose(File);
     return true;
 }

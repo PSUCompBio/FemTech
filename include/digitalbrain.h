@@ -23,11 +23,9 @@
 #include "mpi.h"
 #include "parmetis.h"
 
-
 //-------------------------------------------------------------------------------------------
 #define MAX_FILE_LINE 128
 #define MAX_ELEMENT_TYPE_SIZE  10
-
 
 void MPI_Initialize();
 
@@ -42,7 +40,6 @@ int LineToArray(
 bool ReadInputFile(const char *FileName);
 
 bool PartitionMesh();
-
 
 void WriteVTU(const char* FileName);
 
