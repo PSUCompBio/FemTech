@@ -1,10 +1,8 @@
 #include "digitalbrain.h"
 
-#include <stdlib.h>
-
 static void strip_ext(char *);
 
-void WriteVTU(const char* FileName, const int PartIdx){
+void WriteVTU(const char* FileName){
     static const int ARR_SIZE = 1000;
     
 	FILE *fp;
@@ -17,8 +15,8 @@ void WriteVTU(const char* FileName, const int PartIdx){
 	strip_ext(outfile);
 
 #if PARALLEL
-	printf("\nwrite_VTU partition: %d\n", PartIdx);
-	sprintf(s, ".vtu.%04d", PartIdx);
+	printf("\nwrite_VTU partition: %d\n", world_rank);
+	sprintf(s, ".vtu.%04d",world_rank);
 	strcat(outfile, s);
 #else
 	strcat(outfile, ".vtu");
@@ -30,11 +28,11 @@ void WriteVTU(const char* FileName, const int PartIdx){
 	fprintf(fp,"<?xml version=\"1.0\"?>\n");
 	fprintf(fp,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n");
 	fprintf(fp,"\t<UnstructuredGrid>\n");
-	fprintf(fp,"\t\t<Piece NumberOfPoints=\"%d\" NumberOfCells=\"%d\">\n",nCoordinates,nelements);
+	fprintf(fp,"\t\t<Piece NumberOfPoints=\"%d\" NumberOfCells=\"%d\">\n",nnodes,nelements);
 	// write coordinates
 	fprintf(fp,"\t\t\t<Points>\n");
 	fprintf(fp,"\t\t\t\t<DataArray type=\"Float64\" NumberOfComponents=\"%d\" format=\"ascii\">\n",ndim);
-	for(i=0;i<nCoordinates;i++){
+	for(i=0;i<nnodes;i++){
 		for(j=0;j<ndim;j++){
 			fprintf(fp,"\t\t\t\t\t%.6e",coordinates[ndim*i+j]);
 		}
