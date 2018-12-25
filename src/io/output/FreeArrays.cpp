@@ -5,11 +5,13 @@ void FreeArrays()
     if (coordinates != NULL)
     {
         free(coordinates);
+        coordinates = NULL;
     }
     
     if (connectivity != NULL)
     {
         free(connectivity);
+        connectivity = NULL;
     }
     
     //free(mid);
@@ -17,11 +19,13 @@ void FreeArrays()
     if (pid != NULL)
     {
         free(pid);
+        pid = NULL;
     }
     
     if (eptr != NULL)
     {
         free(eptr);
+        eptr = NULL;
     }
     
     if (ElementType != NULL)
@@ -31,5 +35,6 @@ void FreeArrays()
             free(ElementType[i]);
         }
         free(ElementType);
+        ElementType = NULL;
     }
 }

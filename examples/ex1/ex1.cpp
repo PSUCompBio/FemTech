@@ -1,69 +1,49 @@
 #include "digitalbrain.h"
 
-//-------------------------------------------------------------------------------------------
-int main(int argc, char **argv)
-{
-    MPI_Initialize();
-    
-    int ExitStatus = EXIT_FAILURE, partArraySize;
-    idx_t *elmdist, *MyEptr, *MyEind, *part, edgecut;
-    
-    int NParts = (argc < 3 || atoi(argv[2]) == 0) ? world_size : atoi(argv[2]); // Number of partitions
-    
-    if (ReadInputFile(argv[1], &elmdist, &MyEptr, &MyEind, &partArraySize))
-    {
-        if (PartitionMesh(elmdist, MyEptr, MyEind, world_size, partArraySize, &edgecut, &part))
-        {
-            ExitStatus = EXIT_SUCCESS;
-            PARTOUTPUT *Parts = SendReceivePartitioningOutput(edgecut, part, partArraySize);
-            if (Parts != NULL)
-            {
-                // I am processor 0
-                PARTITION *Partitions;
-                NParts = CreatePartitions(argv[1], NParts, Parts, &Partitions);
-                bool Success = true;
-                for (int i = 0; Success && i < NParts; i++)
-                {
-                    Success = PrepareVTUData(argv[1], i, NParts, Partitions[i]);
-                    if (Success)
-                    {
-                        updateConnectivityGlobalToLocal();
-                        WriteVTU(argv[1], i);
-                        
-                        // Printing coordinates
-                        printf("\nSize of coordinates array in partition %d = %d\n", i, nnodes * ndim);
-                        printf("\nCoordinates array in partition %d =", i);
-                    	for (int j = 0; j < nnodes; j++)
-                    	{
-                    	    printf(" (%d)  ", j);
-		                    for (int k = 0; k < ndim; k++)
-		                    {
-			                    printf("%.*f ", 1, coordinates[ndim * j + k]);
-		                    }
-	                    }
-	                    printf("\n");
-                        
-                        FreeArrays();
-                    }
-                }
-                if (NParts > 0)
-                {
-                    for (int i = 0; i < NParts; i++)
-                    {
-                        free(Partitions[i].Eptr);
-                        free(Partitions[i].Elements);
-                    }
-                    free(Partitions);                
-                }
-                if (!Success)
-                {
-                    ExitStatus = EXIT_FAILURE;
-                }
-            }
-        }
-    }
-    
-    MPI_Finalize();
-    
-    return ExitStatus;
+int main(int argc, char **argv){
+  
+	// Initialize the MPI environment
+	MPI_Init(NULL, NULL);
+	// Get the number of processes
+	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+	// Get the rank of the process
+	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+	if (ReadInputFile(argv[1])) {
+	    PartitionMesh();
+	}
+
+	// Printing local arrays of processor (this section can be removed)
+	printf("\neptr array in processor %d after partitioning = ", world_rank);
+	for (int i = 0; i <= nelements; i++) {
+		printf("%d ", eptr[i]);
+	}
+	printf("\n");
+	printf("\neind array in processor %d after partitioning =", world_rank);
+	for (int i = 0; i < nelements; i++) {
+		printf(" (%d)  ", i);
+		for (int j = eptr[i]; j < eptr[i + 1]; j++) {
+			printf("%d ", connectivity[j]);
+		}
+	}
+	printf("\n");
+	printf("\nType/PartID of element in processor %d after partitioning = ", world_rank);
+	for (int i = 0; i < nelements; i++) {
+		printf("%s/%d  ", ElementType[i], pid[i]);
+	}
+	printf("\n");
+	printf("\nSize of coordinates array in processor %d after partitioning = %d\n", world_rank, nnodes * ndim);
+	printf("\nCoordinates array in processor %d after partitioning =", world_rank);
+	for (int i = 0; i < nnodes; i++) {
+		printf(" (%d)  ", i);
+		for (int j = 0; j < ndim; j++) {
+			printf("%.*f ", 1, coordinates[ndim * i + j]);
+		}
+	}
+	printf("\n");
+
+  WriteVTU(argv[1]);                    
+  FreeArrays();
+  MPI_Finalize();
+  return 0;
 }
