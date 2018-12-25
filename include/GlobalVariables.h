@@ -2,7 +2,6 @@ extern int nparts;
 extern int nelements;
 extern int nallelements;
 extern int nnodes;
-extern int nCoordinates;
 extern int ndim;
 extern int world_rank;
 extern int world_size;
