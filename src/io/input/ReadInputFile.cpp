@@ -88,7 +88,7 @@ bool ReadInputFile(const char *FileName){
     }
 
     // Fixing range of lines (in elements section of mesh file) from which processor will read its own elements
-    const int From = world_rank * nallelements / world_size;
+    const int From = world_rank * (nallelements / world_size);
     const int To = From + nelements - 1;
     
     // Creating and initializing "eptr" array, and determining size of "connectivity" array of processor
@@ -322,4 +322,3 @@ int LineToArray(
     }
     return Result;
 }
-
