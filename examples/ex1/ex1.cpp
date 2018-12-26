@@ -45,7 +45,7 @@ int main(int argc, char **argv){
 
   WriteVTU(argv[1]);  
 
-  ShapeFunctions3d();
+  ShapeFunctions();
 
   FreeArrays();
   MPI_Finalize();
