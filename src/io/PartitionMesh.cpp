@@ -19,7 +19,7 @@ bool PartitionMesh(){
   idx_t* elmwgt = NULL;
   idx_t wgtflag = 0; // we don't use weights
   idx_t numflag = 0; // we are using C-style arrays
-  idx_t ncommonnodes = 2; // number of nodes elements must have in common
+  idx_t ncommonnodes = 8; // number of nodes elements must have in common
 
   const int tpwgts_size = ncon * nparts;
   real_t *tpwgts = (real_t *)malloc(tpwgts_size * sizeof(real_t));
