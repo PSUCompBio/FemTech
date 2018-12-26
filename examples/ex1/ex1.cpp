@@ -8,11 +8,11 @@ int main(int argc, char **argv){
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 	// Get the rank of the process
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
+	
 	if (ReadInputFile(argv[1])) {
 	    PartitionMesh();
 	}
-
+	
 	// Printing local arrays of processor (this section can be removed)
 	printf("\neptr array in processor %d after partitioning = ", world_rank);
 	for (int i = 0; i <= nelements; i++) {
@@ -42,7 +42,10 @@ int main(int argc, char **argv){
 	}
 	printf("\n");
 
-  WriteVTU(argv[1]);                    
+  WriteVTU(argv[1]);  
+
+  ShapeFunctions3d();
+
   FreeArrays();
   MPI_Finalize();
   return 0;
