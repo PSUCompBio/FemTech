@@ -25,7 +25,7 @@ bool ReadInputFile(const char *FileName){
 
     // Checking if mesh file can be opened or not
     FILE *File;
-    if (FileName == NULL || strlen(FileName) == 0 || (File = fopen(FileName, "rt")) == NULL) {
+    if (FileName == NULL || strlen(FileName) == 0 || (File = fopen(FileName, "rb")) == NULL) {
         printf("\nERROR( proc %d ): Failed to open input file.\n", world_rank);
         return false;
     }
