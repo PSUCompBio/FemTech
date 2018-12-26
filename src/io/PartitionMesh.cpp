@@ -19,7 +19,7 @@ bool PartitionMesh(){
   idx_t* elmwgt = NULL;
   idx_t wgtflag = 0; // we don't use weights
   idx_t numflag = 0; // we are using C-style arrays
-  idx_t ncommonnodes = 8; // number of nodes elements must have in common
+  idx_t ncommonnodes = 2; // number of nodes elements must have in common
 
   const int tpwgts_size = ncon * nparts;
   real_t *tpwgts = (real_t *)malloc(tpwgts_size * sizeof(real_t));
@@ -52,12 +52,13 @@ bool PartitionMesh(){
   const int Result = ParMETIS_V3_PartMeshKway(elmdist, eptr, connectivity, elmwgt, \
       &wgtflag, &numflag, &ncon, &ncommonnodes, &nparts, tpwgts, ubvec, options, \
       &edgecut, part, &comm);
+  
   // Output of ParMETIS_V3_PartMeshKway call will be used here
   if (Result == METIS_OK) { 
-    printf("\nDebug (proc %d): partArrayFromMETIS\n", world_rank);
-    for(int i = 0; i < nelements; ++i) {
-      printf("%d\t", part[i]);
-    }
+    //printf("\nDebug (proc %d): partArrayFromMETIS\n", world_rank);
+    //for(int i = 0; i < nelements; ++i) {
+    //  printf("%d\t", part[i]);
+    //}
     printf("\n");
     // Using inplace all gatherv to create a local copy of global metis allocation
     int intTask = nallelements/world_size;
@@ -79,15 +80,15 @@ bool PartitionMesh(){
         MPI_INT, MPI_COMM_WORLD);
     MPI_Allgatherv(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, elementCountGlobal, counts, elmdist, \
         MPI_INT, MPI_COMM_WORLD);
-    printf("\nDebug (proc %d): partArray and element count Global\n", world_rank);
-    for(int i = 0; i < nallelements; ++i) {
-      printf("%d\t", partGlobal[i]);
-    }
-    printf("\n");
-    for(int i = 0; i < nallelements; ++i) {
-      printf("%d\t", elementCountGlobal[i]);
-    }
-    printf("\n");
+    //printf("\nDebug (proc %d): partArray and element count Global\n", world_rank);
+    //for(int i = 0; i < nallelements; ++i) {
+     // printf("%d\t", partGlobal[i]);
+    //}
+    //printf("\n");
+    //for(int i = 0; i < nallelements; ++i) {
+    //  printf("%d\t", elementCountGlobal[i]);
+    //}
+    //printf("\n");
     // Find new number of elements and number of co-ordinates(not unique)
     int nelementsPart = 0;
     int connectivitySizePart = 0;

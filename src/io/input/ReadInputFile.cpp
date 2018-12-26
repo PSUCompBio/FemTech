@@ -55,7 +55,7 @@ bool ReadInputFile(const char *FileName){
     if (nallelements == 0 || fseek(File, ElementsSectionPos, SEEK_SET) != 0) {
         fclose(File);
         if (nallelements == 0) {
-            printf("\nERROR( proc %d ): No elemens found. This means input file is empty or contains invalid data.\n", world_rank);
+            printf("\nERROR( proc %d ): No elements found. This means input file is empty or contains invalid data.\n", world_rank);
         }
         else {
             printf("\nERROR( proc %d ): 'fseek()' call failed.\n", world_rank);
@@ -205,7 +205,7 @@ bool ReadInputFile(const char *FileName){
             break;
         }
     }
-    
+
     // Checking if "coordinates" array is OK
     if (coordinates == NULL || nnodes != ConnectivitySize) {
         fclose(File);
@@ -217,7 +217,8 @@ bool ReadInputFile(const char *FileName){
         printf("\nnnodes = %d, ConnectivitySize = %d, ndim = %d\n", nnodes, ConnectivitySize, ndim);
         return false;
     }
-    
+
+#if 0
     // Printing local arrays of processor (this section can be removed)
     printf("\neptr array in processor %d before partitioning = ", world_rank);
     for (int i = 0; i <= nelements ; i++) {
@@ -246,7 +247,7 @@ bool ReadInputFile(const char *FileName){
         }
     }
     printf("\n");
-
+#endif
     // Everything is OK for now. Closing the mesh file, returning TRUE.
     fclose(File);
     return true;
