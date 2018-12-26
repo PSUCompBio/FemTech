@@ -39,6 +39,4 @@ bool ReadInputFile(const char *FileName);
 bool PartitionMesh();
 void ShapeFunctions3d();
 void WriteVTU(const char* FileName);
-
 void FreeArrays();
-//void updateConnectivityGlobalToLocal(void);

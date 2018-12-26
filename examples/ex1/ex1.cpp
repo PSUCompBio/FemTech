@@ -12,7 +12,7 @@ int main(int argc, char **argv){
 	if (ReadInputFile(argv[1])) {
 	    PartitionMesh();
 	}
-	
+#if 0
 	// Printing local arrays of processor (this section can be removed)
 	printf("\neptr array in processor %d after partitioning = ", world_rank);
 	for (int i = 0; i <= nelements; i++) {
@@ -41,6 +41,7 @@ int main(int argc, char **argv){
 		}
 	}
 	printf("\n");
+#endif
 
   WriteVTU(argv[1]);  
 
