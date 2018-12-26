@@ -15,7 +15,7 @@ void WriteVTU(const char* FileName){
 	strip_ext(outfile);
 
 #if PARALLEL
-	printf("\nwrite_VTU partition: %d\n", world_rank);
+	//printf("\nwrite_VTU partition: %d\n", world_rank);
 	sprintf(s, ".vtu.%04d",world_rank);
   char outfileP[ARR_SIZE] = {0};
   char outfileP2[ARR_SIZE] = {0};
@@ -26,7 +26,7 @@ void WriteVTU(const char* FileName){
 	strcat(outfile, ".vtu");
 #endif
 
-	printf("\nnew name: %s\n",outfile);
+	//printf("\nnew name: %s\n",outfile);
 	fp=fopen(outfile,"w");
 
 	fprintf(fp,"<?xml version=\"1.0\"?>\n");
@@ -84,7 +84,13 @@ void WriteVTU(const char* FileName){
 		 fprintf(fp,"\t\t\t\t\t%d\n",pid[i]);
 	}
 	fprintf(fp,"\t\t\t\t</DataArray>\n");
-	
+
+	// write proc ID
+	fprintf(fp, "\t\t\t\t<DataArray type=\"Int32\" Name=\"ProcID\" format=\"ascii\">\n");
+	for (i = 0; i < nelements; i++) {
+		fprintf(fp, "\t\t\t\t\t%d\n", world_rank);
+	}
+	fprintf(fp, "\t\t\t\t</DataArray>\n");
 
 	fprintf(fp, "\t\t\t</CellData>\n");
 	fprintf(fp,"\t\t</Piece>\n");
@@ -95,24 +101,24 @@ void WriteVTU(const char* FileName){
   // Write the pvtu file if you are rank zero and code in parallel
 #if PARALLEL
   if (world_rank == 0) {
-	  printf("\nRank 0 Writing PVTU file\n");
-	  sprintf(s, ".pvtu");
-	  strcat(outfileP, s);
-	  fp=fopen(outfileP, "w");
-    fprintf(fp,"<?xml version=\"1.0\"?>\n");
+	  //printf("\nRank 0 Writing PVTU file\n");
+	sprintf(s, ".pvtu");
+	strcat(outfileP, s);
+	fp=fopen(outfileP, "w");
+	fprintf(fp,"<?xml version=\"1.0\"?>\n");
     fprintf(fp,"<VTKFile type=\"PUnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n");
     fprintf(fp,"\t<PUnstructuredGrid GhostLevel=\"0\">\n");
     fprintf(fp,"\t\t<PPoints>\n");
-	  fprintf(fp,"\t\t\t<PDataArray type=\"Float64\" NumberOfComponents=\"%d\" format=\"ascii\"/>\n",ndim);
+	fprintf(fp,"\t\t\t<PDataArray type=\"Float64\" NumberOfComponents=\"%d\" format=\"ascii\"/>\n",ndim);
     fprintf(fp,"\t\t</PPoints>\n");
     fprintf(fp,"\t\t<PCells>\n");
-	  fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"connectivity\" NumberOfComponents=\"1\"/>\n",ndim);
-	  fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"offsets\" NumberOfComponents=\"1\"/>\n",ndim);
-	  fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"types\" NumberOfComponents=\"1\"/>\n",ndim);
+	fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"connectivity\" NumberOfComponents=\"1\"/>\n",ndim);
+	fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"offsets\" NumberOfComponents=\"1\"/>\n",ndim);
+	fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"types\" NumberOfComponents=\"1\"/>\n",ndim);
     fprintf(fp,"\t\t</PCells>\n");
     fprintf(fp,"\t\t<PCellData Scalars=\"PartID\">\n");
-	  fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"PartID\"/>\n",ndim);
-	  fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"ProcID\"/>\n",ndim);
+	fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"PartID\"/>\n",ndim);
+	fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"ProcID\"/>\n",ndim);
     fprintf(fp,"\t\t</PCellData>\n");
     for (int i = 0; i < world_size; ++i) {
       fprintf(fp,"\t\t<Piece Source=\"%s.vtu.%.4d\"/>\n", outfileP2, i);
