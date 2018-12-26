@@ -33,7 +33,7 @@ bool ReadInputFile(const char *FileName){
     // Counting number of elements in elements section of mesh file
     // And fixing elements and nodes sections' positions in the file
     char Line[MAX_FILE_LINE];
-    long ElementsSectionPos = 0, NodesSectionPos = 0xFFFFFFFF;
+    long ElementsSectionPos = 0xFFFFFFFF, NodesSectionPos = 0xFFFFFFFF;
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (strcmp(Line, "*ELEMENT_SOLID\n") == 0) {
             ElementsSectionPos = ftell(File);
@@ -69,41 +69,30 @@ bool ReadInputFile(const char *FileName){
         nelements += (nallelements % world_size);
     }
 
-    // Creating and initializing a temp array to hold number/count of nodes in each element of the mesh
-    // Will be used to initialize "eptr" array and calculate size of "connectivity" array
-    int *NodesCountPerElement = (int *)calloc(nallelements, sizeof(int));
-    int i = 0;
-    while (fgets(Line, sizeof(Line), File) != NULL) {
-        const int n = LineToArray(true, true, 3, 0, Line, NULL);
-        if (n == 0) {
-            continue;
-        }
-        else if (i < nallelements) {
-            NodesCountPerElement[i] = n;
-        }
-        if (strcmp(Line, "*NODE\n") == 0) {
-            break;
-        }
-        i++;
-    }
-
     // Fixing range of lines (in elements section of mesh file) from which processor will read its own elements
     const int From = world_rank * (nallelements / world_size);
     const int To = From + nelements - 1;
     
     // Creating and initializing "eptr" array, and determining size of "connectivity" array of processor
     eptr = (int *)calloc(nelements + 1, sizeof(int));
-    int ConnectivitySize = 0;
-    for (int i = 0, j = 0, n = 0; i < nallelements; i++) {
-        if (i >= From && i <= To) {
-            n += NodesCountPerElement[i];
-            j = j + 1;
-            eptr[j] = n;
-            ConnectivitySize += NodesCountPerElement[i];
+    int i = 0, j = 0, ConnectivitySize = 0;
+    while (fgets(Line, sizeof(Line), File) != NULL) {
+        const int np = LineToArray(true, false, 2, 1, Line, NULL);
+        const int nn = LineToArray(true, true, 3, 0, Line, NULL);
+        if (np == 0 || nn == 0) {
+            continue;
         }
+        else if (i >= From && i <= To) {
+            j = j + 1;
+            eptr[j] = eptr[j - 1] + nn;
+            ConnectivitySize = ConnectivitySize + nn;
+        }
+        if (strcmp(Line, "*NODE\n") == 0) {
+            break;
+        }
+        i = i + 1;
     }
-    free(NodesCountPerElement);
-    
+
     // Checking if calculated size of connectivity array is valid
     // And checking if we can be back to elements section of mesh file
     if (ConnectivitySize != eptr[nelements] || fseek(File, ElementsSectionPos, SEEK_SET) != 0) {
@@ -161,7 +150,7 @@ bool ReadInputFile(const char *FileName){
         if (strcmp(Line, "*NODE\n") == 0) {
             break;
         }
-        i++;
+        i = i + 1;
     }
 
     // Checking if we can go to nodes section of mesh file
@@ -182,13 +171,13 @@ bool ReadInputFile(const char *FileName){
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (ndim == 0 && strstr(Line, "nid") != NULL) {
             if (strstr(Line, "x") != NULL) {
-                ndim++;
+                ndim = ndim + 1;
             }
             if (strstr(Line, "y") != NULL) {
-                ndim++;
+                ndim = ndim + 1;
             }
             if (strstr(Line, "z") != NULL) {
-                ndim++;
+                ndim = ndim + 1;
             }
             if (ndim == 2 || ndim == 3) {
                 coordinates = (double *)calloc(ConnectivitySize * ndim, sizeof(double));
@@ -199,13 +188,13 @@ bool ReadInputFile(const char *FileName){
         if (coordinates != NULL) {
             double *NodeData;
             if (LineToArray(false, false, 1, ndim + 1, Line, (void**)&NodeData) == (ndim + 1)) {
-                const int NodeID = NodeData[0] - 1;
+                const int NodeID = int(NodeData[0]) - 1;
                 // Searching node id in "connectivity" array
                 for (int i = 0; i < ConnectivitySize; i++) {
                     if (connectivity[i] == NodeID) {
                         // Node found. Getting coordinates of it
                         memcpy(&coordinates[i * ndim], &NodeData[1], ndim * sizeof(double));
-                        nnodes++;
+                        nnodes = nnodes + 1;
                     }
                 }
                 free(NodeData);
@@ -222,6 +211,10 @@ bool ReadInputFile(const char *FileName){
         fclose(File);
         FreeArrays();
         printf("\nERROR( proc %d ): Failed to initialize 'coordinates' array.\n", world_rank);
+        if (coordinates == NULL) {
+            printf("\ncoordinates == NULL\n");
+        }
+        printf("\nnnodes = %d, ConnectivitySize = %d, ndim = %d\n", nnodes, ConnectivitySize, ndim);
         return false;
     }
     
@@ -285,7 +278,8 @@ int LineToArray(
             return 0;
         }
         T = strtok(NULL, " \t");
-        if (++Column < ColumnToStart) {
+        Column = Column + 1;
+        if (Column < ColumnToStart) {
             // Skip columns to go to required ones.
             continue;
         }
@@ -294,7 +288,7 @@ int LineToArray(
             break;
         }
         LastVal = Val;
-        Result += 1;
+        Result = Result + 1;
     }
 
     if (Result == 0 || Array == NULL) {
@@ -302,23 +296,34 @@ int LineToArray(
     }
 
     strcpy(Line, ConstLine);
-    *Array = calloc(Result, IntOrFloat ? sizeof(int) : sizeof(double));
+    int *IntArray;
+    double *DoubleArray;
+    if (IntOrFloat) {
+        IntArray = (int *)calloc(Result, sizeof(int));
+        *Array = (void *)IntArray;
+    }
+    else {
+        DoubleArray = (double *)calloc(Result, sizeof(double));
+        *Array = (void *)DoubleArray;
+    }
+    
     int i = 0;
     Column = 0;
     T = strtok(Line, " \t");
     while (T != NULL && i < Result) {
         const double Val = strtod(T, NULL);
         T = strtok(NULL, " \t");
-        if (++Column < ColumnToStart) {
+        Column = Column + 1;
+        if (Column < ColumnToStart) {
             continue;
         }
         if (IntOrFloat) {
-            ((int *)*Array)[i] = Val;
+            IntArray[i] = int(Val);
         }
         else {
-            ((double *)*Array)[i] = Val;
+            DoubleArray[i] = Val;
         }
-        i++;
+        i = i + 1;
     }
     return Result;
 }
