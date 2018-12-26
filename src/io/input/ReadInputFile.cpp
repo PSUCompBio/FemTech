@@ -199,7 +199,7 @@ bool ReadInputFile(const char *FileName){
         if (coordinates != NULL) {
             double *NodeData;
             if (LineToArray(false, false, 1, ndim + 1, Line, (void**)&NodeData) == (ndim + 1)) {
-                const int NodeID = NodeData[0] - 1;
+                const int NodeID = int(NodeData[0]) - 1;
                 // Searching node id in "connectivity" array
                 for (int i = 0; i < ConnectivitySize; i++) {
                     if (connectivity[i] == NodeID) {
@@ -216,12 +216,17 @@ bool ReadInputFile(const char *FileName){
             break;
         }
     }
-    
+	printf("nnodes= %d\n", nnodes);
+	printf("ConnectivitySize = %d\n", ConnectivitySize);
+		
     // Checking if "coordinates" array is OK
     if (coordinates == NULL || nnodes != ConnectivitySize) {
         fclose(File);
         FreeArrays();
         printf("\nERROR( proc %d ): Failed to initialize 'coordinates' array.\n", world_rank);
+		if (coordinates == NULL) {
+			printf("coordinates is NULL\n");
+		}
         return false;
     }
     

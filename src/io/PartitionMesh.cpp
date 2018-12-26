@@ -52,6 +52,7 @@ bool PartitionMesh(){
   const int Result = ParMETIS_V3_PartMeshKway(elmdist, eptr, connectivity, elmwgt, \
       &wgtflag, &numflag, &ncon, &ncommonnodes, &nparts, tpwgts, ubvec, options, \
       &edgecut, part, &comm);
+  
   // Output of ParMETIS_V3_PartMeshKway call will be used here
   if (Result == METIS_OK) { 
     printf("\nDebug (proc %d): partArrayFromMETIS\n", world_rank);
