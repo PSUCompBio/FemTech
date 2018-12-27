@@ -10,11 +10,22 @@ endif(WIN32)
 include_directories(include)
 
 option(ENABLE_MPI "Enable MPI parallelization" OFF)
+option(USE_MS_MPI "Use MS implementation for MPI" OFF)
 
 SET(PARALLEL 0 CACHE INTEGER "Defines a Parallel Build")
 
 if(ENABLE_MPI)
 	find_package(MPI REQUIRED)
+
+	# Modify the compiler obtained by find_package with the user defined settings
+	if(USE_MS_MPI)
+		set(MS_MPI_COMPILER "C:\\Program Files\\Microsoft MPI\\Bin\\mpiexec.exe")
+		set(MPIEXEC_EXECUTABLE ${MS_MPI_COMPILER})
+		set(MPI_C_COMPILER ${MS_MPI_COMPILER})
+		set(MPI_CXX_COMPILER ${MS_MPI_COMPILER})
+		message("MPIEXEC_EXECUTABLE: ${MPIEXEC_EXECUTABLE}") # debugging purposes
+	endif(USE_MS_MPI)
+
 	include_directories(${MPI_INCLUDE_PATH})
 	set(CMAKE_C_FLAGS "${CMAKE_FLAGS} ${MPI_FLAGS}")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_CXX_FLAGS}")
