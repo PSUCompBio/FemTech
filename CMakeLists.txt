@@ -21,7 +21,7 @@ if(ENABLE_MPI)
 	if(USE_MS_MPI)
 		set(MS_MPI_EXECUTABLE "C:\\Program Files\\Microsoft MPI\\Bin\\mpiexec.exe")
 		set(MPIEXEC_EXECUTABLE ${MS_MPI_EXECUTABLE})
-		message("MPIEXEC_EXECUTABLE: ${MPIEXEC_EXECUTABLE}") # debugging purposes
+		# message("MPIEXEC_EXECUTABLE: ${MPIEXEC_EXECUTABLE}") # debugging purposes
 	endif(USE_MS_MPI)
 
 	include_directories(${MPI_INCLUDE_PATH})
