@@ -32,7 +32,7 @@ file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
 # We set them here but could be passed as options if required
 # We use a template for the same, replacing the options we need
 if(WIN32 AND MSVC)
-	set( DEBUG_COMMAND "C:\Program Files\Microsoft MPI\Bin\mpiexec.exe" )
+	set( DEBUG_COMMAND "C:/Program Files/Microsoft MPI/Bin/mpiexec.exe" )
 	set( DEBUG_COMMAND_ARGUMENTS "-n 2 \"$(TargetPath)\" 1-elt-cube.k" )
 	configure_file( template.vcxproj.user.in ${CMAKE_BINARY_DIR}/ex1.vcxproj.user @ONLY )
-endif()	
+endif()
