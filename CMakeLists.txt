@@ -19,10 +19,8 @@ if(ENABLE_MPI)
 
 	# Modify the compiler obtained by find_package with the user defined settings
 	if(USE_MS_MPI)
-		set(MS_MPI_COMPILER "C:\\Program Files\\Microsoft MPI\\Bin\\mpiexec.exe")
-		set(MPIEXEC_EXECUTABLE ${MS_MPI_COMPILER})
-		set(MPI_C_COMPILER ${MS_MPI_COMPILER})
-		set(MPI_CXX_COMPILER ${MS_MPI_COMPILER})
+		set(MS_MPI_EXECUTABLE "C:\\Program Files\\Microsoft MPI\\Bin\\mpiexec.exe")
+		set(MPIEXEC_EXECUTABLE ${MS_MPI_EXECUTABLE})
 		message("MPIEXEC_EXECUTABLE: ${MPIEXEC_EXECUTABLE}") # debugging purposes
 	endif(USE_MS_MPI)
 
