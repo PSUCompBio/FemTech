@@ -37,6 +37,7 @@ int LineToArray(
 
 bool ReadInputFile(const char *FileName);
 bool PartitionMesh();
-void ShapeFunctions3d();
+void ShapeFunctions();
+void ShapeFunction_C3D8();
 void WriteVTU(const char* FileName);
 void FreeArrays();
