@@ -1,3 +1,6 @@
+#ifndef DIGITALBRAIN_H
+#define DIGITALBRAIN_H
+
 #include <stdio.h>
 #include <cmath>
 #include <vector>
@@ -24,7 +27,7 @@
 #include "parmetis.h"
 
 //-------------------------------------------------------------------------------------------
-#define MAX_FILE_LINE 128
+#define MAX_FILE_LINE 260
 #define MAX_ELEMENT_TYPE_SIZE  10
 
 int LineToArray(
@@ -33,11 +36,13 @@ int LineToArray(
     const int ColumnToStart,
     const int ColumnCount,
     const char *ConstLine,
-    void **Array);
-
+    const char *Delim = " \t",
+    void **Array = NULL);
 bool ReadInputFile(const char *FileName);
 bool PartitionMesh();
 void ShapeFunctions();
 void ShapeFunction_C3D8();
 void WriteVTU(const char* FileName);
 void FreeArrays();
+
+#endif

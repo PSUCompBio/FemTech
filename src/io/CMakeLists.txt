@@ -3,6 +3,8 @@ Set(io_src
     output/WriteVTU.cpp
     output/FreeArrays.cpp
     PartitionMesh.cpp
+    input/ReadLsDyna.cpp
+    input/ReadAbaqus.cpp
     )
 
 add_library(io OBJECT ${io_src})

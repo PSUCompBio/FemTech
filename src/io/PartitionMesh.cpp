@@ -54,7 +54,8 @@ bool PartitionMesh(){
       &edgecut, part, &comm);
   
   // Output of ParMETIS_V3_PartMeshKway call will be used here
-  if (Result == METIS_OK) { 
+  if (Result == METIS_OK) {
+    printf("\nResult == METIS_OK\n"); 
     //printf("\nDebug (proc %d): partArrayFromMETIS\n", world_rank);
     //for(int i = 0; i < nelements; ++i) {
     //  printf("%d\t", part[i]);
