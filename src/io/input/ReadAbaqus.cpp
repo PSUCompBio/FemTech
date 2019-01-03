@@ -19,7 +19,6 @@ int StrCmpCI(const char *str1, const char *str2) {
 //-------------------------------------------------------------------------------------------
 static char **LineToTokens(const char *Line, int *Size);
 static void Free2DimArray(void **Array, const int Size);
-static bool IsLineComplete(const char *Line);
 static bool IsNodeSection(char *Line, FILE *File);
 static bool IsElementSection(char *Line, FILE *File, char *Type = NULL, char *ElSetName = NULL);
 static int  CmpFunc(const void *item1, const void *item2) {
@@ -89,13 +88,10 @@ bool ReadAbaqus(const char *FileName) {
     // Checking if elements and nodes were found in mesh file
     // And checking if we can be back to elements section in the file
     int fseeked = 0;
-    if (nallelements == 0 || ndim == 0 || AllNodesCount == 0 || (fseeked = fseek(File, ElementsSectionPos, SEEK_SET)) != 0) {
+    if (nallelements == 0 || AllNodesCount == 0 || (fseeked = fseek(File, ElementsSectionPos, SEEK_SET)) != 0) {
         fclose(File);
         if (nallelements == 0) {
             printf("\nERROR( proc %d ): No element found. This means input file is empty or contains invalid data.\n", world_rank);
-        }
-        if (ndim == 0) {
-            printf("\nERROR( proc %d ): Cannot determine 'ndim'.\n", world_rank);
         }
         if (AllNodesCount == 0) {
             printf("\nERROR( proc %d ): No node found. This means input file is empty or contains invalid data.\n", world_rank);
