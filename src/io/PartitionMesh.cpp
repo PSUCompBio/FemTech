@@ -179,6 +179,10 @@ bool PartitionMesh(){
       }
     }
     // Swap current variables with variables after partition
+    for (int i = 0; i < nelements; ++i) {
+      free(ElementType[i]);
+    }
+    free(ElementType);
     free(connectivity);
     connectivity = connectivityPart;
     free(eptr);
@@ -189,10 +193,6 @@ bool PartitionMesh(){
     coordinates = coordinatesPart;
     nnodes = eptr[nelementsPart];
     nelements = nelementsPart;
-    for (int i = 0; i < nelementsPart; ++i) {
-      free(ElementType[i]);
-    }
-    free(ElementType);
     ElementType = ElementTypePart;
     // Free allocated temporary variables
     free(partGlobal);
