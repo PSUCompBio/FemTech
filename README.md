@@ -17,14 +17,14 @@ be able to be compiled on Windows, Mac and Linux with little or no modification.
 	- Once Visual Studio opens up, right click on ex1 "solution" (on right hand side) and select "Set as Startup Project"
 	- Then right click again the ex1 solution again and select Properties
 	- Under the Configuration Properties-> Debugging, set "Command" to C:\Program Files\Microsoft MPI\Bin\mpiexec.exe
-	- Under the Configuration Properties-> Debugging, set "Command Arguments" to -n 2 "$(TargetPath)" 1-elt-cube.k (where the .k file is the input file in the ex1 directory)
+	- Under the Configuration Properties-> Debugging, set "Command Arguments" to -n 2 "$(TargetPath)" mixed-hex-tete.k (where the .k file is the input file in the ex1 directory)
 	- Then go to top menu bar and select Debug->Start Without Debugging
 - For Serial:
 	- Configure using defaults, but turn on examples (for at least example 1)
 	- Configure again and generate makefile and select open project
 	- Once Visual Studio opens up, right click on ex1 "solution" (on right hand side) and select "Set as Startup Project"
 	- Then right click again the ex1 solution again and select Properties
-	- Under the Configuration Properties-> Debugging, set "Command Arguments" to 1-elt-cube.k (where the .k file is the input file in the ex1 directory)
+	- Under the Configuration Properties-> Debugging, set "Command Arguments" to mixed-hex-tet.k (where the .k file is the input file in the ex1 directory)
 	- Then go to top menu bar and select Debug->Start Without Debugging
 
 ## Linux
