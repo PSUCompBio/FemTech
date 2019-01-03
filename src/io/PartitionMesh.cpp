@@ -19,7 +19,7 @@ bool PartitionMesh(){
   idx_t* elmwgt = NULL;
   idx_t wgtflag = 0; // we don't use weights
   idx_t numflag = 0; // we are using C-style arrays
-  idx_t ncommonnodes = 8; // number of nodes elements must have in common
+  idx_t ncommonnodes = 2; // number of nodes elements must have in common
 
   const int tpwgts_size = ncon * nparts;
   real_t *tpwgts = (real_t *)malloc(tpwgts_size * sizeof(real_t));
@@ -54,7 +54,7 @@ bool PartitionMesh(){
       &edgecut, part, &comm);
   
   // Output of ParMETIS_V3_PartMeshKway call will be used here
-  if (Result == METIS_OK) { 
+  if (Result == METIS_OK) {
     //printf("\nDebug (proc %d): partArrayFromMETIS\n", world_rank);
     //for(int i = 0; i < nelements; ++i) {
     //  printf("%d\t", part[i]);
@@ -179,6 +179,10 @@ bool PartitionMesh(){
       }
     }
     // Swap current variables with variables after partition
+    for (int i = 0; i < nelements; ++i) {
+      free(ElementType[i]);
+    }
+    free(ElementType);
     free(connectivity);
     connectivity = connectivityPart;
     free(eptr);
@@ -189,10 +193,6 @@ bool PartitionMesh(){
     coordinates = coordinatesPart;
     nnodes = eptr[nelementsPart];
     nelements = nelementsPart;
-    for (int i = 0; i < nelementsPart; ++i) {
-      free(ElementType[i]);
-    }
-    free(ElementType);
     ElementType = ElementTypePart;
     // Free allocated temporary variables
     free(partGlobal);
