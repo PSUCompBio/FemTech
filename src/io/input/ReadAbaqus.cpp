@@ -36,7 +36,7 @@ bool ReadAbaqus(const char *FileName) {
         return false;
     }
 
-    // Counting number of elements in elements section of mesh file
+    // Counting number of elements in elements section, number of nodes in nodes section of mesh file
     // And fixing elements and nodes sections' positions in the file
     const char *Delim = ", \t";
     char Line[MAX_FILE_LINE];
@@ -49,10 +49,10 @@ bool ReadAbaqus(const char *FileName) {
                 const int n = LineToArray(false, false, 1, 0, Line, Delim) - 1;
                 if (n >= 2) {
                     ndim = n > 3 ? 3 : n;
-                    AllNodesCount++;
                 }
             }
             if (ndim > 0) {
+                AllNodesCount++;
                 const int nCols = ndim + 1;
                 while (fgets(Line, sizeof(Line), File) != NULL) {
                     if (LineToArray(false, false, 1, nCols, Line, Delim) != nCols) {
@@ -67,12 +67,17 @@ bool ReadAbaqus(const char *FileName) {
             if (ElementsSectionPos == -1) {
                 ElementsSectionPos = CurrentPos;
             }
+            long LastValidElemDataLinePos = -1;
             ElSetsCount++;
             while (fgets(Line, sizeof(Line), File) != NULL) {
                 if (LineToArray(true, false, 2, 0, Line, Delim) == 0) {
                     break;
                 }
                 nallelements++;
+                LastValidElemDataLinePos = ftell(File);
+            }
+            if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
+                printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
             }
         }
         
@@ -81,16 +86,19 @@ bool ReadAbaqus(const char *FileName) {
         }
     }
     
-    // Checking if elements were found in mesh file
+    // Checking if elements and nodes were found in mesh file
     // And checking if we can be back to elements section in the file
     int fseeked = 0;
-    if (nallelements == 0 || ndim == 0 || (fseeked = fseek(File, ElementsSectionPos, SEEK_SET)) != 0) {
+    if (nallelements == 0 || ndim == 0 || AllNodesCount == 0 || (fseeked = fseek(File, ElementsSectionPos, SEEK_SET)) != 0) {
         fclose(File);
         if (nallelements == 0) {
-            printf("\nERROR( proc %d ): No elements found. This means input file is empty or contains invalid data.\n", world_rank);
+            printf("\nERROR( proc %d ): No element found. This means input file is empty or contains invalid data.\n", world_rank);
         }
         if (ndim == 0) {
             printf("\nERROR( proc %d ): Cannot determine 'ndim'.\n", world_rank);
+        }
+        if (AllNodesCount == 0) {
+            printf("\nERROR( proc %d ): No node found. This means input file is empty or contains invalid data.\n", world_rank);
         }
         if (fseeked != 0) {
             printf("\nERROR( proc %d ): 'fseek()' call for ElementsSectionPos failed.\n", world_rank);
@@ -121,6 +129,7 @@ bool ReadAbaqus(const char *FileName) {
     char Type[MAX_FILE_LINE] = {0}, ElSetName[MAX_FILE_LINE] = {0};
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (IsElementSection(Line, File, Type, ElSetName)) {
+            long LastValidElemDataLinePos = -1;
             while (fgets(Line, sizeof(Line), File) != NULL) {
                 const int n = LineToArray(true, false, 2, 0, Line, Delim);
                 if (n == 0) {
@@ -137,6 +146,10 @@ bool ReadAbaqus(const char *FileName) {
                     pi = pi + 1;
                 }
                 i = i + 1;
+                LastValidElemDataLinePos = ftell(File);
+            }
+            if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
+                printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
             }
         }
     }
@@ -172,9 +185,9 @@ bool ReadAbaqus(const char *FileName) {
             pi = pi + 1;
         }
     }
-    ElSetsCount = pi > ElSetsCount ? ElSetsCount : pi;
+    const int UniqueElSetsCount = pi > ElSetsCount ? ElSetsCount : pi;
     pid = (int *)calloc(nelements, sizeof(int));
-    for (int i = 0; i < ElSetsCount; i++) {
+    for (int i = 0; i < UniqueElSetsCount; i++) {
         for (int j = 0; j < nelements; j++) {
             if (strcmp(UniqueElSetNames[i], ElSetNames[j]) == 0) {
                 pid[j] = i + 1;
@@ -184,11 +197,12 @@ bool ReadAbaqus(const char *FileName) {
     Free2DimArray((void **)ElSetNames, nelements);
     Free2DimArray((void **)UniqueElSetNames, ElSetsCount);
 
-    // Creating and initializing "connectivity", "pid" and "ElementType" arrays for processor
+    // Creating and initializing "connectivity" array for processor
     connectivity = (int *)calloc(ConnectivitySize, sizeof(int));
     i = 0, j = 0;
     while (fgets(Line, sizeof(Line), File) != NULL) {
-        if (IsElementSection(Line, File, Type, ElSetName)) {
+        if (IsElementSection(Line, File)) {
+            long LastValidElemDataLinePos = -1;
             while (fgets(Line, sizeof(Line), File) != NULL) {
                 int *Nodes;
                 const int n = LineToArray(true, false, 2, 0, Line, Delim, (void**)&Nodes);
@@ -203,21 +217,19 @@ bool ReadAbaqus(const char *FileName) {
                 }
                 free(Nodes);
                 i = i + 1;
+                LastValidElemDataLinePos = ftell(File);
+            }
+            if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
+                printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
             }
         }
     }
     
-    // Checking if nodes section was found in mesh file
     // Checking if we can go to nodes section of mesh file
-    if (AllNodesCount == 0 || fseek(File, NodesSectionPos, SEEK_SET) != 0) {
+    if (fseek(File, NodesSectionPos, SEEK_SET) != 0) {
         fclose(File);
         FreeArrays();
-        if (AllNodesCount == 0) {
-            printf("\nERROR( proc %d ): 'AllNodesCount' is 0.\n", world_rank);
-        }
-        else {
-            printf("\nERROR( proc %d ): 'fseek()' call for NodesSectionPos failed.\n", world_rank);
-        }
+        printf("\nERROR( proc %d ): 'fseek()' call for NodesSectionPos failed.\n", world_rank);
         return false;
     }
        
@@ -237,9 +249,9 @@ bool ReadAbaqus(const char *FileName) {
     for (int i = 0; i < ConnectivitySize; i++) {
         const double Key = connectivity[i] + 1;
         const double *PKey = &Key;
-        void *bs = bsearch(&PKey, Nodes, AllNodesCount, sizeof(double *), CmpFunc);
+        const double **bs = (const double **)bsearch(&PKey, Nodes, AllNodesCount, sizeof(double *), CmpFunc);
         if (bs != NULL) {
-            const double *NodeData = *((const double **)bs);
+            const double *NodeData = *bs;
             memcpy(&coordinates[i * ndim], &NodeData[1], csize);
             nnodes = nnodes + 1;
         }
@@ -253,7 +265,6 @@ bool ReadAbaqus(const char *FileName) {
         printf("\nnnodes = %d, ConnectivitySize = %d, ndim = %d\n", nnodes, ConnectivitySize, ndim);
     }
     
-    printf("\nReadAbaqus OK.\n");
     fclose(File);
     return nnodes == ConnectivitySize;
 }
@@ -278,7 +289,7 @@ static char **LineToTokens(const char *Line, int *Size) {
                     Count++;
                 }
             }
-            else if ((C >= 'a' && C <= 'z') || (C >= 'A' && C <= 'Z') || (C >= '0' && C <= '9') || C == '_') {
+            else if ((C >= 'a' && C <= 'z') || (C >= 'A' && C <= 'Z') || (C >= '0' && C <= '9') || C == '_' || C == '-') {
                 strncat(StrToken, &Line[i], 1);
                 if (i == (strlen(Line) - 1)) {
                     if (Result != NULL) {
@@ -366,7 +377,7 @@ static bool IsElementSection(char *Line, FILE *File, char *Type, char *ElSetName
     }
     if (Result) {
         Result = false;
-        do {            
+        do {
             for (int i = 0; i < Size; i++) {
                 if (!Result && StrCmpCI(Tokens[i], "TYPE") == 0) {
                     Result = (i + 2) < Size && strcmp(Tokens[i + 1], "=") == 0 && strlen(Tokens[i + 2]) > 0;
