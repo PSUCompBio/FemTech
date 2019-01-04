@@ -44,12 +44,4 @@ ADD_SUBDIRECTORY (src)
 option(EXAMPLES "Activate examples" OFF)
 if(EXAMPLES)
   add_subdirectory(examples)
-
-  # Now define the startup project, logic is up to the user here, just example with ex1 project
-  # Calling this statement at root cmake file we set the default startup project
-  # We need to use here the name of the desired project, using now "ex1" as example 
-
-  if(EXAMPLE1)
-  	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT "ex1")
-  endif(EXAMPLE1)
 endif()
