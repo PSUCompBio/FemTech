@@ -10,11 +10,20 @@ endif(WIN32)
 include_directories(include)
 
 option(ENABLE_MPI "Enable MPI parallelization" OFF)
+option(USE_MS_MPI "Use MS implementation for MPI" OFF)
 
 SET(PARALLEL 0 CACHE INTEGER "Defines a Parallel Build")
 
 if(ENABLE_MPI)
 	find_package(MPI REQUIRED)
+
+	# Modify the compiler obtained by find_package with the user defined settings
+	if(USE_MS_MPI)
+		set(MS_MPI_EXECUTABLE "C:\\Program Files\\Microsoft MPI\\Bin\\mpiexec.exe")
+		set(MPIEXEC_EXECUTABLE ${MS_MPI_EXECUTABLE})
+		# message("MPIEXEC_EXECUTABLE: ${MPIEXEC_EXECUTABLE}") # debugging purposes
+	endif(USE_MS_MPI)
+
 	include_directories(${MPI_INCLUDE_PATH})
 	set(CMAKE_C_FLAGS "${CMAKE_FLAGS} ${MPI_FLAGS}")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_CXX_FLAGS}")
@@ -35,4 +44,12 @@ ADD_SUBDIRECTORY (src)
 option(EXAMPLES "Activate examples" OFF)
 if(EXAMPLES)
   add_subdirectory(examples)
+
+  # Now define the startup project, logic is up to the user here, just example with ex1 project
+  # Calling this statement at root cmake file we set the default startup project
+  # We need to use here the name of the desired project, using now "ex1" as example
+
+  if(EXAMPLE1)
+  	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT "ex1")
+  endif(EXAMPLE1)
 endif()
