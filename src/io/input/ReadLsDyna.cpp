@@ -1,5 +1,9 @@
 #include "digitalbrain.h"
 
+#define TITLE_ELEMENT  "*ELEMENT_SOLID"
+#define TITLE_NODE     "*NODE"
+#define TITLE_END      "*END"
+
 bool ReadLsDyna(const char *FileName) {
     // Checking if mesh file can be opened or not
     FILE *File;
@@ -12,15 +16,15 @@ bool ReadLsDyna(const char *FileName) {
     // And fixing elements and nodes sections' positions in the file
     const char *Delim = " \t";
     char Line[MAX_FILE_LINE];
-    long ElementsSectionPos = 0xFFFFFFFF, NodesSectionPos = 0xFFFFFFFF;
+    long ElementsSectionPos = -1, NodesSectionPos = -1;
     while (fgets(Line, sizeof(Line), File) != NULL) {
-        if (strcmp(Line, "*ELEMENT_SOLID\n") == 0) {
+        if (strncmp(Line, TITLE_ELEMENT, strlen(TITLE_ELEMENT)) == 0) {
             ElementsSectionPos = ftell(File);
             while (fgets(Line, sizeof(Line), File) != NULL) {
                 if (LineToArray(true, false, 2, 1, Line) > 0 && LineToArray(true, true, 3, 0, Line) > 0) {
                     nallelements++;
                 }
-                if (strcmp(Line, "*NODE\n") == 0) {
+                if (strncmp(Line, TITLE_NODE, strlen(TITLE_NODE)) == 0) {
                     NodesSectionPos = ftell(File);
                     break;
                 }
@@ -66,7 +70,7 @@ bool ReadLsDyna(const char *FileName) {
             eptr[j] = eptr[j - 1] + nn;
             ConnectivitySize = ConnectivitySize + nn;
         }
-        if (strcmp(Line, "*NODE\n") == 0) {
+        if (strncmp(Line, TITLE_NODE, strlen(TITLE_NODE)) == 0) {
             break;
         }
         i = i + 1;
@@ -126,7 +130,7 @@ bool ReadLsDyna(const char *FileName) {
         }
         free(PIDs);
         free(Nodes);
-        if (strcmp(Line, "*NODE\n") == 0) {
+        if (strncmp(Line, TITLE_NODE, strlen(TITLE_NODE)) == 0) {
             break;
         }
         i = i + 1;
@@ -180,21 +184,19 @@ bool ReadLsDyna(const char *FileName) {
             }
         }
         
-        if (strcmp(Line, "*END\n") == 0) {
+        if (strncmp(Line, TITLE_END, strlen(TITLE_END)) == 0) {
             break;
         }
     }
 
     // Checking if "coordinates" array is OK
-    if (coordinates == NULL || nnodes != ConnectivitySize) {
-        fclose(File);
+    if (nnodes != ConnectivitySize) {
         FreeArrays();
         printf("\nERROR( proc %d ): Failed to initialize 'coordinates' array.\n", world_rank);
         if (coordinates == NULL) {
             printf("\ncoordinates == NULL\n");
         }
         printf("\nnnodes = %d, ConnectivitySize = %d, ndim = %d\n", nnodes, ConnectivitySize, ndim);
-        return false;
     }
 
 #if 0
@@ -229,5 +231,5 @@ bool ReadLsDyna(const char *FileName) {
 #endif
     // Everything is OK for now. Closing the mesh file, returning TRUE.
     fclose(File);
-    return true;
+    return nnodes == ConnectivitySize;
 }

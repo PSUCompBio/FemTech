@@ -113,18 +113,33 @@ bool ReadAbaqus(const char *FileName) {
     const int To = From + nelements - 1;
     
     // Creating and initializing "eptr" and "ElementType" array, and determining size of "connectivity" array
-    const int ELSETNAME_SIZE = 40;
+    const int ELSETNAME_SIZE = 80;
     ElementType = (char **)malloc(nelements * sizeof(char *));
     char **ElSetNames = (char **)malloc(nelements * sizeof(char *));
     for (int i = 0; i < nelements; i++) {
         ElementType[i] = (char *)calloc(MAX_ELEMENT_TYPE_SIZE, sizeof(char));
         ElSetNames[i] = (char *)calloc(ELSETNAME_SIZE, sizeof(char));
     }
+    char **UniqueElSetNames = (char **)malloc(ElSetsCount * sizeof(char *));
+    for (int i = 0; i < ElSetsCount; i++) {
+        UniqueElSetNames[i] = (char *)calloc(ELSETNAME_SIZE, sizeof(char));
+    }
     eptr = (int *)calloc(nelements + 1, sizeof(int));
-    int i = 0, j = 0, pi = 0, ConnectivitySize = 0;
+    int i = 0, j = 0, pi = 0, ConnectivitySize = 0, UniqueElSetsCount = 0;
     char Type[MAX_FILE_LINE] = {0}, ElSetName[MAX_FILE_LINE] = {0};
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (IsElementSection(Line, File, Type, ElSetName)) {
+
+            ElSetName[ELSETNAME_SIZE - 1] = 0;
+            bool Found = false;
+            for (int k = 0; !Found && k < ElSetsCount; k++) {
+                Found = strcmp(ElSetName, UniqueElSetNames[k]) == 0;
+            }
+            if (!Found && UniqueElSetsCount < ElSetsCount) {
+                strcpy(UniqueElSetNames[UniqueElSetsCount], ElSetName);
+                UniqueElSetsCount = UniqueElSetsCount + 1;
+            }
+
             long LastValidElemDataLinePos = -1;
             while (fgets(Line, sizeof(Line), File) != NULL) {
                 const int n = LineToArray(true, false, 2, 0, Line, Delim);
@@ -137,13 +152,13 @@ bool ReadAbaqus(const char *FileName) {
                     ConnectivitySize = ConnectivitySize + n;
                     Type[MAX_ELEMENT_TYPE_SIZE - 1] = 0;
                     strcpy(ElementType[pi], Type);
-                    ElSetName[ELSETNAME_SIZE - 1] = 0;
                     strcpy(ElSetNames[pi], ElSetName);
                     pi = pi + 1;
                 }
                 i = i + 1;
                 LastValidElemDataLinePos = ftell(File);
             }
+            
             if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
                 printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
             }
@@ -156,6 +171,7 @@ bool ReadAbaqus(const char *FileName) {
         fclose(File);
         FreeArrays();
         Free2DimArray((void **)ElSetNames, nelements);
+        Free2DimArray((void **)UniqueElSetNames, ElSetsCount);
         if (ConnectivitySize != eptr[nelements]) {
             printf("\nERROR( proc %d ): Size of 'eind' array is not vald.\n", world_rank);
         }
@@ -166,22 +182,6 @@ bool ReadAbaqus(const char *FileName) {
     }
 
     // Creating and initializing "pid" array
-    pi = 0;
-    char **UniqueElSetNames = (char **)malloc(ElSetsCount * sizeof(char *));
-    for (int i = 0; i < ElSetsCount; i++) {
-        UniqueElSetNames[i] = (char *)calloc(ELSETNAME_SIZE, sizeof(char));
-    }
-    for (int i = 0; i < nelements; i++) {
-        bool Found = false;
-        for (int j = 0; !Found && j < ElSetsCount; j++) {
-            Found = strcmp(ElSetNames[i], UniqueElSetNames[j]) == 0;
-        }
-        if (!Found && pi < ElSetsCount) {
-            strcpy(UniqueElSetNames[pi], ElSetNames[i]);
-            pi = pi + 1;
-        }
-    }
-    const int UniqueElSetsCount = pi > ElSetsCount ? ElSetsCount : pi;
     pid = (int *)calloc(nelements, sizeof(int));
     for (int i = 0; i < UniqueElSetsCount; i++) {
         for (int j = 0; j < nelements; j++) {
@@ -215,6 +215,7 @@ bool ReadAbaqus(const char *FileName) {
                 i = i + 1;
                 LastValidElemDataLinePos = ftell(File);
             }
+            
             if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
                 printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
             }
