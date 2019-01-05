@@ -10,19 +10,35 @@ endif(WIN32)
 include_directories(include)
 
 option(ENABLE_MPI "Enable MPI parallelization" OFF)
-option(USE_MS_MPI "Use MS implementation for MPI" OFF)
 
 SET(PARALLEL 0 CACHE INTEGER "Defines a Parallel Build")
 
+# Define a set of values to identify each MPI implementation supported (when enabled)
+set(MS_MPI "Microsoft")
+set(INTEL_MPI "Intel")
+set(DEFAULT_MPI "Default")  # Let cmake automatically pick one
+
+# Define the MPI to be used at each environment (when enabled ENABLE_MPI)
+set(SELECTED_MPI ${DEFAULT_MPI})
+# At windows use MS one by default
+if(WIN32)
+	set(SELECTED_MPI ${MS_MPI})
+endif()
+
 if(ENABLE_MPI)
+	set(MPI_IMPLEMENTATION ${SELECTED_MPI} CACHE STRING "MPI Implementation used by the software")
+	set_property(CACHE MPI_IMPLEMENTATION PROPERTY STRINGS ${MS_MPI} ${INTEL_MPI} ${DEFAULT_MPI})
+
+	#message("MPI_IMPLEMENTATION: ${MPI_IMPLEMENTATION}") # debugging purposes
+
 	find_package(MPI REQUIRED)
 
-	# Modify the compiler obtained by find_package with the user defined settings
-	if(USE_MS_MPI)
+	if("${MPI_IMPLEMENTATION}" STREQUAL "${MS_MPI}")
+		# Modify the compiler obtained by find_package with the user defined settings
 		set(MS_MPI_EXECUTABLE "C:\\Program Files\\Microsoft MPI\\Bin\\mpiexec.exe")
 		set(MPIEXEC_EXECUTABLE ${MS_MPI_EXECUTABLE})
-		# message("MPIEXEC_EXECUTABLE: ${MPIEXEC_EXECUTABLE}") # debugging purposes
-	endif(USE_MS_MPI)
+		#message("MPIEXEC_EXECUTABLE: ${MPIEXEC_EXECUTABLE}") # debugging purposes
+	endif()
 
 	include_directories(${MPI_INCLUDE_PATH})
 	set(CMAKE_C_FLAGS "${CMAKE_FLAGS} ${MPI_FLAGS}")
