@@ -233,8 +233,9 @@ bool ReadAbaqus(const char *FileName) {
     // Initializing "coordinates" array
     double **Nodes = (double **)malloc(AllNodesCount * sizeof(double *));
     i = 0;
+    const int nCols = ndim + 1;
     while (fgets(Line, sizeof(Line), File) != NULL) {
-        if (LineToArray(false, false, 1, ndim + 1, Line, Delim, (void**)&Nodes[i]) != (ndim + 1)) {
+        if (LineToArray(false, false, 1, nCols, Line, Delim, (void**)&Nodes[i]) != nCols) {
             break;
         }
         i = i + 1;
