@@ -2,33 +2,25 @@
 void ShapeFunction_C3D8(/*ss[], xsj, shp[], xl[], ndm*/){
    printf("Rank %d: Shape Functions for C3D8 elements!!\n", world_rank);
 
-   /*!$Id:$
+   /*
 	   subroutine shp3d(ss, xsj, shp, xl, ndm)
 
-	   !* * F E A P * * A Finite Element Analysis Program
+	   Purpose : Compute 3 - d isoparametric 8 - node element shape
+	             functions and their derivatives w / r x, y, z
 
-	   !....Copyright(c) 1984 - 2017 : Regents of the University of California
-	   !All rights reserved
+	   Inputs :
+	   ss(3) - Natural coordinates of point
+	   xl(ndm, *) - Nodal coordinates for element
+	   ndm - Spatial dimension of mesh
 
-	   !---- - [--.---- + ----.---- + ----.---------------------------------------- - ]
-	   !Purpose : Compute 3 - d isoparametric 8 - node element shape
-	   !functions and their derivatives w / r x, y, z
+	   Outputs :
+	   xsj - Jacobian determinant at point
+	   shp(4, *) - Shape functions and derivatives at point
+	   shp(1, i) = dN_i / dx
+	   shp(2, i) = dN_i / dy
+	   shp(3, i) = dN_i / dz
+	   shp(4, i) = N_i
 
-	   !Inputs :
-	   !ss(3) - Natural coordinates of point
-	   !xl(ndm, *) - Nodal coordinates for element
-	   !ndm - Spatial dimension of mesh
-
-	   !Outputs :
-	   !xsj - Jacobian determinant at point
-	   !shp(4, *) - Shape functions and derivatives at point
-	   !shp(1, i) = dN_i / dx
-	   !shp(2, i) = dN_i / dy
-	   !shp(3, i) = dN_i / dz
-	   !shp(4, i) = N_i
-	   !---- - [--.---- + ----.---- + ----.---------------------------------------- - ]
-
-	   implicit  none*/
 
 	   //integer   ndm, i, j, k
    //int   ndm, i, j, k;
@@ -41,6 +33,8 @@ void ShapeFunction_C3D8(/*ss[], xsj, shp[], xl[], ndm*/){
 	   //save
 
 	   //!Compute shape functions and their natural coord.derivatives
+
+   /*
 
 	   ap1 = 1.0d0 + ss[1 - 1];
 	   am1 = 1.0d0 - ss[1 - 1];
@@ -168,6 +162,8 @@ void ShapeFunction_C3D8(/*ss[], xsj, shp[], xl[], ndm*/){
 						   end do
 
 						   end
+
+						   */
 
    return;
 }
