@@ -4,6 +4,7 @@
 #define TITLE_NODE     "*NODE"
 #define TITLE_END      "*END"
 
+//-------------------------------------------------------------------------------------------
 bool ReadLsDyna(const char *FileName) {
     // Checking if mesh file can be opened or not
     FILE *File;
@@ -17,6 +18,7 @@ bool ReadLsDyna(const char *FileName) {
     const char *Delim = " \t";
     char Line[MAX_FILE_LINE];
     long ElementsSectionPos = -1, NodesSectionPos = -1;
+    ndim = 0;
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (strncmp(Line, TITLE_ELEMENT, strlen(TITLE_ELEMENT)) == 0) {
             ElementsSectionPos = ftell(File);
@@ -29,19 +31,43 @@ bool ReadLsDyna(const char *FileName) {
                     break;
                 }
             }
-            break;
+        }
+        
+        if (NodesSectionPos != -1 && ndim == 0) {
+            NodesSectionPos = -1;
+            while (ndim == 0 && fgets(Line, sizeof(Line), File) != NULL) {
+                if (strstr(Line, "nid") != NULL) {
+                    if (strstr(Line, "x") != NULL) {
+                        ndim = ndim + 1;
+                    }
+                    if (strstr(Line, "y") != NULL) {
+                        ndim = ndim + 1;
+                    }
+                    if (strstr(Line, "z") != NULL) {
+                        ndim = ndim + 1;
+                    }
+                }
+            }
+            if (ndim == 2 || ndim == 3) {
+                NodesSectionPos = ftell(File);
+                break;
+            }
         }
     }
 
-    // Checking if elements were found in mesh file
+    // Checking if elements and nodes were found in mesh file
     // And checking if we can be back to elements section in the file
-    if (nallelements == 0 || fseek(File, ElementsSectionPos, SEEK_SET) != 0) {
+    int fseeked = 0;
+    if (nallelements == 0 || NodesSectionPos == -1 || (fseeked = fseek(File, ElementsSectionPos, SEEK_SET)) != 0) {
         fclose(File);
         if (nallelements == 0) {
-            printf("\nERROR( proc %d ): No elements found. This means input file is empty or contains invalid data.\n", world_rank);
+            printf("\nERROR( proc %d ): No element found. This means input file is empty or contains invalid data.\n", world_rank);
         }
-        else {
-            printf("\nERROR( proc %d ): 'fseek()' call failed.\n", world_rank);
+        if (NodesSectionPos == -1) {
+            printf("\nERROR( proc %d ): Node section not found. This means input file is empty or contains invalid data.\n", world_rank);
+        }
+        if (fseeked != 0) {
+            printf("\nERROR( proc %d ): 'fseek()' call for ElementsSectionPos failed.\n", world_rank);
         }
         return false;
     }
@@ -144,58 +170,54 @@ bool ReadLsDyna(const char *FileName) {
         return false;
     }
     
-    // "nnodes" is not unique node numbers for now
-    // "coordinates" array will contain "ndim" coordinates for each element of "connectivity" array
-    nnodes = 0;
-    ndim = 0;
-    coordinates = NULL;
-    
     // Initializing "coordinates" array
-    while (fgets(Line, sizeof(Line), File) != NULL) {
-        if (ndim == 0 && strstr(Line, "nid") != NULL) {
-            if (strstr(Line, "x") != NULL) {
-                ndim = ndim + 1;
+    int compare (const void * a, const void * b);
+    int unique(int *arr, int n);
+    int *UniqueConnectivity = (int *)malloc(ConnectivitySize * sizeof(int));
+    memcpy(UniqueConnectivity, connectivity, ConnectivitySize * sizeof(int));
+    qsort(UniqueConnectivity, ConnectivitySize, sizeof(int), compare);
+    const int UniqueConnectivitySize = unique(UniqueConnectivity, ConnectivitySize);
+    const int csize = ndim * sizeof(double);
+    double *UniqueConnCoordinates = (double *)calloc(UniqueConnectivitySize, csize);
+    const int nCols = ndim + 1;
+    int nCopied = 0;
+    while (nCopied < UniqueConnectivitySize && fgets(Line, sizeof(Line), File) != NULL) {
+        double *NodeData;
+        const int n = LineToArray(false, false, 1, nCols, Line, Delim, (void**)&NodeData);
+        if (n == nCols) {
+            const int NodeID = int(NodeData[0]) - 1;
+            const int *p = (const int *)bsearch(&NodeID, UniqueConnectivity, UniqueConnectivitySize, sizeof(int), compare);
+            if (p != NULL) {
+                const int I = p - UniqueConnectivity;
+                memcpy(&UniqueConnCoordinates[I * ndim], &NodeData[1], csize);
+                nCopied = nCopied + 1;
             }
-            if (strstr(Line, "y") != NULL) {
-                ndim = ndim + 1;
-            }
-            if (strstr(Line, "z") != NULL) {
-                ndim = ndim + 1;
-            }
-            if (ndim == 2 || ndim == 3) {
-                coordinates = (double *)calloc(ConnectivitySize * ndim, sizeof(double));
-            }
-            continue;
+            free(NodeData);
         }
-        
-        if (coordinates != NULL) {
-            double *NodeData;
-            if (LineToArray(false, false, 1, ndim + 1, Line, Delim, (void**)&NodeData) == (ndim + 1)) {
-                const int NodeID = int(NodeData[0]) - 1;
-                // Searching node id in "connectivity" array
-                for (int i = 0; i < ConnectivitySize; i++) {
-                    if (connectivity[i] == NodeID) {
-                        // Node found. Getting coordinates of it
-                        memcpy(&coordinates[i * ndim], &NodeData[1], ndim * sizeof(double));
-                        nnodes = nnodes + 1;
-                    }
-                }
-                free(NodeData);
-            }
+        else if (n > 0) {
+            free(NodeData);
         }
-        
         if (strncmp(Line, TITLE_END, strlen(TITLE_END)) == 0) {
             break;
         }
     }
+    nnodes = 0;
+    coordinates = (double *)malloc(ConnectivitySize * csize);
+    for (int i = 0; i < ConnectivitySize; i++) {
+        const int *p = (const int *)bsearch(&connectivity[i], UniqueConnectivity, UniqueConnectivitySize, sizeof(int), compare);
+        if (p != NULL) {
+            const int I = p - UniqueConnectivity;
+            memcpy(&coordinates[i * ndim], &UniqueConnCoordinates[I * ndim], csize);
+            nnodes = nnodes + 1;
+        }
+    }
+    free(UniqueConnCoordinates);
+    free(UniqueConnectivity);
 
     // Checking if "coordinates" array is OK
     if (nnodes != ConnectivitySize) {
         FreeArrays();
         printf("\nERROR( proc %d ): Failed to initialize 'coordinates' array.\n", world_rank);
-        if (coordinates == NULL) {
-            printf("\ncoordinates == NULL\n");
-        }
         printf("\nnnodes = %d, ConnectivitySize = %d, ndim = %d\n", nnodes, ConnectivitySize, ndim);
     }
 
