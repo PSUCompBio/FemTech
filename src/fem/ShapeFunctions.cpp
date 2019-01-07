@@ -22,8 +22,11 @@ void ShapeFunctions(){
 	   // Call 3D 8-noded hex shape function routine
 	   if (strcmp(ElementType[i], "C3D8") == 0) {
 		   printf("Computing C3D8 Shape Function , element %d...\n", i);
-		   ShapeFunction_C3D8();
-		
+
+			 GaussQuadrature3D(); /* not sure if this is where it goes*/
+
+			 ShapeFunction_C3D8();
+
 	   }
    }
    printf("\n");
