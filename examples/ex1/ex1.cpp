@@ -12,7 +12,7 @@ int main(int argc, char **argv){
 	if (ReadInputFile(argv[1])) {
 	    PartitionMesh();
 	}
-	//test 
+	
 
 #if 0
 	// Printing local arrays of processor (this section can be removed)
@@ -47,7 +47,7 @@ int main(int argc, char **argv){
 
   WriteVTU(argv[1]);  
 
-  //ShapeFunctions();
+  ShapeFunctions();
 
   FreeArrays();
   MPI_Finalize();
