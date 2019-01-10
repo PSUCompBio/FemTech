@@ -29,6 +29,8 @@ void ShapeFunction_C3D8(double ss[], double xl[][], int ndm){
 
    //real * 8    ss(3), shp(4, 8), xl(ndm, 8), xs(3, 3), ad(3, 3)
 	   //double    ss[3-1], shp[4-1, 8-1], xl[ndm-1, 8-1], xs[3-1, 3-1], ad[3-1, 3-1];
+   
+   /*
    double shp[4 - 1][8 - 1], xs[3 - 1][3 - 1];
 
 	   //save
@@ -168,6 +170,6 @@ void ShapeFunction_C3D8(double ss[], double xl[][], int ndm){
 						   end
 
 						   
-
+*/
    return;
 }
