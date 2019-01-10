@@ -20,7 +20,10 @@ bool PartitionMesh(){
   idx_t wgtflag = 0; // we don't use weights
   idx_t numflag = 0; // we are using C-style arrays
   idx_t ncommonnodes = 2; // number of nodes elements must have in common
-
+  if(nallelements == 2){
+		printf("PartitionMesh.cpp: nallelements = 2 so ncommonnodes set to 8 (for parmetis)\n");
+		ncommonnodes = 8;
+	}
   const int tpwgts_size = ncon * nparts;
   real_t *tpwgts = (real_t *)malloc(tpwgts_size * sizeof(real_t));
   for (int i = 0; i < tpwgts_size; i++) {
@@ -52,7 +55,7 @@ bool PartitionMesh(){
   const int Result = ParMETIS_V3_PartMeshKway(elmdist, eptr, connectivity, elmwgt, \
       &wgtflag, &numflag, &ncon, &ncommonnodes, &nparts, tpwgts, ubvec, options, \
       &edgecut, part, &comm);
-  
+
   // Output of ParMETIS_V3_PartMeshKway call will be used here
   if (Result == METIS_OK) {
     //printf("\nDebug (proc %d): partArrayFromMETIS\n", world_rank);
@@ -233,8 +236,8 @@ int unique(int *arr, int n) {
 //-------------------------------------------------------------------------------------------
 void updateConnectivityGlobalToLocal(void) {
   int totalSize = eptr[nelements];
-  int *newConnectivity = (int*)malloc(totalSize*sizeof(int));   
-  int *sorted = (int*)malloc(totalSize*sizeof(int));   
+  int *newConnectivity = (int*)malloc(totalSize*sizeof(int));
+  int *sorted = (int*)malloc(totalSize*sizeof(int));
   memcpy(sorted, connectivity, totalSize*sizeof(int));
   qsort(sorted, totalSize, sizeof(int), compare);
   nnodes = unique(sorted, totalSize);
@@ -247,7 +250,7 @@ void updateConnectivityGlobalToLocal(void) {
     }
     newConnectivity[i] = j;
   }
-  // Reoder co-ordinates 
+  // Reoder co-ordinates
   double *newCoordinates = (double*)malloc(ndim*nnodes*sizeof(double));
   for (int j = 0; j < nnodes; ++j) {
     int i;
