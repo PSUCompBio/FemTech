@@ -24,9 +24,10 @@ void ShapeFunctions(){
 	   if (strcmp(ElementType[i], "C3D8") == 0) {
 		   printf("Computing C3D8 Shape Function , element %d...\n", i);
 			 int QuadratureRule = 2;
-			 double sf = GaussQuadrature3D(QuadratureRule); /* not sure if this is where it goes*/
+			 double sf = { 0,0,0,0 };
+			 GaussQuadrature3D(QuadratureRule,sf); /* not sure if this is where it goes*/
 
-			 ShapeFunction_C3D8(sf);
+			 ShapeFunction_C3D8();
 
 	   }
    }

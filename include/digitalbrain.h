@@ -41,8 +41,8 @@ int LineToArray(
 bool ReadInputFile(const char *FileName);
 bool PartitionMesh();
 void ShapeFunctions();
-void ShapeFunction_C3D8(double sf);
-double GaussQuadrature3D(int QuadratureRule);
+void ShapeFunction_C3D8();
+void GaussQuadrature3D(int QuadratureRule, double *s);
 void WriteVTU(const char* FileName);
 void FreeArrays();
 

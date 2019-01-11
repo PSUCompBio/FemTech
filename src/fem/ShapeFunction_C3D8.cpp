@@ -1,5 +1,5 @@
 #include "digitalbrain.h"
-void ShapeFunction_C3D8(double sf /*, double xl[][], int ndm*/ ){
+void ShapeFunction_C3D8( ){
    printf("Rank %d: Shape Functions for C3D8 elements!!\n", world_rank);
 
    /*
@@ -23,7 +23,7 @@ void ShapeFunction_C3D8(double sf /*, double xl[][], int ndm*/ ){
 
 
 for (int i=0;i<4;i++){
-	printf("SF: %2.5f %2.5f %2.5f %2.5f\n",sf[0][i],sf[1][i],sf[2][i],sf[3][i]);
+	//printf("SF: %2.5f %2.5f %2.5f %2.5f\n",sf[0][i],sf[1][i],sf[2][i],sf[3][i]);
 }
 
 /*
