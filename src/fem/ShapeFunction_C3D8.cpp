@@ -21,6 +21,7 @@ void ShapeFunction_C3D8(double ss[], double xl[][], int ndm){
 	   shp(3, i) = dN_i / dz
 	   shp(4, i) = N_i */
 
+   /*
 
 	   //integer   ndm, i, j, k
    //int   ndm, i, j, k;
@@ -30,8 +31,8 @@ void ShapeFunction_C3D8(double ss[], double xl[][], int ndm){
    //real * 8    ss(3), shp(4, 8), xl(ndm, 8), xs(3, 3), ad(3, 3)
 	   //double    ss[3-1], shp[4-1, 8-1], xl[ndm-1, 8-1], xs[3-1, 3-1], ad[3-1, 3-1];
    
-   /*
-   double shp[4 - 1][8 - 1], xs[3 - 1][3 - 1];
+   
+   double shp[4 - 1][8 - 1], xs[3 - 1][3 - 1], ad[3 - 1][3 - 1];
 
 	   //save
 
@@ -107,55 +108,62 @@ void ShapeFunction_C3D8(double ss[], double xl[][], int ndm){
 
 		   //do j = 1, 3
 			for(int j = 0;j< 3;j++){
-				xs[j][1] = (xl[j][2] - xl[j][1])*shp[1][2]
-					&          +(xl[j][3] - xl[j][4])*shp[1][3]
-					&          +(xl[j][6] - xl[j][5])*shp[1][6]
-					&          +(xl[j][7] - xl[j][8])*shp[1][7]
+				xs[j][1] = (xl[j][2-1] - xl[j][1-1])*shp[1-1][2-1]
+					+ (xl[j][3 - 1] - xl[j][4 - 1])*shp[1 - 1][3 - 1]
+					+ (xl[j][6 - 1] - xl[j][5 - 1])*shp[1 - 1][6 - 1]
+					+ (xl[j][7 - 1] - xl[j][8 - 1])*shp[1 - 1][7 - 1];
 
-					//ay
-					xs[j][2] = (xl[j][3] - xl[j][2])*shp[2][3]
-					&          +(xl[j][4] - xl[j][1])*shp[2][4]
-					&          +(xl[j][7] - xl[j][6])*shp[2][7]
-					&          +(xl[j][8] - xl[j][5])*shp[2][8]
+				xs[j][2] = (xl[j][3 - 1] - xl[j][2 - 1])*shp[2 - 1][3 - 1]
+					+ (xl[j][4 - 1] - xl[j][1 - 1])*shp[2 - 1][4 - 1]
+					+ (xl[j][7 - 1] - xl[j][6 - 1])*shp[2 - 1][7 - 1]
+					+ (xl[j][8 - 1] - xl[j][5 - 1])*shp[2 - 1][8 - 1];
 
-					xs[j][3] = (xl[j][5] - xl[j][1])*shp[3][5]
-					&          +(xl[j][6] - xl[j][2])*shp[3][6]
-					&          +(xl[j][7] - xl[j][3])*shp[3][7]
-					&          +(xl[j][8] - xl[j][4])*shp[3][8]
+				xs[j][3] = (xl[j][5 - 1] - xl[j][1 - 1])*shp[3 - 1][5 - 1]
+					+ (xl[j][6 - 1] - xl[j][2 - 1])*shp[3 - 1][6 - 1]
+					+ (xl[j][7 - 1] - xl[j][3 - 1])*shp[3 - 1][7 - 1]
+					+ (xl[j][8 - 1] - xl[j][4 - 1])*shp[3 - 1][8 - 1];
 					//end do
 			}
 			  
 
 			   //!Compute adjoint to jacobian
 
-			   ad(1, 1) = xs(2, 2)*xs(3, 3) - xs(2, 3)*xs(3, 2)
-			   ad(1, 2) = xs(3, 2)*xs(1, 3) - xs(3, 3)*xs(1, 2)
-			   ad(1, 3) = xs(1, 2)*xs(2, 3) - xs(1, 3)*xs(2, 2)
+			ad[1 - 1][1 - 1] = xs[2 - 1][2 - 1] * xs[3 - 1][3 - 1] - xs[2 - 1][3 - 1] * xs[3 - 1][2 - 1];
+			ad[1 - 1][2 - 1] = xs[3 - 1][2 - 1] * xs[1 - 1][3 - 1] - xs[3 - 1][3 - 1] * xs[1 - 1][2 - 1];
+			ad[1 - 1][3 - 1] = xs[1 - 1][2 - 1] * xs[2 - 1][3 - 1] - xs[1 - 1][3 - 1] * xs[2 - 1][2 - 1];
 
-			   ad(2, 1) = xs(2, 3)*xs(3, 1) - xs(2, 1)*xs(3, 3)
-			   ad(2, 2) = xs(3, 3)*xs(1, 1) - xs(3, 1)*xs(1, 3)
-			   ad(2, 3) = xs(1, 3)*xs(2, 1) - xs(1, 1)*xs(2, 3)
+			ad[2 - 1][1 - 1] = xs[2 - 1][3 - 1] * xs[3 - 1][1 - 1] - xs[2 - 1][1 - 1] * xs[3 - 1][3 - 1];
+			ad[2 - 1][2 - 1] = xs[3 - 1][3 - 1] * xs[1 - 1][1 - 1] - xs[3 - 1][1 - 1] * xs[1 - 1][3 - 1];
+			ad[2 - 1][3 - 1] = xs[1 - 1][3 - 1] * xs[2 - 1][1 - 1] - xs[1 - 1][1 - 1] * xs[2 - 1][3 - 1];
 
-			   ad(3, 1) = xs(2, 1)*xs(3, 2) - xs(2, 2)*xs(3, 1)
-			   ad(3, 2) = xs(3, 1)*xs(1, 2) - xs(3, 2)*xs(1, 1)
-			   ad(3, 3) = xs(1, 1)*xs(2, 2) - xs(1, 2)*xs(2, 1)
+			ad[3 - 1][1 - 1] = xs[2 - 1][1 - 1] * xs[3 - 1][2 - 1] - xs[2 - 1][2 - 1] * xs[3 - 1][1 - 1];
+			ad[3 - 1][2 - 1] = xs[3 - 1][1 - 1] * xs[1 - 1][2 - 1] - xs[3 - 1][2 - 1] * xs[1 - 1][1 - 1];
+			ad[3 - 1][3 - 1] = xs[1 - 1][1 - 1] * xs[2 - 1][2 - 1] - xs[1 - 1][2 - 1] * xs[2 - 1][1 - 1];
 
 			   //!Compute determinant of jacobian
 
-			   xsj = xs(1, 1)*ad(1, 1) + xs(1, 2)*ad(2, 1) + xs(1, 3)*ad(3, 1)
-			   rxsj = 1.d0 / xsj
+			double xsj = xs[1 - 1][1 - 1] * ad[1 - 1][1 - 1] + xs[1 - 1][2 - 1] * ad[2 - 1][1 - 1] + xs[1 - 1][3 - 1] * ad[3 - 1][1 - 1];
+			double rxsj = 1.0 / xsj;
 
 			   //!Compute jacobian inverse
 
-			   do j = 1, 3
-				   do i = 1, 3
-					   xs(i, j) = ad(i, j)*rxsj
-					   end do
-					   end do
+			   //do j = 1, 3
+			for(int j = 0; j < 3;j++){
+				//do i = 1, 3
+				for (int i = 0; i < 3; i++) {
+					xs[i][j] = ad[i][j] * rxsj;
+						//end do
+				}
+				//end do
+			}
+				   
 
 					   //!Compute derivatives with repect to global coords.
 
-					   do k = 1, 8
+					   //do k = 1, 8
+			for (int k = 0; k < 8; k++) {
+				//ay
+			}
 
 						   c1 = shp(1, k)*xs(1, 1) + shp(2, k)*xs(2, 1) + shp(3, k)*xs(3, 1)
 						   c2 = shp(1, k)*xs(1, 2) + shp(2, k)*xs(2, 2) + shp(3, k)*xs(3, 2)
