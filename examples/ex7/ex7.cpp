@@ -1,18 +1,18 @@
 #include "digitalbrain.h"
 
 int main(int argc, char **argv){
-  
+
 	// Initialize the MPI environment
 	MPI_Init(NULL, NULL);
 	// Get the number of processes
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 	// Get the rank of the process
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-	
+
 	if (ReadInputFile(argv[1])) {
 	    PartitionMesh();
 	}
-	//test 
+	//test
 
 #if 0
 	// Printing local arrays of processor (this section can be removed)
@@ -45,9 +45,9 @@ int main(int argc, char **argv){
 	printf("\n");
 #endif
 
-  WriteVTU(argv[1]);  
+  WriteVTU(argv[1]);
 
-  //ShapeFunctions();
+  ShapeFunctions();
 
   FreeArrays();
   MPI_Finalize();
