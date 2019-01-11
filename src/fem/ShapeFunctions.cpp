@@ -1,4 +1,5 @@
 #include "digitalbrain.h"
+
 void ShapeFunctions(){
    printf("Rank %d: Hello Shape Function!!\n", world_rank);
    printf("\nConnectivity array in processor %d after partitioning =", world_rank);
@@ -20,12 +21,13 @@ void ShapeFunctions(){
 	   // Depending on element type call correct shape function library
 
 	   // Call 3D 8-noded hex shape function routine
+	   
 	   if (strcmp(ElementType[i], "C3D8") == 0) {
 		   printf("Computing C3D8 Shape Function , element %d...\n", i);
 
 			 GaussQuadrature3D(); /* not sure if this is where it goes*/
 
-			 ShapeFunction_C3D8();
+			 //ShapeFunction_C3D8();
 
 	   }
    }

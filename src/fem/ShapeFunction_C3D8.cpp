@@ -1,5 +1,6 @@
 #include "digitalbrain.h"
-void ShapeFunction_C3D8(double ss[], double xl[][], int ndm){
+
+void ShapeFunction_C3D8(double ss[], double xl[][9], int ndm){
    printf("Rank %d: Shape Functions for C3D8 elements!!\n", world_rank);
 
    /*
