@@ -1,6 +1,6 @@
 #include "digitalbrain.h"
 
-void ShapeFunction_C3D8(double ss[], double xl[][9], int ndm){
+void ShapeFunction_C3D8( ){
    printf("Rank %d: Shape Functions for C3D8 elements!!\n", world_rank);
 
    /*
@@ -23,6 +23,12 @@ void ShapeFunction_C3D8(double ss[], double xl[][9], int ndm){
 	   shp(4, i) = N_i */
 
 
+for (int i=0;i<4;i++){
+	//printf("SF: %2.5f %2.5f %2.5f %2.5f\n",sf[0][i],sf[1][i],sf[2][i],sf[3][i]);
+}
+
+/*
+
 	   //integer   ndm, i, j, k
    //int   ndm, i, j, k;
 	   //real * 8    rxsj, xsj, ap1, am1, ap2, am2, ap3, am3, c1, c2, c3
@@ -30,7 +36,7 @@ void ShapeFunction_C3D8(double ss[], double xl[][9], int ndm){
 
    //real * 8    ss(3), shp(4, 8), xl(ndm, 8), xs(3, 3), ad(3, 3)
 	   //double    ss[3-1], shp[4-1, 8-1], xl[ndm-1, 8-1], xs[3-1, 3-1], ad[3-1, 3-1];
-   
+
    /*
    double shp[4 - 1][8 - 1], xs[3 - 1][3 - 1];
 
@@ -38,7 +44,7 @@ void ShapeFunction_C3D8(double ss[], double xl[][9], int ndm){
 
 	   //!Compute shape functions and their natural coord.derivatives
 
-   
+
 
 	   double ap1 = 1.0 + ss[1 - 1];
 	   double am1 = 1.0 - ss[1 - 1];
@@ -125,7 +131,7 @@ void ShapeFunction_C3D8(double ss[], double xl[][9], int ndm){
 					&          +(xl[j][8] - xl[j][4])*shp[3][8]
 					//end do
 			}
-			  
+
 
 			   //!Compute adjoint to jacobian
 
@@ -170,7 +176,7 @@ void ShapeFunction_C3D8(double ss[], double xl[][9], int ndm){
 
 						   end
 
-						   
+
 */
    return;
 }
