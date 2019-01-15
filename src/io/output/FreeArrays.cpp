@@ -27,7 +27,19 @@ void FreeArrays()
         free(eptr);
         eptr = NULL;
     }
-    
+	/*
+	if (shp != NULL)
+	{
+		free(shp);
+		shp = NULL;
+	}
+	
+	if (dshp != NULL)
+	{
+		free(dshp);
+		dshp = NULL;
+	}
+    */
     if (ElementType != NULL)
     {
         for (int i = 0; i < nelements; i++)

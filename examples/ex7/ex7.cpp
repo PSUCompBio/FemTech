@@ -47,6 +47,7 @@ int main(int argc, char **argv){
 
   WriteVTU(argv[1]);
 
+
   ShapeFunctions();
 
   FreeArrays();

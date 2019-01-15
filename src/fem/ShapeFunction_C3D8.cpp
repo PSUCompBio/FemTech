@@ -1,7 +1,8 @@
 #include "digitalbrain.h"
 
-void ShapeFunction_C3D8( ){
-   printf("Rank %d: Shape Functions for C3D8 elements!!\n", world_rank);
+
+void ShapeFunction_C3D8(int element, int nGaussPoints, double *Chi){
+  // printf("Rank %d: Shape Functions for C3D8 elements!!\n", world_rank);
 
    /*
 	   subroutine shp3d(ss, xsj, shp, xl, ndm)
@@ -20,12 +21,77 @@ void ShapeFunction_C3D8( ){
 	   shp(1, i) = dN_i / dx
 	   shp(2, i) = dN_i / dy
 	   shp(3, i) = dN_i / dz
-	   shp(4, i) = N_i */
+	   shp(4, i) = N_i
+	  
+	   */
 
+   double chi, eta, iota;
+   //double shp[8];
 
-for (int i=0;i<4;i++){
-	//printf("SF: %2.5f %2.5f %2.5f %2.5f\n",sf[0][i],sf[1][i],sf[2][i],sf[3][i]);
-}
+   for (int i = 0; i < nelements; i++) {
+	   printf("(e.%d) - eptr:[%d->%d] - [%d->%d]\n", i, eptr[i], eptr[i + 1], gptr[i], gptr[i + 1]);
+   }
+   /*
+   double s[24];
+   //master element node 1 position
+   s[0] = -1.0;
+   s[1] = -1.0;
+   s[2] = 1.0;
+   //master element node 2 position
+   s[3] = -1.0;
+   s[4] = -1.0;
+   s[5] = -1.0;
+   //master element node 3 position
+   s[6] = -1.0;
+   s[7] = 1.0;
+   s[8] = -1.0;
+   //master element node 4 position
+   s[9] = -1.0;
+   s[10] = 1.0;
+   s[11] = 1.0;
+   //master element node 5 position
+   s[12] = 1.0;
+   s[13] = -1.0;
+   s[14] = 1.0;
+   //master element node 6 position
+   s[15] = 1.0;
+   s[16] = -1.0;
+   s[17] = -1.0;
+   //master element node 7 position
+   s[18] = 1.0;
+   s[19] = 1.0;
+   s[20] = -1.0;
+   //master element node 8 position
+   s[21] = 1.0;
+   s[22] = 1.0;
+   s[23] = 1.0;
+ */
+   for (int i = 0; i < nGaussPoints; i++) {
+	   chi = Chi[ndim*i + 0];
+	   eta = Chi[ndim*i + 1];
+	   iota = Chi[ndim*i + 2];
+
+	   //chi = 1.0;
+	   //eta = 1.0;
+	   //iota = 1.0;
+
+	   //printf("eptr[element]=%d\n", eptr[element]);
+	   /*
+	   shp[eptr[element] + 0] = -((chi - 1)*(eta - 1)*(iota - 1)) / 8;
+	   shp[eptr[element] + 1] = ((chi + 1)*(eta - 1)*(iota - 1)) / 8;
+	   shp[eptr[element] + 2] = ((chi - 1)*(eta + 1)*(iota - 1)) / 8;
+	   shp[eptr[element] + 3] = -((chi + 1)*(eta + 1)*(iota - 1)) / 8;
+	   shp[eptr[element] + 4] = ((chi - 1)*(eta - 1)*(iota + 1)) / 8;
+	   shp[eptr[element] + 5] = -((chi + 1)*(eta - 1)*(iota + 1)) / 8;
+	   shp[eptr[element] + 6] = -((chi - 1)*(eta + 1)*(iota + 1)) / 8;
+	   shp[eptr[element] + 7] = ((chi + 1)*(eta + 1)*(iota + 1)) / 8;
+	   */
+   }
+	
+	for (int i = eptr[element]; i < eptr[element + 1]; i++) {
+	//	printf("elt:%d: %d, %f\n", element, i,shp[i]);
+	}
+	
 
 /*
 

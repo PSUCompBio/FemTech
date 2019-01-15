@@ -1,0 +1,68 @@
+
+
+.article {
+	counter-reset: figures;
+}
+
+.figure {
+	counter-increment: figures;
+}
+
+.figure figcaption:before {
+	content: 'Fig. ' counter(figures) ' - ';
+}
+
+.figure {
+	padding: 0.9em;
+	border: 3px solid #white;
+	background: #fff;
+	margin: 0 auto 1em;
+}
+
+.figure img {
+	margin: 0 auto;
+	display: block;
+	max-width: 100%;
+}
+
+.figure figcaption {
+	font-weight: 700;
+	letter-spacing: 2px;
+	font-size: 0.8em;
+	padding: .5em;
+	text-align: center;
+	color: black;
+	background: white;
+}
+
+@media (max-width: 767px) {
+	.figure-left,
+	.figure-right {
+		float: none;
+		margin: 0 0 1em 0;
+		width: 100%;
+	}
+
+	.figure img {
+		max-width: 100%;
+	}
+}
+
+#toc_container {
+    background: #f9f9f9 none repeat scroll 0 0;
+    border: 1px solid #aaa;
+    display: table;
+    font-size: 95%;
+    margin-bottom: 1em;
+    padding: 20px;
+    width: auto;
+}
+
+.toc_title {
+    font-weight: 700;
+    text-align: center;
+}
+
+#toc_container li, #toc_container ul, #toc_container ul li{
+    list-style: outside none none !important;
+}
