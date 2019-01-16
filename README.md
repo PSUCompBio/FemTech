@@ -1,6 +1,5 @@
-# Cross-Compiling Test
-This is a minimal example of using CMake and C programming that should
-be able to be compiled on Windows, Mac and Linux with little or no modification.
+# FemTech - Finite Element Modeling Technology
+This is a research and teaching code for the finite element method. It works in parallel on Windows, Mac and Linux. It uses minimal fancy programing like object-oriented programming and pointers to pointers to pointers. The intent is that engineers can read it and follow along. 
 ##  Windows
 #### Software required
 - CMake-GUI (https://cmake.org/download/)
@@ -9,7 +8,7 @@ be able to be compiled on Windows, Mac and Linux with little or no modification.
 
 #### To compile
 - download zip file of project and extract
-- use CMake-GUI point CMake to digitalbrain source code and also specify the build to be in the same location as source but in build (i.e., digitalbrain/build)
+- use CMake-GUI point CMake to FemTech source code and also specify the build to be in the same location as source but in build (i.e., FemTech/build)
 - select "configure"
 - For parallel:
 	- Enable MPI and Examples then select example to turn on, e.g. ex1
@@ -31,8 +30,8 @@ be able to be compiled on Windows, Mac and Linux with little or no modification.
 #### To compile
 - open terminal (navigate to desired directory)
 ```
-git clone https://github.com/PSUCompBio/digitalbrain
-cd digitalbrain
+git clone https://github.com/PSUCompBio/FemTech
+cd FemTech
 mkdir build
 (on PSU ACI-I) module load cmake gcc/5.3.1 openmpi/1.10.1
 (on Amazon E2C) ...TBD
@@ -49,8 +48,8 @@ make -j8
 #### To compile
 - open terminal (navigate to desired directory)
 ```
-git clone https://github.com/PSUCompBio/digitalbrain
-cd digitalbrain
+git clone https://github.com/PSUCompBio/FemTech
+cd FemTech
 mkdir build
 cd bulid
 ccmake .. (configure as needed)
