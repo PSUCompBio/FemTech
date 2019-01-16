@@ -1,9 +1,7 @@
 #include "digitalbrain.h"
 
 
-void ShapeFunction_C3D8(int element, int intpt, int nGaussPoints, double *Chi){
-  // printf("Rank %d: Shape Functions for C3D8 elements!!\n", world_rank);
-
+void ShapeFunction_C3D4(int element, int intpt, int nGaussPoints, double *Chi){
    /*
 	   subroutine shp3d(ss, xsj, shp, xl, ndm)
 
@@ -11,9 +9,9 @@ void ShapeFunction_C3D8(int element, int intpt, int nGaussPoints, double *Chi){
 	             functions and their derivatives w / r x, y, z
 
 	   Inputs :
-	   Chi- Natural coordinates of point
+	   ss(3) - Natural coordinates of point
 	   xl(ndm, *) - Nodal coordinates for element
-	   ndim - Spatial dimension of mesh
+	   ndm - Spatial dimension of mesh
 
 	   Outputs :
 	   xsj - Jacobian determinant at point
@@ -22,27 +20,27 @@ void ShapeFunction_C3D8(int element, int intpt, int nGaussPoints, double *Chi){
 	   shp(2, i) = dN_i / dy
 	   shp(3, i) = dN_i / dz
 	   shp(4, i) = N_i
-	  
+
 	   */
 
    double chi, eta, iota;
 
+   //for (int i = 0; i < nelements; i++) {
+	//   printf("(e.%d) - eptr:[%d->%d] - [%d->%d]\n", i, eptr[i], eptr[i + 1], gptr[i], gptr[i + 1]);
+   //}
 
 	   chi = Chi[ndim*intpt + 0];
 	   eta = Chi[ndim*intpt + 1];
 	   iota = Chi[ndim*intpt + 2];
-
+	   //printf("e.%d: chi, eta, iota = %f, %f, %f\n",element, chi, eta, iota);
 	   // The shape functions
-	   shp[gptr[element] + 0] = -((chi - 1)*(eta - 1)*(iota - 1)) / 8;
-	   shp[gptr[element] + 1] = ((chi + 1)*(eta - 1)*(iota - 1)) / 8;
-	   shp[gptr[element] + 2] = ((chi - 1)*(eta + 1)*(iota - 1)) / 8;
-	   shp[gptr[element] + 3] = -((chi + 1)*(eta + 1)*(iota - 1)) / 8;
-	   shp[gptr[element] + 4] = ((chi - 1)*(eta - 1)*(iota + 1)) / 8;
-	   shp[gptr[element] + 5] = -((chi + 1)*(eta - 1)*(iota + 1)) / 8;
-	   shp[gptr[element] + 6] = -((chi - 1)*(eta + 1)*(iota + 1)) / 8;
-	   shp[gptr[element] + 7] = ((chi + 1)*(eta + 1)*(iota + 1)) / 8;
+	   shp[gptr[element] + 0] = 1.0 - eta - iota - chi;
+	   shp[gptr[element] + 1] = chi;
+	   shp[gptr[element] + 2] = eta;
+	   shp[gptr[element] + 3] = iota;
 
-	 
+
+
 
 /*
 

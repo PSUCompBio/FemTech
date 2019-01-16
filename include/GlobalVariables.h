@@ -11,6 +11,7 @@ extern double *coordinates;
 extern int *connectivity;
 extern int *GaussPoints; /*holds how many guass points per element*/
 extern int *gptr; /*gauss point pointer - helps step through shp array*/
+extern int *nShapeFunctions; /*number of shp functions per element */
 extern double *shp; /*shape functions*/
 extern double *dshp; /*derivatives of shape functions*/
 extern int *eptr; /*number of nodes per element pointer*/

@@ -40,9 +40,10 @@ int LineToArray(
     void **Array = NULL);
 bool ReadInputFile(const char *FileName);
 bool PartitionMesh();
+void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWeights);
 void ShapeFunctions();
-void ShapeFunction_C3D8(int element, int nGaussPoints, double *Chi);
-void GaussQuadrature3D(int QuadratureRule, double *Chi,double *GaussWeights);
+void ShapeFunction_C3D8(int element, int intpt, int nGaussPoints, double *Chi);
+void ShapeFunction_C3D4(int element, int intpt, int nGaussPoints, double *Chi);
 void WriteVTU(const char* FileName);
 void FreeArrays();
 

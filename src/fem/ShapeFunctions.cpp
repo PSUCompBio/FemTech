@@ -1,11 +1,19 @@
 #include "digitalbrain.h"
 
+/* Global Variables */
+int *gptr;
+int *GaussPoints;
+double *shp;
+int *nShapeFunctions;
 
 void ShapeFunctions(){
 
 	// Global Array - keeps track of how many gauss points there are 
 	// per element.
-	int *GaussPoints = (int *)malloc(nelements * sizeof(int));
+	GaussPoints = (int *)malloc(nelements * sizeof(int));
+	// Global Array - keeps track of how many shp functions there are 
+	// per element.
+	nShapeFunctions = (int *)malloc(nelements * sizeof(int));
 
 	// Global array -
 	// When number of shape functions in an element equals 
@@ -15,7 +23,7 @@ void ShapeFunctions(){
 	// for a 8-noded hex, there can be 8 gauss points or there
 	// could be 1. The gptr array works like the eptr array, but 
 	// allows this difference to occur.
-	int *gptr = (int *)malloc((nelements+1) * sizeof(int));
+	gptr = (int *)malloc((nelements+1) * sizeof(int));
 
    int counter = 0;
    int counter0 = 0;
@@ -26,18 +34,20 @@ void ShapeFunctions(){
 	   if (strcmp(ElementType[i], "C3D8") == 0) {
 		   //GuassPoints per element
 		   GaussPoints[i] = 8;
+		   nShapeFunctions[i] = 8;
 
 		   // shp function array needs to hold 8 
 		   // shp functions for each of these 8 gauss points
 		   // for this one element there are 8 gauss points, 
 		   // which each have 8 components in shp function array
 		   // so for this element I need 8 * 8 positions to hold
-		   counter = counter + GaussPoints[i];
+		   counter = counter + nShapeFunctions[i];
 	   } 
 	   if (strcmp(ElementType[i], "C3D4") == 0) {
-		   GaussPoints[i] = 4;
+		   GaussPoints[i] = 1;
+		   nShapeFunctions[i] = 4;
 		   // same argument as above
-		   counter = counter + GaussPoints[i];
+		   counter = counter + nShapeFunctions[i];
 	   }
 	   //printf("gptr:[%d %d]\n",counter0, counter);
 	   gptr[i] = counter0;
@@ -51,13 +61,12 @@ void ShapeFunctions(){
    printf("size of shp array = %d \n", counter);
 
    /*set size of shp array  - this holds shp functions for all elements */
-   double *shp =  (double *)malloc(counter*sizeof(double));
+   shp =  (double *)malloc(counter*sizeof(double));
 
    /* initalize shp array with zoros*/
    for (int i = 0; i < nelements; i++) {
-	   printf("shp array %d: %d | ", i, GaussPoints[i]);
-		   for (int k = 0; k < GaussPoints[i]; k++) {
-			   // i is the element
+	   printf("shp array %d: %d | ", i, nShapeFunctions[i]);
+		   for (int k = 0; k < nShapeFunctions[i]; k++) {
 	           printf(" %d",gptr[i]+k);
 			   shp[gptr[i] + k] = 0.0;
 		   }
@@ -65,31 +74,42 @@ void ShapeFunctions(){
    }
 
    for (int i = 0; i < nelements; i++) {
-	   // Depending on element type call correct shape function library
-
-	   // Call 3D 8-noded hex shape function routine
-	   if (strcmp(ElementType[i], "C3D8") == 0) {
-		   //printf("Computing C3D8 Hex Shape Function , element %d...\n", i);
-			 int QuadratureRule = 2;
-			 int const nGaussPoints = 8;
-			 double *Chi = (double*)malloc(nGaussPoints*ndim * sizeof(double));
-			 double *GaussWeights = (double*)malloc(nGaussPoints * sizeof(double));
-			
-			 //GaussQuadrature3D(QuadratureRule,Chi,GaussWeights); 
-			// for (int i = 0; i < nGaussPoints; i++) {
-					//printf("%d: %2.5f %2.5f %2.5f \n", i, Chi[ndim*i+0], Chi[ndim*i + 1], Chi[ndim*i + 2]);
-			 //}
-			
-			 //ShapeFunction_C3D8(i,GaussPoints[i],Chi);
-
-			 free(Chi);
-			 free(GaussWeights);
-	   }
-
-	   
+		// Depending on element type call correct shape function library
+		// 3D 8-noded hex shape function routine
+		if (strcmp(ElementType[i], "C3D8") == 0) {
+			double *Chi = (double*)malloc(GaussPoints[i] * ndim * sizeof(double));
+			double *GaussWeights = (double*)malloc(GaussPoints[i] * sizeof(double));
+			GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeights);
+			for (int k = 0; k < GaussPoints[i]; k++) {
+				ShapeFunction_C3D8(i, k, GaussPoints[i], Chi);
+			}
+			free(Chi);
+			free(GaussWeights);
+		}
+#if 1
+		// 3D 4-noded tet shape function routine
+		if (strcmp(ElementType[i], "C3D4") == 0) {
+			double *Chi = (double*)malloc(GaussPoints[i]* ndim * sizeof(double));
+			double *GaussWeights = (double*)malloc(GaussPoints[i] * sizeof(double));
+			GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeights);
+			//printf("chi, eta, iota = %f, %f, %f\n", Chi[0], Chi[1], Chi[2]);
+			for (int k = 0; k < GaussPoints[i]; k++) {
+				ShapeFunction_C3D4(i, k, GaussPoints[i], Chi);
+			}
+			free(Chi);
+			free(GaussWeights);
+		}	  
+#endif 
    }// loop on nelements
    
-
+   for (int i = 0; i < nelements; i++) {
+	   printf("shp array %d: %d | ", i, GaussPoints[i]);
+	   for (int k = 0; k < nShapeFunctions[i]; k++) {
+		   printf(" %.3f", shp[gptr[i] + k]);
+		   //shp[gptr[i] + k] = 0.0;
+	   }
+	   printf("\n");
+   }
 
    return;
 }
