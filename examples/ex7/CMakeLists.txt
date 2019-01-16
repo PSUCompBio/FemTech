@@ -4,10 +4,10 @@ ADD_EXECUTABLE(ex7 ${ex7_src})
 
 if(ENABLE_MPI)
   LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/third-party/parmetis-4.0.3/libparmetis)
-  TARGET_LINK_LIBRARIES(ex7 digitalbrain parmetis)
+  TARGET_LINK_LIBRARIES(ex7 FemTech parmetis)
 else()
   LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
-  TARGET_LINK_LIBRARIES(ex7 digitalbrain)
+  TARGET_LINK_LIBRARIES(ex7 FemTech)
 endif(ENABLE_MPI)
 
 file(COPY 2elts-hex.k DESTINATION .)

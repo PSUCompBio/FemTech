@@ -1,5 +1,5 @@
-#ifndef DIGITALBRAIN_H
-#define DIGITALBRAIN_H
+#ifndef FEMTECH_H
+#define FEMTECH_H
 
 #include <stdio.h>
 #include <cmath>

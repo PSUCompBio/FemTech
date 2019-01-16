@@ -4,10 +4,10 @@ ADD_EXECUTABLE(ex2 ${ex2_src})
 
 if(ENABLE_MPI)
   LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/third-party/parmetis-4.0.3/libparmetis)
-  TARGET_LINK_LIBRARIES(ex2 digitalbrain parmetis)
+  TARGET_LINK_LIBRARIES(ex2 FemTech parmetis)
 else()
   LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
-  TARGET_LINK_LIBRARIES(ex2 digitalbrain)
+  TARGET_LINK_LIBRARIES(ex2 FemTech)
 endif(ENABLE_MPI)
 
 file(COPY sphere.k DESTINATION .)

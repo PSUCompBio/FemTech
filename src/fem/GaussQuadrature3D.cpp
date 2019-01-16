@@ -1,4 +1,4 @@
-#include "digitalbrain.h"
+#include "FemTech.h"
 void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWeights){
 	/*-[--.----+----.----+----.-----------------------------------------]
 	!      Purpose: Gauss quadrature for 3-d element

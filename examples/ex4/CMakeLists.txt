@@ -4,10 +4,10 @@ ADD_EXECUTABLE(ex4 ${ex4_src})
 
 if(ENABLE_MPI)
   LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/third-party/parmetis-4.0.3/libparmetis)
-  TARGET_LINK_LIBRARIES(ex4 digitalbrain parmetis)
+  TARGET_LINK_LIBRARIES(ex4 FemTech parmetis)
 else()
   LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
-  TARGET_LINK_LIBRARIES(ex4 digitalbrain)
+  TARGET_LINK_LIBRARIES(ex4 FemTech)
 endif(ENABLE_MPI)
 
 file(COPY 3part-cubes.inp DESTINATION .)

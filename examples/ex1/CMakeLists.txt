@@ -4,10 +4,10 @@ ADD_EXECUTABLE(ex1 ${ex1_src})
 
 if(ENABLE_MPI)
   LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/third-party/parmetis-4.0.3/libparmetis)
-  TARGET_LINK_LIBRARIES(ex1 digitalbrain parmetis)
+  TARGET_LINK_LIBRARIES(ex1 FemTech parmetis)
 else()
   LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
-  TARGET_LINK_LIBRARIES(ex1 digitalbrain)
+  TARGET_LINK_LIBRARIES(ex1 FemTech)
 endif(ENABLE_MPI)
 
 # NOTE: once Cmake release version 3.13 the following

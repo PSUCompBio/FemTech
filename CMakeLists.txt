@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-PROJECT (digitalbrain)
+PROJECT (FemTech)
 
 # set install rules (windows only)
 if(WIN32)
