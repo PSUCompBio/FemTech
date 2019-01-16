@@ -1,5 +1,5 @@
 #include "digitalbrain.h"
-void ShapeFunction_C3D8(double ss[], double xl[][], int ndm){
+void ShapeFunction_C3D8(double ss[], double xl[][8-1], int ndm){
    printf("Rank %d: Shape Functions for C3D8 elements!!\n", world_rank);
 
    /*
@@ -21,7 +21,7 @@ void ShapeFunction_C3D8(double ss[], double xl[][], int ndm){
 	   shp(3, i) = dN_i / dz
 	   shp(4, i) = N_i */
 
-   /*
+   
 
 	   //integer   ndm, i, j, k
    //int   ndm, i, j, k;
@@ -162,22 +162,23 @@ void ShapeFunction_C3D8(double ss[], double xl[][], int ndm){
 
 					   //do k = 1, 8
 			for (int k = 0; k < 8; k++) {
-				//ay
+				
+				c1 = shp[1 - 1][k] * xs[1 - 1][1 - 1] + shp[2 - 1][k] * xs[2 - 1][1 - 1] + shp[3 - 1][k] * xs[3 - 1][1 - 1];
+				c2 = shp[1 - 1][k] * xs[1 - 1][2 - 1] + shp[2 - 1][k] * xs[2 - 1][2 - 1] + shp[3 - 1][k] * xs[3 - 1][2 - 1];
+				c3 = shp[1 - 1][k] * xs[1 - 1][3 - 1] + shp[2 - 1][k] * xs[2 - 1][3 - 1] + shp[3 - 1][k] * xs[3 - 1][3 - 1];
+
+				shp[1 - 1][k] = c1;
+				shp[2 - 1][k] = c2;
+				shp[3 - 1][k] = c3;
+
+					//end do
 			}
 
-						   c1 = shp(1, k)*xs(1, 1) + shp(2, k)*xs(2, 1) + shp(3, k)*xs(3, 1)
-						   c2 = shp(1, k)*xs(1, 2) + shp(2, k)*xs(2, 2) + shp(3, k)*xs(3, 2)
-						   c3 = shp(1, k)*xs(1, 3) + shp(2, k)*xs(2, 3) + shp(3, k)*xs(3, 3)
+						   
 
-						   shp(1, k) = c1
-						   shp(2, k) = c2
-						   shp(3, k) = c3
-
-						   end do
-
-						   end
+						  // end
 
 						   
-*/
+
    return;
 }
