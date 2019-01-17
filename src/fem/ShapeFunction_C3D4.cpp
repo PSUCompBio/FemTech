@@ -23,24 +23,35 @@ void ShapeFunction_C3D4(int element, int intpt, int nGaussPoints, double *Chi){
 
 	   */
 
-   double chi, eta, iota;
+	double chi, eta, iota;
 
-   //for (int i = 0; i < nelements; i++) {
-	//   printf("(e.%d) - eptr:[%d->%d] - [%d->%d]\n", i, eptr[i], eptr[i + 1], gptr[i], gptr[i + 1]);
-   //}
+	chi = Chi[ndim*intpt + 0];
+	eta = Chi[ndim*intpt + 1];
+	iota = Chi[ndim*intpt + 2];
 
-	   chi = Chi[ndim*intpt + 0];
-	   eta = Chi[ndim*intpt + 1];
-	   iota = Chi[ndim*intpt + 2];
-	   //printf("e.%d: chi, eta, iota = %f, %f, %f\n",element, chi, eta, iota);
-	   // The shape functions
-	   shp[gptr[element] + 0] = 1.0 - eta - iota - chi;
-	   shp[gptr[element] + 1] = chi;
-	   shp[gptr[element] + 2] = eta;
-	   shp[gptr[element] + 3] = iota;
+	// The shape functions
+	shp[gptr[element] + 0] = 1.0 - eta - iota - chi;
+	shp[gptr[element] + 1] = chi;
+	shp[gptr[element] + 2] = eta;
+	shp[gptr[element] + 3] = iota;
 
+	// The first derivatives
 
-
+	// with respect to chi
+	dshp[dsptr[element] + 0 * ndim + 0] = -1;
+	dshp[dsptr[element] + 1 * ndim + 0] =  1;
+	dshp[dsptr[element] + 2 * ndim + 0] =  0;
+	dshp[dsptr[element] + 3 * ndim + 0] =  0;
+	// with respect to eta
+	dshp[dsptr[element] + 0 * ndim + 1] = -1;
+	dshp[dsptr[element] + 1 * ndim + 1] =  0;
+	dshp[dsptr[element] + 2 * ndim + 1] =  1;
+	dshp[dsptr[element] + 3 * ndim + 1] =  0;
+	// with respect to iota
+	dshp[dsptr[element] + 0 * ndim + 2] = -1;
+	dshp[dsptr[element] + 1 * ndim + 2] =  0;
+	dshp[dsptr[element] + 2 * ndim + 2] =  0;
+	dshp[dsptr[element] + 3 * ndim + 2] =  1;
 
 /*
 

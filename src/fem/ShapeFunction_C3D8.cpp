@@ -2,13 +2,15 @@
 
 
 void ShapeFunction_C3D8(int element, int intpt, int nGaussPoints, double *Chi){
-  // printf("Rank %d: Shape Functions for C3D8 elements!!\n", world_rank);
-
    /*
 	   subroutine shp3d(ss, xsj, shp, xl, ndm)
 
-	   Purpose : Compute 3 - d isoparametric 8 - node element shape
-	             functions and their derivatives w / r x, y, z
+	   Purpose : Compute 3-d isoparametric 8 - node element shape
+	             functions and their derivatives with respect to 
+				 chi, eta, iota 
+
+				 NOTE: Might need to add dirivatives with respect to
+					   x, y, z	
 
 	   Inputs :
 	   Chi- Natural coordinates of point
@@ -25,25 +27,53 @@ void ShapeFunction_C3D8(int element, int intpt, int nGaussPoints, double *Chi){
 	  
 	   */
 
-   double chi, eta, iota;
+	double chi, eta, iota;
+	chi = Chi[ndim*intpt + 0];
+	eta = Chi[ndim*intpt + 1];
+	iota = Chi[ndim*intpt + 2];
 
+	// The shape functions
+	shp[gptr[element] + 0] = -((chi - 1)*(eta - 1)*(iota - 1)) / 8;
+	shp[gptr[element] + 1] =  ((chi + 1)*(eta - 1)*(iota - 1)) / 8;
+	shp[gptr[element] + 2] =  ((chi - 1)*(eta + 1)*(iota - 1)) / 8;
+	shp[gptr[element] + 3] = -((chi + 1)*(eta + 1)*(iota - 1)) / 8;
+	shp[gptr[element] + 4] =  ((chi - 1)*(eta - 1)*(iota + 1)) / 8;
+	shp[gptr[element] + 5] = -((chi + 1)*(eta - 1)*(iota + 1)) / 8;
+	shp[gptr[element] + 6] = -((chi - 1)*(eta + 1)*(iota + 1)) / 8;
+	shp[gptr[element] + 7] =  ((chi + 1)*(eta + 1)*(iota + 1)) / 8;
 
-	   chi = Chi[ndim*intpt + 0];
-	   eta = Chi[ndim*intpt + 1];
-	   iota = Chi[ndim*intpt + 2];
+	// The first derivatives
 
-	   // The shape functions
-	   shp[gptr[element] + 0] = -((chi - 1)*(eta - 1)*(iota - 1)) / 8;
-	   shp[gptr[element] + 1] = ((chi + 1)*(eta - 1)*(iota - 1)) / 8;
-	   shp[gptr[element] + 2] = ((chi - 1)*(eta + 1)*(iota - 1)) / 8;
-	   shp[gptr[element] + 3] = -((chi + 1)*(eta + 1)*(iota - 1)) / 8;
-	   shp[gptr[element] + 4] = ((chi - 1)*(eta - 1)*(iota + 1)) / 8;
-	   shp[gptr[element] + 5] = -((chi + 1)*(eta - 1)*(iota + 1)) / 8;
-	   shp[gptr[element] + 6] = -((chi - 1)*(eta + 1)*(iota + 1)) / 8;
-	   shp[gptr[element] + 7] = ((chi + 1)*(eta + 1)*(iota + 1)) / 8;
+    // with respect to chi
+	dshp[dsptr[element] + 0 * ndim + 0] = -((eta - 1)*(iota - 1)) / 8;
+	dshp[dsptr[element] + 1 * ndim + 0] =  ((eta - 1)*(iota - 1)) / 8;
+	dshp[dsptr[element] + 2 * ndim + 0] =  ((eta + 1)*(iota - 1)) / 8;
+	dshp[dsptr[element] + 3 * ndim + 0] = -((eta + 1)*(iota - 1)) / 8;
+	dshp[dsptr[element] + 4 * ndim + 0] =  ((eta - 1)*(iota + 1)) / 8;
+	dshp[dsptr[element] + 5 * ndim + 0] = -((eta - 1)*(iota + 1)) / 8;
+	dshp[dsptr[element] + 6 * ndim + 0] = -((eta + 1)*(iota + 1)) / 8;
+	dshp[dsptr[element] + 7 * ndim + 0] =  ((eta + 1)*(iota + 1)) / 8;
 
-	 
+	// with respect to eta
+	dshp[dsptr[element] + 0 * ndim + 1] = -((chi - 1)*(iota - 1)) / 8;
+	dshp[dsptr[element] + 1 * ndim + 1] =  ((chi + 1)*(iota - 1)) / 8;
+	dshp[dsptr[element] + 2 * ndim + 1] =  ((chi - 1)*(iota - 1)) / 8;
+	dshp[dsptr[element] + 3 * ndim + 1] = -((chi + 1)*(iota - 1)) / 8;
+	dshp[dsptr[element] + 4 * ndim + 1] =  ((chi - 1)*(iota + 1)) / 8;
+	dshp[dsptr[element] + 5 * ndim + 1] = -((chi + 1)*(iota + 1)) / 8;
+	dshp[dsptr[element] + 6 * ndim + 1] = -((chi - 1)*(iota + 1)) / 8;
+	dshp[dsptr[element] + 7 * ndim + 1] =  ((chi + 1)*(iota + 1)) / 8;
 
+	// with respect to  iota
+	dshp[dsptr[element] + 0 * ndim + 2] = -((chi - 1)*(eta - 1)) / 8;
+	dshp[dsptr[element] + 1 * ndim + 2] =  ((chi + 1)*(eta - 1)) / 8;
+	dshp[dsptr[element] + 2 * ndim + 2] =  ((chi - 1)*(eta + 1)) / 8;
+	dshp[dsptr[element] + 3 * ndim + 2] = -((chi + 1)*(eta + 1)) / 8;
+	dshp[dsptr[element] + 4 * ndim + 2] =  ((chi - 1)*(eta - 1)) / 8;
+	dshp[dsptr[element] + 5 * ndim + 2] = -((chi + 1)*(eta - 1)) / 8;
+	dshp[dsptr[element] + 6 * ndim + 2] = -((chi - 1)*(eta + 1)) / 8;
+	dshp[dsptr[element] + 7 * ndim + 2] =  ((chi + 1)*(eta + 1)) / 8;
+	  
 /*
 
 	   //integer   ndm, i, j, k
