@@ -23,7 +23,6 @@ endif(ENABLE_MPI)
 	#	VS_DEBUGGER_COMMAND_ARGUMENTS "-n 2 \"$(TargetPath)\" 1-elt-cube.k")
 #endif(WIN32)
 
-file(COPY 1-elt-cube.k DESTINATION .)
 file(COPY mixed-hex-tet.k DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
