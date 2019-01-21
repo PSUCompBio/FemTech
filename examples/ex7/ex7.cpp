@@ -14,8 +14,18 @@ int main(int argc, char **argv){
 	}
 	//test
 
-#if 0
+#if 1
 	// Printing local arrays of processor (this section can be removed)
+	printf("\nSize of coordinates array in processor %d after partitioning = %d\n", world_rank, nnodes * ndim);
+	printf("\nCoordinates array in processor %d after partitioning:\n", world_rank);
+	for (int i = 0; i < nnodes; i++) {
+		printf(" (%d)  ", i);
+		for (int j = 0; j < ndim; j++) {
+			printf("%.*f ", 1, coordinates[ndim * i + j]);
+		}
+		printf("\n");
+	}
+
 	printf("\neptr array in processor %d after partitioning = ", world_rank);
 	for (int i = 0; i <= nelements; i++) {
 		printf("%d ", eptr[i]);
@@ -34,21 +44,15 @@ int main(int argc, char **argv){
 		printf("%s/%d  ", ElementType[i], pid[i]);
 	}
 	printf("\n");
-	printf("\nSize of coordinates array in processor %d after partitioning = %d\n", world_rank, nnodes * ndim);
-	printf("\nCoordinates array in processor %d after partitioning =", world_rank);
-	for (int i = 0; i < nnodes; i++) {
-		printf(" (%d)  ", i);
-		for (int j = 0; j < ndim; j++) {
-			printf("%.*f ", 1, coordinates[ndim * i + j]);
-		}
-	}
-	printf("\n");
+
 #endif
 
   WriteVTU(argv[1]);
 
 
   ShapeFunctions();
+
+ // Assembly("mass");
 
   FreeArrays();
   MPI_Finalize();

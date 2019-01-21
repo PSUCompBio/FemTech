@@ -10,7 +10,7 @@ int *nShapeFunctions;
 
 void ShapeFunctions(){
 	// set the debug flag for this file
-	int debug = 0;
+	int debug = 1;
 
 	// Global Array - keeps track of how many gauss points there are 
 	// per element.
@@ -51,19 +51,19 @@ void ShapeFunctions(){
 		   // for this one element there are 8 gauss points, 
 		   // which each have 8 components in shp function array
 		   // so for this element I need 8 * 8 positions to hold
-		   counter = counter + nShapeFunctions[i];
+		   counter = counter + nShapeFunctions[i]*GaussPoints[i];
 		   // the next counter is used to determine the size of the 
 		   // derivative of shp function, dshp. We expand the slots
 		   // to account for ndim, since derivatives are taken with 
 		   // respect to chi, eta, and iota.
-		   dshp_counter = dshp_counter + (ndim * nShapeFunctions[i]);
+		   dshp_counter = dshp_counter + (ndim * nShapeFunctions[i]*GaussPoints[i]);
 	   } 
 	   if (strcmp(ElementType[i], "C3D4") == 0) {
 		   GaussPoints[i] = 1;
 		   nShapeFunctions[i] = 4;
 		   // same argument as above
-		   counter = counter + nShapeFunctions[i];
-		   dshp_counter = dshp_counter + (ndim * nShapeFunctions[i]);
+		   counter = counter + nShapeFunctions[i]*GaussPoints[i];
+		   dshp_counter = dshp_counter + (ndim * nShapeFunctions[i]*GaussPoints[i]);
 	   }
 	   //printf("gptr:[%d %d]\n",counter0, counter);
 	   gptr[i] = counter0;
@@ -73,7 +73,7 @@ void ShapeFunctions(){
    }
    
    // for debugging purposes
-   if (debug) {
+   if (debug && 1==1) {
 	   for (int i = 0; i < nelements; i++) {
 		   printf("(e.%d) - eptr:[%d->%d] - gptr:[%d->%d] -  dsptr:[%d->%d]\n", i, eptr[i], eptr[i + 1], gptr[i], gptr[i + 1], dsptr[i], dsptr[i + 1]);
 	   }
@@ -89,20 +89,40 @@ void ShapeFunctions(){
 
    /* initalize shp array with zoros*/
    for (int i = 0; i < nelements; i++) {
-		//printf("shp array %d: %d | \n", i, nShapeFunctions[i]);
-		for (int k = 0; k < nShapeFunctions[i]; k++) {
-			//printf(" %d",gptr[i]+k);
-			shp[gptr[i] + k] = 0.0;
-		}
-		//printf("\n");
-		for (int k = 0; k < nShapeFunctions[i]; k++) {
-			for (int j = 0; j < ndim; j++) {
-				//printf("%d ", dsptr[i] + k*ndim+j);
-				dshp[dsptr[i] + k * ndim + j] = 0.0;
+		for (int j = 0; j < GaussPoints[i]; j++) {
+			for (int k = 0; k < nShapeFunctions[i]; k++) {
+				shp[gptr[i] + j * GaussPoints[i] + k] = 0.0;
 			}
-			//printf("\n");
 		}
-		//printf("\n");
+		for (int j = 0; j < GaussPoints[i]; j++) {
+			for (int k = 0; k < nShapeFunctions[i]; k++) {
+				for (int l = 0; l < ndim; l++) {
+					dshp[dsptr[i] + j * GaussPoints[i] * ndim + k * ndim + l] = 0.0;
+				}
+			}
+		}
+   }
+   /* for debugging */
+   if (debug && 1==0) {
+	   for (int i = 0; i < nelements; i++) {
+		   printf("e.%d: int. pts = %d, # shp functions = %d\n", i, GaussPoints[i], nShapeFunctions[i]);
+		   for (int j = 0; j < GaussPoints[i]; j++) {
+			   for (int k = 0; k < nShapeFunctions[i]; k++) {
+				   printf(" %d", gptr[i] + j * GaussPoints[i] + k);
+			   }
+			   printf("\n");
+		   }
+		   printf("\n");
+		   for (int j = 0; j < GaussPoints[i]; j++) {
+			   for (int k = 0; k < nShapeFunctions[i]; k++) {
+				   for (int l = 0; l < ndim; l++) {
+					   printf("%d ", dsptr[i]  +  j*GaussPoints[i]*ndim  +  k*ndim + l);
+				   }
+				   printf("\n");
+			   }
+			   printf("\n");
+		   }
+	   }
    }
 
    for (int i = 0; i < nelements; i++) {
@@ -113,7 +133,7 @@ void ShapeFunctions(){
 			double *GaussWeights = (double*)malloc(GaussPoints[i] * sizeof(double));
 			GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeights);
 			for (int k = 0; k < GaussPoints[i]; k++) {
-				ShapeFunction_C3D8(i, k, GaussPoints[i], Chi);
+				ShapeFunction_C3D8(i, k, Chi);
 			}
 			free(Chi);
 			free(GaussWeights);
@@ -135,13 +155,17 @@ void ShapeFunctions(){
    }// loop on nelements
    
    // for debugging
-   if (debug) {
+   if (debug & 1==0) {
 	   for (int i = 0; i < nelements; i++) {
-		   printf("shp array e.%d with %d shp functions \n", i, GaussPoints[i]);
-		   for (int k = 0; k < nShapeFunctions[i]; k++) {
-			   printf(" shp: %.3f dshp: %.3f %.3f %.3f\n", shp[gptr[i] + k], dshp[dsptr[i] + k * ndim + 0], dshp[dsptr[i] + k * ndim + 1], dshp[dsptr[i] + k * ndim + 2]);
+		   printf("shp array e.%d with %d Gauss points, each with %d shp functions \n", i, GaussPoints[i], nShapeFunctions[i]);
+		   for (int j = 0; j < GaussPoints[i]; j++) {
+			   printf("int.%d:", j);
+			   for (int k = 0; k < nShapeFunctions[i]; k++) {
+				   printf("%8.5f ", shp[gptr[i] + j * GaussPoints[i] + k]);
+				   //printf(" shp: %.3f dshp: %.3f %.3f %.3f\n", shp[gptr[i] + k], dshp[dsptr[i] + k * ndim + 0], dshp[dsptr[i] + k * ndim + 1], dshp[dsptr[i] + k * ndim + 2]);
+			   }
+			   printf("\n");
 		   }
-		   printf("\n");
 	   }
    }
    return;
