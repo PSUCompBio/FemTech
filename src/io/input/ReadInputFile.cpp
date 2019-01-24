@@ -86,7 +86,7 @@ int LineToArray(
             // Skip columns to go to required ones.
             continue;
         }
-        if ((CheckLastVal && Val == LastVal) || (ColumnCount > 0 && Result >= ColumnCount)) {
+        if ((CheckLastVal && (Val == 0 || Val == LastVal)) || (ColumnCount > 0 && Result >= ColumnCount)) {
             // Stop fetching columns.
             break;
         }

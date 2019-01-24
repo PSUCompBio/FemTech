@@ -1,8 +1,9 @@
 #include "FemTech.h"
 
-#define TITLE_ELEMENT  "*ELEMENT_SOLID"
-#define TITLE_NODE     "*NODE"
-#define TITLE_END      "*END"
+#define TITLE_ELEMENT_SOLID  "*ELEMENT_SOLID"
+#define TITLE_ELEMENT_SHELL  "*ELEMENT_SHELL"
+#define TITLE_NODE           "*NODE"
+#define TITLE_END            "*END"
 
 //-------------------------------------------------------------------------------------------
 bool ReadLsDyna(const char *FileName) {
@@ -20,7 +21,8 @@ bool ReadLsDyna(const char *FileName) {
     long ElementsSectionPos = -1, NodesSectionPos = -1;
     ndim = 0;
     while (fgets(Line, sizeof(Line), File) != NULL) {
-        if (strncmp(Line, TITLE_ELEMENT, strlen(TITLE_ELEMENT)) == 0) {
+        if (strncmp(Line, TITLE_ELEMENT_SOLID, strlen(TITLE_ELEMENT_SOLID)) == 0 ||
+            strncmp(Line, TITLE_ELEMENT_SHELL, strlen(TITLE_ELEMENT_SHELL)) == 0) {
             ElementsSectionPos = ftell(File);
             while (fgets(Line, sizeof(Line), File) != NULL) {
                 if (LineToArray(true, false, 2, 1, Line) > 0 && LineToArray(true, true, 3, 0, Line) > 0) {
@@ -35,8 +37,9 @@ bool ReadLsDyna(const char *FileName) {
         
         if (NodesSectionPos != -1 && ndim == 0) {
             NodesSectionPos = -1;
-            while (ndim == 0 && fgets(Line, sizeof(Line), File) != NULL) {
-                if (strstr(Line, "nid") != NULL) {
+            bool Dim3Exists = false;
+            while (!Dim3Exists && fgets(Line, sizeof(Line), File) != NULL) {
+                if (ndim == 0 && strstr(Line, "nid") != NULL) {
                     if (strstr(Line, "x") != NULL) {
                         ndim = ndim + 1;
                     }
@@ -46,10 +49,22 @@ bool ReadLsDyna(const char *FileName) {
                     if (strstr(Line, "z") != NULL) {
                         ndim = ndim + 1;
                     }
+                    if (ndim == 2 || ndim == 3) {
+                        NodesSectionPos = ftell(File);
+                    }
+                }
+                else if (ndim == 3) {
+                    double *ZColumnValue;
+                    if (LineToArray(false, false, 4, 1, Line, Delim, (void**)&ZColumnValue) > 0) {
+                        Dim3Exists = ZColumnValue[0] != 0;
+                        free(ZColumnValue);
+                    }
                 }
             }
             if (ndim == 2 || ndim == 3) {
-                NodesSectionPos = ftell(File);
+                if (!Dim3Exists) {
+                    ndim = 2;
+                }
                 break;
             }
         }

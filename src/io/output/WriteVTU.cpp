@@ -34,12 +34,24 @@ void WriteVTU(const char* FileName){
 	fprintf(fp,"\t<UnstructuredGrid>\n");
 	fprintf(fp,"\t\t<Piece NumberOfPoints=\"%d\" NumberOfCells=\"%d\">\n",nnodes,nelements);
 	// write coordinates
+
+	// Temporary soution for ndim
+	const int NDim = ndim == 2 ? 3 : ndim;
+	//
+
 	fprintf(fp,"\t\t\t<Points>\n");
-	fprintf(fp,"\t\t\t\t<DataArray type=\"Float64\" NumberOfComponents=\"%d\" format=\"ascii\">\n",ndim);
+	fprintf(fp,"\t\t\t\t<DataArray type=\"Float64\" NumberOfComponents=\"%d\" format=\"ascii\">\n", NDim);
 	for(i=0;i<nnodes;i++){
 		for(j=0;j<ndim;j++){
 			fprintf(fp,"\t\t\t\t\t%.6e",coordinates[ndim*i+j]);
 		}
+
+		// Temporary solution for ndim
+		if (ndim == 2) {
+			fprintf(fp,"\t\t\t\t\t%.6e", 0.0);
+		}
+		//
+
 		fprintf(fp,"\n");
 	}
 	fprintf(fp,"\t\t\t\t</DataArray>\n");
@@ -109,16 +121,17 @@ void WriteVTU(const char* FileName){
     fprintf(fp,"<VTKFile type=\"PUnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n");
     fprintf(fp,"\t<PUnstructuredGrid GhostLevel=\"0\">\n");
     fprintf(fp,"\t\t<PPoints>\n");
-	fprintf(fp,"\t\t\t<PDataArray type=\"Float64\" NumberOfComponents=\"%d\" format=\"ascii\"/>\n",ndim);
+	// NDim will be changed later
+	fprintf(fp,"\t\t\t<PDataArray type=\"Float64\" NumberOfComponents=\"%d\" format=\"ascii\"/>\n",NDim);
     fprintf(fp,"\t\t</PPoints>\n");
     fprintf(fp,"\t\t<PCells>\n");
-	fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"connectivity\" NumberOfComponents=\"1\"/>\n",ndim);
-	fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"offsets\" NumberOfComponents=\"1\"/>\n",ndim);
-	fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"types\" NumberOfComponents=\"1\"/>\n",ndim);
+	fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"connectivity\" NumberOfComponents=\"1\"/>\n");
+	fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"offsets\" NumberOfComponents=\"1\"/>\n");
+	fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"types\" NumberOfComponents=\"1\"/>\n");
     fprintf(fp,"\t\t</PCells>\n");
     fprintf(fp,"\t\t<PCellData Scalars=\"PartID\">\n");
-	fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"PartID\"/>\n",ndim);
-	fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"ProcID\"/>\n",ndim);
+	fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"PartID\"/>\n");
+	fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"ProcID\"/>\n");
     fprintf(fp,"\t\t</PCellData>\n");
     for (int i = 0; i < world_size; ++i) {
       fprintf(fp,"\t\t<Piece Source=\"%s.vtu.%.4d\"/>\n", outfileP2, i);
