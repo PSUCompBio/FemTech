@@ -19,10 +19,7 @@
 //#include <cmath>
 
 #include "GlobalVariables.h"
-//#include "Mesh.h"
-//#include "Materials.h"
-//#include "BC.h"
-//#include "Constraint.h"
+
 #include "mpi.h"
 #include "parmetis.h"
 
@@ -42,8 +39,10 @@ bool ReadInputFile(const char *FileName);
 bool PartitionMesh();
 void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWeights);
 void ShapeFunctions();
-void ShapeFunction_C3D8(int element, int intpt, int nGaussPoints, double *Chi);
+void ShapeFunction_C3D8(int e, int gp, double *Chi);
 void ShapeFunction_C3D4(int element, int intpt, int nGaussPoints, double *Chi);
+void Assembly(char *operation);
+void Mass3D();
 void WriteVTU(const char* FileName);
 void FreeArrays();
 

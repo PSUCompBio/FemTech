@@ -18,4 +18,5 @@ extern double *dshp;		/*derivatives of shape functions*/
 extern int *eptr;			/*number of nodes per element pointer*/
 extern int *pid;			/* part ID */
 extern int *mid;			/*material ID */
+extern double *mass;        /*mass matrix*/
 extern char **ElementType;	/* element type, e.g. C3D8 */
