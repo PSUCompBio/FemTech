@@ -15,6 +15,7 @@ void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWe
 	// 8-noded hex with 8 integration points
    //  2 x 2 x 2 pt. quadrature
 	if (strcmp(ElementType[element], "C3D8") == 0 && nGaussPoint==8) {
+#if 0
 		/*integration point 1*/
 		 Chi[0*ndim + 0] = -0.577350269189626;
 		 Chi[0*ndim + 1] = -0.577350269189626;
@@ -47,6 +48,39 @@ void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWe
 		 Chi[7 * ndim + 0] = -0.577350269189626;
 		 Chi[7 * ndim + 1] = 0.577350269189626;
 		 Chi[7 * ndim + 2] = 0.577350269189626;
+#endif
+		 /*integration point 1*/
+		 Chi[0 * ndim + 0] = -0.577350269189626;
+		 Chi[0 * ndim + 1] = -0.577350269189626;
+		 Chi[0 * ndim + 2] = 0.577350269189626;
+		 /*integration point  2*/
+		 Chi[1 * ndim + 0] = 0.577350269189626;
+		 Chi[1 * ndim + 1] = -0.577350269189626;
+		 Chi[1 * ndim + 2] = 0.577350269189626;
+		 /*integration point  3*/
+		 Chi[2 * ndim + 0] = 0.577350269189626;
+		 Chi[2 * ndim + 1] = 0.577350269189626;
+		 Chi[2 * ndim + 2] = 0.577350269189626;
+		 /*integration point  4*/
+		 Chi[3 * ndim + 0] = -0.577350269189626;
+		 Chi[3 * ndim + 1] = 0.577350269189626;
+		 Chi[3 * ndim + 2] = 0.577350269189626;
+		 /*integration point  5*/
+		 Chi[4 * ndim + 0] = -0.577350269189626;
+		 Chi[4 * ndim + 1] = -0.577350269189626;
+		 Chi[4 * ndim + 2] = -0.577350269189626;
+		 /*integration point  6*/
+		 Chi[5 * ndim + 0] = 0.577350269189626;
+		 Chi[5 * ndim + 1] = -0.577350269189626;
+		 Chi[5 * ndim + 2] = -0.577350269189626;
+		 /*integration point  7*/
+		 Chi[6 * ndim + 0] = 0.577350269189626;
+		 Chi[6 * ndim + 1] = 0.577350269189626;
+		 Chi[6 * ndim + 2] = -0.577350269189626;
+		 /*integration point  8*/
+		 Chi[7 * ndim + 0] = -0.577350269189626;
+		 Chi[7 * ndim + 1] = 0.577350269189626;
+		 Chi[7 * ndim + 2] = -0.577350269189626;
 
 		 GaussWeights[0] = 1.0;
 		 GaussWeights[1] = 1.0;

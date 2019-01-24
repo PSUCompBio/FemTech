@@ -155,14 +155,18 @@ void ShapeFunctions(){
    }// loop on nelements
    
    // for debugging
-   if (debug & 1==0) {
+   if (debug & 1==1) {
 	   for (int i = 0; i < nelements; i++) {
 		   printf("shp array e.%d with %d Gauss points, each with %d shp functions \n", i, GaussPoints[i], nShapeFunctions[i]);
 		   for (int j = 0; j < GaussPoints[i]; j++) {
-			   printf("int.%d:", j);
+			   printf("int.%d:\n", j);
 			   for (int k = 0; k < nShapeFunctions[i]; k++) {
-				   printf("%8.5f ", shp[gptr[i] + j * GaussPoints[i] + k]);
-				   //printf(" shp: %.3f dshp: %.3f %.3f %.3f\n", shp[gptr[i] + k], dshp[dsptr[i] + k * ndim + 0], dshp[dsptr[i] + k * ndim + 1], dshp[dsptr[i] + k * ndim + 2]);
+				   //printf("%8.5f ", shp[gptr[i] + j * GaussPoints[i] + k]);
+				   printf(" shp: %4.4f dshp: %8.4f %8.4f %8.4f\n",
+				     shp[gptr[i] + j * GaussPoints[i] + k],
+				     dshp[dsptr[i] + j * GaussPoints[i] * ndim + k * ndim + 0],
+					 dshp[dsptr[i] + j * GaussPoints[i] * ndim + k * ndim + 1],
+				     dshp[dsptr[i] + j * GaussPoints[i] * ndim + k * ndim + 2]);
 			   }
 			   printf("\n");
 		   }
