@@ -11,5 +11,5 @@ It is **CRITICAL** that you download both the SDK and the MPI setup.exe. **YOU N
 
 ![](../.gitbook/assets/ms-mpi-3.PNG)
 
-Next CRITICAL thing to do is set your environment variables.
+The next **CRITICAL** thing to do is **restart your computer** so your system environment variables get set. I don't believe there is another way around this if you don't admin privileges \(as I did not\).
 
