@@ -1,6 +1,8 @@
 # Table of contents
 
 * [Introduction](README.md)
+* [Installation](installation/README.md)
+  * [Windows](installation/windows.md)
 * [FEM](fem.md)
 * [Elements](elements/README.md)
   * [C3D8 - 8 node hex](elements/c3d8-8-node-hex.md)
