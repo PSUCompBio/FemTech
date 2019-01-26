@@ -34,6 +34,7 @@ void ShapeFunctions(){
    int counter = 0;
    int counter0 = 0;
    int dshp_counter = 0;
+
    int dshp_counter0 = 0;
 
    for (int i = 0; i < nelements; i++) {
