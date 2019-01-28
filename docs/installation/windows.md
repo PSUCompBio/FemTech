@@ -1,10 +1,14 @@
 ---
 description: >-
-  This walks you through installation of Visual Studio (VS), CMake and Microsoft
-  MPI (MS-MPI).
+  These are the old instructions - for when we used Visual Studio... read
+  below...
 ---
 
-# Windows
+# Windows - Visual Studio \(OLD\)
+
+Previously, the build system attempted to use Visual Studio. As we added dependencies, for example, BLAS/LAPACK, it was becoming more and more tricky. One reason was because BLAS/LAPACK needed Fortran compilers which is available for Cygwin for free, but for it to work with Visual Studio we would need to buy Intel compilers \(which we did not want to do\). So we switched to a "Cygwin-based build system". This is more similar to process on Mac and Linux. For the latest build instructions see the Cygwin-based build page.
+
+This walks you through installation of Visual Studio \(VS\), CMake and Microsoft MPI \(MS-MPI\).
 
 ## CMake
 
