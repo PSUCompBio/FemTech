@@ -1,4 +1,5 @@
 #include "FemTech.h"
+#include <cblas.h>
 
 int main(int argc, char **argv){
 
@@ -50,6 +51,21 @@ int main(int argc, char **argv){
 
   ShapeFunctions();
 
+	double  m[10],n[10];
+	int i;
+	double result;
+	int len = 10, incm = 1, incn = 1;
+
+	printf("Enter the elements into first vector.\n");
+	for(i=0;i<10;i++)
+	scanf("%lf",&m[i]);
+
+	printf("Enter the elements into second vector.\n");
+	for(i=0;i<10;i++)
+	scanf("%lf",&n[i]);
+
+	result = ddot_(&len, m, &incm, n, &incn);
+	printf("The result is %d\n",result);
 
   // Assembly("mass");
 

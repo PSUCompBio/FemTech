@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.6)
 
 PROJECT (FemTech)
 
@@ -16,7 +16,7 @@ SET(PARALLEL 0 CACHE INTEGER "Defines a Parallel Build")
 # Define a set of values to identify each MPI implementation supported (when enabled)
 set(MS_MPI "Microsoft")
 set(INTEL_MPI "Intel")
-set(DEFAULT_MPI "Default")  # Let cmake automatically pick one
+set(DEFAULT_MPI "Default")  # Let's cmake automatically pick one
 
 # Define the MPI to be used at each environment (when enabled ENABLE_MPI)
 set(SELECTED_MPI ${DEFAULT_MPI})
@@ -51,6 +51,24 @@ if(ENABLE_MPI)
 	SET(PARALLEL 1 CACHE INTEGER "Defines a Parallel Build")
 	add_definitions( -DPARALLEL=${PARALLEL} )
 endif(ENABLE_MPI)
+
+#============================================================================
+# BLAS/Lapack
+#==============================================================================
+find_package(BLAS)
+find_package(LAPACK)
+if(LAPACK_FOUND)
+  message("Found Lapack")
+  message("Lapack link library is ${LAPACK_LIBRARIES}")
+endif()
+if(BLAS_FOUND)
+  message("Found BLAS")
+  message("BLAS link library is ${BLAS_LIBRARIES}")
+endif()
+if(LAPACK_FOUND AND BLAS_FOUND)
+   set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+endif()
+#=============================================================================
 
 ADD_SUBDIRECTORY (src)
 
