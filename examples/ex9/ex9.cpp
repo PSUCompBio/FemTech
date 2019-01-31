@@ -1,5 +1,8 @@
 #include "FemTech.h"
-#include <cblas.h>
+
+extern "C" {
+ extern double ddot_(int *n, double *dx, int *incx, double *dy, int *incy);
+}
 
 int main(int argc, char **argv){
 
@@ -56,16 +59,22 @@ int main(int argc, char **argv){
 	double result;
 	int len = 10, incm = 1, incn = 1;
 
-	printf("Enter the elements into first vector.\n");
-	for(i=0;i<10;i++)
-	scanf("%lf",&m[i]);
+	// printf("Enter the elements into first vector.\n");
+  result = 0;
+	for(i=0;i<10;i++) {
+    m[i] = i+1;
+    n[i] = i*2;
+    result += (i+1)*(i*2);
+  }
+	printf("The actual result is %f\n",result);
+	// scanf("%lf",&m[i]);
 
-	printf("Enter the elements into second vector.\n");
-	for(i=0;i<10;i++)
-	scanf("%lf",&n[i]);
+	// printf("Enter the elements into second vector.\n");
+	// for(i=0;i<10;i++)
+	// scanf("%lf",&n[i]);
 
 	result = ddot_(&len, m, &incm, n, &incn);
-	printf("The result is %d\n",result);
+	printf("The result from blas is %f\n",result);
 
   // Assembly("mass");
 
