@@ -18,13 +18,14 @@ The current suggested setup to work on Windows is to use Atom for editing source
          4. make 4.2.1-2
          5. cmake 3.6.2-1
          6. mpfr 4.0.2-1
-         7. libmpfr4 3.1.6
-         8. gcc-core 7.4
-         9. gcc-fortran 7.4
-         10. gcc-g++ 7.4
-         11. libopenmpi12 1.10.7-1        
-         12. libopenmpi-devel 3.1.1-2  
-         13. openmpi 1.10.7-1  
+         7. mpfr 6
+         8. libmpfr4 3.1.6
+         9. gcc-core 7.4
+         10. gcc-fortran 7.4
+         11. gcc-g++ 7.4
+         12. libopenmpi12 1.10.7-1        
+         13. libopenmpi-devel 3.1.1-2  
+         14. openmpi 1.10.7-1  
 
 
              additional there are:  
