@@ -1,8 +1,5 @@
 #include "FemTech.h"
-
-extern "C" {
- extern double ddot_(int *n, double *dx, int *incx, double *dy, int *incy);
-}
+#include "blas.h"
 
 int main(int argc, char **argv){
 
@@ -50,7 +47,6 @@ int main(int argc, char **argv){
 #endif
 
   WriteVTU(argv[1]);
-
 
   ShapeFunctions();
 
