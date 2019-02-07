@@ -3,11 +3,11 @@
 
 void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
    /* Purpose : Compute 3-d isoparametric 8 - node e shape
-	            functions and their derivatives with respect to 
-	            chi, eta, iota 
+	            functions and their derivatives with respect to
+	            chi, eta, iota
 
 				 NOTE: Might need to add dirivatives with respect to
-					   x, y, z	
+					   x, y, z
   */
 	int debug = 0;
 
@@ -81,13 +81,13 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 
 	// Compute jacobian transformation
 
-	// R. Kraft does not like using multidimensional arrays. 
+	// R. Kraft does not like using multidimensional arrays.
 	// this wss done just to keep making prgress
-	// ALSO, if this gets called everytime function is called, 
+	// ALSO, if this gets called everytime function is called,
 	// I don't like it.
 	// The redeclaration needs to find memory and will cut down
-	// on speed. 
-	double xs[3][3]; 
+	// on speed.
+	double xs[3][3];
 	for (int j = 0; j < 3; j++) {
 		xs[0][j] = (coordinates[ndim*connectivity[1] + j] - coordinates[ndim*connectivity[0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 1 + 0]
 		       	 + (coordinates[ndim*connectivity[2] + j] - coordinates[ndim*connectivity[3] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 2 + 0]
@@ -126,7 +126,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
   for (int i = 0; i < 9; ++i) {
     J_Inv[i] = detInv*adjoint[i];
   }
-  
+
   // Transform derivatives to global co-ordinates
   double c1, c2, c3;
   int baseIndex;
