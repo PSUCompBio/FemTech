@@ -26,7 +26,7 @@ The current suggested setup to work on Windows is to use Atom \(or Vi for advanc
    14. openmpi 1.10.7-1  
    15. lapack and blas 
 3. Download and install Paraview: [https://www.paraview.org/](https://www.paraview.org/)
-4. Build FemTech:  Open cygwin terminal Navigate to a directory where you would like to install FemTech or make one, e.g.  mkdir code cd code git clone [https://github.com/PSUCompBio/FemTech](https://github.com/PSUCompBio/FemTech) cd FemTech mkdir build cd build ccmake .. In the ccmake gui, add "Enable MPI" and "Examples", then configure In the ccmake gui, select the examples you would like to turn on \(see list here\) In the ccmake gui, configure again, then generate \(g\) to create the Makefile. make -j 8 \(where 8 is the number of processors you have\)
+4. **Build FemTech**:  Open cygwin terminal Navigate to a directory where you would like to install FemTech or make one, e.g.  mkdir code cd code git clone [https://github.com/PSUCompBio/FemTech](https://github.com/PSUCompBio/FemTech) cd FemTech mkdir build cd build ccmake .. In the ccmake gui, add "Enable MPI" and "Examples", then configure In the ccmake gui, select the examples you would like to turn on \(see list here\) In the ccmake gui, configure again, then generate \(g\) to create the Makefile. make -j 8 \(where 8 is the number of processors you have\)
 
 
 
