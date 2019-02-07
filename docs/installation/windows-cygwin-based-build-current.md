@@ -4,7 +4,7 @@ description: Explains how to build using Cygwin...
 
 # Windows - Cygwin Based Build \(Current\)
 
-The current suggested setup to work on Windows is to use Atom for editing source code and Cygwin terminal for building \(a.k.a compiling\). 
+The current suggested setup to work on Windows is to use Atom \(or Vi for advanced linux users\) for editing source code and Cygwin terminal for building \(a.k.a compiling\). 
 
 ## Step-by-step Instructions
 
@@ -26,9 +26,7 @@ The current suggested setup to work on Windows is to use Atom for editing source
    14. openmpi 1.10.7-1  
    15. lapack and blas 
 3. Download and install Paraview: [https://www.paraview.org/](https://www.paraview.org/)
-4. add entry
-5. add entry
-6. add entry 
+4. Build FemTech:  Open cygwin terminal Navigate to a directory where you would like to install FemTech or make one, e.g.  mkdir code cd code git clone [https://github.com/PSUCompBio/FemTech](https://github.com/PSUCompBio/FemTech) cd FemTech mkdir build cd build ccmake .. In the ccmake gui, add "Enable MPI" and "Examples", then configure In the ccmake gui, select the examples you would like to turn on \(see list here\) In the ccmake gui, configure again, then generate \(g\) to create the Makefile. make -j 8 \(where 8 is the number of processors you have\)
 
-{% file src="../.gitbook/assets/cygwin-configuration.bin" caption="List of Cygwin install packages" %}
+
 
