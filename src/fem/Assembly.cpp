@@ -1,7 +1,5 @@
 #include "FemTech.h"
 
-double *mass;
-
 void Assembly(char *operation){
 	// set the debug flag for this file
 	int debug = 0;

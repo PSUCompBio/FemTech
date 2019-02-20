@@ -9,37 +9,14 @@ int *GaussPoints;
 double *shp;
 double *dshp;
 int *nShapeFunctions;
+
+int *gpPtr;
 double *detJacobian;
+double *gaussWeights;
 
 void ShapeFunctions() {
-  // set the debug flag for this file
+  // // set the debug flag for this file
   int debug = 1;
-  // Variables for blas
-  char* chy = (char*)"T";
-  char* chn = (char*)"N";
-  double one = 1.0;
-  double zero = 0.0;
-
-  // Create the c matrix with matrix properties
-  // TODO(Anil) replace the hard coded material properties with that from input
-  // file
-  const double E = 1000.0; // TODO(Anil) convert to SI units MPa to Pa?
-  const double nu = 0.25;
-  const double rho = 1000.0;
-  const double G = E/(2.0*(1.0+nu));
-  if (nu == 0.5) {
-    printf("ERROR : Incompressible solids does not work with current formulation\n");
-  }
-  const double c11 = E*(1.0-nu)/((1.0-2.0*nu)*(1.0+nu));
-  const double c12 = E*nu/((1.0-2.0*nu)*(1.0+nu));
-  // TODO(Anil) relax the assumption of 3D in C Matrix
-  // Create C matrix size : 6x6 in colum major format (for blas routines)
-  double *C = (double*)calloc(36, sizeof(double));
-  C[0] = C[7] = C[14] = c11;
-  C[6] = C[12] = C[13] = c12;
-  C[1] = C[2] = C[8] = c12;
-  C[21] = C[28] = C[35] = G;
-  int Csize = 6;
 
   // Global Array - keeps track of how many gauss points there are
   // per element.
@@ -58,16 +35,19 @@ void ShapeFunctions() {
   // allows this difference to occur.
   gptr = (int *)malloc((nelements+1) * sizeof(int));
   dsptr = (int *)malloc((nelements + 1) * sizeof(int));
+  gpPtr = (int *)malloc((nelements+1) * sizeof(int));
 
   int counter = 0;
   int dshp_counter = 0;
+  int gpCount = 0;
 
   gptr[0] = 0;
   dsptr[0] = 0;
+  gpPtr[0] = 0;
   for (int i = 0; i < nelements; i++) {
     if (strcmp(ElementType[i], "C3D8") == 0) {
       //GuassPoints per element
-      GaussPoints[i] = 8;
+      gpCount = 8;
       nShapeFunctions[i] = 8;
 
       // shp function array needs to hold 8
@@ -87,7 +67,7 @@ void ShapeFunctions() {
       dshp_counter += 192;
     }
     if (strcmp(ElementType[i], "C3D4") == 0) {
-      GaussPoints[i] = 1;
+      gpCount = 1;
       nShapeFunctions[i] = 4;
       // same argument as above
       // counter = counter + nShapeFunctions[i]*GaussPoints[i];
@@ -95,12 +75,14 @@ void ShapeFunctions() {
       counter += 4;
       dshp_counter += 12;
     }
+    GaussPoints[i] = gpCount;
     gptr[i + 1] = counter;
     dsptr[i + 1] = dshp_counter;
+    gpPtr[i + 1] = gpPtr[i]+gpCount;
   }
 
   // for debugging purposes
-  if (debug && 1==1) {
+  if (debug) {
     for (int i = 0; i < nelements; i++) {
       printf("(e.%d) - eptr:[%d->%d] - gptr:[%d->%d] -  dsptr:[%d->%d]\n", i, eptr[i], eptr[i + 1], gptr[i], gptr[i + 1], dsptr[i], dsptr[i + 1]);
     }
@@ -112,6 +94,8 @@ void ShapeFunctions() {
   shp =  (double *)calloc(counter, sizeof(double));
   /*set size of dshp array  - this holds derivatives of shp functions for all elements */
   dshp = (double *)calloc(dshp_counter, sizeof(double));
+  detJacobian = (double *)calloc(gpPtr[nelements], sizeof(double));
+  gaussWeights = (double *)calloc(gpPtr[nelements], sizeof(double));
 
   /* for debugging */
   if (debug) {
@@ -141,35 +125,34 @@ void ShapeFunctions() {
     // 3D 8-noded hex shape function routine
     if (strcmp(ElementType[i], "C3D8") == 0) {
       double *Chi = (double*)malloc(GaussPoints[i] * ndim * sizeof(double));
-      double *GaussWeights = (double*)malloc(GaussPoints[i] * sizeof(double));
-      double *detJacobian = (double*)malloc(GaussPoints[i] * sizeof(double));
-      GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeights);
+      double *GaussWeightsLocal = &(gaussWeights[gpPtr[i]]);
+      double *detJacobianLocal = &(detJacobian[gpPtr[i]]);
+      GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
       for (int k = 0; k < GaussPoints[i]; k++) {
-        ShapeFunction_C3D8(i, k, Chi, detJacobian);
+        ShapeFunction_C3D8(i, k, Chi, detJacobianLocal);
       }
-      // Compute local stiffness
-      Stiffness3D(i,detJacobian,GaussWeights);
-
-      // Compute Local Mass matrix
-      Mass3D(i,detJacobian,GaussWeights);
+      // // Compute local stiffness
+      // Stiffness3D(i,detJacobian,GaussWeights);
+      //
+      // // Compute Local Mass matrix
+      // Mass3D(i,detJacobian,GaussWeights);
 
       // Free all allocated memories
       free(Chi);
-      free(GaussWeights);
-      free(detJacobian);
     }
 
     // 3D 4-noded tet shape function routine
     if (strcmp(ElementType[i], "C3D4") == 0) {
       double *Chi = (double*)malloc(GaussPoints[i]* ndim * sizeof(double));
-      double *GaussWeights = (double*)malloc(GaussPoints[i] * sizeof(double));
-      GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeights);
+      // double *GaussWeights = (double*)malloc(GaussPoints[i] * sizeof(double));
+      double *GaussWeightsLocal = &(gaussWeights[gpPtr[i]]);
+      GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
       //printf("chi, eta, iota = %f, %f, %f\n", Chi[0], Chi[1], Chi[2]);
       for (int k = 0; k < GaussPoints[i]; k++) {
         ShapeFunction_C3D4(i, k, GaussPoints[i], Chi);
       }
       free(Chi);
-      free(GaussWeights);
+      // free(GaussWeights);
     }
   }// loop on nelements
 

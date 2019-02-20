@@ -1,52 +1,41 @@
 #include "FemTech.h"
 
-void FreeArrays()
-{
-    if (coordinates != NULL){
-        free(coordinates);
-        coordinates = NULL;
+void free1DArray(void *array) {
+  if(array) {
+    free(array);
+    array = NULL;
+  }
+}
+// void free2DArray(void *array, int count) {
+//   for (int i = 0; i < count; ++i) {
+//     if (array[i]) {
+//       free(array[i]);
+//     }
+//   }
+//   free1DArray(array);
+// }
+
+void FreeArrays() {
+  free1DArray(coordinates);
+  free1DArray(connectivity);
+  free1DArray(pid);
+  free1DArray(eptr);
+  free1DArray(shp);
+  free1DArray(dshp);
+  free1DArray(dsptr);
+  free1DArray(gptr);
+  free1DArray(nShapeFunctions);
+  free1DArray(C);
+  free1DArray(gaussWeights);
+  free1DArray(gpPtr);
+  free1DArray(detJacobian);
+  free1DArray(mass);
+  free1DArray(stiffness);
+  if (ElementType != NULL){
+    for (int i = 0; i < nelements; i++){
+        free(ElementType[i]);
     }
-    
-    if (connectivity != NULL){
-        free(connectivity);
-        connectivity = NULL;
-    }
-    
-    //free(mid);
-    
-    if (pid != NULL){
-        free(pid);
-        pid = NULL;
-    }
-    
-    if (eptr != NULL){
-        free(eptr);
-        eptr = NULL;
-    }
-	
-	if (shp != NULL){
-		free(shp);
-		shp = NULL;
-	}
-	
-	if (dshp != NULL){
-		free(dshp);
-		dshp = NULL;
-	}
-	if (dsptr != NULL) {
-		free(dsptr);
-		dsptr = NULL;
-	}
-	if (gptr != NULL) {
-		free(gptr);
-		gptr = NULL;
-	}
-    
-    if (ElementType != NULL){
-        for (int i = 0; i < nelements; i++){
-            free(ElementType[i]);
-        }
-        free(ElementType);
-        ElementType = NULL;
-    }
+    free(ElementType);
+    ElementType = NULL;
+  }
 }
