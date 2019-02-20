@@ -4,8 +4,6 @@
 double *stiffness;
 
 void AssembleStiffnessMatrix() {
-	// set the debug flag for this file
-	int debug = 1;
   // Create global stiffness matrix
   const int kSize = nnodes*ndim;
   stiffness = (double*)calloc(kSize*kSize, sizeof(double));

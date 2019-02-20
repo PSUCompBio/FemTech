@@ -48,10 +48,14 @@ int main(int argc, char **argv){
   }
   WriteVTU(argv[1]);
 
+  // Steady solution
   ShapeFunctions();
   ReadMaterialProperties();
-  AssembleMassMatrix();
+  ReadBoundaryCondition();
   AssembleStiffnessMatrix();
+  ApplySteadyBoundaryConditions();
+
+  // AssembleMassMatrix();
 
   FreeArrays();
   MPI_Finalize();

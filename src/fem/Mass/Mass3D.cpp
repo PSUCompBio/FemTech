@@ -5,9 +5,6 @@
 double *mass;
 
 void AssembleMassMatrix() {
-	// set the debug flag for this file
-	int debug = 1;
-
   // Create global mass matrix
   const int massSize = nnodes*ndim;
   mass = (double*)calloc(massSize*massSize, sizeof(double));

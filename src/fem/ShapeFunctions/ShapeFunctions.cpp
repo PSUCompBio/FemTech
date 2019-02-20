@@ -15,9 +15,6 @@ double *detJacobian;
 double *gaussWeights;
 
 void ShapeFunctions() {
-  // // set the debug flag for this file
-  int debug = 1;
-
   // Global Array - keeps track of how many gauss points there are
   // per element.
   GaussPoints = (int *)malloc(nelements * sizeof(int));

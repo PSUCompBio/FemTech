@@ -31,6 +31,9 @@ void FreeArrays() {
   free1DArray(detJacobian);
   free1DArray(mass);
   free1DArray(stiffness);
+  free1DArray(nodeDOFDispBC);
+  free1DArray(nodeValueDispBC);
+  free1DArray(rhs);
   if (ElementType != NULL){
     for (int i = 0; i < nelements; i++){
         free(ElementType[i]);

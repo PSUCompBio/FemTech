@@ -1,5 +1,6 @@
 Set(fem_src
 		Assembly.cpp
+    BoundaryConditions.cpp
 		ShapeFunctions/ShapeFunctions.cpp
 		ShapeFunctions/GaussQuadrature3D.cpp
 		ShapeFunctions/ShapeFunction_C3D8.cpp

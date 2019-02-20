@@ -130,3 +130,36 @@ int LineToArray(
     }
     return Result;
 }
+
+int *nodeDOFDispBC;
+double *nodeValueDispBC;
+int nSpecifiedDispBC;
+
+void ReadBoundaryCondition(void) {
+  // TODO(Anil) Convert hardcoded BC to that from file inputs
+  nSpecifiedDispBC = 10;
+  nodeDOFDispBC = (int*)malloc(nSpecifiedDispBC*sizeof(int));
+  nodeValueDispBC = (double*)malloc(nSpecifiedDispBC*sizeof(double));
+  // Node one x, y, z displacements set to zero
+  nodeDOFDispBC[0] = 0;
+  nodeValueDispBC[0] = 0;
+  nodeDOFDispBC[1] = 1;
+  nodeValueDispBC[1] = 0;
+  nodeDOFDispBC[2] = 2;
+  nodeValueDispBC[2] = 0;
+
+  nodeDOFDispBC[3] = 5;
+  nodeValueDispBC[3] = 0;
+  nodeDOFDispBC[4] = 8;
+  nodeValueDispBC[4] = 0;
+  nodeDOFDispBC[5] = 11;
+  nodeValueDispBC[5] = 0;
+  nodeDOFDispBC[6] = 14;
+  nodeValueDispBC[6] = 0.1;
+  nodeDOFDispBC[7] = 17;
+  nodeValueDispBC[7] = 0.1;
+  nodeDOFDispBC[8] = 20;
+  nodeValueDispBC[8] = 0.1;
+  nodeDOFDispBC[9] = 23;
+  nodeValueDispBC[9] = 0.1;
+}

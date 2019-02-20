@@ -21,9 +21,17 @@ extern int *pid;			/* part ID */
 extern int *mid;			/*material ID */
 extern double *mass;        /*mass matrix*/
 extern double *stiffness;        /*stiffness matrix*/
+extern double *rhs;              /*to store rhs matrix equation (implicit) */
 extern char **ElementType;	/* element type, e.g. C3D8 */
 
 extern double *C; /*Stores C matrix for isotropic elastic material */
 extern double rho; /*Stores material density for isotropic material */
 extern double *gaussWeights;
 extern double *detJacobian;
+
+/* For BC */
+extern int *nodeDOFDispBC;
+extern double *nodeValueDispBC;
+extern int nSpecifiedDispBC;
+
+static const int debug = 1;
