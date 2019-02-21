@@ -34,4 +34,7 @@ extern int *nodeDOFDispBC;
 extern double *nodeValueDispBC;
 extern int nSpecifiedDispBC;
 
+/* Storing the solution */
+extern double *displacement;
+
 static const int debug = 1;

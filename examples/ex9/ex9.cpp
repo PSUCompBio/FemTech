@@ -54,6 +54,7 @@ int main(int argc, char **argv){
   ReadBoundaryCondition();
   AssembleStiffnessMatrix();
   ApplySteadyBoundaryConditions();
+  SolveSteadyImplicit();
 
   // AssembleMassMatrix();
 

@@ -133,7 +133,7 @@ int LineToArray(
 
 int *nodeDOFDispBC;
 double *nodeValueDispBC;
-int nSpecifiedDispBC;
+int nSpecifiedDispBC = 0;
 
 void ReadBoundaryCondition(void) {
   // TODO(Anil) Convert hardcoded BC to that from file inputs
@@ -151,13 +151,13 @@ void ReadBoundaryCondition(void) {
   nodeDOFDispBC[3] = 5;
   nodeValueDispBC[3] = 0;
   nodeDOFDispBC[4] = 8;
-  nodeValueDispBC[4] = 0;
+  nodeValueDispBC[4] = 0.1;
   nodeDOFDispBC[5] = 11;
-  nodeValueDispBC[5] = 0;
+  nodeValueDispBC[5] = 0.1;
   nodeDOFDispBC[6] = 14;
-  nodeValueDispBC[6] = 0.1;
+  nodeValueDispBC[6] = 0;
   nodeDOFDispBC[7] = 17;
-  nodeValueDispBC[7] = 0.1;
+  nodeValueDispBC[7] = 0;
   nodeDOFDispBC[8] = 20;
   nodeValueDispBC[8] = 0.1;
   nodeDOFDispBC[9] = 23;

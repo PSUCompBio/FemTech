@@ -52,5 +52,6 @@ void WriteVTU(const char* FileName);
 void FreeArrays();
 void ReadMaterialProperties();
 void ApplySteadyBoundaryConditions(void);
+void SolveSteadyImplicit(void);
 
 #endif

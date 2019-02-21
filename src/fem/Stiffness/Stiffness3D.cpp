@@ -112,7 +112,7 @@ void AssembleStiffnessMatrix() {
     printf("DEBUG : Printing Full Stiffness Matrix\n");
     for (int j = 0; j < kSize; ++j) {
       for (int k = 0; k < kSize; ++k) {
-        printf("%.4f\t", stiffness[j+k*kSize]);
+        printf("%12.4f", stiffness[j+k*kSize]);
       }
       printf("\n");
     }

@@ -7,6 +7,7 @@ Set(fem_src
 		ShapeFunctions/ShapeFunction_C3D4.cpp
 		Mass/Mass3D.cpp
 		Stiffness/Stiffness3D.cpp
+    Solver/SteadyImplicit.cpp
     )
 
 add_library(fem OBJECT ${fem_src})
