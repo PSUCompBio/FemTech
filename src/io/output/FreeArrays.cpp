@@ -34,6 +34,7 @@ void FreeArrays() {
   free1DArray(nodeDOFDispBC);
   free1DArray(nodeValueDispBC);
   free1DArray(rhs);
+	free1DArray(displacements);
   free1DArray(displacement);
   if (ElementType != NULL){
     for (int i = 0; i < nelements; i++){

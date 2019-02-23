@@ -37,4 +37,7 @@ extern int nSpecifiedDispBC;
 /* Storing the solution */
 extern double *displacement;
 
+extern double *displacements;
+extern int *boundary;
+
 static const int debug = 1;
