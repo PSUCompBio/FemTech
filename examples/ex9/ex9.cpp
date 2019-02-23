@@ -78,6 +78,7 @@ void ApplyBoundaryConditions(){
 //	5: x, z prescribed
 //	6: y, z prescribed
 //	7: x, y, z prescribed.
+	double tol = 1e-5;
 
 	for(int i=0;i<nnodes;i++){
  		// if x value = 0, constrain node to x plane
@@ -101,7 +102,7 @@ void ApplyBoundaryConditions(){
 			 // equal to some time dependent function i.e.,
 			 // CalculateDisplacement to get current increment out
 			 //  displacment to be applied.
-			displacements[ndim*i+1] = 0.1
+			displacements[ndim*i+1] = 0.1;
 		}
 	}
 
