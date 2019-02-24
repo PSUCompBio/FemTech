@@ -43,6 +43,8 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ);
 void ShapeFunction_C3D4(int element, int intpt, int nGaussPoints, double *Chi);
 void ReadMaterialProperties();
 void ReadBoundaryCondition(void);
+void AllocateArrays();
+
 // void Assembly(char *operation);
 // void Mass3D(int e, double *detJ, double *gweights);
 // void Stiffness3D(int e, double *detJ, double *gweights);
