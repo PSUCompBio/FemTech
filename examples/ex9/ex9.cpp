@@ -1,4 +1,5 @@
 #include "FemTech.h"
+#include "blas.h"
 
 int main(int argc, char **argv){
 
@@ -47,9 +48,29 @@ int main(int argc, char **argv){
 
   WriteVTU(argv[1]);
 
-
   ShapeFunctions();
 
+	double  m[10],n[10];
+	int i;
+	double result;
+	int len = 10, incm = 1, incn = 1;
+
+	// printf("Enter the elements into first vector.\n");
+  result = 0;
+	for(i=0;i<10;i++) {
+    m[i] = i+1;
+    n[i] = i*2;
+    result += (i+1)*(i*2);
+  }
+	printf("The actual result is %f\n",result);
+	// scanf("%lf",&m[i]);
+
+	// printf("Enter the elements into second vector.\n");
+	// for(i=0;i<10;i++)
+	// scanf("%lf",&n[i]);
+
+	result = ddot_(&len, m, &incm, n, &incn);
+	printf("The result from blas is %f\n",result);
 
   // Assembly("mass");
 

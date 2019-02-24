@@ -1,5 +1,6 @@
 #include "FemTech.h"
-void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWeights){
+
+void GaussQuadrature3D(int element, int nGaussPoint, double *Chi, double *GaussWeights) {
 	/*-[--.----+----.----+----.-----------------------------------------]
 	!      Purpose: Gauss quadrature for 3-d element
 
@@ -13,7 +14,7 @@ void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWe
    //printf("Rank %d: Guass quadrature for 3D elements!!\n", world_rank);
 
 	// 8-noded hex with 8 integration points
-   //  2 x 2 x 2 pt. quadrature
+  //  2 x 2 x 2 pt. quadrature
 	if (strcmp(ElementType[element], "C3D8") == 0 && nGaussPoint==8) {
 #if 0
 		/*integration point 1*/
@@ -90,7 +91,6 @@ void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWe
 		 GaussWeights[5] = 1.0;
 		 GaussWeights[6] = 1.0;
 		 GaussWeights[7] = 1.0;
-		 
 	}
 
 	// 4-noded tet with 1 integration point
@@ -127,6 +127,5 @@ void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWe
 		GaussWeights[2] = 1.0 / 6.0;
 		GaussWeights[3] = 1.0 / 6.0;
 	}
-
    return;
 }
