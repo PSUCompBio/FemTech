@@ -70,32 +70,25 @@ int main(int argc, char **argv){
 }
 
 void ApplyBoundaryConditions(){
-//	0: free
-//	1: x prescribed
-//	2: y prescribed
-//	3: x, y prescribed
-//	4: z prescribed
-//	5: x, z prescribed
-//	6: y, z prescribed
-//	7: x, y, z prescribed.
+
 	double tol = 1e-5;
 
 	for(int i=0;i<nnodes;i++){
- 		// if x value = 0, constrain node to x plane
+ 		// if x value = 0, constrain node to x plane (0-direction)
 		if(fabs(coordinates[ndim*i+0]-0.0) <tol){
 			boundary[ndim*i+0]=1;
 		}
-		// if y coordinate = 0, constrain node to y plane
+		// if y coordinate = 0, constrain node to y plane (1-direction)
 		if(fabs(coordinates[ndim*i+1]-0.0) <tol){
-			boundary[ndim*i+1]=2;
+			boundary[ndim*i+1]=1;
 		}
-		// if z coordinate = 0, constrain node to z plane
+		// if z coordinate = 0, constrain node to z plane (2-direction)
 		if(fabs(coordinates[ndim*i+2]-0.0) <tol){
-			boundary[ndim*i+2]=4;
+			boundary[ndim*i+2]=1;
 		}
-		// if y coordinate = 1, apply disp. to node = 0.1
+		// if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
 		if(fabs(coordinates[ndim*i+2]-1.0) <tol){
-			boundary[ndim*i+1]=2;
+			boundary[ndim*i+1]=1;
 			 // note that this may have to be divided into
        // diplacement increments for both implicit and
   		 // explicit solver. In the future this would be
@@ -105,8 +98,6 @@ void ApplyBoundaryConditions(){
 			displacements[ndim*i+1] = 0.1;
 		}
 	}
-
-
 
 	return;
 }
