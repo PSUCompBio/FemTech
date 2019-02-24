@@ -1,43 +1,43 @@
 #include "FemTech.h"
 
 double *rhs;
+int nSpecifiedDispBC;
 
 void ApplySteadyBoundaryConditions(void) {
   const int matSize = nnodes*ndim;
   rhs = (double*)calloc(matSize, sizeof(double));
+  nSpecifiedDispBC = 0;
+  for (int i = 0; i < matSize; ++i) {
+    if(boundary[i] != 0) {
+      nSpecifiedDispBC += 1;
+    }
+  }
+  printf("Debug : %d\n", nSpecifiedDispBC);
   // Eliminate columns
   if (nSpecifiedDispBC == 0) {
    return;
   }
-  // First column to eliminate
-  int colCount = nodeDOFDispBC[0];
-  for (int i = 0; i < nSpecifiedDispBC-1; ++i) {
-    // Update RHS corresponding to eliminated column
-    int colNumber = nodeDOFDispBC[i];
-    double displ = nodeValueDispBC[i];
-    for (int j = 0; j < matSize; ++j) {
-      rhs[j] -= displ*stiffness[colNumber*matSize+j];
+  int writeColumn = 0;
+  // Eliminate colums first
+  for (int i = 0; i < matSize; ++i) {
+    if(boundary[i] == 0) {
+      // Retain column
+      if (writeColumn == i) {
+        writeColumn = writeColumn + 1;
+        continue;
+      } else {
+        double *writeLocation = &(stiffness[writeColumn*matSize]);
+        double *readLocation = &(stiffness[i*matSize]);
+        memcpy(writeLocation, readLocation, sizeof(double)*matSize);
+        writeColumn += 1;
+      }
+    } else {
+      // Modify RHS
+      double displ = displacements[i];
+      for (int j = 0; j < matSize; ++j) {
+        rhs[j] -= displ*stiffness[i*matSize+j];
+      }
     }
-    // Move columns to left eliminating current column
-    for(int j = colNumber+1; j < nodeDOFDispBC[i+1]; ++j) {
-      double *writeLocation = &(stiffness[colCount*matSize]);
-      double *readLocation = &(stiffness[j*matSize]);
-      memcpy(writeLocation, readLocation, sizeof(double)*matSize);
-      colCount += 1;
-    }
-  }
-  // Update RHS to eliminated last column
-  int colNumber = nodeDOFDispBC[nSpecifiedDispBC-1];
-  double displ = nodeValueDispBC[nSpecifiedDispBC-1];
-  for (int j = 0; j < matSize; ++j) {
-    rhs[j] -= displ*stiffness[colNumber*matSize+j];
-  }
-  // Overwrite from last column to eliminate to end of matrix
-  for(int j = nodeDOFDispBC[nSpecifiedDispBC-1]; j < matSize; ++j) {
-    double *writeLocation = &(stiffness[colCount*matSize]);
-    double *readLocation = &(stiffness[j*matSize]);
-    memcpy(writeLocation, readLocation, sizeof(double)*matSize);
-    colCount += 1;
   }
   // eliminate rows
   // Eliminated rows are stored in latter part of stiffness matrix so as to
@@ -47,64 +47,48 @@ void ApplySteadyBoundaryConditions(void) {
   int rIndex = 0, wIndex = 0; // read and write index to eliminate row
   int wAuxIndex = matSize*modifiedMatSize; //write index for eliminated rows
   for (int i = 0; i < modifiedMatSize; ++i) {
-    for (int j = 0; j < nodeDOFDispBC[0]; ++j) {
-      stiffness[wIndex] = stiffness[rIndex];
-      wIndex = wIndex+1;
-      rIndex = rIndex+1;
-    }
-    for (int k = 0; k < nSpecifiedDispBC-1; ++k) {
-      int node = nodeDOFDispBC[k];
-      stiffness[wAuxIndex] = stiffness[rIndex];
-      wAuxIndex = wAuxIndex+1;
-      rIndex = rIndex+1;
-      for (int j = node+1; j < nodeDOFDispBC[k+1]; ++j) {
-        stiffness[wIndex] = stiffness[rIndex];
-        wIndex = wIndex+1;
+    for (int j = 0; j < matSize; ++j) {
+      if(boundary[j] == 0) {
+        // Retain row
+        if (rIndex == wIndex) {
+          wIndex = wIndex+1;
+          rIndex = rIndex+1;
+        } else {
+          stiffness[wIndex] = stiffness[rIndex];
+          wIndex = wIndex+1;
+          rIndex = rIndex+1;
+        }
+      } else {
+        // Eliminate row and move to auxillary part
+        stiffness[wAuxIndex] = stiffness[rIndex];
+        wAuxIndex = wAuxIndex+1;
         rIndex = rIndex+1;
       }
-    }
-    int node = nodeDOFDispBC[nSpecifiedDispBC-1];
-    stiffness[wAuxIndex] = stiffness[rIndex];
-    wAuxIndex = wAuxIndex+1;
-    rIndex = rIndex+1;
-    for (int j = node+1; j < matSize; ++j) {
-      stiffness[wIndex] = stiffness[rIndex];
-      wIndex = wIndex+1;
-      rIndex = rIndex+1;
     }
   }
   // Modify RHS
   rIndex = wIndex = 0; // read and write index to eliminate row
   wAuxIndex = 0; //write index for eliminated rows
   double *rhsAux = (double*)malloc(sizeof(double)*nSpecifiedDispBC);
-  for (int j = 0; j < nodeDOFDispBC[0]; ++j) {
-    rhs[wIndex] = rhs[rIndex];
-    wIndex = wIndex+1;
-    rIndex = rIndex+1;
-  }
-  for (int k = 0; k < nSpecifiedDispBC-1; ++k) {
-    int node = nodeDOFDispBC[k];
-    rhsAux[wAuxIndex] = rhs[rIndex];
-    wAuxIndex = wAuxIndex+1;
-    rIndex = rIndex+1;
-    for (int j = node+1; j < nodeDOFDispBC[k+1]; ++j) {
-      rhs[wIndex] = rhs[rIndex];
-      wIndex = wIndex+1;
-      rIndex = rIndex+1;
+  for (int j = 0; j < matSize; ++j) {
+    if(boundary[j] == 0) {
+      // Retain row
+      if (j == wIndex) {
+        wIndex = wIndex+1;
+      } else {
+        rhs[wIndex] = rhs[j];
+        wIndex = wIndex+1;
+      }
+    } else {
+      // Eliminate row and move to auxillary part
+      rhsAux[wAuxIndex] = rhs[j];
+      wAuxIndex = wAuxIndex+1;
     }
-  }
-  int node = nodeDOFDispBC[nSpecifiedDispBC-1];
-  rhsAux[wAuxIndex] = rhs[rIndex];
-  wAuxIndex = wAuxIndex+1;
-  rIndex = rIndex+1;
-  for (int j = node+1; j < matSize; ++j) {
-    rhs[wIndex] = rhs[rIndex];
-    wIndex = wIndex+1;
-    rIndex = rIndex+1;
   }
   // Copy aux rhs to latter part of rhs
   memcpy(&(rhs[modifiedMatSize]), rhsAux, sizeof(double)*nSpecifiedDispBC);
   free(rhsAux);
+
   if (debug) {
     printf("DEBUG : Printing Full Stiffness Matrix\n");
     for (int j = 0; j < modifiedMatSize; ++j) {

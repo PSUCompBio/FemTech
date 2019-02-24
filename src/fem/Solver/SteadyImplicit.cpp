@@ -2,11 +2,8 @@
 
 #include "blas.h"
 
-double* displacement;
-
 void SolveSteadyImplicit(void) {
   int matSize = nnodes*ndim-nSpecifiedDispBC;
-  displacement = (double*)malloc(matSize*sizeof(double));
   // To store pivot order in LU
   int* pivot = (int*)malloc(matSize*sizeof(int));
   int info;
@@ -17,11 +14,21 @@ void SolveSteadyImplicit(void) {
     printf("LU Decomposition and solution failed with info code %d\n", info);
   }
   // Copy solution to displacement vector
-  memcpy(displacement, rhs, matSize*sizeof(double));
+  int j = 0;
+  for (int i = 0; i < nnodes*ndim; ++i) {
+    if(boundary[i] == 0) {
+      displacements[i] = rhs[j];
+      j = j + 1;
+    }
+  }
+
   if (debug) {
     printf("DEBUG : Printing Displacement Solution\n");
-    for (int j = 0; j < matSize; ++j) {
-      printf("%12.4f\n", displacement[j]);
+    for (int i = 0; i < nnodes; ++i) {
+      for (int j = 0; j < ndim; ++j) {
+        printf("%12.4f", displacements[i*ndim+j]);
+      }
+      printf("\n");
     }
   }
   return;

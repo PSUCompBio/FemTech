@@ -45,11 +45,9 @@ void ReadMaterialProperties();
 void ReadBoundaryCondition(void);
 void AllocateArrays();
 
-// void Assembly(char *operation);
-// void Mass3D(int e, double *detJ, double *gweights);
-// void Stiffness3D(int e, double *detJ, double *gweights);
-void AssembleMassMatrix();
-void AssembleStiffnessMatrix();
+void Assembly(char *operation);
+void StiffnessElementMatrix(double* Ke, int e);
+void MassElementMatrix(double* Me, int e);
 void WriteVTU(const char* FileName);
 void FreeArrays();
 void ReadMaterialProperties();
