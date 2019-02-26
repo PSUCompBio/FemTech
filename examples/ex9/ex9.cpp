@@ -6,6 +6,10 @@ void ApplyBoundaryConditions();
 
 int main(int argc, char **argv){
   int debug = 0;
+	double TotalTime = 1.0;
+	double time_n;
+	int step_n;
+
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
   // Get the number of processes
@@ -51,7 +55,9 @@ int main(int argc, char **argv){
   }
 
   /* Write inital, undeformed configuration*/
-  // WriteVTU(argv[1]);
+	time_n=0.0;
+	step_n=0;
+  WriteVTU(argv[1],step_n,time_n);
 
   // Steady solution
   ShapeFunctions();
@@ -64,8 +70,15 @@ int main(int argc, char **argv){
   // Assembly((char*)"mass");
 
   /* Write final, deformed configuration*/
-  WriteVTU(argv[1]);
+  time_n=1.0;
+  step_n=1;
+  WriteVTU(argv[1],step_n,time_n);
 
+
+	/* Below are things to do at end of program */
+	if(world_rank == 0){
+		WritePVD(argv[1],step_n,time_n);
+	}
   FreeArrays();
   MPI_Finalize();
   return 0;

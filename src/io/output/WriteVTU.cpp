@@ -2,12 +2,18 @@
 
 static void strip_ext(char *);
 
-void WriteVTU(const char* FileName){
+void WriteVTU(const char* FileName, int step,double time){
     static const int ARR_SIZE = 1000;
 
 	FILE *fp;
 	int i,j;
-	char s[ARR_SIZE], outfile[ARR_SIZE] = {0};
+	char s[ARR_SIZE];
+  char outfile[ARR_SIZE] = {0};
+	char paths[ARR_SIZE] = {0};
+	char paths2[ARR_SIZE] = {0};
+	char outfileP[ARR_SIZE] = {0};
+  char outfileP2[ARR_SIZE] = {0};
+
 	if (strlen(FileName) < ARR_SIZE)
 	{
 	    strcpy(outfile, FileName);
@@ -16,18 +22,20 @@ void WriteVTU(const char* FileName){
 
 #if PARALLEL
 	//printf("\nwrite_VTU partition: %d\n", world_rank);
-	sprintf(s, ".vtu.%04d",world_rank);
-  char outfileP[ARR_SIZE] = {0};
-  char outfileP2[ARR_SIZE] = {0};
+	sprintf(s, ".vtu.%04d.%04d",step,world_rank);
+  sprintf(paths,"./results/vtu/");
+	sprintf(paths2,"./results/");
   strcpy(outfileP, outfile);
   strcpy(outfileP2, outfile);
-	strcat(outfile, s);
+ 	strcat(paths2,outfileP2);
+  strcat(paths,outfile);
+  strcat(paths,s);
 #else
 	strcat(outfile, ".vtu");
 #endif
 
 	//printf("\nnew name: %s\n",outfile);
-	fp=fopen(outfile,"w");
+	fp=fopen(paths,"w");
 
 	fprintf(fp,"<?xml version=\"1.0\"?>\n");
 	fprintf(fp,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n");
@@ -129,12 +137,12 @@ void WriteVTU(const char* FileName){
 	fprintf(fp,"</VTKFile>\n");
 	fclose(fp);
 
-  // Write the pvtu file if you are rank zero and code in parallel
+	// Write the pvtu file if you are rank zero and code in parallel
   if (world_rank == 0) {
 	  //printf("\nRank 0 Writing PVTU file\n");
-		sprintf(s, ".pvtu");
-		strcat(outfileP, s);
-		fp=fopen(outfileP, "w");
+		sprintf(s, ".%.04d.pvtu",step);
+		strcat(paths2, s);
+		fp=fopen(paths2, "w");
 		fprintf(fp,"<?xml version=\"1.0\"?>\n");
     fprintf(fp,"<VTKFile type=\"PUnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n");
     fprintf(fp,"\t<PUnstructuredGrid GhostLevel=\"0\">\n");
@@ -160,13 +168,12 @@ void WriteVTU(const char* FileName){
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"ProcID\"/>\n");
     fprintf(fp,"\t\t</PCellData>\n");
     for (int i = 0; i < world_size; ++i) {
-      fprintf(fp,"\t\t<Piece Source=\"%s.vtu.%.4d\"/>\n", outfileP2, i);
+      fprintf(fp,"\t\t<Piece Source=\"vtu/%s.vtu.%04d.%.4d\"/>\n", outfileP2,step, i);
     }
     fprintf(fp,"\t</PUnstructuredGrid>\n");
     fprintf(fp,"</VTKFile>\n");
+		fclose(fp);
   }
-
-
 	return;
 }
 //-------------------------------------------------------------------------------------------
