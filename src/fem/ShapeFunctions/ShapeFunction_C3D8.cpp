@@ -9,8 +9,6 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 				 NOTE: Might need to add dirivatives with respect to
 					   x, y, z
   */
-	int debug = 0;
-
 	double chi, eta, iota;
 	chi =  Chi[ndim*gp + 0];
 	eta =  Chi[ndim*gp + 1];
@@ -19,7 +17,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 	// The shape functions
 	int g = GaussPoints[e];
   const int indexShp = gptr[e] + gp * g;
-  const int indexDshp = gptr[e] + gp * g * ndim;
+  const int indexDshp = dsptr[e] + gp * g * ndim;
 
 	shp[indexShp + 0] = ((1 - chi)*(1 - eta)*(1 - iota)) / 8;
 	shp[indexShp + 1] = ((1 + chi)*(1 - eta)*(1 - iota)) / 8;
