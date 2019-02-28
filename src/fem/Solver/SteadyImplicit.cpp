@@ -1,5 +1,4 @@
 #include "FemTech.h"
-
 #include "blas.h"
 
 void SolveSteadyImplicit(void) {
@@ -31,5 +30,6 @@ void SolveSteadyImplicit(void) {
       printf("\n");
     }
   }
+  free(pivot);
   return;
 }

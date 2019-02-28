@@ -14,6 +14,11 @@ extern "C" {
      double *c, int *ldc);
  extern void dgesv_(int *n, int *nrhs, double *a, int *lda, \
      int *ipiv, double *b, int *ldb, int *info);
+ extern void dgetrf_(int *m, int *n, double *a, int *lda, int *ipiv, int *info);
+ extern void dgetrs_(char *trans, int *n, int *nrhs, double *a, int *lda, \
+     int *ipiv, double *b, int *ldb, int *info);
+ extern void dgemv_(char *trans, int *m, int *n, double *alpha, double *a, \
+     int *lda, double *x, int *incx, double *beta, double *y, int *incy);
 }
 
 #endif // INCLUDE_BLAS_H_

@@ -33,6 +33,8 @@ void FreeArrays() {
   free1DArray(stiffness);
   free1DArray(rhs);
 	free1DArray(displacements);
+	free1DArray(velocities);
+	free1DArray(accelerations);
 	free1DArray(boundary);
   if (ElementType != NULL){
     for (int i = 0; i < nelements; i++){

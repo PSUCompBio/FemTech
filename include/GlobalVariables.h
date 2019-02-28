@@ -34,5 +34,16 @@ extern int nSpecifiedDispBC;
 
 extern double *displacements;
 extern int *boundary;
+/* Variables required for unsteady problem */
+extern double *velocities;
+extern double *accelerations;
+extern bool unsteadyFlag;
 
 static int debug = 1;
+
+// Variables to keep track of time ans step count
+// Initial configuration nStep = 0 and time = 0
+// For steady, solution is stored at nStep = 1 and time = 1
+// For unsteady nStep and time are set by solver
+extern int nStep;
+extern double Time;

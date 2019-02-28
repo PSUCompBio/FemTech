@@ -54,5 +54,7 @@ void FreeArrays();
 void ReadMaterialProperties();
 void ApplySteadyBoundaryConditions(void);
 void SolveSteadyImplicit(void);
+void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double dt, \
+    double timeFinal, char* name);
 
 #endif

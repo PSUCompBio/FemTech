@@ -18,7 +18,7 @@ void ApplySteadyBoundaryConditions(void) {
    return;
   }
   int writeColumn = 0;
-  // Eliminate colums first
+  // Eliminate columns first
   for (int i = 0; i < matSize; ++i) {
     if(boundary[i] == 0) {
       // Retain column

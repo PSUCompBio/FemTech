@@ -4,11 +4,13 @@
 /*Delare Functions*/
 void ApplyBoundaryConditions();
 
+double Time;
+int nStep;
+bool unsteadyFlag;
+
 int main(int argc, char **argv){
-  int debug = 0;
-	double TotalTime = 1.0;
-	double time_n;
-	int step_n;
+
+  unsteadyFlag = true;
 
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
@@ -55,29 +57,40 @@ int main(int argc, char **argv){
   }
 
   /* Write inital, undeformed configuration*/
-	time_n=0.0;
-	step_n=0;
-  WriteVTU(argv[1],step_n,time_n);
+	Time = 0.0;
+	nStep = 0;
+  WriteVTU(argv[1], nStep, Time);
 
-  // Steady solution
-  ShapeFunctions();
-  ReadMaterialProperties();
-  ApplyBoundaryConditions();
-  Assembly((char*)"stiffness");
-  ApplySteadyBoundaryConditions();
-  SolveSteadyImplicit();
-
-  // Assembly((char*)"mass");
-
-  /* Write final, deformed configuration*/
-  time_n=1.0;
-  step_n=1;
-  WriteVTU(argv[1],step_n,time_n);
-
+  if (!unsteadyFlag) {
+    // Steady solution
+    ShapeFunctions();
+    ReadMaterialProperties();
+    ApplyBoundaryConditions();
+    Assembly((char*)"stiffness");
+    ApplySteadyBoundaryConditions();
+    SolveSteadyImplicit();
+    Time = 1.0;
+    nStep = 1;
+    /* Write final, deformed configuration*/
+    WriteVTU(argv[1], nStep, Time);
+  } else {
+    // Unsteady Implicit solution using Newmark's scheme for time integration
+    double dt = 0.1;
+    double tMax = 10.0;
+    ShapeFunctions();
+    ReadMaterialProperties();
+    ApplyBoundaryConditions();
+    Assembly((char*)"stiffness");
+    Assembly((char*)"mass");
+    /* beta and gamma of Newmark's scheme */
+    double beta = 0.25;
+    double gamma = 0.5;
+    SolveUnsteadyNewmarkImplicit(beta, gamma, dt, tMax, argv[1]);
+  }
 
 	/* Below are things to do at end of program */
 	if(world_rank == 0){
-		WritePVD(argv[1],step_n,time_n);
+		WritePVD(argv[1], nStep, Time);
 	}
   FreeArrays();
   MPI_Finalize();
