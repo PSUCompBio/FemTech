@@ -89,18 +89,18 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 	for (int j = 0; j < 3; j++) {
 		xs[0][j] = (coordinates[ndim*connectivity[1] + j] - coordinates[ndim*connectivity[0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 1 + 0]
 		       	 + (coordinates[ndim*connectivity[2] + j] - coordinates[ndim*connectivity[3] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 2 + 0]
-			     + (coordinates[ndim*connectivity[5] + j] - coordinates[ndim*connectivity[4] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 5 + 0]
-			     + (coordinates[ndim*connectivity[6] + j] - coordinates[ndim*connectivity[7] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 0];
+			       + (coordinates[ndim*connectivity[5] + j] - coordinates[ndim*connectivity[4] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 5 + 0]
+			       + (coordinates[ndim*connectivity[6] + j] - coordinates[ndim*connectivity[7] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 0];
 
 		xs[1][j] = (coordinates[ndim*connectivity[2] + j] - coordinates[ndim*connectivity[1] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 2 + 1]
-			     + (coordinates[ndim*connectivity[3] + j] - coordinates[ndim*connectivity[0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 3 + 1]
-			     + (coordinates[ndim*connectivity[6] + j] - coordinates[ndim*connectivity[5] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 1]
-			     + (coordinates[ndim*connectivity[7] + j] - coordinates[ndim*connectivity[4] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 7 + 1];
+			       + (coordinates[ndim*connectivity[3] + j] - coordinates[ndim*connectivity[0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 3 + 1]
+			       + (coordinates[ndim*connectivity[6] + j] - coordinates[ndim*connectivity[5] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 1]
+			       + (coordinates[ndim*connectivity[7] + j] - coordinates[ndim*connectivity[4] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 7 + 1];
 
 		xs[2][j] = (coordinates[ndim*connectivity[4] + j] - coordinates[ndim*connectivity[0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 4 + 2]
 		         + (coordinates[ndim*connectivity[5] + j] - coordinates[ndim*connectivity[1] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 5 + 2]
-			     + (coordinates[ndim*connectivity[6] + j] - coordinates[ndim*connectivity[2] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 2]
-			     + (coordinates[ndim*connectivity[7] + j] - coordinates[ndim*connectivity[3] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 7 + 2];
+			       + (coordinates[ndim*connectivity[6] + j] - coordinates[ndim*connectivity[2] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 2]
+			       + (coordinates[ndim*connectivity[7] + j] - coordinates[ndim*connectivity[3] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 7 + 2];
 	}
   // Adjoint stored in row major form
   double adjoint[9];
@@ -128,7 +128,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
   // Transform derivatives to global co-ordinates
   double c1, c2, c3;
   int baseIndex;
-  for (int i = 0; i < 8; ++i) {
+  for (int i = 0; i < nShapeFunctions[e]; ++i) {
     baseIndex = dsptr[e] + gp * g*ndim + ndim * i;
     c1 = dshp[baseIndex]*J_Inv[0]+dshp[baseIndex+1]*J_Inv[3]+dshp[baseIndex+2]*J_Inv[6];
     c2 = dshp[baseIndex]*J_Inv[1]+dshp[baseIndex+1]*J_Inv[4]+dshp[baseIndex+2]*J_Inv[7];

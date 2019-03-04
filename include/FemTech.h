@@ -40,7 +40,7 @@ bool PartitionMesh();
 void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWeights);
 void ShapeFunctions();
 void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ);
-void ShapeFunction_C3D4(int element, int intpt, int nGaussPoints, double *Chi);
+void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ);
 void ReadMaterialProperties();
 void ReadBoundaryCondition(void);
 void AllocateArrays();

@@ -1,208 +1,113 @@
 #include "FemTech.h"
 
 
-void ShapeFunction_C3D4(int element, int intpt, int nGaussPoints, double *Chi){
-   /*
-	   subroutine shp3d(ss, xsj, shp, xl, ndm)
+void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ){
+	 //  Purpose : Compute 3-d isoparametric 4 - node tet element shape
+	 //            functions and their derivatives w / r x, y, z
 
-	   Purpose : Compute 3 - d isoparametric 8 - node element shape
-	             functions and their derivatives w / r x, y, z
-
-	   Inputs :
-	   ss(3) - Natural coordinates of point
-	   xl(ndm, *) - Nodal coordinates for element
-	   ndm - Spatial dimension of mesh
-
-	   Outputs :
-	   xsj - Jacobian determinant at point
-	   shp(4, *) - Shape functions and derivatives at point
-	   shp(1, i) = dN_i / dx
-	   shp(2, i) = dN_i / dy
-	   shp(3, i) = dN_i / dz
-	   shp(4, i) = N_i
-
-	   */
+	 //  Introduction to Finite Elements in Engineering, 3th Edition
+   //  by Chandrupatla and Belegundu
 
 	double chi, eta, iota;
-
-	chi = Chi[ndim*intpt + 0];
-	eta = Chi[ndim*intpt + 1];
-	iota = Chi[ndim*intpt + 2];
+	chi =  Chi[ndim*gp + 0];
+	eta =  Chi[ndim*gp + 1];
+	iota = Chi[ndim*gp + 2];
 
 	// The shape functions
-	shp[gptr[element] + 0] = 1.0 - eta - iota - chi;
-	shp[gptr[element] + 1] = chi;
-	shp[gptr[element] + 2] = eta;
-	shp[gptr[element] + 3] = iota;
+	int g = GaussPoints[e];
+	const int indexShp = gptr[e] + gp * g;
+  const int indexDshp = dsptr[e] + gp * g * ndim;
+
+	shp[indexShp + 0] = chi;
+	shp[indexShp + 1] = eta;
+	shp[indexShp + 2] = iota;
+	shp[indexShp + 3] = 1.0 - eta - iota - chi;
+
 
 	// The first derivatives
 
 	// with respect to chi
-	dshp[dsptr[element] + 0 * ndim + 0] = -1;
-	dshp[dsptr[element] + 1 * ndim + 0] =  1;
-	dshp[dsptr[element] + 2 * ndim + 0] =  0;
-	dshp[dsptr[element] + 3 * ndim + 0] =  0;
+	dshp[indexDshp + ndim * 0 + 0] = -1.0;
+	dshp[indexDshp + ndim * 1 + 0] =  1.0;
+	dshp[indexDshp + ndim * 2 + 0] =  0.0;
+	dshp[indexDshp + ndim * 3 + 0] =  0.0;
 	// with respect to eta
-	dshp[dsptr[element] + 0 * ndim + 1] = -1;
-	dshp[dsptr[element] + 1 * ndim + 1] =  0;
-	dshp[dsptr[element] + 2 * ndim + 1] =  1;
-	dshp[dsptr[element] + 3 * ndim + 1] =  0;
+	dshp[indexDshp + ndim * 0 + 1] = -1.0;
+	dshp[indexDshp + ndim * 1 + 1] =  0.0;
+	dshp[indexDshp + ndim * 2 + 1] =  1.0;
+	dshp[indexDshp + ndim * 3 + 1] =  0.0;
 	// with respect to iota
-	dshp[dsptr[element] + 0 * ndim + 2] = -1;
-	dshp[dsptr[element] + 1 * ndim + 2] =  0;
-	dshp[dsptr[element] + 2 * ndim + 2] =  0;
-	dshp[dsptr[element] + 3 * ndim + 2] =  1;
+	dshp[indexDshp + ndim * 0 + 2] = -1.0;
+	dshp[indexDshp + ndim * 1 + 2] =  0.0;
+	dshp[indexDshp + ndim * 2 + 2] =  0.0;
+	dshp[indexDshp + ndim * 3 + 2] =  1.0;
 
-/*
+	//  Compute jacobian transformation
+ 	//  Equ 9. 16 3D stress Analysis
 
-	   //integer   ndm, i, j, k
-   //int   ndm, i, j, k;
-	   //real * 8    rxsj, xsj, ap1, am1, ap2, am2, ap3, am3, c1, c2, c3
-   //double    rxsj, xsj, ap1, am1, ap2, am2, ap3, am3, c1, c2, c3;
-
-   //real * 8    ss(3), shp(4, 8), xl(ndm, 8), xs(3, 3), ad(3, 3)
-	   //double    ss[3-1], shp[4-1, 8-1], xl[ndm-1, 8-1], xs[3-1, 3-1], ad[3-1, 3-1];
-
-   /*
-   double shp[4 - 1][8 - 1], xs[3 - 1][3 - 1];
-
-	   //save
-
-	   //!Compute shape functions and their natural coord.derivatives
-
-
-
-	   double ap1 = 1.0 + ss[1 - 1];
-	   double am1 = 1.0 - ss[1 - 1];
-	   double ap2 = 1.0 + ss[2 - 1];
-	   double am2 = 1.0 - ss[2 - 1];
-	   double ap3 = 1.0 + ss[3 - 1];
-	   double am3 = 1.0 - ss[3 - 1];
-
-	   //!Compute for (-, -) values
-
-	   double c1 = 0.125*am1*am2;
-	   double c2 = 0.125*am2*am3;
-	   double c3 = 0.125*am1*am3;
-	   shp[1 - 1][1 - 1] = -c2;
-	   shp[1 - 1][2 - 1] = c2;
-	   shp[2 - 1][1 - 1] = -c3;
-	   shp[2 - 1][4 - 1] = c3;
-	   shp[3 - 1][1 - 1] = -c1;
-	   shp[3 - 1][5 - 1] = c1;
-	   shp[4 - 1][1 - 1] = c1 * am3;
-	   shp[4 - 1][5 - 1] = c1 * ap3;
-
-	   //!Compute for (+, +) values
-
-	   c1 = 0.125*ap1*ap2;
-	   c2 = 0.125*ap2*ap3;
-	   c3 = 0.125*ap1*ap3;
-	   shp[1-1][8 - 1] = -c2;
-	   shp[1 - 1][7 - 1] = c2;
-	   shp[2 - 1][6 - 1] = -c3;
-	   shp[2 - 1][7 - 1] = c3;
-	   shp[3 - 1][3 - 1] = -c1;
-	   shp[3 - 1][7 - 1] = c1;
-	   shp[4 - 1][3 - 1] = c1 * am3;
-	   shp[4 - 1][7 - 1] = c1 * ap3;
-
-	   //!Compute for (-, +) values
-
-	   c1 = 0.125*am1*ap2;
-	   c2 = 0.125*am2*ap3;
-	   c3 = 0.125*am1*ap3;
-	   shp[1 - 1][5 - 1] = -c2;
-	   shp[1 - 1][6 - 1] = c2;
-	   shp[2 - 1][5 - 1] = -c3;
-	   shp[2 - 1][8 - 1] = c3;
-	   shp[3 - 1][4 - 1] = -c1;
-	   shp[3 - 1][8 - 1] = c1;
-	   shp[4 - 1][4 - 1] = c1 * am3;
-	   shp[4 - 1][8 - 1] = c1 * ap3;
-
-	   //!Compute for (+, -) values
-
-	   c1 = 0.125*ap1*am2;
-	   c2 = 0.125*ap2*am3;
-	   c3 = 0.125*ap1*am3;
-	   shp[1 - 1][4 - 1] = -c2;
-	   shp[1 - 1][3 - 1] = c2;
-	   shp[2 - 1][2 - 1] = -c3;
-	   shp[2 - 1][3 - 1] = c3;
-	   shp[3 - 1][2 - 1] = -c1;
-	   shp[3 - 1][6 - 1] = c1;
-	   shp[4 - 1][2 - 1] = c1 * am3;
-	   shp[4 - 1][6 - 1] = c1 * ap3;
-	   if (ndm < 3) return;
-
-		   //!Compute jacobian transformation
-
-		   //do j = 1, 3
-			for(int j = 0;j< 3;j++){
-				xs[j][1] = (xl[j][2] - xl[j][1])*shp[1][2]
-					&          +(xl[j][3] - xl[j][4])*shp[1][3]
-					&          +(xl[j][6] - xl[j][5])*shp[1][6]
-					&          +(xl[j][7] - xl[j][8])*shp[1][7]
-
-					//ay
-					xs[j][2] = (xl[j][3] - xl[j][2])*shp[2][3]
-					&          +(xl[j][4] - xl[j][1])*shp[2][4]
-					&          +(xl[j][7] - xl[j][6])*shp[2][7]
-					&          +(xl[j][8] - xl[j][5])*shp[2][8]
-
-					xs[j][3] = (xl[j][5] - xl[j][1])*shp[3][5]
-					&          +(xl[j][6] - xl[j][2])*shp[3][6]
-					&          +(xl[j][7] - xl[j][3])*shp[3][7]
-					&          +(xl[j][8] - xl[j][4])*shp[3][8]
-					//end do
-			}
+	//  x14 y14 z14
+	//  x24 y24 z24
+	//  x34 y34 z34
+	double xs[ndim][ndim];
+	int x=0;int y=1;int z=2;
+	int node1=0;int node2=1;int node3=2;int node4=3;
+	int index=eptr[e];
+	// first row
+	xs[0][0]=coordinates[ndim*connectivity[index+node1]+x] - coordinates[ndim*connectivity[index+node4]+x];
+	xs[0][1]=coordinates[ndim*connectivity[index+node1]+y] - coordinates[ndim*connectivity[index+node4]+y];
+	xs[0][2]=coordinates[ndim*connectivity[index+node1]+z] - coordinates[ndim*connectivity[index+node4]+z];
+	// second row
+	xs[1][0]=coordinates[ndim*connectivity[index+node2]+x] - coordinates[ndim*connectivity[index+node4]+x];
+	xs[1][1]=coordinates[ndim*connectivity[index+node2]+y] - coordinates[ndim*connectivity[index+node4]+y];
+	xs[1][2]=coordinates[ndim*connectivity[index+node2]+z] - coordinates[ndim*connectivity[index+node4]+z];
+	// third row
+	xs[2][0]=coordinates[ndim*connectivity[index+node3]+x] - coordinates[ndim*connectivity[index+node4]+x];
+	xs[2][1]=coordinates[ndim*connectivity[index+node3]+y] - coordinates[ndim*connectivity[index+node4]+y];
+	xs[2][2]=coordinates[ndim*connectivity[index+node3]+z] - coordinates[ndim*connectivity[index+node4]+z];
 
 
-			   //!Compute adjoint to jacobian
+  double x14 = xs[0][0];double y14 = xs[0][1];double z14 = xs[0][2];
+  double x24 = xs[1][0];double y24 = xs[1][1];double z24 = xs[1][2];
+  double x34 = xs[2][0];double y34 = xs[2][1];double z34 = xs[2][2];
 
-			   ad(1, 1) = xs(2, 2)*xs(3, 3) - xs(2, 3)*xs(3, 2)
-			   ad(1, 2) = xs(3, 2)*xs(1, 3) - xs(3, 3)*xs(1, 2)
-			   ad(1, 3) = xs(1, 2)*xs(2, 3) - xs(1, 3)*xs(2, 2)
+  double det = x14*(y24*z34 - y34*z24) + y14*(z24*x34 - z34*x24) + z14*(x24*y34 - x34*y24);
+  double detInv = 1.0/det;
+  detJ[gp] = det;
 
-			   ad(2, 1) = xs(2, 3)*xs(3, 1) - xs(2, 1)*xs(3, 3)
-			   ad(2, 2) = xs(3, 3)*xs(1, 1) - xs(3, 1)*xs(1, 3)
-			   ad(2, 3) = xs(1, 3)*xs(2, 1) - xs(1, 1)*xs(2, 3)
-
-			   ad(3, 1) = xs(2, 1)*xs(3, 2) - xs(2, 2)*xs(3, 1)
-			   ad(3, 2) = xs(3, 1)*xs(1, 2) - xs(3, 2)*xs(1, 1)
-			   ad(3, 3) = xs(1, 1)*xs(2, 2) - xs(1, 2)*xs(2, 1)
-
-			   //!Compute determinant of jacobian
-
-			   xsj = xs(1, 1)*ad(1, 1) + xs(1, 2)*ad(2, 1) + xs(1, 3)*ad(3, 1)
-			   rxsj = 1.d0 / xsj
-
-			   //!Compute jacobian inverse
-
-			   do j = 1, 3
-				   do i = 1, 3
-					   xs(i, j) = ad(i, j)*rxsj
-					   end do
-					   end do
-
-					   //!Compute derivatives with repect to global coords.
-
-					   do k = 1, 8
-
-						   c1 = shp(1, k)*xs(1, 1) + shp(2, k)*xs(2, 1) + shp(3, k)*xs(3, 1)
-						   c2 = shp(1, k)*xs(1, 2) + shp(2, k)*xs(2, 2) + shp(3, k)*xs(3, 2)
-						   c3 = shp(1, k)*xs(1, 3) + shp(2, k)*xs(2, 3) + shp(3, k)*xs(3, 3)
-
-						   shp(1, k) = c1
-						   shp(2, k) = c2
-						   shp(3, k) = c3
-
-						   end do
-
-						   end
+  double J_Inv[9];
+	//First row
+  J_Inv[0]= y24*z34 - y34*z24;
+  J_Inv[1]= y34*z14 - y14*z34;
+	J_Inv[2]= y14*z24 - y24*z14;
+	//second row
+  J_Inv[3]= z24*x34 - z34*x24;
+  J_Inv[4]= z34*x14 - z14*x34;
+	J_Inv[5]= z14*x24 - z24*x14;
+	//third row
+	J_Inv[6]= x24*y34 - x34*y24;
+	J_Inv[7]= x34*y14 - x14*y34;
+	J_Inv[8]= x14*y24 - x24*y14;
 
 
-*/
+  // Transform derivatives to global co-ordinates
+  double c1, c2, c3;
+  int baseIndex;
+  for (int i = 0; i < nShapeFunctions[e]; ++i) {
+    baseIndex = dsptr[e] + gp * g*ndim + ndim * i;
+    c1 = dshp[baseIndex]*J_Inv[0]+dshp[baseIndex+1]*J_Inv[3]+dshp[baseIndex+2]*J_Inv[6];
+    c2 = dshp[baseIndex]*J_Inv[1]+dshp[baseIndex+1]*J_Inv[4]+dshp[baseIndex+2]*J_Inv[7];
+    c3 = dshp[baseIndex]*J_Inv[2]+dshp[baseIndex+1]*J_Inv[5]+dshp[baseIndex+2]*J_Inv[8];
+
+    dshp[baseIndex] = c1;
+    dshp[baseIndex+1] = c2;
+    dshp[baseIndex+2] = c3;
+  }
+	//for debugging can be removed...
+	if (debug) {
+		printf("%8.4e %8.4e %8.4e\n", xs[0][0], xs[0][1], xs[0][2]);
+		printf("%8.4e %8.4e %8.4e\n", xs[1][0], xs[1][1], xs[1][2]);
+		printf("%8.4e %8.4e %8.4e\n", xs[2][0], xs[2][1], xs[2][2]);
+		printf("\n");
+	}
    return;
 }

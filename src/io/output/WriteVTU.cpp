@@ -52,6 +52,9 @@ void WriteVTU(const char* FileName, int step,double time){
 	for(i=0;i<nnodes;i++){
 		fprintf(fp,"\t\t\t\t\t");
 		for(j=0;j<ndim;j++){
+			if(fabs(displacements[ndim*i+j]-0.0)< 1e-20){
+				displacements[ndim*i+j]=0.0;
+			}
 			fprintf(fp,"%10.8e ",coordinates[ndim*i+j] + displacements[ndim*i+j]);
 		}
 		// Temporary solution for ndim

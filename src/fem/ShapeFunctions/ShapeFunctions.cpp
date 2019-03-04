@@ -117,8 +117,8 @@ void ShapeFunctions() {
     }
   }
 
+ // Depending on element type call correct shape function library
   for (int i = 0; i < nelements; i++) {
-    // Depending on element type call correct shape function library
     // 3D 8-noded hex shape function routine
     if (strcmp(ElementType[i], "C3D8") == 0) {
       double *Chi = (double*)malloc(GaussPoints[i] * ndim * sizeof(double));
@@ -128,12 +128,6 @@ void ShapeFunctions() {
       for (int k = 0; k < GaussPoints[i]; k++) {
         ShapeFunction_C3D8(i, k, Chi, detJacobianLocal);
       }
-      // // Compute local stiffness
-      // Stiffness3D(i,detJacobian,GaussWeights);
-      //
-      // // Compute Local Mass matrix
-      // Mass3D(i,detJacobian,GaussWeights);
-
       // Free all allocated memories
       free(Chi);
     }
@@ -141,12 +135,12 @@ void ShapeFunctions() {
     // 3D 4-noded tet shape function routine
     if (strcmp(ElementType[i], "C3D4") == 0) {
       double *Chi = (double*)malloc(GaussPoints[i]* ndim * sizeof(double));
-      // double *GaussWeights = (double*)malloc(GaussPoints[i] * sizeof(double));
       double *GaussWeightsLocal = &(gaussWeights[gpPtr[i]]);
+      double *detJacobianLocal = &(detJacobian[gpPtr[i]]);
       GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
       //printf("chi, eta, iota = %f, %f, %f\n", Chi[0], Chi[1], Chi[2]);
       for (int k = 0; k < GaussPoints[i]; k++) {
-        ShapeFunction_C3D4(i, k, GaussPoints[i], Chi);
+        ShapeFunction_C3D4(i, k, Chi, detJacobianLocal);
       }
       free(Chi);
       // free(GaussWeights);
