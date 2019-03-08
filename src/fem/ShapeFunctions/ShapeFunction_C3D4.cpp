@@ -27,20 +27,20 @@ void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ){
 	// The first derivatives
 
 	// with respect to chi
-	dshp[indexDshp + ndim * 0 + 0] = -1.0;
-	dshp[indexDshp + ndim * 1 + 0] =  1.0;
+	dshp[indexDshp + ndim * 0 + 0] =  1.0;
+	dshp[indexDshp + ndim * 1 + 0] =  0.0;
 	dshp[indexDshp + ndim * 2 + 0] =  0.0;
-	dshp[indexDshp + ndim * 3 + 0] =  0.0;
+	dshp[indexDshp + ndim * 3 + 0] = -1.0;
 	// with respect to eta
-	dshp[indexDshp + ndim * 0 + 1] = -1.0;
-	dshp[indexDshp + ndim * 1 + 1] =  0.0;
-	dshp[indexDshp + ndim * 2 + 1] =  1.0;
-	dshp[indexDshp + ndim * 3 + 1] =  0.0;
+	dshp[indexDshp + ndim * 0 + 1] =  0.0;
+	dshp[indexDshp + ndim * 1 + 1] =  1.0;
+	dshp[indexDshp + ndim * 2 + 1] =  0.0;
+	dshp[indexDshp + ndim * 3 + 1] = -1.0;
 	// with respect to iota
-	dshp[indexDshp + ndim * 0 + 2] = -1.0;
+	dshp[indexDshp + ndim * 0 + 2] =  0.0;
 	dshp[indexDshp + ndim * 1 + 2] =  0.0;
-	dshp[indexDshp + ndim * 2 + 2] =  0.0;
-	dshp[indexDshp + ndim * 3 + 2] =  1.0;
+	dshp[indexDshp + ndim * 2 + 2] =  1.0;
+	dshp[indexDshp + ndim * 3 + 2] = -1.0;
 
 	//  Compute jacobian transformation
  	//  Equ 9. 16 3D stress Analysis
@@ -49,8 +49,8 @@ void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ){
 	//  x24 y24 z24
 	//  x34 y34 z34
 	double xs[ndim][ndim];
-	int x=0;int y=1;int z=2;
-	int node1=0;int node2=1;int node3=2;int node4=3;
+	int x = 0, y = 1, z = 2;
+	int node1 = 0, node2 = 1, node3 = 2, node4 = 3;
 	int index=eptr[e];
 	// first row
 	xs[0][0]=coordinates[ndim*connectivity[index+node1]+x] - coordinates[ndim*connectivity[index+node4]+x];
@@ -64,7 +64,6 @@ void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ){
 	xs[2][0]=coordinates[ndim*connectivity[index+node3]+x] - coordinates[ndim*connectivity[index+node4]+x];
 	xs[2][1]=coordinates[ndim*connectivity[index+node3]+y] - coordinates[ndim*connectivity[index+node4]+y];
 	xs[2][2]=coordinates[ndim*connectivity[index+node3]+z] - coordinates[ndim*connectivity[index+node4]+z];
-
 
   double x14 = xs[0][0];double y14 = xs[0][1];double z14 = xs[0][2];
   double x24 = xs[1][0];double y24 = xs[1][1];double z24 = xs[1][2];
@@ -88,6 +87,10 @@ void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ){
 	J_Inv[7]= x34*y14 - x14*y34;
 	J_Inv[8]= x14*y24 - x24*y14;
 
+  for (int i = 0; i < 9; ++i) {
+    J_Inv[i] = detInv*J_Inv[i];
+  }
+
 
   // Transform derivatives to global co-ordinates
   double c1, c2, c3;
@@ -104,9 +107,10 @@ void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ){
   }
 	//for debugging can be removed...
 	if (debug) {
-		printf("%8.4e %8.4e %8.4e\n", xs[0][0], xs[0][1], xs[0][2]);
-		printf("%8.4e %8.4e %8.4e\n", xs[1][0], xs[1][1], xs[1][2]);
-		printf("%8.4e %8.4e %8.4e\n", xs[2][0], xs[2][1], xs[2][2]);
+    printf("DEBUG J Inv\n");
+		printf("%8.4e %8.4e %8.4e\n", J_Inv[0], J_Inv[3], J_Inv[6]);
+		printf("%8.4e %8.4e %8.4e\n", J_Inv[1], J_Inv[4], J_Inv[7]);
+		printf("%8.4e %8.4e %8.4e\n", J_Inv[2], J_Inv[5], J_Inv[8]);
 		printf("\n");
 	}
    return;

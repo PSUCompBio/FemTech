@@ -10,7 +10,7 @@ bool unsteadyFlag;
 
 int main(int argc, char **argv){
 
-  unsteadyFlag = true;
+  unsteadyFlag = false;
 
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
