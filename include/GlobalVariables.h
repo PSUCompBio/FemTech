@@ -38,6 +38,7 @@ extern int *boundary;
 extern double *velocities;
 extern double *accelerations;
 extern bool unsteadyFlag;
+extern bool explicitFlag;
 
 static int debug = 1;
 

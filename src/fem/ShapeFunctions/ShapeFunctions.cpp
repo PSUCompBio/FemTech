@@ -71,6 +71,10 @@ void ShapeFunctions() {
       // dshp_counter = dshp_counter + (ndim * nShapeFunctions[i]*GaussPoints[i]);
       counter += 4;
       dshp_counter += 12;
+      // gpCount = 4;
+      // nShapeFunctions[i] = 4;
+      // counter += 16;
+      // dshp_counter += 48;
     }
     GaussPoints[i] = gpCount;
     gptr[i + 1] = counter;

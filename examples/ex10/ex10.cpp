@@ -99,7 +99,6 @@ int main(int argc, char **argv){
 }
 
 void ApplyBoundaryConditions(){
-
   double tol = 1e-5;
   int count = 0;
   printf("DEBUG : \n");

@@ -7,10 +7,12 @@ void ApplyBoundaryConditions();
 double Time;
 int nStep;
 bool unsteadyFlag;
+bool explicitFlag;
 
 int main(int argc, char **argv){
 
-  unsteadyFlag = false;
+  unsteadyFlag = true;
+  explicitFlag = false;
 
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
@@ -74,18 +76,28 @@ int main(int argc, char **argv){
     /* Write final, deformed configuration*/
     WriteVTU(argv[1], nStep, Time);
   } else {
-    // Unsteady Implicit solution using Newmark's scheme for time integration
-    double dt = 0.1;
     double tMax = 10.0;
     ShapeFunctions();
     ReadMaterialProperties();
     ApplyBoundaryConditions();
-    Assembly((char*)"stiffness");
     Assembly((char*)"mass");
-    /* beta and gamma of Newmark's scheme */
-    double beta = 0.25;
-    double gamma = 0.5;
-    SolveUnsteadyNewmarkImplicit(beta, gamma, dt, tMax, argv[1]);
+    if (!explicitFlag) {
+      // Unsteady Implicit solution using Newmark's scheme for time integration
+      double dt = 0.1;
+      // double tMax = 10.0;
+      // ShapeFunctions();
+      // ReadMaterialProperties();
+      // ApplyBoundaryConditions();
+      Assembly((char*)"stiffness");
+      // Assembly((char*)"mass");
+      /* beta and gamma of Newmark's scheme */
+      double beta = 0.25;
+      double gamma = 0.5;
+      SolveUnsteadyNewmarkImplicit(beta, gamma, dt, tMax, argv[1]);
+    } else {
+      LumpMassMatrix();
+      // SolveUnsteadyExplicit(tMax, argv[1]);
+    }
   }
 
 	/* Below are things to do at end of program */

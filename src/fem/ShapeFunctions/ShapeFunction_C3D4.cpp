@@ -76,15 +76,15 @@ void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ){
   double J_Inv[9];
 	//First row
   J_Inv[0]= y24*z34 - y34*z24;
-  J_Inv[1]= y34*z14 - y14*z34;
-	J_Inv[2]= y14*z24 - y24*z14;
+  J_Inv[3]= y34*z14 - y14*z34;
+	J_Inv[6]= y14*z24 - y24*z14;
 	//second row
-  J_Inv[3]= z24*x34 - z34*x24;
+  J_Inv[1]= z24*x34 - z34*x24;
   J_Inv[4]= z34*x14 - z14*x34;
-	J_Inv[5]= z14*x24 - z24*x14;
+	J_Inv[7]= z14*x24 - z24*x14;
 	//third row
-	J_Inv[6]= x24*y34 - x34*y24;
-	J_Inv[7]= x34*y14 - x14*y34;
+	J_Inv[2]= x24*y34 - x34*y24;
+	J_Inv[5]= x34*y14 - x14*y34;
 	J_Inv[8]= x14*y24 - x24*y14;
 
   for (int i = 0; i < 9; ++i) {

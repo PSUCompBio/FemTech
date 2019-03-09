@@ -56,3 +56,12 @@ void MassElementMatrix(double *Me, int e) {
   free(N);
   return;
 }
+void LumpMassMatrix(void) {
+  const int massSize = nnodes*ndim;
+  // Lump mass matrix by summing up along the row
+  for(int i = 1; i < massSize; ++i) {
+    for(int j = 0; j < massSize; ++j) {
+      mass[j] += mass[j+i*massSize]; 
+    }
+  }
+}
