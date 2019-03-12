@@ -111,7 +111,59 @@ int main(int argc, char **argv){
     Assembly((char*)"stiffness");
     /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
     Assembly((char*)"mass"); // Add Direct-lumped as an option
+		/* Step-2: getforce step from Belytschko */
+    GetForce(); // Calculating the force term.
+    /* obtain stable time step */
+   	dt = ExplicitTimeStepReduction*StableTimeStep();
+		nSteps = (int)(tMax/dt);
+		int nsteps_plot = (int)(nSteps/nPlotSteps);
+		printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n",dt,nSteps,nsteps_plot);
 
+		/* Step-3: Calculate accelerations */
+   	CalculateAcclerations();
+ 		// Save old displacments
+   // displacements_prev = displacements;
+
+		/* Step-4: Time loop starts....*/
+		time_step_counter = time_step_counter + 1;
+	//	clock_t s, s_prev, ds;
+	//	s = clock();
+		while (Time <= tMax) {
+ 			Time=Time+dt;
+
+
+		/** Steps - 4,5,6 and 7 from Belytschko Box 6.1 - Update time, velocity and displacements */
+		//fe_timeUpdate(U, V, V_half, A, t, dT, "newmark-beta-central-difference");
+
+	  /** Update Loading Conditions - time dependent loading conditions */
+	  ApplyBoundaryConditions(Time,dMax,tMax);
+
+		/** Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
+    GetForce(); // Calculating the force term.
+
+    /** Step - 9 from Belytschko Box 6.1 - Calculate Accelerations */
+    //fe_calculateAccln(A, m_system, F_net); // Calculating the new accelerations from total nodal forces.
+    //fe_apply_bc_acceleration(A, t);
+
+    /** Step- 10 from Belytschko Box 6.1 - Second Partial Update of Nodal Velocities */
+    //fe_timeUpdate_velocity(V, V_half, A, t, dT, "newmark-beta-central-difference");
+
+    //fi_curr = fe - F_net;
+    //fe_calculateFR(fr_curr, fi_curr, m_system, A);
+
+    /** Step - 11 from Belytschko Box 6.1 - Calculating energies and Checking Energy Balance */
+    //fe_checkEnergies(U_prev, U, fi_prev, fi_curr, f_damp_prev, f_damp_curr, fe_prev, fe, fr_prev, fr_curr, m_system, V, energy_int_old, energy_int_new, energy_vd_old, energy_vd_new, energy_ext_old, energy_ext_new, energy_k
+    //printf("mod: %d\n", time_step_counter % nsteps_plot);
+		if(time_step_counter % nsteps_plot == 0 ){
+			plot_counter = plot_counter + 1;
+
+			printf("------Plot %d: WriteVTU\n",plot_counter);
+			WriteVTU(argv[1], plot_counter, Time);
+		}
+		time_step_counter = time_step_counter + 1;
+		dt = StableTimeStep();
+
+		} // end explcit while loop
 	}// end if ExplicitDynamic
 
 	/* Below are things to do at end of program */
