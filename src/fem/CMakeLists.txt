@@ -10,6 +10,10 @@ Set(fem_src
 		Stiffness/Stiffness3D.cpp
     Solver/SteadyImplicit.cpp
     Solver/UnsteadyNewmarkImplicit.cpp
+		Solver/ExplicitDynamics.cpp
+		SolidMechanics/GetForce.cpp
+		SolidMechanics/GetForce_3D.cpp
+		SolidMechanics/CalculateAcclerations.cpp
 
     )
 
