@@ -12,7 +12,7 @@ void AllocateArrays(){
 
 	//Allocate and initialize global boundary conditions
 	boundary=(int*)calloc(nnodes*ndim, sizeof(int));
-  if (unsteadyFlag) {
+  if (ImplicitDynamic || ExplicitDynamic) {
     // Velocity and acceleration allocations for unsteady problem
     velocities = (double*)calloc(nnodes*ndim, sizeof(double));
     accelerations = (double*)calloc(nnodes*ndim, sizeof(double));

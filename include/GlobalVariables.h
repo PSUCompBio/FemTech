@@ -37,8 +37,9 @@ extern int *boundary;
 /* Variables required for unsteady problem */
 extern double *velocities;
 extern double *accelerations;
-extern bool unsteadyFlag;
-extern bool explicitFlag;
+extern bool ImplicitStatic;
+extern bool ImplicitDynamic;
+extern bool ExplicitDynamic;
 
 static int debug = 1;
 

@@ -6,13 +6,15 @@ void ApplyBoundaryConditions();
 
 double Time;
 int nStep;
-bool unsteadyFlag;
-bool explicitFlag;
+bool ImplicitStatic;
+bool ImplicitDynamic;
+bool ExplicitDynamic;
 
 int main(int argc, char **argv){
 
-  unsteadyFlag = true;
-  explicitFlag = false;
+	ImplicitStatic = false;
+  ImplicitDynamic = false;
+	ExplicitDynamic = true;
 
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
@@ -63,8 +65,8 @@ int main(int argc, char **argv){
 	nStep = 0;
   WriteVTU(argv[1], nStep, Time);
 
-  if (!unsteadyFlag) {
-    // Steady solution
+  if (ImplicitStatic) {
+    // Static solution
     ShapeFunctions();
     ReadMaterialProperties();
     ApplyBoundaryConditions();
@@ -75,30 +77,36 @@ int main(int argc, char **argv){
     nStep = 1;
     /* Write final, deformed configuration*/
     WriteVTU(argv[1], nStep, Time);
-  } else {
+  }
+	else if (ImplicitDynamic) {
+    // Dynamic Implicit solution using Newmark's scheme for time integration
+    double dt = 0.1;
     double tMax = 10.0;
     ShapeFunctions();
     ReadMaterialProperties();
     ApplyBoundaryConditions();
+    Assembly((char*)"stiffness");
     Assembly((char*)"mass");
-    if (!explicitFlag) {
-      // Unsteady Implicit solution using Newmark's scheme for time integration
-      double dt = 0.1;
-      // double tMax = 10.0;
-      // ShapeFunctions();
-      // ReadMaterialProperties();
-      // ApplyBoundaryConditions();
-      Assembly((char*)"stiffness");
-      // Assembly((char*)"mass");
-      /* beta and gamma of Newmark's scheme */
-      double beta = 0.25;
-      double gamma = 0.5;
-      SolveUnsteadyNewmarkImplicit(beta, gamma, dt, tMax, argv[1]);
-    } else {
-      LumpMassMatrix();
-      // SolveUnsteadyExplicit(tMax, argv[1]);
-    }
+    /* beta and gamma of Newmark's scheme */
+    double beta = 0.25;
+    double gamma = 0.5;
+    SolveUnsteadyNewmarkImplicit(beta, gamma, dt, tMax, argv[1]);
   }
+	else if (ExplicitDynamic){
+		// Dynamic Explcit solution using....
+		double dt = 0.1;
+    double tMax = 10.0;
+    ShapeFunctions();
+    ReadMaterialProperties();
+    ApplyBoundaryConditions();
+    Assembly((char*)"stiffness");
+    Assembly((char*)"mass");
+
+	}
+
+
+
+
 
 	/* Below are things to do at end of program */
 	if(world_rank == 0){
