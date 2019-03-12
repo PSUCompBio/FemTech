@@ -1,5 +1,6 @@
 Set(timestep_src
-    timestep.cpp
+    CalculateTimeStep.cpp
+		StableTimeStep.cpp
     )
 
 add_library(timestep OBJECT ${timestep_src})
