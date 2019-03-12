@@ -10,7 +10,7 @@ Set(fem_src
 		Stiffness/Stiffness3D.cpp
     Solver/SteadyImplicit.cpp
     Solver/UnsteadyNewmarkImplicit.cpp
-    Solver/ExplicitDynamics.cpp
+
     )
 
 add_library(fem OBJECT ${fem_src})

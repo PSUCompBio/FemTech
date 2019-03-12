@@ -2,20 +2,20 @@
 #include "blas.h"
 
 /*Delare Functions*/
-void ApplyBoundaryConditions();
+void ApplyBoundaryConditions(double Time,double dMax, double tMax);
 
+/* Global Variables/Parameters  - could be moved to parameters.h file?  */
 double Time;
 int nStep;
-bool ImplicitStatic;
-bool ImplicitDynamic;
-bool ExplicitDynamic;
+int nSteps;
+int nPlotSteps = 10;
+bool ImplicitStatic = false;
+bool ImplicitDynamic = false;
+bool ExplicitDynamic = true;
+double ExplicitTimeStepReduction = 0.8;
+double FailureTimeStep = 1e-11;
 
 int main(int argc, char **argv){
-
-	//true or false
-  ImplicitStatic = false;
-	ImplicitDynamic = false;
-  ExplicitDynamic = true;
 
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
@@ -68,13 +68,15 @@ int main(int argc, char **argv){
 
   if (ImplicitStatic) {
     // Static solution
+    double dMax = 0.1; // max displacment in meters
+		double tMax = 1.0;
     ShapeFunctions();
     ReadMaterialProperties();
-    ApplyBoundaryConditions();
+    ApplyBoundaryConditions(Time,dMax,tMax);
     Assembly((char*)"stiffness");
     ApplySteadyBoundaryConditions();
     SolveSteadyImplicit();
-    Time = 1.0;
+    Time = tMax;
     nStep = 1;
     /* Write final, deformed configuration*/
     WriteVTU(argv[1], nStep, Time);
@@ -83,9 +85,10 @@ int main(int argc, char **argv){
     // Dynamic Implicit solution using Newmark's scheme for time integration
     double dt = 0.1;
     double tMax = 10.0;
+    double dMax = 0.1;// max displacment in meters
     ShapeFunctions();
     ReadMaterialProperties();
-    ApplyBoundaryConditions();
+    ApplyBoundaryConditions(Time,dMax,tMax);
     Assembly((char*)"stiffness");
     Assembly((char*)"mass");
     /* beta and gamma of Newmark's scheme */
@@ -96,14 +99,19 @@ int main(int argc, char **argv){
 	else if (ExplicitDynamic){
 		// Dynamic Explcit solution using....
 		double dt = 1e-4;
-    double tMax = 1e-3; //in seconds
-		double t=0.0;
+    double tMax = 1e-3; //max simulation time in seconds
+    double dMax = 0.1; // max displacment in meters
+		double Time=0.0;
+		int time_step_counter = 0;
+		int plot_counter = 0;
+
     ShapeFunctions();
     ReadMaterialProperties();
-    ApplyBoundaryConditions();
+    ApplyBoundaryConditions(Time,dMax,tMax);
     Assembly((char*)"stiffness");
     /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
     Assembly((char*)"mass"); // Add Direct-lumped as an option
+
 	}// end if ExplicitDynamic
 
 	/* Below are things to do at end of program */
@@ -115,34 +123,43 @@ int main(int argc, char **argv){
   return 0;
 }
 
-void ApplyBoundaryConditions(){
+void ApplyBoundaryConditions(double Time, double dMax, double tMax){
   double tol = 1e-5;
   int count = 0;
-  printf("DEBUG : \n");
+	double AppliedDisp;
+
+	// Apply Ramped Displacment
+	if (ExplicitDynamic || ImplicitDynamic){
+		AppliedDisp = Time*(dMax/tMax);
+  }
+  else if (ImplicitStatic){
+    AppliedDisp = dMax;
+  }
+
 
   for(int i=0;i<nnodes;i++){
     // if x value = 0, constrain node to x plane (0-direction)
     if(fabs(coordinates[ndim*i+0]-0.0) <tol){
       boundary[ndim*i+0]=1;
-      printf("node : %d x : %d\n", i, count);
+      //printf("node : %d x : %d\n", i, count);
       count = count+1;
     }
     // if y coordinate = 0, constrain node to y plane (1-direction)
     if(fabs(coordinates[ndim*i+1]-0.0) <tol){
       boundary[ndim*i+1]=1;
-      printf("node : %d y : %d\n", i, count);
+      //printf("node : %d y : %d\n", i, count);
       count = count+1;
     }
     // if z coordinate = 0, constrain node to z plane (2-direction)
     if(fabs(coordinates[ndim*i+2]-0.0) <tol){
       boundary[ndim*i+2]=1;
-      printf("node : %d z : %d\n", i, count);
+      //printf("node : %d z : %d\n", i, count);
       count = count+1;
     }
     // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
     if(fabs(coordinates[ndim*i+1]-1.0) <tol){
       boundary[ndim*i+1]=1;
-      printf("node : %d y2 : %d\n", i, count);
+      //printf("node : %d y2 : %d\n", i, count);
       count = count+1;
       // note that this may have to be divided into
       // diplacement increments for both implicit and
@@ -150,9 +167,9 @@ void ApplyBoundaryConditions(){
       // equal to some time dependent function i.e.,
       // CalculateDisplacement to get current increment out
       //  displacment to be applied.
-      displacements[ndim*i+1] = 0.1;
+      displacements[ndim*i+1] = AppliedDisp;
     }
   }
-  printf("DEBUG : \n");
+  //printf("Time = %3.3e, Applied Disp = %3.3e\n",Time,AppliedDisp);
   return;
 }

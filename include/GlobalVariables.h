@@ -1,3 +1,6 @@
+
+static double HUGE = 1e20;
+
 extern int nparts;
 extern int nelements;
 extern int nallelements;
@@ -6,6 +9,8 @@ extern int ndim;
 extern int world_rank;
 extern int world_size;
 
+extern double ExplicitTimeStepReduction;
+extern double FailureTimeStep;
 
 extern double *coordinates;
 extern int *connectivity;
