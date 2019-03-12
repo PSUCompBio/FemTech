@@ -103,11 +103,6 @@ int main(int argc, char **argv){
     Assembly((char*)"mass");
 
 	}
-
-
-
-
-
 	/* Below are things to do at end of program */
 	if(world_rank == 0){
 		WritePVD(argv[1], nStep, Time);

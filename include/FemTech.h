@@ -57,12 +57,6 @@ void SolveSteadyImplicit(void);
 void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double dt, \
     double timeFinal, char* name);
 void LumpMassMatrix(void);
-void SolveUnsteadyExplicit(double timeFinal, char* name);
-void GetForce();
-void GetForce_3D();
-double StableTimeStep();
-double CalculateTimeStep(int e);
-void CalculateAcclerations();
 
 
 #endif
