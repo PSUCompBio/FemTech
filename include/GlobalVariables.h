@@ -41,10 +41,21 @@ extern double *displacements;
 extern int *boundary;
 /* Variables required for unsteady problem */
 extern double *velocities;
+extern double * velocities_half;
 extern double *accelerations;
 extern bool ImplicitStatic;
 extern bool ImplicitDynamic;
 extern bool ExplicitDynamic;
+
+extern double *fe;
+extern double *f_net;
+extern double *fr_prev;
+extern double *fr_curr;
+extern double *fi_prev;
+extern double *fi_curr;
+extern double *f_damp_prev;
+extern double *f_damp_curr;
+extern double *displacements_prev;
 
 static int debug = 1;
 

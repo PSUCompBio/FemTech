@@ -104,15 +104,21 @@ int main(int argc, char **argv){
 		double Time=0.0;
 		int time_step_counter = 0;
 		int plot_counter = 0;
+		/** Central Difference Method - Beta and Gamma */
+		double beta = 0;
+		double gamma = 0.5;
 
     ShapeFunctions();
     ReadMaterialProperties();
     ApplyBoundaryConditions(Time,dMax,tMax);
     Assembly((char*)"stiffness");
     /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
+
     Assembly((char*)"mass"); // Add Direct-lumped as an option
 		/* Step-2: getforce step from Belytschko */
+
     GetForce(); // Calculating the force term.
+
     /* obtain stable time step */
    	dt = ExplicitTimeStepReduction*StableTimeStep();
 		nSteps = (int)(tMax/dt);
@@ -120,36 +126,56 @@ int main(int argc, char **argv){
 		printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n",dt,nSteps,nsteps_plot);
 
 		/* Step-3: Calculate accelerations */
-   	CalculateAcclerations();
+   	CalculateAccelerations();
+
  		// Save old displacments
-   // displacements_prev = displacements;
+		for(int i=0;i<ndim*nnodes;i++){
+   		displacements_prev[i] = displacements[i];
+		}
 
 		/* Step-4: Time loop starts....*/
 		time_step_counter = time_step_counter + 1;
 	//	clock_t s, s_prev, ds;
 	//	s = clock();
 		while (Time <= tMax) {
- 			Time=Time+dt;
+ 			Time=Time+dt; /*Update the time by adding full time step */
 
+			/* Steps - 4,5,6 and 7 from Belytschko Box 6.1 - Update time, velocity and displacements */
+			/* Partially Update Nodal Velocities */
+			for(int i=0;i<ndim*nnodes;i++){
+				velocities_half[i] = velocities[i] + ((1.0 - gamma)*dt*accelerations[i]);
+			}
 
-		/** Steps - 4,5,6 and 7 from Belytschko Box 6.1 - Update time, velocity and displacements */
-		//fe_timeUpdate(U, V, V_half, A, t, dT, "newmark-beta-central-difference");
+			/* Update Nodal Displacements */
+			for(int i=0;i<ndim*nnodes;i++){
+				displacements[i] = displacements[i]+
+													(dt*velocities[i]) +
+													((pow(dt,2)/2.0)*(1.0-(2.0*beta))*accelerations[i]) +
+													(beta*dt*dt*accelerations[i]);
+			}
+	 		/** Update Loading Conditions - time dependent loading conditions */
+			ApplyBoundaryConditions(Time,dMax,tMax);
 
-	  /** Update Loading Conditions - time dependent loading conditions */
-	  ApplyBoundaryConditions(Time,dMax,tMax);
+			/* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
+    	GetForce(); // Calculating the force term.
 
-		/** Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
-    GetForce(); // Calculating the force term.
+    	/* Step - 9 from Belytschko Box 6.1 - Calculate Accelerations */
+    	CalculateAccelerations(); // Calculating the new accelerations from total nodal forces.
+    	//fe_apply_bc_acceleration(A, t);
 
-    /** Step - 9 from Belytschko Box 6.1 - Calculate Accelerations */
-    //fe_calculateAccln(A, m_system, F_net); // Calculating the new accelerations from total nodal forces.
-    //fe_apply_bc_acceleration(A, t);
-
-    /** Step- 10 from Belytschko Box 6.1 - Second Partial Update of Nodal Velocities */
-    //fe_timeUpdate_velocity(V, V_half, A, t, dT, "newmark-beta-central-difference");
+    	/** Step- 10 from Belytschko Box 6.1 - Second Partial Update of Nodal Velocities */
+    	// using newmark-beta-central-difference
+			for(int i=0;i<ndim*nnodes;i++){
+				velocities[i] = velocities_half[i] + (gamma*dt*accelerations[i]);
+			}
+			//fe_apply_bc_velocity(V, t);
 
     //fi_curr = fe - F_net;
-    //fe_calculateFR(fr_curr, fi_curr, m_system, A);
+			for(int i=0;i<ndim*nnodes;i++){
+				fi_curr[i] = fe[i] - f_net[i];
+			}
+
+      CalculateFR();
 
     /** Step - 11 from Belytschko Box 6.1 - Calculating energies and Checking Energy Balance */
     //fe_checkEnergies(U_prev, U, fi_prev, fi_curr, f_damp_prev, f_damp_curr, fe_prev, fe, fr_prev, fr_curr, m_system, V, energy_int_old, energy_int_new, energy_vd_old, energy_vd_new, energy_ext_old, energy_ext_new, energy_k
