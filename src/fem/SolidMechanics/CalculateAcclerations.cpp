@@ -1,8 +1,8 @@
 #include "FemTech.h"
 #include "blas.h"
 
-void CalculateAcclerations(){
-	printf("Calculate Accelerations.\n");
+void CalculateAccelerations(){
+	//printf("Calculate Accelerations.\n");
 	//Accelerations = VectorXd::Zero(F_net.size());
 
 	//for (int i = 0; i < F_net.size(); i++) {

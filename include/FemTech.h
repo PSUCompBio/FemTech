@@ -64,6 +64,8 @@ void GetForce();
 void GetForce_3D();
 double StableTimeStep();
 double CalculateTimeStep(int e);
-void CalculateAcclerations();
+void CalculateAccelerations();
+
+void CalculateFR();
 
 #endif

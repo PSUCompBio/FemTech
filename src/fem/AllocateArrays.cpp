@@ -2,7 +2,19 @@
 
 double *displacements;
 double *velocities;
+double *velocities_half;
 double *accelerations;
+double *fe;
+double *f_net;
+double *fr_prev;
+double *fr_curr;
+double *fi_prev;
+double *fi_curr;
+double *f_damp_prev;
+double *f_damp_curr;
+double *displacements_prev;
+
+
 int *boundary;
 
 void AllocateArrays(){
@@ -16,6 +28,17 @@ void AllocateArrays(){
     // Velocity and acceleration allocations for unsteady problem
     velocities = (double*)calloc(nnodes*ndim, sizeof(double));
     accelerations = (double*)calloc(nnodes*ndim, sizeof(double));
+    velocities_half = (double*)calloc(nnodes*ndim, sizeof(double));
+		displacements_prev = (double*)calloc(nnodes*ndim, sizeof(double));
+
+		fe = (double*)calloc(nnodes*ndim, sizeof(double)); // External Nodal force vector
+		f_net = (double*)calloc(nnodes*ndim, sizeof(double)); // Total Nodal force vector
+		fr_prev = (double*)calloc(nnodes*ndim, sizeof(double)); // Reaction Nodal force vector at previous timestep
+		fr_curr = (double*)calloc(nnodes*ndim, sizeof(double));// Reaction Nodal force vector at current timestep
+		fi_prev = (double*)calloc(nnodes*ndim, sizeof(double)); // Internal Nodal force vector at previous timestep
+		fi_curr = (double*)calloc(nnodes*ndim, sizeof(double)); // Internal Nodal force vector at current timestep
+		f_damp_curr = (double*)calloc(nnodes*ndim, sizeof(double)); // Linear Bulk Viscosity Damping Nodal force vector
+		f_damp_prev = (double*)calloc(nnodes*ndim, sizeof(double)); // Linear Bulk Viscosity Damping Nodal force vector at previous timestep
   }
 	return;
 }
