@@ -63,7 +63,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 
 
 	//for debugging can be removed...
-	if (debug) {
+	if (debug && 1==0) {
 		//printf("e.%d ", e);
 		for (int i = eptr[e]; i < eptr[e + 1]; i++) {
 			//printf("%d ", i);
@@ -140,7 +140,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
     dshp[baseIndex+2] = c3;
   }
 	//for debugging can be removed...
-	if (debug) {
+	if (debug && 1==0) {
 		printf("%8.4e %8.4e %8.4e\n", xs[0][0], xs[0][1], xs[0][2]);
 		printf("%8.4e %8.4e %8.4e\n", xs[1][0], xs[1][1], xs[1][2]);
 		printf("%8.4e %8.4e %8.4e\n", xs[2][0], xs[2][1], xs[2][2]);

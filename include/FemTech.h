@@ -68,4 +68,6 @@ void CalculateAccelerations();
 
 void CalculateFR();
 
+void CalculateDeformationGradient(int e, int gp);
+
 #endif

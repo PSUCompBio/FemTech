@@ -27,7 +27,7 @@ void Assembly(char *operation) {
       }
       free(Me);
     }
-    if (debug) {
+    if (debug && 1==0) {
       printf("DEBUG : Printing Full Mass Matrix\n");
       for (int j = 0; j < massSize; ++j) {
         for (int k = 0; k < massSize; ++k) {
@@ -63,7 +63,7 @@ void Assembly(char *operation) {
         }
         free(Ke);
       }
-      if (debug) {
+      if (debug && 1==0) {
         printf("DEBUG : Printing Full Stiffness Matrix\n");
         for (int j = 0; j < kSize; ++j) {
           for (int k = 0; k < kSize; ++k) {
