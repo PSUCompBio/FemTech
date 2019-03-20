@@ -20,6 +20,7 @@
 * [FEM](fem/README.md)
   * [Solid Mechanics](fem/solid-mechanics/README.md)
     * [Explicit Dynamics](fem/solid-mechanics/explicit-dynamics.md)
+    * [StrainDisplacement.cpp](fem/solid-mechanics/straindisplacement.cpp.md)
   * [Shape Functions](fem/shape-functions/README.md)
     * [Untitled](fem/shape-functions/untitled.md)
 * [Elements](elements/README.md)
