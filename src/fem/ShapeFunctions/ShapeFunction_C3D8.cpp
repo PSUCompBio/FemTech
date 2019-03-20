@@ -85,46 +85,29 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 	// I don't like it.
 	// The redeclaration needs to find memory and will cut down
 	// on speed.
-	double xs[ndim][ndim];
+	double xs[ndim*ndim];
   int index = eptr[e];
 	for (int j = 0; j < ndim; j++) {
-		xs[0][j] = (coordinates[ndim*connectivity[index+1] + j] - coordinates[ndim*connectivity[index+0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 1 + 0]
+		xs[0+j*ndim] = (coordinates[ndim*connectivity[index+1] + j] - coordinates[ndim*connectivity[index+0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 1 + 0]
 		       	 + (coordinates[ndim*connectivity[index+2] + j] - coordinates[ndim*connectivity[index+3] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 2 + 0]
 			       + (coordinates[ndim*connectivity[index+5] + j] - coordinates[ndim*connectivity[index+4] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 5 + 0]
 			       + (coordinates[ndim*connectivity[index+6] + j] - coordinates[ndim*connectivity[index+7] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 0];
 
-		xs[1][j] = (coordinates[ndim*connectivity[index+2] + j] - coordinates[ndim*connectivity[index+1] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 2 + 1]
+		xs[1+j*ndim] = (coordinates[ndim*connectivity[index+2] + j] - coordinates[ndim*connectivity[index+1] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 2 + 1]
 			       + (coordinates[ndim*connectivity[index+3] + j] - coordinates[ndim*connectivity[index+0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 3 + 1]
 			       + (coordinates[ndim*connectivity[index+6] + j] - coordinates[ndim*connectivity[index+5] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 1]
 			       + (coordinates[ndim*connectivity[index+7] + j] - coordinates[ndim*connectivity[index+4] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 7 + 1];
 
-		xs[2][j] = (coordinates[ndim*connectivity[index+4] + j] - coordinates[ndim*connectivity[index+0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 4 + 2]
+		xs[2+j*ndim] = (coordinates[ndim*connectivity[index+4] + j] - coordinates[ndim*connectivity[index+0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 4 + 2]
 		         + (coordinates[ndim*connectivity[index+5] + j] - coordinates[ndim*connectivity[index+1] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 5 + 2]
 			       + (coordinates[ndim*connectivity[index+6] + j] - coordinates[ndim*connectivity[index+2] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 2]
 			       + (coordinates[ndim*connectivity[index+7] + j] - coordinates[ndim*connectivity[index+3] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 7 + 2];
 	}
-  // Adjoint stored in row major form
-  double adjoint[9];
-  adjoint[0] = xs[1][1]*xs[2][2]-xs[1][2]*xs[2][1];
-  adjoint[1] = xs[2][1]*xs[0][2]-xs[2][2]*xs[0][1];
-  adjoint[2] = xs[0][1]*xs[1][2]-xs[0][2]*xs[1][1];
 
-  adjoint[3] = xs[1][2]*xs[2][0]-xs[1][0]*xs[2][2];
-  adjoint[4] = xs[2][2]*xs[0][0]-xs[2][0]*xs[0][2];
-  adjoint[5] = xs[0][2]*xs[1][0]-xs[0][0]*xs[1][2];
+  double det, J_Inv[9];
 
-  adjoint[6] = xs[1][0]*xs[2][1]-xs[1][1]*xs[2][0];
-  adjoint[7] = xs[2][0]*xs[0][1]-xs[2][1]*xs[0][0];
-  adjoint[8] = xs[0][0]*xs[1][1]-xs[0][1]*xs[1][0];
-
-  double det = xs[0][0]*adjoint[0]+xs[0][1]*adjoint[3]+xs[0][2]*adjoint[6];
-  double detInv = 1.0/det;
+  inverse3x3Matrix(xs, J_Inv, &det);
   detJ[gp] = det;
-
-  double J_Inv[9];
-  for (int i = 0; i < 9; ++i) {
-    J_Inv[i] = detInv*adjoint[i];
-  }
 
   // Transform derivatives to global co-ordinates
   double c1, c2, c3;
