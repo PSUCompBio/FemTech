@@ -73,4 +73,7 @@ void StressDisplacementMatrix(int e, int gp);
 void CompressibleNeoHookean(int e, int gp);
 void StressUpdate(int e, int gp);
 void DeterminateF(int e, int gp);
+
+void inverse3x3Matrix(double* mat, double* invMat, double* det);
+
 #endif
