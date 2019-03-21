@@ -35,9 +35,16 @@ void GetForce_3D(){
 //					 } // loop on iz
 //			 } // loop on iy
 	 //} //loop on ix
+
+		//double *FT = (double*)malloc(GaussPoints[i] * ndim * sizeof(double));// transpose of F
 		for(int j=0;j<GaussPoints[i];j++){
 			CalculateDeformationGradient(i,j);
-	}
+			DeterminateF(i,j);
+			//Inverse(F,i,j);
+			StressDisplacementMatrix(i,j);
+			StressUpdate(i,j);
+		}
+    //free(FT);
 	}// loop on i, nelements
 
 

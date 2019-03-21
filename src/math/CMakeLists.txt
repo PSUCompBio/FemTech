@@ -1,5 +1,6 @@
 Set(math_src
-    math.cpp
+		DeterminateF.cpp
+		InverseF.cpp
     )
 
 add_library(math OBJECT ${math_src})

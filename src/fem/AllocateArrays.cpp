@@ -1,6 +1,8 @@
 #include "FemTech.h"
 
 double *displacements;
+int *materialID;
+double *properties;
 double *velocities;
 double *velocities_half;
 double *accelerations;
@@ -20,7 +22,9 @@ int *boundary;
 void AllocateArrays(){
 
   // Allocate and initialize global displacements
-	displacements=(double*)calloc(nnodes*ndim, sizeof(double));
+	displacements=(double*)calloc(nnodes*ndim,sizeof(double));
+	materialID=(int*)calloc(nelements,sizeof(int));
+	properties=(double*)calloc(nelements*MAXMATPARAMS,sizeof(double));
 
 	//Allocate and initialize global boundary conditions
 	boundary=(int*)calloc(nnodes*ndim, sizeof(int));
@@ -39,6 +43,8 @@ void AllocateArrays(){
 		fi_curr = (double*)calloc(nnodes*ndim, sizeof(double)); // Internal Nodal force vector at current timestep
 		f_damp_curr = (double*)calloc(nnodes*ndim, sizeof(double)); // Linear Bulk Viscosity Damping Nodal force vector
 		f_damp_prev = (double*)calloc(nnodes*ndim, sizeof(double)); // Linear Bulk Viscosity Damping Nodal force vector at previous timestep
-  }
+
+
+}
 	return;
 }

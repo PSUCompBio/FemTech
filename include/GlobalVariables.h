@@ -19,10 +19,12 @@ extern int *gptr;			/*gauss point pointer - helps step through shp array*/
 extern int *dsptr;			/*deriviative of shp functions pointer array - helps step through dshp array*/
 extern int *gpPtr;			/*gauss point pointer - helps step through detJ and gaussWeights*/
 extern int *fptr; /*deformation gradient pointer - helps step through F array */
+extern int *cptr; /*counter array for iterating through cauchy stress */
 extern int *nShapeFunctions;/*number of shp functions per element */
 extern double *shp;			/*shape functions*/
 extern double *dshp;		/*derivatives of shape functions*/
 extern int *eptr;			/*number of nodes per element pointer*/
+extern int *detFptr; //pointer for iterating through detF array.
 extern int *pid;			/* part ID */
 extern int *mid;			/*material ID */
 extern double *mass;        /*mass matrix*/
@@ -59,6 +61,17 @@ extern double *f_damp_curr;
 extern double *displacements_prev;
 
 extern double *F; /* deformation graident tensor array */
+extern double *detF; /*determinate of F for all gauss points */
+extern double *invF; /*Inverse of F for all gauss points */
+extern double *b; /*Left Cauchy  Greeen tensor */
+extern double *E; /*Green Lagrange Strain Tensor for each Gauss point */
+extern double *cauchy; /*Cauchy Stress */
+
+extern int *materialID; /* material id for each element */
+extern double *properties; /* holds material parameters for each element */
+static int MAXMATPARAMS = 10; /* maximum number of material parameters stored for each element */
+
+
 
 static int debug = 1;
 
