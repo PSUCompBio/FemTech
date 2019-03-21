@@ -43,7 +43,7 @@ void MassElementMatrix(double *Me, int e) {
     Me[n] *= rho;
   }
   // print Me Matrix
-  if (debug) {
+  if (debug && 1==0) {
     printf("DEBUG : Printing Me (Mass Matrix) for Element %d\n", e);
     for (int j = 0; j < bColSize; ++j) {
       for (int k = 0; k < bColSize; ++k) {
@@ -61,7 +61,7 @@ void LumpMassMatrix(void) {
   // Lump mass matrix by summing up along the row
   for(int i = 1; i < massSize; ++i) {
     for(int j = 0; j < massSize; ++j) {
-      mass[j] += mass[j+i*massSize]; 
+      mass[j] += mass[j+i*massSize];
     }
   }
 }

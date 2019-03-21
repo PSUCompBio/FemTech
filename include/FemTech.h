@@ -68,4 +68,8 @@ void CalculateAccelerations();
 
 void CalculateFR();
 
+void CalculateDeformationGradient(int e, int gp);
+
+void inverse3x3Matrix(double* mat, double* invMat, double* det);
+
 #endif

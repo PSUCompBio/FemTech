@@ -10,6 +10,7 @@ void GetForce_3D(){
 		// z_store[i][j] = (*nodes_host)(g, 3);
 	 //}
 		//printf("number of GaussPoints %d\n", GaussPoints[i]);
+		//printf("number of nShapeFunctions %d\n",nShapeFunctions[i]);
 		//for (int ix = 0; ix < 2; ix++) {
 		//	 x = points_normal(ix);
 //			 wtx_normal[ix] = weights_normal(ix);
@@ -34,7 +35,9 @@ void GetForce_3D(){
 //					 } // loop on iz
 //			 } // loop on iy
 	 //} //loop on ix
-
+		for(int j=0;j<GaussPoints[i];j++){
+			CalculateDeformationGradient(i,j);
+	}
 	}// loop on i, nelements
 
 

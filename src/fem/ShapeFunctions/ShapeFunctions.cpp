@@ -7,8 +7,10 @@ int *gptr;
 int *dsptr;
 int *GaussPoints;
 double *shp;
-double *dshp;
+double *dshp; //pointer for deriviatives of shp functions
+int *fptr; //pointer for deformation gradient, F
 int *nShapeFunctions;
+double *F; // deformation gradient array, F
 
 int *gpPtr;
 double *detJacobian;
@@ -33,14 +35,17 @@ void ShapeFunctions() {
   gptr = (int *)malloc((nelements+1) * sizeof(int));
   dsptr = (int *)malloc((nelements + 1) * sizeof(int));
   gpPtr = (int *)malloc((nelements+1) * sizeof(int));
+  fptr = (int *)malloc((nelements+1) * sizeof(int));
 
-  int counter = 0;
-  int dshp_counter = 0;
-  int gpCount = 0;
+  int counter = 0; //counter for storage of shp nShapeFunctions
+  int dshp_counter = 0; // counter for deriviatives of shp function
+  int gpCount = 0; // counter for gaupp points
+	int F_counter = 0; //counter for storage of deformation gradient, F
 
   gptr[0] = 0;
   dsptr[0] = 0;
   gpPtr[0] = 0;
+	fptr[0]=0;
   for (int i = 0; i < nelements; i++) {
     if (strcmp(ElementType[i], "C3D8") == 0) {
       //GuassPoints per element
@@ -62,6 +67,14 @@ void ShapeFunctions() {
       // respect to chi, eta, and iota.
       // dshp_counter = dshp_counter + (ndim * nShapeFunctions[i]*GaussPoints[i]);
       dshp_counter += 192;
+
+      // the next counter is for the deformation gradient
+			// since there is a deformation gradient stored at each
+      // gauss point. The deformation graient, F is normally
+      // ndim*ndim, but since we are saving F for each gauss point
+ 			// it is ndim*ndim*ngausspoint =3*3*8 = 72. Also, because we can have mixed meshes,
+      // we need a way to reference F as well. (An Fptr)
+			F_counter += 72;
     }
     if (strcmp(ElementType[i], "C3D4") == 0) {
       gpCount = 1;
@@ -69,8 +82,11 @@ void ShapeFunctions() {
       // same argument as above
       // counter = counter + nShapeFunctions[i]*GaussPoints[i];
       // dshp_counter = dshp_counter + (ndim * nShapeFunctions[i]*GaussPoints[i]);
+			// F_counter = ndim*ndim*ngausspoint = 3*3*1
       counter += 4;
       dshp_counter += 12;
+			F_counter += 9;
+
       // gpCount = 4;
       // nShapeFunctions[i] = 4;
       // counter += 16;
@@ -80,15 +96,19 @@ void ShapeFunctions() {
     gptr[i + 1] = counter;
     dsptr[i + 1] = dshp_counter;
     gpPtr[i + 1] = gpPtr[i]+gpCount;
+    fptr[i+1]= F_counter;
   }
 
   // for debugging purposes
-  if (debug) {
+  if (debug && 1==0) {
     for (int i = 0; i < nelements; i++) {
-      printf("(e.%d) - eptr:[%d->%d] - gptr:[%d->%d] -  dsptr:[%d->%d]\n", i, eptr[i], eptr[i + 1], gptr[i], gptr[i + 1], dsptr[i], dsptr[i + 1]);
+      printf("(e.%d) - eptr:[%d->%d] - gptr:[%d->%d] -  dsptr:[%d->%d] - fptr:[%d->%d]\n",
+ 				i, eptr[i], eptr[i + 1], gptr[i], gptr[i + 1], dsptr[i], dsptr[i + 1],
+				fptr[i],fptr[i + 1]);
     }
     printf("size of shp array = %d \n", counter);
-    printf("size of dshp array = %d \n", dshp_counter);
+    printf("size of derivatives of shp functions array, dshp = %d \n", dshp_counter);
+		printf("size of deformation gradient array, F = %d \n", F_counter);
   }
 
   /*set size of shp array  - this holds shp functions for all elements */
@@ -97,9 +117,12 @@ void ShapeFunctions() {
   dshp = (double *)calloc(dshp_counter, sizeof(double));
   detJacobian = (double *)calloc(gpPtr[nelements], sizeof(double));
   gaussWeights = (double *)calloc(gpPtr[nelements], sizeof(double));
+  /* set size of deformation gradient, F array -
+		it holds F for all gauss points in all elemnts */
+  F = (double *)calloc(F_counter, sizeof(double));
 
   /* for debugging */
-  if (debug) {
+  if (debug && 1==0) {
     for (int i = 0; i < nelements; i++) {
       printf("e.%d: int. pts = %d, # shp functions = %d\n", i, GaussPoints[i], nShapeFunctions[i]);
       for (int j = 0; j < GaussPoints[i]; j++) {
@@ -152,7 +175,7 @@ void ShapeFunctions() {
   }// loop on nelements
 
   // for debugging
-  if (debug) {
+  if (debug && 1==0) {
     for (int i = 0; i < nelements; i++) {
       printf("shp array e.%d with %d Gauss points, each with %d shp functions \n", i, GaussPoints[i], nShapeFunctions[i]);
       for (int j = 0; j < GaussPoints[i]; j++) {

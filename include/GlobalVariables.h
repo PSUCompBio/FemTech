@@ -18,6 +18,7 @@ extern int *GaussPoints;	/*holds how many guass points per element*/
 extern int *gptr;			/*gauss point pointer - helps step through shp array*/
 extern int *dsptr;			/*deriviative of shp functions pointer array - helps step through dshp array*/
 extern int *gpPtr;			/*gauss point pointer - helps step through detJ and gaussWeights*/
+extern int *fptr; /*deformation gradient pointer - helps step through F array */
 extern int *nShapeFunctions;/*number of shp functions per element */
 extern double *shp;			/*shape functions*/
 extern double *dshp;		/*derivatives of shape functions*/
@@ -56,6 +57,8 @@ extern double *fi_curr;
 extern double *f_damp_prev;
 extern double *f_damp_curr;
 extern double *displacements_prev;
+
+extern double *F; /* deformation graident tensor array */
 
 static int debug = 1;
 
