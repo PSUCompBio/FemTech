@@ -40,7 +40,7 @@ void GetForce_3D(){
 		for(int j=0;j<GaussPoints[i];j++){
 			CalculateDeformationGradient(i,j);
 			DeterminateF(i,j);
-			//Inverse(F,i,j);
+			InverseF(i,j);
 			StressDisplacementMatrix(i,j);
 			StressUpdate(i,j);
 		}
