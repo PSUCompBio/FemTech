@@ -1,5 +1,4 @@
 #include "FemTech.h"
-#include "blas.h"
 
 void StressUpdate(int e, int gp){
 

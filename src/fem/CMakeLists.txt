@@ -16,6 +16,7 @@ Set(fem_src
 		SolidMechanics/CalculateAcclerations.cpp
 		SolidMechanics/CalculateFR.cpp
 		SolidMechanics/StressUpdate.cpp
+		SolidMechanics/InternalForceUpdate.cpp
     )
 
 add_library(fem OBJECT ${fem_src})
