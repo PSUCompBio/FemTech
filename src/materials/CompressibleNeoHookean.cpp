@@ -6,7 +6,7 @@
 
 void CompressibleNeoHookean(int e, int gp){
 //good example of how to reference F
-	if (debug && 1==1) {
+	if (debug && 1==0) {
 		printf("shp array e.%d with %d Gauss points, each with %d shp functions \n", e, GaussPoints[e], nShapeFunctions[e]);
 		//printf("int.%d:\n", j);
 		if(1==0){
@@ -53,8 +53,8 @@ void CompressibleNeoHookean(int e, int gp){
     double FT_local[3][3];
 		double b_local[3][3];
 		double cauchy_local[3][3];
-		double mu = 1.0; // in future will be equal to component from  properties array
-		double lambda = 1.0; // in future will be equal to component from  properties array
+		double mu = 100.0; // in future will be equal to component from  properties array
+		double lambda = 166.6667; // in future will be equal to component from  properties array
 		double J=detF[index2];
 
 		// local deformation gradient, F
@@ -111,13 +111,13 @@ void CompressibleNeoHookean(int e, int gp){
 			// Print left Cauchy Green tensor, b
 			for(int i=0;i<ndim;i++){
 				for(int j=0;j<ndim;j++){
-					printf(" b[%d%d]:%3.3e   ",i,j,b_local[i][j]);
+					printf(" b[%d%d]:%3.4e   ",i,j,b_local[i][j]);
 				}
 				printf("\n");
 			}
 			printf("\n");
 		}
-		printf("\n");
+		//printf("\n");
 
 		//From Bonet and Wood - Flagshyp
 		//mu              = properties(2);
@@ -142,7 +142,7 @@ void CompressibleNeoHookean(int e, int gp){
 
 		for(int i=0;i<6;i++){
 			int index = cptr[e]+6*gp+i;
-			printf("cauchy[%d] = %3.3e\n",index,cauchy[index]);
+			printf("cauchy[%d] = %3.4f\n",index,cauchy[index]);
 		}
 	}
 	//printf("\n");
