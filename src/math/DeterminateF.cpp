@@ -28,11 +28,11 @@ void DeterminateF(int e, int gp){
 				}
 				printf("\n");
 			}
-			int index2 = detFptr[e]+gp;
+			int index2 = gpPtr[e]+gp;
 			printf("detF[%d]\n",index2);
 	}
 
-	int index2 = detFptr[e]+gp;
+  int index2 = gpPtr[e]+gp;
 
   if (ndim == 2) {
 		int index = fptr[e] + ndim*ndim*gp;
@@ -49,25 +49,24 @@ void DeterminateF(int e, int gp){
 		detF[index2] = da*dd-db*dc;
   }
   if (ndim == 3) {
-		int index = fptr[e] + ndim*ndim*gp;
+		int index = fptr[e]+ndim*ndim*gp;
 		double da,db,dc,dd,de,df,dg,dh,di;
 		//  [a b c]
 		//  [d e f]
 		//  [g h i]
     //  |A| = a(ei − fh) − b(di − fg) + c(dh − eg)
 
-		da=F[index + ndim*0+0]; //F11
-		db=F[index + ndim*0+1]; //F12
-		dc=F[index + ndim*0+2]; //F13
-		dd=F[index + ndim*1+0]; //F21
-		de=F[index + ndim*1+1]; //F22
-		df=F[index + ndim*1+2]; //F23
-		dg=F[index + ndim*2+0]; //F31
-		dh=F[index + ndim*2+1]; //F32
-		di=F[index + ndim*2+2]; //F33
+		da=F[index + 0]; //F11
+		db=F[index + 3]; //F12
+		dc=F[index + 6]; //F13
+		dd=F[index + 1]; //F21
+		de=F[index + 4]; //F22
+		df=F[index + 7]; //F23
+		dg=F[index + 2]; //F31
+		dh=F[index + 5]; //F32
+		di=F[index + 8]; //F33
 
     detF[index2] = da*(de*di - df*dh) - db*(dd*di - df*dg) + dc*(dd*dh - de*dg);
-
   }
   else {
     printf("ALERT: PROBLEM CALCULATING DETERMINANT OF MATRIX.\n");

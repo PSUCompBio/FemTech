@@ -7,7 +7,7 @@
 double CalculateTimeStep(int e){
 
 	double dt;
-	dt = 1e-6;
+	dt = 1e-1;
 
 	return dt;
 }

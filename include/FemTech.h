@@ -27,14 +27,9 @@
 #define MAX_FILE_LINE 260
 #define MAX_ELEMENT_TYPE_SIZE  10
 
-int LineToArray(
-    const bool IntOrFloat,
-    const bool CheckLastVal,
-    const int ColumnToStart,
-    const int ColumnCount,
-    const char *ConstLine,
-    const char *Delim = " \t",
-    void **Array = NULL);
+int LineToArray(const bool IntOrFloat, const bool CheckLastVal, \
+    const int ColumnToStart, const int ColumnCount, const char *ConstLine, \
+    const char *Delim = " \t", void **Array = NULL);
 bool ReadInputFile(const char *FileName);
 bool PartitionMesh();
 void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWeights);
@@ -69,7 +64,7 @@ void CalculateAccelerations();
 void CalculateFR();
 
 void CalculateDeformationGradient(int e, int gp);
-void StressDisplacementMatrix(int e, int gp);
+void StressDisplacementMatrix(int e, int gp, int nI, double *B);
 void CompressibleNeoHookean(int e, int gp);
 void StressUpdate(int e, int gp);
 void DeterminateF(int e, int gp);

@@ -6,14 +6,6 @@ void free1DArray(void *array) {
     array = NULL;
   }
 }
-// void free2DArray(void *array, int count) {
-//   for (int i = 0; i < count; ++i) {
-//     if (array[i]) {
-//       free(array[i]);
-//     }
-//   }
-//   free1DArray(array);
-// }
 
 void FreeArrays() {
   free1DArray(coordinates);

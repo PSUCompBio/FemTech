@@ -9,7 +9,7 @@
  * the resultant vectors are scattered into global vectors.
  */
 
-void GetForce(){
+void GetForce() {
 
 	if(ndim == 1){
 		printf("GetForce function not yet implemented for 1D. Bye.\n");
@@ -22,6 +22,4 @@ void GetForce(){
 	else if (ndim ==3){
 		GetForce_3D();
   }
-
-
 }
