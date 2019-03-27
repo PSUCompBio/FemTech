@@ -9,8 +9,6 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 				 NOTE: Might need to add dirivatives with respect to
 					   x, y, z
   */
-	int debug = 0;
-
 	double chi, eta, iota;
 	chi =  Chi[ndim*gp + 0];
 	eta =  Chi[ndim*gp + 1];
@@ -19,7 +17,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 	// The shape functions
 	int g = GaussPoints[e];
   const int indexShp = gptr[e] + gp * g;
-  const int indexDshp = gptr[e] + gp * g * ndim;
+  const int indexDshp = dsptr[e] + gp * g * ndim;
 
 	shp[indexShp + 0] = ((1 - chi)*(1 - eta)*(1 - iota)) / 8;
 	shp[indexShp + 1] = ((1 + chi)*(1 - eta)*(1 - iota)) / 8;
@@ -65,7 +63,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 
 
 	//for debugging can be removed...
-	if (debug) {
+	if (debug && 1==0) {
 		//printf("e.%d ", e);
 		for (int i = eptr[e]; i < eptr[e + 1]; i++) {
 			//printf("%d ", i);
@@ -87,50 +85,34 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 	// I don't like it.
 	// The redeclaration needs to find memory and will cut down
 	// on speed.
-	double xs[3][3];
-	for (int j = 0; j < 3; j++) {
-		xs[0][j] = (coordinates[ndim*connectivity[1] + j] - coordinates[ndim*connectivity[0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 1 + 0]
-		       	 + (coordinates[ndim*connectivity[2] + j] - coordinates[ndim*connectivity[3] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 2 + 0]
-			     + (coordinates[ndim*connectivity[5] + j] - coordinates[ndim*connectivity[4] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 5 + 0]
-			     + (coordinates[ndim*connectivity[6] + j] - coordinates[ndim*connectivity[7] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 0];
+	double xs[ndim*ndim];
+  int index = eptr[e];
+	for (int j = 0; j < ndim; j++) {
+		xs[0+j*ndim] = (coordinates[ndim*connectivity[index+1] + j] - coordinates[ndim*connectivity[index+0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 1 + 0]
+		       	 + (coordinates[ndim*connectivity[index+2] + j] - coordinates[ndim*connectivity[index+3] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 2 + 0]
+			       + (coordinates[ndim*connectivity[index+5] + j] - coordinates[ndim*connectivity[index+4] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 5 + 0]
+			       + (coordinates[ndim*connectivity[index+6] + j] - coordinates[ndim*connectivity[index+7] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 0];
 
-		xs[1][j] = (coordinates[ndim*connectivity[2] + j] - coordinates[ndim*connectivity[1] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 2 + 1]
-			     + (coordinates[ndim*connectivity[3] + j] - coordinates[ndim*connectivity[0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 3 + 1]
-			     + (coordinates[ndim*connectivity[6] + j] - coordinates[ndim*connectivity[5] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 1]
-			     + (coordinates[ndim*connectivity[7] + j] - coordinates[ndim*connectivity[4] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 7 + 1];
+		xs[1+j*ndim] = (coordinates[ndim*connectivity[index+2] + j] - coordinates[ndim*connectivity[index+1] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 2 + 1]
+			       + (coordinates[ndim*connectivity[index+3] + j] - coordinates[ndim*connectivity[index+0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 3 + 1]
+			       + (coordinates[ndim*connectivity[index+6] + j] - coordinates[ndim*connectivity[index+5] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 1]
+			       + (coordinates[ndim*connectivity[index+7] + j] - coordinates[ndim*connectivity[index+4] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 7 + 1];
 
-		xs[2][j] = (coordinates[ndim*connectivity[4] + j] - coordinates[ndim*connectivity[0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 4 + 2]
-		         + (coordinates[ndim*connectivity[5] + j] - coordinates[ndim*connectivity[1] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 5 + 2]
-			     + (coordinates[ndim*connectivity[6] + j] - coordinates[ndim*connectivity[2] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 2]
-			     + (coordinates[ndim*connectivity[7] + j] - coordinates[ndim*connectivity[3] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 7 + 2];
+		xs[2+j*ndim] = (coordinates[ndim*connectivity[index+4] + j] - coordinates[ndim*connectivity[index+0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 4 + 2]
+		         + (coordinates[ndim*connectivity[index+5] + j] - coordinates[ndim*connectivity[index+1] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 5 + 2]
+			       + (coordinates[ndim*connectivity[index+6] + j] - coordinates[ndim*connectivity[index+2] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 2]
+			       + (coordinates[ndim*connectivity[index+7] + j] - coordinates[ndim*connectivity[index+3] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 7 + 2];
 	}
-  // Adjoint stored in row major form
-  double adjoint[9];
-  adjoint[0] = xs[1][1]*xs[2][2]-xs[1][2]*xs[2][1];
-  adjoint[1] = xs[2][1]*xs[0][2]-xs[2][2]*xs[0][1];
-  adjoint[2] = xs[0][1]*xs[1][2]-xs[0][2]*xs[1][1];
 
-  adjoint[3] = xs[1][2]*xs[2][0]-xs[1][0]*xs[2][2];
-  adjoint[4] = xs[2][2]*xs[0][0]-xs[2][0]*xs[0][2];
-  adjoint[5] = xs[0][2]*xs[1][0]-xs[0][0]*xs[1][2];
+  double det, J_Inv[9];
 
-  adjoint[6] = xs[1][0]*xs[2][1]-xs[1][1]*xs[2][0];
-  adjoint[7] = xs[2][0]*xs[0][1]-xs[2][1]*xs[0][0];
-  adjoint[8] = xs[0][0]*xs[1][1]-xs[0][1]*xs[1][0];
-
-  double det = xs[0][0]*adjoint[0]+xs[0][1]*adjoint[3]+xs[0][2]*adjoint[6];
-  double detInv = 1.0/det;
+  inverse3x3Matrix(xs, J_Inv, &det);
   detJ[gp] = det;
-
-  double J_Inv[9];
-  for (int i = 0; i < 9; ++i) {
-    J_Inv[i] = detInv*adjoint[i];
-  }
 
   // Transform derivatives to global co-ordinates
   double c1, c2, c3;
   int baseIndex;
-  for (int i = 0; i < 8; ++i) {
+  for (int i = 0; i < nShapeFunctions[e]; ++i) {
     baseIndex = dsptr[e] + gp * g*ndim + ndim * i;
     c1 = dshp[baseIndex]*J_Inv[0]+dshp[baseIndex+1]*J_Inv[3]+dshp[baseIndex+2]*J_Inv[6];
     c2 = dshp[baseIndex]*J_Inv[1]+dshp[baseIndex+1]*J_Inv[4]+dshp[baseIndex+2]*J_Inv[7];
@@ -141,10 +123,10 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
     dshp[baseIndex+2] = c3;
   }
 	//for debugging can be removed...
-	if (debug) {
-		printf("%8.4e %8.4e %8.4e\n", xs[0][0], xs[0][1], xs[0][2]);
-		printf("%8.4e %8.4e %8.4e\n", xs[1][0], xs[1][1], xs[1][2]);
-		printf("%8.4e %8.4e %8.4e\n", xs[2][0], xs[2][1], xs[2][2]);
+	if (debug && 1==0) {
+		printf("%8.4e %8.4e %8.4e\n", xs[0], xs[3], xs[6]);
+		printf("%8.4e %8.4e %8.4e\n", xs[1], xs[4], xs[7]);
+		printf("%8.4e %8.4e %8.4e\n", xs[2], xs[5], xs[8]);
 		printf("\n");
 	}
   return;

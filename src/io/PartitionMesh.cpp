@@ -199,6 +199,7 @@ bool PartitionMesh(){
     ElementType = ElementTypePart;
     // Free allocated temporary variables
     free(partGlobal);
+    free(elementCountGlobal);
     free(counts);
 
     // Reorder local connectivity

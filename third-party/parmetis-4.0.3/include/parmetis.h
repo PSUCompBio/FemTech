@@ -17,9 +17,14 @@
 #include <mpi.h>
 #include <metis.h>
 
-#ifndef _MSC_VER
-#define __cdecl
+/* Cygwin POSIX under Microsoft Windows. */
+#if !defined(__CYGWIN__) && !defined(_MSC_VER)
+  #define __cdecl
 #endif
+
+// #ifndef _MSC_VER
+//   #define __cdecl
+// #endif
 
 #if IDXTYPEWIDTH == 32
   /*#define IDX_T         MPI_INT32_T */

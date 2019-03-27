@@ -7,40 +7,23 @@ int *gptr;
 int *dsptr;
 int *GaussPoints;
 double *shp;
-double *dshp;
+double *dshp; //pointer for deriviatives of shp functions
+int *fptr; //pointer for incrementing through deformation gradient, F, detF, InvF, b, E
 int *nShapeFunctions;
+double *F; // deformation gradient array, F
+double *detF; // inverse of deformation gradient array
+double *invF; // inverse of deformation gradient array
+double *b; // left Cauchy Green tensor
+double *E; //Green Lagrange strain tensor
+double *cauchy; // Cauchy Stress
+int *cptr; // pointer for iterating through cauchy stress.
+int *detFptr; //pointer for iterating through detF array.
+
+int *gpPtr;
 double *detJacobian;
+double *gaussWeights;
 
 void ShapeFunctions() {
-  // set the debug flag for this file
-  int debug = 1;
-  // Variables for blas
-  char* chy = (char*)"T";
-  char* chn = (char*)"N";
-  double one = 1.0;
-  double zero = 0.0;
-
-  // Create the c matrix with matrix properties
-  // TODO(Anil) replace the hard coded material properties with that from input
-  // file
-  const double E = 1000.0; // TODO(Anil) convert to SI units MPa to Pa?
-  const double nu = 0.25;
-  const double rho = 1000.0;
-  const double G = E/(2.0*(1.0+nu));
-  if (nu == 0.5) {
-    printf("ERROR : Incompressible solids does not work with current formulation\n");
-  }
-  const double c11 = E*(1.0-nu)/((1.0-2.0*nu)*(1.0+nu));
-  const double c12 = E*nu/((1.0-2.0*nu)*(1.0+nu));
-  // TODO(Anil) relax the assumption of 3D in C Matrix
-  // Create C matrix size : 6x6 in colum major format (for blas routines)
-  double *C = (double*)calloc(36, sizeof(double));
-  C[0] = C[7] = C[14] = c11;
-  C[6] = C[12] = C[13] = c12;
-  C[1] = C[2] = C[8] = c12;
-  C[21] = C[28] = C[35] = G;
-  int Csize = 6;
-
   // Global Array - keeps track of how many gauss points there are
   // per element.
   GaussPoints = (int *)malloc(nelements * sizeof(int));
@@ -58,16 +41,29 @@ void ShapeFunctions() {
   // allows this difference to occur.
   gptr = (int *)malloc((nelements+1) * sizeof(int));
   dsptr = (int *)malloc((nelements + 1) * sizeof(int));
+  gpPtr = (int *)malloc((nelements+1) * sizeof(int));
+  fptr = (int *)malloc((nelements+1) * sizeof(int));
+	cptr = (int *)malloc((nelements+1) * sizeof(int));
+	detFptr = (int *)malloc((nelements+1) * sizeof(int));
 
-  int counter = 0;
-  int dshp_counter = 0;
+  int counter = 0; //counter for storage of shp nShapeFunctions
+  int dshp_counter = 0; // counter for deriviatives of shp function
+  int gpCount = 0; // counter for gaupp points
+	int F_counter = 0; //counter for storage of deformation gradient, F
+  int cauchy_counter = 0; //counter for storage of cauchy stress.
+	int detF_counter = 0; // counter for storage of detF for each element.
 
   gptr[0] = 0;
   dsptr[0] = 0;
+  gpPtr[0] = 0;
+	fptr[0]=0;
+	cptr[0]=0;
+	detFptr[0]=0;
+
   for (int i = 0; i < nelements; i++) {
     if (strcmp(ElementType[i], "C3D8") == 0) {
       //GuassPoints per element
-      GaussPoints[i] = 8;
+      gpCount = 8;
       nShapeFunctions[i] = 8;
 
       // shp function array needs to hold 8
@@ -85,36 +81,89 @@ void ShapeFunctions() {
       // respect to chi, eta, and iota.
       // dshp_counter = dshp_counter + (ndim * nShapeFunctions[i]*GaussPoints[i]);
       dshp_counter += 192;
+
+      // the next counter is for the deformation gradient
+			// since there is a deformation gradient stored at each
+      // gauss point. The deformation graient, F is normally
+      // ndim*ndim, but since we are saving F for each gauss point
+ 			// it is ndim*ndim*ngausspoint =3*3*8 = 72. Also, because we can have mixed meshes,
+      // we need a way to reference F as well (An fptr). Note F is not symmetric.
+	    // Also this counter will be used (as well as fptr) for detF, InvF, b and E.
+			F_counter += 72;
+
+
+			//the next counter is for the Cauchy stress array
+			//there is a cauchy stress tensor stored at each gauss point
+			//there are six values stored at each gauss point since
+			// cauchy stress is symmetric.
+			// size would be ndim*ndim*8, but since symmetric it is only
+			// 6 values stored for each gauss point, or 6*8 = 48
+			cauchy_counter += 48;
+
+			// the next counter is for the detF array. This holds a detF value for each
+			// gauss point. Since detF is a scalar value there is only 8 values per
+			// hex element.
+			detF_counter +=8;
     }
     if (strcmp(ElementType[i], "C3D4") == 0) {
-      GaussPoints[i] = 1;
+      gpCount = 1; // only one gauss point
       nShapeFunctions[i] = 4;
-      // same argument as above
+      // same arguments as above
       // counter = counter + nShapeFunctions[i]*GaussPoints[i];
       // dshp_counter = dshp_counter + (ndim * nShapeFunctions[i]*GaussPoints[i]);
+			// F_counter = ndim*ndim*ngausspoint = 3*3*1
+      //cauchy_counter = 6*1 = 6
       counter += 4;
       dshp_counter += 12;
+			F_counter += 9;
+			cauchy_counter += 6;
+			detF_counter +=1;
+
+      // gpCount = 4;
+      // nShapeFunctions[i] = 4;
+      // counter += 16;
+      // dshp_counter += 48;
     }
+    GaussPoints[i] = gpCount;
     gptr[i + 1] = counter;
     dsptr[i + 1] = dshp_counter;
-  }
+    gpPtr[i + 1] = gpPtr[i]+gpCount;
+    fptr[i+1] = F_counter;
+		cptr[i+1] = cauchy_counter;
+		detFptr[i+1] = detF_counter;
+  } // loop on i, nelements
 
   // for debugging purposes
-  if (debug && 1==1) {
+  if (debug && 1==0) {
     for (int i = 0; i < nelements; i++) {
-      printf("(e.%d) - eptr:[%d->%d] - gptr:[%d->%d] -  dsptr:[%d->%d]\n", i, eptr[i], eptr[i + 1], gptr[i], gptr[i + 1], dsptr[i], dsptr[i + 1]);
+      printf("(e.%d) - eptr:[%d->%d] - gptr:[%d->%d] -  dsptr:[%d->%d] - fptr:[%d->%d] - cptr:[%d->%d] \n",
+ 				i, eptr[i], eptr[i + 1], gptr[i], gptr[i + 1], dsptr[i], dsptr[i + 1],
+				fptr[i],fptr[i + 1],cptr[i],cptr[i+1]);
     }
     printf("size of shp array = %d \n", counter);
-    printf("size of dshp array = %d \n", dshp_counter);
+    printf("size of derivatives of shp functions array, dshp = %d \n", dshp_counter);
+		printf("size of deformation gradient array, F = %d \n", F_counter);
   }
 
   /*set size of shp array  - this holds shp functions for all elements */
   shp =  (double *)calloc(counter, sizeof(double));
   /*set size of dshp array  - this holds derivatives of shp functions for all elements */
   dshp = (double *)calloc(dshp_counter, sizeof(double));
+  detJacobian = (double *)calloc(gpPtr[nelements], sizeof(double));
+  gaussWeights = (double *)calloc(gpPtr[nelements], sizeof(double));
+  /* set size of deformation gradient, F array -
+		it holds F for all gauss points in all elemnts */
+  F = (double *)calloc(F_counter, sizeof(double));
+  detF = (double *)calloc(detF_counter, sizeof(double));
+	invF = (double *)calloc(F_counter, sizeof(double));
+	b = (double *)calloc(F_counter, sizeof(double));
+	E = (double *)calloc(F_counter, sizeof(double));
+	/*  size of Cauchy stress is 6 values for each gauss point
+	  	the Cauchy stress is symmetric */
+	cauchy = (double *)calloc(cauchy_counter, sizeof(double));
 
   /* for debugging */
-  if (debug) {
+  if (debug && 1==0) {
     for (int i = 0; i < nelements; i++) {
       printf("e.%d: int. pts = %d, # shp functions = %d\n", i, GaussPoints[i], nShapeFunctions[i]);
       for (int j = 0; j < GaussPoints[i]; j++) {
@@ -136,45 +185,38 @@ void ShapeFunctions() {
     }
   }
 
+ // Depending on element type call correct shape function library
   for (int i = 0; i < nelements; i++) {
-    // Depending on element type call correct shape function library
     // 3D 8-noded hex shape function routine
     if (strcmp(ElementType[i], "C3D8") == 0) {
       double *Chi = (double*)malloc(GaussPoints[i] * ndim * sizeof(double));
-      double *GaussWeights = (double*)malloc(GaussPoints[i] * sizeof(double));
-      double *detJacobian = (double*)malloc(GaussPoints[i] * sizeof(double));
-      GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeights);
+      double *GaussWeightsLocal = &(gaussWeights[gpPtr[i]]);
+      double *detJacobianLocal = &(detJacobian[gpPtr[i]]);
+      GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
       for (int k = 0; k < GaussPoints[i]; k++) {
-        ShapeFunction_C3D8(i, k, Chi, detJacobian);
+        ShapeFunction_C3D8(i, k, Chi, detJacobianLocal);
       }
-      // Compute local stiffness
-      Stiffness3D(i,detJacobian,GaussWeights);
-
-      // Compute Local Mass matrix
-      Mass3D(i,detJacobian,GaussWeights);
-
       // Free all allocated memories
       free(Chi);
-      free(GaussWeights);
-      free(detJacobian);
     }
 
     // 3D 4-noded tet shape function routine
     if (strcmp(ElementType[i], "C3D4") == 0) {
       double *Chi = (double*)malloc(GaussPoints[i]* ndim * sizeof(double));
-      double *GaussWeights = (double*)malloc(GaussPoints[i] * sizeof(double));
-      GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeights);
+      double *GaussWeightsLocal = &(gaussWeights[gpPtr[i]]);
+      double *detJacobianLocal = &(detJacobian[gpPtr[i]]);
+      GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
       //printf("chi, eta, iota = %f, %f, %f\n", Chi[0], Chi[1], Chi[2]);
       for (int k = 0; k < GaussPoints[i]; k++) {
-        ShapeFunction_C3D4(i, k, GaussPoints[i], Chi);
+        ShapeFunction_C3D4(i, k, Chi, detJacobianLocal);
       }
       free(Chi);
-      free(GaussWeights);
+      // free(GaussWeights);
     }
   }// loop on nelements
 
   // for debugging
-  if (debug) {
+  if (debug && 1==0) {
     for (int i = 0; i < nelements; i++) {
       printf("shp array e.%d with %d Gauss points, each with %d shp functions \n", i, GaussPoints[i], nShapeFunctions[i]);
       for (int j = 0; j < GaussPoints[i]; j++) {
