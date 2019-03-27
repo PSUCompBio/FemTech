@@ -1,52 +1,72 @@
 #include "FemTech.h"
 #include "blas.h"
 
-void GetForce_3D(){
-	for (int i=0;i<nelements;i++){
-		//for (j = 0; j < nnel_normal; j++) {
-		// g = (*elements_host)(i, j + 2);
-		// x_store[i][j] = (*nodes_host)(g, 1);
-		// y_store[i][j] = (*nodes_host)(g, 2);
-		// z_store[i][j] = (*nodes_host)(g, 3);
-	 //}
-		//printf("number of GaussPoints %d\n", GaussPoints[i]);
-		//printf("number of nShapeFunctions %d\n",nShapeFunctions[i]);
-		//for (int ix = 0; ix < 2; ix++) {
-		//	 x = points_normal(ix);
-//			 wtx_normal[ix] = weights_normal(ix);
-
-//			 for (iy = 0; iy < 2; iy++) {
-//					 y = points_normal(iy);
-//					 wty_normal[ix][iy] = weights_normal(iy);
-
-//					 for (iz = 0; iz < 2; iz++) {
-//							 z = points_normal(iz);
-//							 wtz_normal[ix][iy][iz] = weights_normal(iz);
-
-//							 fe_dniso_8_array(dndr_store[i][ix][iy][iz], dnds_store[i][ix][iy][iz], dndt_store[i][ix][iy][iz], x, y, z, ix, iy, iz);
-
-//							 fe_calJacobian_array(jacobian_store[i][ix][iy][iz], nnel_normal, dndr_store[i][ix][iy][iz], dnds_store[i][ix][iy][iz], dndt_store[i][ix][iy][iz], x_store[i], y_store[i], z_store[i]);
-
-//							 det_store[i][ix][iy][iz] = fe_detMatrix_pbr_array(jacobian_store[i][ix][iy][iz]);
-
-//							 fe_invMatrix_pbr_array(invJacobian_store[i][ix][iy][iz], jacobian_store[i][ix][iy][iz], det_store[i][ix][iy][iz]);
-
-//							 fe_dndxyz_8_pbr_array(dndx_store[i][ix][iy][iz], dndy_store[i][ix][iy][iz], dndz_store[i][ix][iy][iz], nnel_normal, dndr_store[i][ix][iy][iz], dnds_store[i][ix][iy][iz], dndt_store[i][ix][iy][iz], invJacobian_store[i][ix][iy][iz]);
-//					 } // loop on iz
-//			 } // loop on iy
-	 //} //loop on ix
-
-		//double *FT = (double*)malloc(GaussPoints[i] * ndim * sizeof(double));// transpose of F
-		for(int j=0;j<GaussPoints[i];j++){
-			CalculateDeformationGradient(i,j);
-			DeterminateF(i,j);
-			InverseF(i,j);
-			StressDisplacementMatrix(i,j);
-			StressUpdate(i,j);
-		}
-    //free(FT);
-	}// loop on i, nelements
-
-
+void GetForce_3D() {
+  // TODO(Anil) special treatment for first time step
+  // Below algorithm works for n > 0
+  const int nDOF = nnodes*ndim;
+  // Following Belytschko
+  // Set force_n to zero
+  memset(f_net, 0, nDOF*sizeof(double));
+  int cSize = 6;
+  // Variables to store intermediate outputs
+  double *Bdn = (double*)calloc(cSize, sizeof(double));
+  double *CBdn = (double*)calloc(cSize, sizeof(double));
+  // Loop over elements and Gauss points 
+	for(int i=0; i<nelements; i++) {
+    int nNodes = nShapeFunctions[i];
+    // number of shape functions * ndim
+    int bColSize = nNodes*ndim;
+    int Bsize = bColSize*cSize;
+    double *B = (double*)calloc(Bsize, sizeof(double));
+    double *localDisplacement = (double*)calloc(nNodes*ndim, sizeof(double));
+    double *fintLocal = (double*)calloc(nNodes*ndim, sizeof(double));
+    // Copy local displacement to array
+    for (int k = 0; k < nNodes; ++k) {
+      int dIndex = connectivity[eptr[i]+k];
+      localDisplacement[k*ndim+0] = displacements[dIndex*ndim+0];
+      localDisplacement[k*ndim+1] = displacements[dIndex*ndim+1];
+      localDisplacement[k*ndim+2] = displacements[dIndex*ndim+2];
+    }
+		for(int j=0; j<GaussPoints[i]; j++) {
+      // calculate F^n
+			CalculateDeformationGradient(i, j);
+      // Calculate Determinant of F
+			DeterminateF(i, j);
+      // Calculate B matrix for each shape function
+      for (int k = 0; k < nShapeFunctions[i]; ++k) {
+        StressDisplacementMatrix(i, j, k, &(B[6*ndim*k]));
+      }
+      // Compute B*d^n
+      dgemv_(chn, &cSize, &bColSize, &one, B, &cSize, localDisplacement, \
+          &oneI, &zero, Bdn, &oneI);
+      // Compute sigma^n = C*B*d^n
+      dgemv_(chn, &cSize, &cSize, &one, C, &cSize, Bdn, \
+          &oneI, &zero, CBdn, &oneI);
+      // Compute B^T*sigma^n
+      dgemv_(chy, &cSize, &bColSize, &one, B, &cSize, CBdn, \
+          &oneI, &zero, fintLocal, &oneI);
+      // Add to fint
+      int wIndex = gpPtr[i]+j;
+      const double preFactor = gaussWeights[wIndex]*detF[wIndex];
+      for (int k = 0; k < bColSize; ++k) {
+        fintLocal[k] += preFactor*fintLocal[k];
+      }
+			// InverseF(i,j);
+			// StressUpdate(i,j);
+			// InternalForceUpdate(i,j);
+		} //loop on gauss points
+    for (int k = 0; k < nNodes; ++k) {
+      int dIndex = connectivity[eptr[i]+k];
+      f_net[dIndex*ndim+0] -= fintLocal[k*ndim+0];
+      f_net[dIndex*ndim+1] -= fintLocal[k*ndim+1];
+      f_net[dIndex*ndim+2] -= fintLocal[k*ndim+2];
+    }
+    free(B);
+    free(localDisplacement);
+    free(fintLocal);
+	} // loop on i, nelements
+  free(Bdn);
+  free(CBdn);
 	return;
 }

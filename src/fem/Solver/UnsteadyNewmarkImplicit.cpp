@@ -208,7 +208,6 @@ void ComputeUnsteadyRHS(const int n, const int nMax, double* displacementFinal, 
   }
   // Compute M times rhsTn
   double *rhs2 = (double*)malloc(nRHS*sizeof(double));
-  int oneI = 1;
   dgemv_(chn, &nRHS, &nDOF, &one, mass, &nRHS, rhsTn, &oneI, &zero, rhs2, &oneI);
   // Set displacement at specified dofs from bc
   for (int i = 0; i < nDOF; ++i) {
