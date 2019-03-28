@@ -64,8 +64,10 @@ void LumpMassMatrix(void) {
       mass[j] += mass[j+i*massSize];
     }
   }
-  printf("Lumped Mass\n");
-  for(int j = 0; j < massSize; ++j) {
-    printf("%.6f\n", mass[j]);
-  }
+	if(debug && 1==0){
+	  printf("Lumped Mass\n");
+	  for(int j = 0; j < massSize; ++j) {
+	    printf("%.6f\n", mass[j]);
+	  }
+	}
 }

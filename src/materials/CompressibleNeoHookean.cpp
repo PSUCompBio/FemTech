@@ -53,8 +53,8 @@ void CompressibleNeoHookean(int e, int gp){
     double FT_local[3][3];
 		double b_local[3][3];
 		double cauchy_local[3][3];
-		double mu = 1.0; // in future will be equal to component from  properties array
-		double lambda = 1.0; // in future will be equal to component from  properties array
+		double mu = 100.0; // in future will be equal to component from  properties array
+		double lambda = 166.6667; // in future will be equal to component from  properties array
 		double J=detF[index2];
 
 		// local deformation gradient, F
