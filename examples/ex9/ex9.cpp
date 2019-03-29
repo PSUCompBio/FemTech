@@ -29,6 +29,7 @@ int main(int argc, char **argv) {
   }
 
   AllocateArrays();
+	ReadMaterials();
 
   if (debug && 1 == 0) {
     // Printing local arrays of processor (this section can be removed)
@@ -137,7 +138,8 @@ int main(int argc, char **argv) {
     time_step_counter = time_step_counter + 1;
     double t_n = 0.0;
     const int nDOF = ndim*nnodes;
-    while (Time <= tMax) {
+    //while (Time <= tMax) {
+		for(int i=0;i<2;i++){
       /*Step 4 */
       // note: box 6.1 in belytschko
       // varibles t_np1 = t_n+1
