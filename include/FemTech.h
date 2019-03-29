@@ -40,15 +40,41 @@ bool PartitionMesh();
 void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWeights);
 void ShapeFunctions();
 void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ);
-void ShapeFunction_C3D4(int element, int intpt, int nGaussPoints, double *Chi);
+void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ);
 void ReadMaterialProperties();
-// void Assembly(char *operation);
-// void Mass3D(int e, double *detJ, double *gweights);
-// void Stiffness3D(int e, double *detJ, double *gweights);
-void AssembleMassMatrix();
-void AssembleStiffnessMatrix();
-void WriteVTU(const char* FileName);
+void ReadBoundaryCondition(void);
+void AllocateArrays();
+
+void Assembly(char *operation);
+void StiffnessElementMatrix(double* Ke, int e);
+void MassElementMatrix(double* Me, int e);
+void WriteVTU(const char* FileName, int step, double time);
+void WritePVD(const char* FileName, int step, double time);
 void FreeArrays();
 void ReadMaterialProperties();
+void ApplySteadyBoundaryConditions(void);
+void SolveSteadyImplicit(void);
+void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double dt, \
+    double timeFinal, char* name);
+void LumpMassMatrix(void);
+void SolveUnsteadyExplicit(double timeFinal, char* name);
+void ExplicitDynamics(double timeFinal, char* name);
 
+void GetForce();
+void GetForce_3D();
+double StableTimeStep();
+double CalculateTimeStep(int e);
+void CalculateAccelerations();
+
+void CalculateFR();
+
+void CalculateDeformationGradient(int e, int gp);
+void StressDisplacementMatrix(int e, int gp);
+void CompressibleNeoHookean(int e, int gp);
+void StressUpdate(int e, int gp);
+void DeterminateF(int e, int gp);
+void InverseF(int e, int gp);
+
+void inverse3x3Matrix(double* mat, double* invMat, double* det);
+//void MultiplyMatrices(double* a, double* b, int sizeM, double* result);
 #endif

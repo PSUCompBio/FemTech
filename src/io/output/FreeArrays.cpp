@@ -31,6 +31,33 @@ void FreeArrays() {
   free1DArray(detJacobian);
   free1DArray(mass);
   free1DArray(stiffness);
+  free1DArray(rhs);
+	free1DArray(displacements);
+	free1DArray(velocities);
+	free1DArray(accelerations);
+	free1DArray(boundary);
+	free1DArray(velocities_half);
+  free1DArray(fe);
+	free1DArray(f_net);
+	free1DArray(fr_prev);
+	free1DArray(fr_curr);
+	free1DArray(fi_prev);
+	free1DArray(fi_curr);
+	free1DArray(f_damp_prev);
+	free1DArray(f_damp_curr);
+	free1DArray(displacements_prev);
+  free1DArray(F);
+	free1DArray(cauchy);
+	free1DArray(cptr);
+	free1DArray(materialID);
+	free1DArray(properties);
+	free1DArray(detF);
+	free1DArray(invF);
+	free1DArray(b);
+	free1DArray(E);
+	free1DArray(detFptr);
+
+
   if (ElementType != NULL){
     for (int i = 0; i < nelements; i++){
         free(ElementType[i]);

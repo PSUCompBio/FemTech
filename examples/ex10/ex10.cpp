@@ -30,7 +30,7 @@ int main(int argc, char **argv){
 
   AllocateArrays();
 
-  if(debug && 1==0) {
+  if(debug) {
     // Printing local arrays of processor (this section can be removed)
     printf("\neptr array in processor %d after partitioning = ", world_rank);
     for (int i = 0; i <= nelements; i++) {
@@ -110,7 +110,7 @@ int main(int argc, char **argv){
 
     ShapeFunctions();
     ReadMaterialProperties();
-    //ApplyBoundaryConditions(Time,dMax,tMax);
+    ApplyBoundaryConditions(Time,dMax,tMax);
     Assembly((char*)"stiffness");
     /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
 
@@ -137,8 +137,7 @@ int main(int argc, char **argv){
 		time_step_counter = time_step_counter + 1;
 	//	clock_t s, s_prev, ds;
 	//	s = clock();
-		//while (Time <= tMax) {
-		for(int k=0;k<1;k++){
+		while (Time <= tMax) {
  			Time=Time+dt; /*Update the time by adding full time step */
 
 			/* Steps - 4,5,6 and 7 from Belytschko Box 6.1 - Update time, velocity and displacements */
@@ -210,7 +209,6 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax){
 	// Apply Ramped Displacment
 	if (ExplicitDynamic || ImplicitDynamic){
 		AppliedDisp = Time*(dMax/tMax);
-		AppliedDisp = 0.04;
   }
   else if (ImplicitStatic){
     AppliedDisp = dMax;
