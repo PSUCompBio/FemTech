@@ -88,7 +88,9 @@ int main(int argc, char **argv){
     double dMax = 0.1;// max displacment in meters
     ShapeFunctions();
     ReadMaterialProperties();
+    Time = 1.0;
     ApplyBoundaryConditions(Time,dMax,tMax);
+    Time = 0.0;
     Assembly((char*)"stiffness");
     Assembly((char*)"mass");
     /* beta and gamma of Newmark's scheme */

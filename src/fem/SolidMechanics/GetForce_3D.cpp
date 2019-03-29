@@ -21,6 +21,7 @@ void GetForce_3D() {
     double *B = (double*)calloc(Bsize, sizeof(double));
     double *localDisplacement = (double*)calloc(nNodes*ndim, sizeof(double));
     double *fintLocal = (double*)calloc(nNodes*ndim, sizeof(double));
+    double *fintGQ = (double*)calloc(nNodes*ndim, sizeof(double));
     // Copy local displacement to array
     for (int k = 0; k < nNodes; ++k) {
       int dIndex = connectivity[eptr[i]+k];
@@ -45,12 +46,12 @@ void GetForce_3D() {
           &oneI, &zero, CBdn, &oneI);
       // Compute B^T*sigma^n
       dgemv_(chy, &cSize, &bColSize, &one, B, &cSize, CBdn, \
-          &oneI, &zero, fintLocal, &oneI);
+          &oneI, &zero, fintGQ, &oneI);
       // Add to fint
       int wIndex = gpPtr[i]+j;
       const double preFactor = gaussWeights[wIndex]*detF[wIndex];
       for (int k = 0; k < bColSize; ++k) {
-        fintLocal[k] += preFactor*fintLocal[k];
+        fintLocal[k] += preFactor*fintGQ[k];
       }
 			// InverseF(i,j);
 			// StressUpdate(i,j);
@@ -65,6 +66,7 @@ void GetForce_3D() {
     free(B);
     free(localDisplacement);
     free(fintLocal);
+    free(fintGQ);
 	} // loop on i, nelements
   free(Bdn);
   free(CBdn);
