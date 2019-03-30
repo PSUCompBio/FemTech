@@ -79,16 +79,16 @@ void CompressibleNeoHookean(int e, int gp){
  	 	FT_local[2][1]=F[index + ndim*1+2];
  	 	FT_local[2][2]=F[index + ndim*2+2];
 
-    //MultiplyMatrices(FT_local,F_local,ndim,&d_local);
+		// b = F * F^T
 		for (int i = 0; i < ndim; i++) {
 			 for (int j = 0; j < ndim; j++) {
 					double sum = 0.0;
 					for (int k = 0; k < ndim; k++) {
-						 sum = sum + FT_local[i][k] * F_local[k][j];
+						 sum = sum +  F_local[j][k] * FT_local[k][i];
 					}
 					b_local[i][j] = sum;
 			 }
-		}
+	  }
 
 		// for debugging can be removed , good example of how to reference F
 		if (debug && 1==1){

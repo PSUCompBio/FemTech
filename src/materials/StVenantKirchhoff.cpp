@@ -5,9 +5,9 @@
 // Evaluates the Cauchy stress tensor
 
 void StVenantKirchhoff(int e, int gp){
-	printf("in StVenantKirchhoff...\n");
+
 //good example of how to reference F
-	if (debug && 1==1) {
+	if (debug && 1==0) {
 		printf("shp array e.%d with %d Gauss points, each with %d shp functions \n", e, GaussPoints[e], nShapeFunctions[e]);
 		//printf("int.%d:\n", j);
 		if(1==0){
@@ -53,9 +53,14 @@ void StVenantKirchhoff(int e, int gp){
 		double F_local[3][3];
     double FT_local[3][3];
 		double b_local[3][3];
+		double C_local[3][3];
+		double E_local[3][3];
+		double S_local[3][3];
+		double FS_local[3][3];
+		double FSFT_local[3][3];
 		double cauchy_local[3][3];
-		double mu = 100.0; // in future will be equal to component from  properties array
-		double lambda = 166.6667; // in future will be equal to component from  properties array
+		double mu = properties[MAXMATPARAMS*e+1]; // in future will be equal to component from  properties array
+		double lambda = properties[MAXMATPARAMS*e+2]; // in future will be equal to component from  properties array
 		double J=detF[index2];
 
 		// local deformation gradient, F
@@ -80,19 +85,81 @@ void StVenantKirchhoff(int e, int gp){
  	 	FT_local[2][1]=F[index + ndim*1+2];
  	 	FT_local[2][2]=F[index + ndim*2+2];
 
-    //MultiplyMatrices(FT_local,F_local,ndim,&d_local);
+		// C = F^T * F
 		for (int i = 0; i < ndim; i++) {
 			 for (int j = 0; j < ndim; j++) {
 					double sum = 0.0;
 					for (int k = 0; k < ndim; k++) {
 						 sum = sum + FT_local[i][k] * F_local[k][j];
 					}
-					b_local[i][j] = sum;
+					C_local[i][j] = sum;
 			 }
 		}
 
+		//Compute Green-Lagrange Tensor: E= (1/2)*(F^T*F - I)
+		E_local[0][0]=0.5*(C_local[0][0]-1.0);
+		E_local[0][1]=0.5*(C_local[0][1]);
+		E_local[0][2]=0.5*(C_local[0][2]);
+		E_local[1][0]=0.5*(C_local[1][0]);
+		E_local[1][1]=0.5*(C_local[1][1]-1.0);
+		E_local[1][2]=0.5*(C_local[1][2]);
+		E_local[2][0]=0.5*(C_local[2][0]);
+		E_local[2][1]=0.5*(C_local[2][1]);
+		E_local[2][2]=0.5*(C_local[2][2]-1.0);
+
+		// Compute 2nd Piola-Kirchhoff Stress
+		// lamda*tr(E) *I + 2*mu*E
+		double trE=E_local[0][0]+E_local[1][1]+E_local[2][2];
+
+		S_local[0][0]=lambda*trE + 2.0*mu*E_local[0][0];
+		S_local[0][1]=             2.0*mu*E_local[0][1];
+		S_local[0][2]=             2.0*mu*E_local[0][2];
+		S_local[1][0]=             2.0*mu*E_local[1][0];
+		S_local[1][1]=lambda*trE + 2.0*mu*E_local[1][1];
+		S_local[1][2]=             2.0*mu*E_local[1][2];
+		S_local[2][0]=             2.0*mu*E_local[2][0];
+		S_local[2][1]=             2.0*mu*E_local[2][1];
+		S_local[2][2]=lambda*trE + 2.0*mu*E_local[2][2];
+
+    // sigma = 1/J * F * S * F^T
+		// Compute F * S
+	 for (int i = 0; i < ndim; i++) {
+			 for (int j = 0; j < ndim; j++) {
+					double sum = 0.0;
+					for (int k = 0; k < ndim; k++) {
+						 sum = sum + F_local[i][k] * S_local[k][j];
+					}
+					FS_local[i][j] = sum;
+			 }
+		}
+		// Compute FS * F^T
+	 for (int i = 0; i < ndim; i++) {
+			 for (int j = 0; j < ndim; j++) {
+					double sum = 0.0;
+					for (int k = 0; k < ndim; k++) {
+						 sum = sum + FS_local[i][k] * FT_local[k][j];
+					}
+					FSFT_local[i][j] = sum;
+			 }
+		}
+		// 6 values saved per gauss point for 3d
+		// in voigt notation, sigma11
+		cauchy[cptr[e]+6*gp+0]=(1/J)*FSFT_local[0][0];
+			// in voigt notation, sigma22
+		cauchy[cptr[e]+6*gp+1]=(1/J)*FSFT_local[1][1];
+			// in voigt notation, sigma33
+		cauchy[cptr[e]+6*gp+2]=(1/J)*FSFT_local[2][2];
+			// in voigt notation, sigma23
+		cauchy[cptr[e]+6*gp+3]=(1/J)*FSFT_local[1][2];
+			// in voigt notation, sigma13
+		cauchy[cptr[e]+6*gp+4]=(1/J)*FSFT_local[0][2];
+			// in voigt notation, sigma12
+		cauchy[cptr[e]+6*gp+5]=(1/J)*FSFT_local[0][1];
+
+
+
 		// for debugging can be removed , good example of how to reference F
-		if (debug && 1==1){
+		if (debug && 1==0){
 			// print F
 			for(int i=0;i<ndim;i++){
 				for(int j=0;j<ndim;j++){
@@ -109,44 +176,44 @@ void StVenantKirchhoff(int e, int gp){
 				printf("\n");
 			}
 			printf("\n");
-			// Print left Cauchy Green tensor, b
+			// Print right Cauchy Green tensor, C
 			for(int i=0;i<ndim;i++){
 				for(int j=0;j<ndim;j++){
-					printf(" b[%d%d]:%3.3e   ",i,j,b_local[i][j]);
+					printf(" C[%d%d]:%3.3e   ",i,j,C_local[i][j]);
 				}
 				printf("\n");
 			}
 			printf("\n");
+
+			// Print 2nd Piola-Kirchhoff stress tensor, S
+			for(int i=0;i<ndim;i++){
+				for(int j=0;j<ndim;j++){
+					printf(" S[%d%d]:%3.3e   ",i,j,S_local[i][j]);
+				}
+				printf("\n");
+			}
+			printf("\n");
+
+			// Print Cauchy stress tensor, C
+			for(int i=0;i<ndim;i++){
+				for(int j=0;j<ndim;j++){
+					printf(" s[%d%d]:%3.3e   ",i,j,(1/J)*FSFT_local[i][j]);
+				}
+				printf("\n");
+			}
+			printf("\n");
+
 		}
-		printf("\n");
 
-		//From Bonet and Wood - Flagshyp
-		//mu              = properties(2);
-		//lambda          = properties(3);
-		//J               = kinematics.J;
-		//b               = kinematics.b;
-		//Cauchy          = (mu/J)*(b - cons.I) + (lambda/J)*log(J)*cons.I;
-
-		// 6 values saved per gauss point for 3d
-		// in voigt notation, sigma11
-		cauchy[cptr[e]+6*gp+0]=(mu/J)*(b_local[0][0]-1.0) + (lambda/J)*log(J)*1.0;
-			// in voigt notation, sigma22
-		cauchy[cptr[e]+6*gp+1]=(mu/J)*(b_local[1][1]-1.0) + (lambda/J)*log(J)*1.0;
-			// in voigt notation, sigma33
-		cauchy[cptr[e]+6*gp+2]=(mu/J)*(b_local[2][2]-1.0) + (lambda/J)*log(J)*1.0;
-			// in voigt notation, sigma23
-		cauchy[cptr[e]+6*gp+3]=(mu/J)*(b_local[1][2]-0.0) + (lambda/J)*log(J)*0.0;
-			// in voigt notation, sigma13
-		cauchy[cptr[e]+6*gp+4]=(mu/J)*(b_local[0][2]-0.0) + (lambda/J)*log(J)*0.0;
-			// in voigt notation, sigma12
-		cauchy[cptr[e]+6*gp+5]=(mu/J)*(b_local[0][1]-0.0) + (lambda/J)*log(J)*0.0;
-
-		for(int i=0;i<6;i++){
-			int index = cptr[e]+6*gp+i;
-			printf("cauchy[%d] = %3.3e\n",index,cauchy[index]);
+		if (debug && 1==0){
+			for(int i=0;i<6;i++){
+				int index = cptr[e]+6*gp+i;
+				printf("cauchy[%d] = %3.3e\n",index,cauchy[index]);
+			}
 		}
-	}
-	//printf("\n");
+
+	} // if ndim == 3
+
 	return;
 
 
