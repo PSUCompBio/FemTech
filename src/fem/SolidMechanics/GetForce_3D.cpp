@@ -12,7 +12,7 @@ void GetForce_3D() {
   // Variables to store intermediate outputs
   double *Bdn = (double*)calloc(cSize, sizeof(double));
   double *CBdn = (double*)calloc(cSize, sizeof(double));
-  // Loop over elements and Gauss points 
+  // Loop over elements and Gauss points
 	for(int i=0; i<nelements; i++) {
     int nNodes = nShapeFunctions[i];
     // number of shape functions * ndim
@@ -53,9 +53,9 @@ void GetForce_3D() {
       for (int k = 0; k < bColSize; ++k) {
         fintLocal[k] += preFactor*fintGQ[k];
       }
-			// InverseF(i,j);
-			// StressUpdate(i,j);
-			// InternalForceUpdate(i,j);
+			InverseF(i,j);
+			StressUpdate(i,j);
+		  InternalForceUpdate(i,j);
 		} //loop on gauss points
     for (int k = 0; k < nNodes; ++k) {
       int dIndex = connectivity[eptr[i]+k];
