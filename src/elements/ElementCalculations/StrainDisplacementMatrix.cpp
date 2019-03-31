@@ -1,6 +1,6 @@
 #include "FemTech.h"
 
-void StressDisplacementMatrix(int e, int gp, int nI, double *B) {
+void StrainDisplacementMatrix(int e, int gp, int nI, double *B) {
 
 	//FT = F.transpose();
 	if(ndim == 2){

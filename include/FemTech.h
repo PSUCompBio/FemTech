@@ -64,7 +64,7 @@ void CalculateAccelerations();
 void CalculateFR();
 
 void CalculateDeformationGradient(int e, int gp);
-void StressDisplacementMatrix(int e, int gp, int nI, double *B);
+void StrainDisplacementMatrix(int e, int gp, int nI, double *B);
 void CompressibleNeoHookean(int e, int gp);
 void StressUpdate(int e, int gp);
 void DeterminateF(int e, int gp);

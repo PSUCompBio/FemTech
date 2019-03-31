@@ -91,9 +91,6 @@ void StVenantKirchhoff(int e, int gp) {
     dgemm_(chn, chy, &ndim, &ndim, &ndim, &JInv, FS, &ndim, F_element_gp, &ndim,
            &zero, sigma, &ndim);
 
-    free(E);
-    free(S);
-    free(FS);
 
     // 6 values saved per gauss point for 3d
     // in voigt notation, sigma11
@@ -109,13 +106,40 @@ void StVenantKirchhoff(int e, int gp) {
     // in voigt notation, sigma12
     cauchy[cptr[e] + 6 * gp + 5] = sigma[3];
 
-    free(sigma);
-    if (debug && 1 == 0) {
+    if (debug && 1 == 1) {
+      printf("Printing F Matrix\n");
+      for (int i = 0; i < ndim; ++i) {
+        for (int j = 0; j < ndim; ++j) {
+          printf("%12.6f\t", F_element_gp[j*ndim+i]);
+        }
+        printf("\n");
+      }
+      printf("\n");
+      printf("Printing E Matrix\n");
+      for (int i = 0; i < ndim; ++i) {
+        for (int j = 0; j < ndim; ++j) {
+          printf("%12.6f\t", E[j*ndim+i]);
+        }
+        printf("\n");
+      }
+      printf("\n");
+      printf("Printing S Matrix\n");
+      for (int i = 0; i < ndim; ++i) {
+        for (int j = 0; j < ndim; ++j) {
+          printf("%12.6f\t", S[j*ndim+i]);
+        }
+        printf("\n");
+      }
+      printf("\n");
       for (int i = 0; i < 6; i++) {
         int index = cptr[e] + 6 * gp + i;
         printf("cauchy[%d] = %3.3e\n", index, cauchy[index]);
       }
     }
+    free(E);
+    free(S);
+    free(FS);
+    free(sigma);
   } // if ndim == 3
   return;
 }

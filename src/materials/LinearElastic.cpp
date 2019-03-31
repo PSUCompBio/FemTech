@@ -35,7 +35,7 @@ void LinearElastic(int e, int gp) {
     }
     // Calculate B matrix for each shape function
     for (int k = 0; k < nShapeFunctions[e]; ++k) {
-      StressDisplacementMatrix(e, gp, k, &(B[6*ndim*k]));
+      StrainDisplacementMatrix(e, gp, k, &(B[6*ndim*k]));
     }
     // Compute B*d^n
     dgemv_(chn, &cSize, &bColSize, &one, B, &cSize, localDisplacement, \

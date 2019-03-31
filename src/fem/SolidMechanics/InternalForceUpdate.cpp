@@ -10,7 +10,7 @@ void InternalForceUpdate(int e, int gp, double *force) {
   double *B = (double*)calloc(Bsize, sizeof(double));
   // Calculate B matrix for each shape function
   for (int k = 0; k < nNodes; ++k) {
-    StressDisplacementMatrix(e, gp, k, &(B[6*ndim*k]));
+    StrainDisplacementMatrix(e, gp, k, &(B[6*ndim*k]));
   }
   double* sigma = &(cauchy[cptr[e]+6*gp]);
   // Compute B^T*sigma^n
