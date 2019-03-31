@@ -100,7 +100,7 @@ void WriteVTU(const char* FileName, int step,double time){
 
 	/*-----------POINT DATA -----------------*/
 	fprintf(fp, "\t\t\t<PointData>\n");
-	// write part ID
+	// write displacements
 	fprintf(fp,"\t\t\t\t<DataArray type=\"Float64\" Name=\"Displacements\" "
 									"NumberOfComponents=\"%d\" ComponentName0=\"X\" "
 									"ComponentName1=\"Y\" ComponentName2=\"Z\" "
@@ -115,6 +115,24 @@ void WriteVTU(const char* FileName, int step,double time){
 			fprintf(fp,"\n");
 	}
 	fprintf(fp,"\t\t\t\t</DataArray>\n");
+
+	// write boundary
+	fprintf(fp,"\t\t\t\t<DataArray type=\"Int32\" Name=\"Boundary\" "
+									"NumberOfComponents=\"%d\" ComponentName0=\"X\" "
+									"ComponentName1=\"Y\" ComponentName2=\"Z\" "
+									"format=\"ascii\">\n",ndim);
+	for(i=0;i<nnodes;i++){
+			fprintf(fp,"\t\t\t\t\t");
+			for(j=0;j<ndim;j++){
+				fprintf(fp,"%d ",boundary[ndim*i+j]);
+			}
+			// Temporary solution for ndim
+			if(ndim == 2){fprintf(fp,"%d", 0);}
+			fprintf(fp,"\n");
+	}
+	fprintf(fp,"\t\t\t\t</DataArray>\n");
+
+
 	fprintf(fp, "\t\t\t</PointData>\n");
 
 	/*-----------CELL DATA -----------------*/
@@ -163,6 +181,9 @@ void WriteVTU(const char* FileName, int step,double time){
 		fprintf(fp,"\t\t\t<PDataArray type=\"Float64\" Name=\"Displacements\" "
                "NumberOfComponents=\"%d\" ComponentName0=\"X\" ComponentName1=\"Y\" "
                "ComponentName2=\"Z\" format=\"ascii\" />\n",ndim);
+		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"Boundary\" "
+							 "NumberOfComponents=\"%d\" ComponentName0=\"X\" ComponentName1=\"Y\" "
+							 "ComponentName2=\"Z\" format=\"ascii\" />\n",ndim);
     fprintf(fp,"\t\t</PPointData>\n");
 
 		/*-----------CELL DATA -----------------*/

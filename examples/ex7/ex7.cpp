@@ -10,8 +10,8 @@ int nStep;
 int nSteps;
 int nPlotSteps = 10;
 bool ImplicitStatic = false;
-bool ImplicitDynamic = false;
-bool ExplicitDynamic = true;
+bool ImplicitDynamic = true;
+bool ExplicitDynamic = false;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
 
@@ -68,10 +68,11 @@ int main(int argc, char **argv){
 
   if (ImplicitStatic) {
     // Static solution
-    double dMax = 0.1; // max displacment in meters
+    double dMax = 0.05; // max displacment in meters
 		double tMax = 1.0;
     ShapeFunctions();
     ReadMaterialProperties();
+    Time = 1.0;
     ApplyBoundaryConditions(Time,dMax,tMax);
     Assembly((char*)"stiffness");
     ApplySteadyBoundaryConditions();
@@ -80,15 +81,27 @@ int main(int argc, char **argv){
     nStep = 1;
     /* Write final, deformed configuration*/
     WriteVTU(argv[1], nStep, Time);
+    if (debug) {
+      printf("DEBUG : Printing Displacement Solution\n");
+      for (int i = 0; i < nnodes; ++i) {
+        for (int j = 0; j < ndim; ++j) {
+          printf("%12.4f", displacements[i*ndim+j]);
+        }
+        printf("\n");
+      }
+  }
+
   }
 	else if (ImplicitDynamic) {
     // Dynamic Implicit solution using Newmark's scheme for time integration
-    double dt = 0.1;
+    double dt = 0.05;
     double tMax = 10.0;
-    double dMax = 0.1;// max displacment in meters
+    double dMax = 0.05;// max displacment in meters
     ShapeFunctions();
     ReadMaterialProperties();
+    Time = tMax;
     ApplyBoundaryConditions(Time,dMax,tMax);
+    Time = 0.0;
     Assembly((char*)"stiffness");
     Assembly((char*)"mass");
     /* beta and gamma of Newmark's scheme */
@@ -210,7 +223,6 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax){
 	// Apply Ramped Displacment
 	if (ExplicitDynamic || ImplicitDynamic){
 		AppliedDisp = Time*(dMax/tMax);
-		AppliedDisp = 0.04;
   }
   else if (ImplicitStatic){
     AppliedDisp = dMax;

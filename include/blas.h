@@ -6,6 +6,7 @@ static char* chy = (char*)"T";
 static char* chn = (char*)"N";
 static double one = 1.0;
 static double zero = 0.0;
+static int oneI = 1;
 
 extern "C" {
 //  extern double ddot_(int *n, double *dx, int *incx, double *dy, int *incy);

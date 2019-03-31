@@ -69,7 +69,7 @@ void CalculateDeformationGradient(int e, int gp){
     for(int i=0;i<ndim;i++){
 			for(int j=0;j<ndim;j++){
 				theSum = 0.0;
-				int index = fptr[e] + ndim*ndim*gp + ndim*i+j;
+				int index = fptr[e] + ndim*ndim*gp + ndim*j+i;
 				for(int k=0;k<nShapeFunctions[e];k++){
 						int a = eptr[e];
 						int node_a = connectivity[a+k];
@@ -102,7 +102,7 @@ void CalculateDeformationGradient(int e, int gp){
 		printf("--------F for gauss point %d --------\n",gp);
 		for(int i=0;i<ndim;i++){
 			for(int j=0;j<ndim;j++){
-					int index = fptr[e] + ndim*ndim*gp + ndim*i+j;
+					int index = fptr[e] + ndim*ndim*gp + ndim*j+i;
 					printf("%3.3e   ",F[index]);
 			} //loop on j
 			printf("\n");

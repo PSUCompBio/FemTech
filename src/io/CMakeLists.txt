@@ -6,6 +6,7 @@ Set(io_src
     PartitionMesh.cpp
     input/ReadLsDyna.cpp
     input/ReadAbaqus.cpp
+		input/ReadMaterials.cpp
     )
 
 add_library(io OBJECT ${io_src})

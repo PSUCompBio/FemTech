@@ -7,6 +7,7 @@ double *velocities;
 double *velocities_half;
 double *accelerations;
 double *fe;
+double *fi;
 double *f_net;
 double *fr_prev;
 double *fr_curr;
@@ -36,6 +37,7 @@ void AllocateArrays(){
 		displacements_prev = (double*)calloc(nnodes*ndim, sizeof(double));
 
 		fe = (double*)calloc(nnodes*ndim, sizeof(double)); // External Nodal force vector
+		fi = (double*)calloc(nnodes*ndim, sizeof(double)); // Internal Nodal force vector
 		f_net = (double*)calloc(nnodes*ndim, sizeof(double)); // Total Nodal force vector
 		fr_prev = (double*)calloc(nnodes*ndim, sizeof(double)); // Reaction Nodal force vector at previous timestep
 		fr_curr = (double*)calloc(nnodes*ndim, sizeof(double));// Reaction Nodal force vector at current timestep
@@ -43,8 +45,6 @@ void AllocateArrays(){
 		fi_curr = (double*)calloc(nnodes*ndim, sizeof(double)); // Internal Nodal force vector at current timestep
 		f_damp_curr = (double*)calloc(nnodes*ndim, sizeof(double)); // Linear Bulk Viscosity Damping Nodal force vector
 		f_damp_prev = (double*)calloc(nnodes*ndim, sizeof(double)); // Linear Bulk Viscosity Damping Nodal force vector at previous timestep
-
-
-}
+  }
 	return;
 }

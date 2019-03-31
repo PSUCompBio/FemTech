@@ -6,14 +6,6 @@ void free1DArray(void *array) {
     array = NULL;
   }
 }
-// void free2DArray(void *array, int count) {
-//   for (int i = 0; i < count; ++i) {
-//     if (array[i]) {
-//       free(array[i]);
-//     }
-//   }
-//   free1DArray(array);
-// }
 
 void FreeArrays() {
   free1DArray(coordinates);
@@ -38,6 +30,7 @@ void FreeArrays() {
 	free1DArray(boundary);
 	free1DArray(velocities_half);
   free1DArray(fe);
+  free1DArray(fi);
 	free1DArray(f_net);
 	free1DArray(fr_prev);
 	free1DArray(fr_curr);

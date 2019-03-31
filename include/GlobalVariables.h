@@ -51,6 +51,7 @@ extern bool ImplicitDynamic;
 extern bool ExplicitDynamic;
 
 extern double *fe;
+extern double *fi;
 extern double *f_net;
 extern double *fr_prev;
 extern double *fr_curr;
