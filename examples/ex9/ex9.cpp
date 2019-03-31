@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
     // Dynamic Explcit solution using....
     double dt;
     double tMax = 1; // max simulation time in seconds
-    double dMax = 0.5;  // max displacment in meters
+    double dMax = 0.05;  // max displacment in meters
     double Time = 0.0;
     int time_step_counter = 0;
     int plot_counter = 0;
@@ -157,9 +157,6 @@ int main(int argc, char **argv) {
             velocities[i] + (t_nphalf - t_n) * accelerations[i];
       }
 
-      /* Step 6 Enfotce velocity boundary Conditions */
-      ApplyBoundaryConditions(Time, dMax, tMax);
-
       /* Update Nodal Displacements */
       printf("%d (%.6f) Dispalcements\n--------------------\n",
              time_step_counter, Time);
@@ -168,7 +165,8 @@ int main(int argc, char **argv) {
         // printf("%.6f, %0.6f, %0.6f\n", displacements[i], velocities[i],
         // accelerations[i]);
       }
-      // break;
+      /* Step 6 Enforce displacement boundary Conditions */
+      ApplyBoundaryConditions(Time, dMax, tMax);
 
       /* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
       GetForce(); // Calculating the force term.
@@ -245,24 +243,24 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
     // if x value = 0, constrain node to x plane (0-direction)
     if (fabs(coordinates[ndim * i + 0] - 0.0) < tol) {
       boundary[ndim * i + 0] = 1;
-      // displacements[ndim * i + 0] = 0.0;
-      velocities_half[ndim * i + 0] = 0.0;
+      displacements[ndim * i + 0] = 0.0;
+      // velocities_half[ndim * i + 0] = 0.0;
       // printf("node : %d x : %d\n", i, count);
       count = count + 1;
     }
     // if y coordinate = 0, constrain node to y plane (1-direction)
     if (fabs(coordinates[ndim * i + 1] - 0.0) < tol) {
       boundary[ndim * i + 1] = 1;
-      // displacements[ndim * i + 1] = 0.0;
-      velocities_half[ndim * i + 1] = 0.0;
+      displacements[ndim * i + 1] = 0.0;
+      // velocities_half[ndim * i + 1] = 0.0;
       // printf("node : %d y : %d\n", i, count);
       count = count + 1;
     }
     // if z coordinate = 0, constrain node to z plane (2-direction)
     if (fabs(coordinates[ndim * i + 2] - 0.0) < tol) {
       boundary[ndim * i + 2] = 1;
-      // displacements[ndim * i + 2] = 0.0;
-      velocities_half[ndim * i + 2] = 0.0;
+      displacements[ndim * i + 2] = 0.0;
+      // velocities_half[ndim * i + 2] = 0.0;
       // printf("node : %d z : %d\n", i, count);
       count = count + 1;
     }
@@ -277,8 +275,8 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
       // equal to some time dependent function i.e.,
       // CalculateDisplacement to get current increment out
       //  displacment to be applied.
-      // displacements[ndim * i + 1] = AppliedDisp;
-      velocities_half[ndim * i + 1] = 0.4;
+      displacements[ndim * i + 1] = AppliedDisp;
+      // velocities_half[ndim * i + 1] = 0.4;
     }
   }
   // printf("Time = %3.3e, Applied Disp = %3.3e\n",Time,AppliedDisp);

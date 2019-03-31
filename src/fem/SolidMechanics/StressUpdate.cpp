@@ -10,6 +10,10 @@ void StressUpdate(int e, int gp){
 	if(materialID[e]==2){
 		StVenantKirchhoff(e,gp);
 	}
+  // Linear Elastic
+  if(materialID[e] == 3) {
+    LinearElastic(e, gp);
+  }
 
 	return;
 }

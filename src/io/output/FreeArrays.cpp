@@ -30,6 +30,7 @@ void FreeArrays() {
 	free1DArray(boundary);
 	free1DArray(velocities_half);
   free1DArray(fe);
+  free1DArray(fi);
 	free1DArray(f_net);
 	free1DArray(fr_prev);
 	free1DArray(fr_curr);
