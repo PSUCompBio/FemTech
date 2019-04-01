@@ -106,7 +106,7 @@ void StVenantKirchhoff(int e, int gp) {
     // in voigt notation, sigma12
     cauchy[cptr[e] + 6 * gp + 5] = sigma[3];
 
-    if (debug && 1 == 1) {
+    if (debug && 1 == 0) {
       printf("Printing F Matrix\n");
       for (int i = 0; i < ndim; ++i) {
         for (int j = 0; j < ndim; ++j) {
