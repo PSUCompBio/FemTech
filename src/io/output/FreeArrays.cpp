@@ -35,7 +35,6 @@ void FreeArrays() {
 	free1DArray(fr_prev);
 	free1DArray(fr_curr);
 	free1DArray(fi_prev);
-	free1DArray(fi_curr);
 	free1DArray(f_damp_prev);
 	free1DArray(f_damp_curr);
 	free1DArray(displacements_prev);

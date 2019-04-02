@@ -138,8 +138,8 @@ int main(int argc, char **argv) {
     time_step_counter = time_step_counter + 1;
     double t_n = 0.0;
     const int nDOF = ndim*nnodes;
-    while (Time <= tMax) {
-		//for(int i=0;i<2;i++){
+    // while (Time <= tMax) {
+		for(int i=0;i<2;i++){
       /*Step 4 */
       // note: box 6.1 in belytschko
       // varibles t_np1 = t_n+1
@@ -160,6 +160,8 @@ int main(int argc, char **argv) {
       /* Update Nodal Displacements */
       printf("%d (%.6f) Dispalcements\n--------------------\n",
              time_step_counter, Time);
+      // Store old displacements for energy computation
+      memcpy(displacements_prev, displacements, ndim*nnodes*sizeof(double));
       for (int i = 0; i < ndim * nnodes; i++) {
         displacements[i] = displacements[i] + dt_nphalf * velocities_half[i];
         // printf("%.6f, %0.6f, %0.6f\n", displacements[i], velocities[i],
@@ -182,7 +184,7 @@ int main(int argc, char **argv) {
       }
 
       /** Step - 11 Checking* Energy Balance */
-      // CheckEnergy();
+      CheckEnergy();
 
       if (time_step_counter % nsteps_plot == 0) {
         plot_counter = plot_counter + 1;
@@ -244,7 +246,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
     if (fabs(coordinates[ndim * i + 0] - 0.0) < tol) {
       boundary[ndim * i + 0] = 1;
       displacements[ndim * i + 0] = 0.0;
-      // velocities_half[ndim * i + 0] = 0.0;
+      velocities[ndim * i + 0] = 0.0;
       // printf("node : %d x : %d\n", i, count);
       count = count + 1;
     }
@@ -252,7 +254,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
     if (fabs(coordinates[ndim * i + 1] - 0.0) < tol) {
       boundary[ndim * i + 1] = 1;
       displacements[ndim * i + 1] = 0.0;
-      // velocities_half[ndim * i + 1] = 0.0;
+      velocities[ndim * i + 1] = 0.0;
       // printf("node : %d y : %d\n", i, count);
       count = count + 1;
     }
@@ -260,7 +262,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
     if (fabs(coordinates[ndim * i + 2] - 0.0) < tol) {
       boundary[ndim * i + 2] = 1;
       displacements[ndim * i + 2] = 0.0;
-      // velocities_half[ndim * i + 2] = 0.0;
+      velocities[ndim * i + 2] = 0.0;
       // printf("node : %d z : %d\n", i, count);
       count = count + 1;
     }
@@ -276,7 +278,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
       // CalculateDisplacement to get current increment out
       //  displacment to be applied.
       displacements[ndim * i + 1] = AppliedDisp;
-      // velocities_half[ndim * i + 1] = 0.4;
+      velocities[ndim * i + 1] = dMax/tMax;
     }
   }
   // printf("Time = %3.3e, Applied Disp = %3.3e\n",Time,AppliedDisp);

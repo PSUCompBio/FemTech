@@ -52,11 +52,10 @@ extern bool ExplicitDynamic;
 
 extern double *fe;
 extern double *fi;
+extern double *fi_prev;
 extern double *f_net;
 extern double *fr_prev;
 extern double *fr_curr;
-extern double *fi_prev;
-extern double *fi_curr;
 extern double *f_damp_prev;
 extern double *f_damp_curr;
 extern double *displacements_prev;

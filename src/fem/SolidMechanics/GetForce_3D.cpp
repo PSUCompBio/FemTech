@@ -4,6 +4,8 @@ void GetForce_3D() {
   // TODO(Anil) special treatment for first time step
   // Below algorithm works for n > 0
   const int nDOF = nnodes*ndim;
+  // Store internal force from previous step to compute energy
+  memcpy(fi_prev, fi, nDOF*sizeof(double));
   // Following Belytschko
   // Set force_n to zero
   memset(f_net, 0, nDOF*sizeof(double));

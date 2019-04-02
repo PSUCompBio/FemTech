@@ -186,7 +186,7 @@ int main(int argc, char **argv){
 
     //fi_curr = fe - F_net;
 			for(int i=0;i<ndim*nnodes;i++){
-				fi_curr[i] = fe[i] - f_net[i];
+				fi[i] = fe[i] - f_net[i];
 			}
 
       CalculateFR();
