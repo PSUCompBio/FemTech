@@ -78,6 +78,10 @@ void inverse3x3Matrix(double* mat, double* invMat, double* det);
 //void MultiplyMatrices(double* a, double* b, int sizeM, double* result);
 double tripleProduct(double* s, double* a, double* b);
 double normOfCrossProduct(double *a, double *b);
+void crossProduct(double* a, double* b, double* result);
+double norm3D(double *a);
+double dotProduct3D(double *a, double *b);
+
 
 void CheckEnergy();
 
