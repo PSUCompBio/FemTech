@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
       time_step_counter = time_step_counter + 1;
 
       // not sure if this is needed. part of getForce in Belytschko
-      // dt = ExplicitTimeStepReduction * StableTimeStep();
+      dt = ExplicitTimeStepReduction * StableTimeStep();
 
     } // end explcit while loop
 

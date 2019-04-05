@@ -76,6 +76,14 @@ void LinearElastic(int e, int gp);
 
 void inverse3x3Matrix(double* mat, double* invMat, double* det);
 //void MultiplyMatrices(double* a, double* b, int sizeM, double* result);
+double tripleProduct(double* s, double* a, double* b);
+double normOfCrossProduct(double *a, double *b);
 
 void CheckEnergy();
+
+/* Functions to calculate characteristic lengths */
+double CalculateCharacteristicLength(int e);
+double CalculateCharacteristicLength_C3D4(int e);
+double CalculateCharacteristicLength_C3D8(int e);
+
 #endif

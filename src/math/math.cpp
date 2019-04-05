@@ -30,6 +30,26 @@ void inverse3x3Matrix(double* mat, double* invMat, double* det) {
   (*det) = detLocal;
 }
 
+double normOfCrossProduct(double *a, double *b) {
+  double z = a[0]*b[1]-a[1]*b[0];
+  if (ndim == 3) {
+    double x = a[1]*b[2]-a[2]*b[1];
+    double y = -a[0]*b[2]+a[2]*b[0];
+    return sqrt(x*x + y*y + z*z);
+  } else {
+    if (ndim == 2) {
+      return z;
+    }
+  }
+  return 0.0;
+}
+
+double tripleProduct(double *s, double *a, double *b) {
+  return s[2]*(a[0]*b[1]-a[1]*b[0])+
+         s[0]*(a[1]*b[2]-a[2]*b[1])-
+         s[1]*(a[0]*b[2]-a[2]*b[0]);
+}
+
 /*
 void MultiplyMatrices(double* a[], double* b[], int sizeM, double* result ){
 	//Multiplication Logic
