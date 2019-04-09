@@ -19,30 +19,30 @@ void ReadMaterials() {
         // properties[2] = lambda
         fscanf(File, "%lf %lf %lf", &properties[index + 0],
                &properties[index + 1], &properties[index + 2]);
-        printf("element %d Compressible NeoHookean properties (rho, mu, "
-               "lambda) = %3.3f %3.3f %3.3f\n",
-               elementID, properties[index + 0], properties[index + 1],
-               properties[index + 2]);
+        // printf("element %d Compressible NeoHookean properties (rho, mu, "
+        //        "lambda) = %3.3f %3.3f %3.3f\n",
+               // elementID, properties[index + 0], properties[index + 1],
+               // properties[index + 2]);
       } else if (materialID[elementID] == 2) { // St. Venant
         // properties[0] = density
         // properties[1] = mu
         // properties[2] = lambda
         fscanf(File, "%lf %lf %lf", &properties[index + 0],
                &properties[index + 1], &properties[index + 2]);
-        printf("element %d St. Venant-Kirchhoff properties (rho, mu, lambda) = "
-               "%3.3f %3.3f %3.3f\n",
-               elementID, properties[index + 0], properties[index + 1],
-               properties[index + 2]);
+        // printf("element %d St. Venant-Kirchhoff properties (rho, mu, lambda) = "
+        //        "%3.3f %3.3f %3.3f\n",
+               // elementID, properties[index + 0], properties[index + 1],
+               // properties[index + 2]);
       } else if (materialID[elementID] == 3) { // Linear Elastic
         // properties[0] = density
         // properties[1] = mu
         // properties[2] = lambda
         fscanf(File, "%lf %lf %lf", &properties[index + 0],
                &properties[index + 1], &properties[index + 2]);
-        printf("element %d Linear Elastic properties (rho, mu, lambda) = "
-               "%3.3f %3.3f %3.3f\n",
-               elementID, properties[index + 0], properties[index + 1],
-               properties[index + 2]);
+        // printf("element %d Linear Elastic properties (rho, mu, lambda) = "
+        //        "%3.3f %3.3f %3.3f\n",
+               // elementID, properties[index + 0], properties[index + 1],
+               // properties[index + 2]);
       } else {
         printf("Material ID for Element %d NOT FOUND! Bye.\n", elementID);
         exit(0);

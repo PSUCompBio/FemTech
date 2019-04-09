@@ -1,6 +1,8 @@
 #include "FemTech.h"
 #include "blas.h"
 
+#include <assert.h>
+
 /*Delare Functions*/
 void ApplyBoundaryConditions(double Time, double dMax, double tMax);
 
@@ -70,6 +72,7 @@ int main(int argc, char **argv) {
   Time = 0.0;
   nStep = 0;
   WriteVTU(argv[1], nStep, Time);
+  // assert(1==0);
 
   if (ImplicitStatic) {
     // Static solution
@@ -103,9 +106,9 @@ int main(int argc, char **argv) {
   } else if (ExplicitDynamic) {
     // Dynamic Explcit solution using....
     double dt;
-    double tMax = 1; // max simulation time in seconds
+    double tMax = 1.0; // max simulation time in seconds
     double dMax = 0.05;  // max displacment in meters
-    double Time = 0.0;
+    double Time = 1.1;
     int time_step_counter = 0;
     int plot_counter = 0;
     /** Central Difference Method - Beta and Gamma */
