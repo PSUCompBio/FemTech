@@ -143,10 +143,10 @@ bool PartitionMesh(){
       processorToMoveElement = (int)part[i];
       int count = end-start;
       int locationToCopy = nodeSendCum[processorToMoveElement]+\
-                           nodeCount[processorToMoveElement]; 
+                           nodeCount[processorToMoveElement];
       int elementLocToCopy = elementSendCum[processorToMoveElement]+\
                              elementCount[processorToMoveElement];
-      // Copy connectivity 
+      // Copy connectivity
       memcpy(&(connectivityPacked[locationToCopy]), &(connectivity[start]), \
           sizeof(int)*count);
       // Copy coordinates
@@ -157,7 +157,7 @@ bool PartitionMesh(){
       // Copy pid to send
       pidPacked[elementLocToCopy] = pid[i];
       // Copy element type
-      memcpy(&(ElementTypePacked[elementLocToCopy*MAX_ELEMENT_TYPE_SIZE]), 
+      memcpy(&(ElementTypePacked[elementLocToCopy*MAX_ELEMENT_TYPE_SIZE]),
           ElementType[i], sizeof(char)*MAX_ELEMENT_TYPE_SIZE);
 
       // Advance next write memory location
@@ -173,7 +173,7 @@ bool PartitionMesh(){
     // Create MPI non-blocking sends of the packed data
     // One MPI send is used per process pair by using the packed structure above
     // Create an array of requests to keep track of completion of the send calls
-    MPI_Request* requestListSend = (MPI_Request*)malloc(sizeof(MPI_Request)*sendCount); 
+    MPI_Request* requestListSend = (MPI_Request*)malloc(sizeof(MPI_Request)*sendCount);
     int requestIndex = 0;
     // Tag for communication
     int connectivityTag = 7132;
@@ -239,11 +239,11 @@ bool PartitionMesh(){
     char *ElementTypeRecv = (char*)malloc(nelementsRecv*\
         MAX_ELEMENT_TYPE_SIZE*sizeof(char));
 
-    MPI_Request* requestListRecv = (MPI_Request*)malloc(sizeof(MPI_Request)*recvCount); 
+    MPI_Request* requestListRecv = (MPI_Request*)malloc(sizeof(MPI_Request)*recvCount);
     requestIndex = 0;
     // Receive arrays
     for (int i = 0; i < world_size; ++i) {
-      // If no elements to receive from process i 
+      // If no elements to receive from process i
       if (!elementReceivePattern[i]) {
         continue;
       }
@@ -465,7 +465,7 @@ bool PartitionMesh(){
     coordinates = coordinatesRecv;
     free(pid);
     pid = pidRecv;
-    
+
     // Find cumulative sum on eptr
     for (int i = 0; i < nelementsRecv; ++i) {
       eptrRecv[i+1] += eptrRecv[i];

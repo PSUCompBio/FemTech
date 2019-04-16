@@ -6,6 +6,7 @@ Set(fem_src
 		ShapeFunctions/GaussQuadrature3D.cpp
 		ShapeFunctions/ShapeFunction_C3D8.cpp
 		ShapeFunctions/ShapeFunction_C3D4.cpp
+		ShapeFunctions/ShapeFunction_T3D2.cpp
 		Mass/Mass3D.cpp
 		Stiffness/Stiffness3D.cpp
     Solver/SteadyImplicit.cpp
