@@ -2,7 +2,22 @@
 
 #include <assert.h>
 
+// Variables to keep store the communication patterns between processes
+int *recvProcessID;
+int *recvNeighbourCount;
+int *recvNeighbourCountCum;
+int *recvNodeIndex;
+double *recvNodeDisplacement;
+
+int *sendProcessID;
+int *sendNeighbourCount;
+int *sendNeighbourCountCum;
+int *sendNodeIndex;
+double *sendNodeDisplacement;
+
 void updateConnectivityGlobalToLocal(void);
+void createNodalCommunicationPattern(void);
+
 bool PartitionMesh(){
 
   // Options for ParMETIS
@@ -219,7 +234,8 @@ bool PartitionMesh(){
     elementRecvCum[0] = 0;
     nodeRecvCum[0] = 0;
     for (int i = 0; i < world_size; ++i) {
-      if (elementRedistributePattern[i] && i != world_rank) {
+      if (elementReceivePattern[i] && i != world_rank) {
+        // printf("DEBUG : recv pattern on %d of %d is %d\n", world_rank, i, elementRedistributePattern[i]);
         recvCount += 1;
       }
       elementRecvCum[i+1] = elementRecvCum[i]+elementReceivePattern[i];
@@ -488,6 +504,9 @@ bool PartitionMesh(){
     nnodes = eptr[nelementsRecv];
     nelements = nelementsRecv;
 
+    // Create nodal communcication pattern
+    createNodalCommunicationPattern();
+
     // Reorder local connectivity
     updateConnectivityGlobalToLocal();
     // assert(nelements == 0);
@@ -554,4 +573,400 @@ void updateConnectivityGlobalToLocal(void) {
   free(coordinates);
   coordinates = newCoordinates;
   free(sorted);
+}
+void createNodalCommunicationPattern(void) {
+  // Create dual of mesh to figure out ghost elements of the local mesh
+  MPI_Comm comm;
+  MPI_Comm_dup(MPI_COMM_WORLD, &comm);
+  idx_t *xadj;
+  idx_t *adjncy;
+  idx_t ncommonnodes = 1; // number of nodes elements must have in common
+  idx_t numflag = 0; // we are using C-style arrays
+  // Create the elelemnt distribution array
+  int *elementCount = (int*)malloc(world_size*sizeof(int));
+  MPI_Allgather(&nelements, 1, MPI_INT, elementCount, 1, MPI_INT, comm);
+
+  idx_t *elmdist = (idx_t *)malloc((world_size + 1)*sizeof(idx_t));
+  elmdist[0] = 0;
+  for (int i = 0; i < world_size; ++i) {
+    elmdist[i+1] = elmdist[i]+elementCount[i];
+  }
+  // for (int i = 0; i < world_size; ++i) {
+  //   printf("DEBUG (%d) : %d, %d \n", world_rank, elementCount[i], elmdist[i+1]);
+  // }
+  free(elementCount);
+  const int Result = ParMETIS_V3_Mesh2Dual(elmdist, eptr, connectivity, &numflag, &ncommonnodes, &xadj, &adjncy, &comm);
+  // Check the success of Mesh2Dual
+  assert(Result == METIS_OK);
+
+  // Partition the neighbours to process they belong to
+  const int totalGhosts = xadj[nelements];
+  int *processID_ghost = (int*)malloc(totalGhosts*sizeof(int));
+
+  int *ghostCountProcess = (int*)calloc(world_size, sizeof(int));
+  int *ghostCountProcessCum = (int*)malloc((world_size+1)*sizeof(int));
+  int totalGhostCount = 0;
+
+  for (int i = 0; i < totalGhosts; ++i) {
+    int elementID = adjncy[i];
+    int j;
+    for (j = 0; j < world_size; ++j) {
+      if (elementID < elmdist[j+1]) {
+        processID_ghost[i] = j;
+        if (j != world_rank) {
+          totalGhostCount += 1;
+          ghostCountProcess[j] += 1;
+        }
+        break;
+      }
+    }
+    // Confirm that a processID has been assigned
+    assert(j != world_size);
+  }
+  // for (int i = 0; i < totalGhosts; ++i) {
+  //   printf("DEBUG (%d) : %d on %d\n", world_rank, i, processID_ghost[i]);
+  // }
+
+  ghostCountProcessCum[0] = 0;
+  for (int i = 0; i < world_size; ++i) {
+    ghostCountProcessCum[i+1] = ghostCountProcessCum[i] + ghostCountProcess[i];
+  }
+
+  // for (int i = 0; i < world_size; ++i) {
+  //   printf("DEBUG (%d) : %d need %d and cum %d\n", world_rank, i, \
+  //       ghostCountProcess[i], ghostCountProcessCum[i+1]);
+  // }
+  assert(ghostCountProcessCum[world_size] == totalGhostCount);
+
+  // Classify elements as interior or boundary based on process id of ghost
+  // If all the neighbours of a cell are in the same process its classified as
+  // an interior element
+  // This can be used to skip all interior elements quickly
+  int *boundaryElement = (int*)calloc(nelements, sizeof(int));
+  for (int i = 0; i < nelements; ++i) {
+    int end = xadj[i+1];
+    for (int j = xadj[i]; j < end; ++j) {
+      if (processID_ghost[j] != world_rank) {
+        boundaryElement[i] = 1;
+        break;
+      }  
+    }
+  }
+  // for (int i = 0; i < nelements; ++i) {
+  //   printf("DEBUG (%d) boundary element : %d is %d\n", world_rank, i, boundaryElement[i]);
+  // }
+
+  // Create array to store elementID for request from other process
+  int *elemID_request = (int*)malloc(totalGhostCount*sizeof(int));
+  int *elemCurrentLoc = (int*)calloc(world_size, sizeof(int));
+
+  for (int j = 0; j < nelements; ++j) {
+    if (boundaryElement[j]) {
+      int end = xadj[j+1];
+      for (int i = xadj[j]; i < end; ++i) {
+        int elementID = adjncy[i];
+        int processID = processID_ghost[i];
+        if (processID != world_rank) {
+          int location = ghostCountProcessCum[processID] + elemCurrentLoc[processID];
+          elemID_request[location] = elementID;
+          elemCurrentLoc[processID] += 1;
+        }
+      }
+    }
+  }
+  // Check if all ghosts are added
+  for (int i = 0; i < world_size; ++i) {
+    assert(elemCurrentLoc[i] == ghostCountProcess[i]);
+  }
+  // Create unique set of elementIDs to request by removing duplicates in
+  // elemID_request
+  // Array ghostCountProcess is updated to store the count of unique element ids
+  int sendCount = 0;
+  for (int i = 0; i < world_size; ++i) {
+    if (ghostCountProcess[i]) {
+      sendCount += 1;
+      if (debug && 1==0) {
+        printf("DEBUG (%d) : Before Make Unique for %d\n", world_rank, i);
+        for (int j = ghostCountProcessCum[i]; j < ghostCountProcessCum[i+1]; ++j) {
+          printf("%d\t", elemID_request[j]);
+        }
+        printf("\n");
+      }
+      qsort(&(elemID_request[ghostCountProcessCum[i]]),  ghostCountProcess[i], \
+          sizeof(int), compare);
+      ghostCountProcess[i] = unique(&(elemID_request[ghostCountProcessCum[i]]),  \
+          ghostCountProcess[i]);
+      if (debug && 1==0) {
+        printf("DEBUG (%d) : After Make Unique for %d\n", world_rank, i);
+        for (int j = 0; j < ghostCountProcess[i]; ++j) {
+          printf("%d\t", elemID_request[ghostCountProcessCum[i]+j]);
+        }
+        printf("\n");
+      }
+    }
+  }
+  // Prepare arrays to recv request for ghost
+  // Get count to receive from each processor
+  int *elemID_recvCount = (int*)malloc(world_size*sizeof(int));
+  memcpy(elemID_recvCount, ghostCountProcess, world_size*sizeof(int));
+  MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, elemID_recvCount, 1, MPI_INT, MPI_COMM_WORLD);
+
+  if (debug && 1==0) {
+    printf("\nDEBUG (proc %d): Element ID Request Pattern\n", world_rank);
+    for (int i = 0; i < world_size; ++i) {
+      printf("%d\t", ghostCountProcess[i]);
+    }
+    printf("\nDEBUG (proc %d): Element ID Receive Pattern\n", world_rank);
+    for (int i = 0; i < world_size; ++i) {
+      printf("%d\t", elemID_recvCount[i]);
+    }
+    printf("\n");
+  }
+
+  // Create the required send and receive patterns
+  int *elemID_recvCountCum = (int*)malloc((world_size+1)*sizeof(int));
+  elemID_recvCountCum[0] = 0;
+
+  int recvCount = 0;
+  for (int i = 0; i < world_size; ++i) {
+    elemID_recvCountCum[i+1] = elemID_recvCountCum[i] + elemID_recvCount[i];
+    if (elemID_recvCount[i]) {
+      recvCount += 1;
+    }
+  }
+  int totalElemID_ToRecv = elemID_recvCountCum[world_size];
+  int *elemID_recv = (int*)malloc(totalElemID_ToRecv*sizeof(int));
+
+  // factor of 2 used in below malloc required to transfer nodeID and nodePtr
+  MPI_Request* requestListSend = (MPI_Request*)malloc(sizeof(MPI_Request)*2*sendCount); 
+  MPI_Request* requestListRecv = (MPI_Request*)malloc(sizeof(MPI_Request)*2*recvCount); 
+  int requestIndex = 0;
+  int elemIDTag = 923;
+
+  // Post all send requests
+  for (int i = 0; i < world_size; ++i) {
+    if (ghostCountProcess[i]) {
+      MPI_Isend(&(elemID_request[ghostCountProcessCum[i]]), ghostCountProcess[i], MPI_INT, i, \
+          elemIDTag, MPI_COMM_WORLD, &(requestListSend[requestIndex]));
+      requestIndex += 1;
+    }
+  }
+  // Check if sends tally
+  assert(requestIndex == sendCount);
+
+  // Post all recv requests
+  requestIndex = 0;
+  for (int i = 0; i < world_size; ++i) {
+    if (elemID_recvCount[i]) {
+      // Recv elemt id list array from i
+      MPI_Irecv(&(elemID_recv[elemID_recvCountCum[i]]), elemID_recvCount[i], MPI_INT, i, \
+          elemIDTag, MPI_COMM_WORLD, &(requestListRecv[requestIndex]));
+      requestIndex += 1;
+    }
+  }
+  // Check if recvs tally
+  assert(requestIndex == recvCount);
+
+  // Wait for all sends and recvs to be over
+  MPI_Status status;
+  for (int i = 0; i < sendCount; ++i) {
+    MPI_Wait(&(requestListSend[i]), &status);
+  }
+  for (int i = 0; i < recvCount; ++i) {
+    MPI_Wait(&(requestListRecv[i]), &status);
+  }
+  // free(requestListSend);
+  // free(requestListRecv);
+
+  if (debug && 1==0) {
+    printf("DEBUG(%d) : Element id requests received \n", world_rank);
+    for (int i = 0; i < world_size; ++i) {
+      printf("From %d\n", i);
+      for (int j = elemID_recvCountCum[i]; j < elemID_recvCountCum[i+1]; ++j) {
+        printf("%d\t", elemID_recv[j]);
+      }
+      printf("\n");
+    }
+  }
+
+  // Prepare to send nodelist of requested elements
+  int totalElementRequest = elemID_recvCountCum[world_size];
+  int *nodePtr = (int*)malloc((totalElementRequest+1)*sizeof(int));
+  int *nodeCount = (int*)malloc(totalElementRequest*sizeof(int));
+  nodePtr[0] = 0;
+  for (int i = 0; i < totalElementRequest; ++i) {
+    // Convert global element ID to local element ID
+    int elementID = elemID_recv[i]-elmdist[world_rank];
+    nodeCount[i] = eptr[elementID+1]-eptr[elementID];
+    nodePtr[i+1] = nodePtr[i] + nodeCount[i];
+  }
+  int totalNodes = nodePtr[totalElementRequest];
+  // Create node list
+  int *nodeList = (int*)malloc(totalNodes*sizeof(int));
+  for (int i = 0; i < totalElementRequest; ++i) {
+    // Convert global element ID to local element ID
+    int elementID = elemID_recv[i]-elmdist[world_rank];
+    int nodesInElement = eptr[elementID+1]-eptr[elementID];
+    memcpy(&(nodeList[nodePtr[i]]), &(connectivity[eptr[elementID]]), \
+        sizeof(int)*nodesInElement);
+  }
+  if (debug && 1==0) {
+    printf("DEBUG(%d) : Node id populated \n", world_rank);
+    for (int i = 0; i < totalNodes; ++i) {
+      printf("%d\t", nodeList[i]);
+    }
+    printf("\n");
+  }
+
+  // Send nodesIDs associated with corresponding elemntID to requested process
+  // First exchange number of nodeIDs to send between process
+  // Create array for the same
+  int *nodeID_countSend = (int*)calloc(world_size, sizeof(int));
+  for (int i = 0; i < world_size; ++i) {
+    if (elemID_recvCount[i]) {
+      int start = elemID_recvCountCum[i];
+      int end = elemID_recvCountCum[i+1];
+      nodeID_countSend[i] = nodePtr[end]-nodePtr[start];
+    }
+  }
+  int *nodeID_countRecv = (int*)malloc(world_size*sizeof(int));
+  int *nodeID_countRecvCum = (int*)malloc((world_size+1)*sizeof(int));
+  memcpy(nodeID_countRecv, nodeID_countSend, world_size*sizeof(int));
+  MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, nodeID_countRecv, 1, MPI_INT, MPI_COMM_WORLD);
+
+  if (debug && 1==0) {
+    printf("\nDEBUG (proc %d): Node ID Send Pattern\n", world_rank);
+    for (int i = 0; i < world_size; ++i) {
+      printf("%d\t", nodeID_countSend[i]);
+    }
+    printf("\nDEBUG (proc %d): Node ID Receive Pattern\n", world_rank);
+    for (int i = 0; i < world_size; ++i) {
+      printf("%d\t", nodeID_countRecv[i]);
+    }
+    printf("\n");
+  }
+  // Create storage space to receive node ID 
+  nodeID_countRecvCum[0] = 0;
+  // Update ghostCountProcessCum
+  int *uniqueElementCountCum = (int*)malloc((world_size+1)*sizeof(int));
+  uniqueElementCountCum[0] = 0;
+  for (int i = 0; i < world_size; ++i) {
+    nodeID_countRecvCum[i+1] = nodeID_countRecvCum[i]+nodeID_countRecv[i];
+    uniqueElementCountCum[i+1] = uniqueElementCountCum[i] + ghostCountProcess[i];
+  }
+  int nodePtrSize = uniqueElementCountCum[world_size];
+  int totalNodeIDToRecv = nodeID_countRecvCum[world_size];
+
+  int *nodeListRecv = (int*)malloc(totalNodeIDToRecv*sizeof(int));
+  int *nodePtrRecv = (int*)malloc((nodePtrSize+1)*sizeof(int));
+  nodePtrRecv[0] = 0;
+
+  // Send Node ID to all requested process
+  requestIndex = 0;
+  int nodeIDTag = 924;
+  int nodeID_PtrTag = 925;
+
+  for (int i = 0; i < world_size; ++i) {
+    if (elemID_recvCount[i]) {
+      int start = elemID_recvCountCum[i];
+      int location = nodePtr[start]; 
+      int nodeIDCount = nodeID_countSend[i];
+      MPI_Isend(&(nodeList[location]), nodeIDCount, MPI_INT, i, nodeIDTag, \
+          MPI_COMM_WORLD, &(requestListRecv[requestIndex]));
+      MPI_Isend(&(nodeCount[start]), elemID_recvCount[i], MPI_INT, i, \
+          nodeID_PtrTag, MPI_COMM_WORLD, &(requestListRecv[requestIndex+1]));
+      // printf("DEBUG(%d) : Sent to %d\t : ", world_rank, i);
+      // for (int j = 0; j < elemID_recvCount[i]; ++j) {
+      //   printf("%d\t", nodeCount[start+j]);
+      // }
+      // printf("\n");
+      requestIndex += 2;
+    }
+  }
+  // Check if sends tally with element recv count
+  assert(requestIndex == 2*recvCount);
+
+
+  // Receive the node IDs
+  requestIndex = 0;
+  for (int i = 0; i < world_size; ++i) {
+    if (ghostCountProcess[i]) {
+      int location = nodeID_countRecvCum[i];
+      MPI_Irecv(&(nodeListRecv[location]), nodeID_countRecv[i], MPI_INT, i, nodeIDTag, \
+          MPI_COMM_WORLD, &(requestListSend[requestIndex]));
+      MPI_Irecv(&(nodePtrRecv[uniqueElementCountCum[i]+1]), ghostCountProcess[i], MPI_INT, i, \
+          nodeID_PtrTag, MPI_COMM_WORLD, &(requestListSend[requestIndex+1]));
+      requestIndex += 2;
+    }
+  }
+  assert(requestIndex == 2*sendCount);
+
+  // Wait for all sends and recvs to be over
+  for (int i = 0; i < 2*recvCount; ++i) {
+    MPI_Wait(&(requestListRecv[i]), &status);
+  }
+  for (int i = 0; i < 2*sendCount; ++i) {
+    MPI_Wait(&(requestListSend[i]), &status);
+  }
+  // Convert nodePtrRecv to cumulative array
+  for (int i = 0; i < nodePtrSize; ++i) {
+    nodePtrRecv[i+1] += nodePtrRecv[i];
+  }
+  if (debug && 1 == 0) {
+    for (int i = 0; i < world_size; ++i) {
+      if (ghostCountProcess[i]) {
+        printf("DEBUG(%d) : Recv from %d\t : ", world_rank, i);
+        for (int j = 0; j < ghostCountProcess[i]; ++j) {
+          printf("%d\t", nodePtrRecv[uniqueElementCountCum[i]+1+j]);
+        }
+        printf("\n");
+      }
+    }
+  }
+
+  if (debug && 1==1) {
+    printf("\nDEBUG(%d) : Printing available ghost data\n", world_rank);
+    for (int i = 0; i < world_size; ++i) {
+      printf("\nElement ID from process %d\n", i);
+      for (int j = ghostCountProcessCum[i], l = 0; \
+          j < (ghostCountProcessCum[i]+ghostCountProcess[i]); ++j, ++l) {
+        printf("%d\t : ", elemID_request[j]);
+        int loc = uniqueElementCountCum[i]+l;
+        for (int k = nodePtrRecv[loc]; k < nodePtrRecv[loc+1]; ++k) {
+          printf("%d\t", nodeListRecv[k]);
+        }
+        printf("\n");
+      }
+    }
+    printf("\n");
+  }
+
+  assert(nelements == 0);
+  free(uniqueElementCountCum);
+  free(nodeID_countSend);
+  free(requestListSend);
+  free(requestListRecv);
+
+  // Get elements from other processes which are current ghosts
+  // Create a list of elements where node info is required from other process
+  //
+  free(nodeID_countRecv);
+  free(nodeID_countRecvCum);
+  
+  free(nodeList);
+  free(nodePtr);
+  free(nodeCount);
+  free(nodeListRecv);
+  free(nodePtrRecv);
+
+  free(elemID_recv);
+  free(elemID_request);
+  free(elemCurrentLoc);
+
+  free(boundaryElement);
+  free(elementCount);
+  free(elmdist);
+  free(processID_ghost);
+  free(ghostCountProcess);
+  free(ghostCountProcessCum);
 }
