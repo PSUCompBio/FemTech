@@ -1,5 +1,7 @@
 #include "FemTech.h"
 
+void updateInternalForceNeighbour(void);
+
 void GetForce_3D() {
   // TODO(Anil) special treatment for first time step
   // Below algorithm works for n > 0
@@ -33,9 +35,65 @@ void GetForce_3D() {
     }
     free(fintLocal);
 	} // loop on i, nelements
+  updateInternalForceNeighbour();
   // Update net force with internal force
   for (int i = 0; i < nnodes*ndim; ++i) {
     f_net[i] -= fi[i];
   }
 	return;
+}
+void updateInternalForceNeighbour(void) {
+  // Update array to send 
+  int totalNodeToSend = sendNeighbourCountCum[sendProcessCount];
+  for (int i = 0; i < totalNodeToSend; ++i) {
+    int nodeIndex = ndim*sendNodeIndex[i];
+    sendNodeDisplacement[ndim*i] = fi[nodeIndex];
+    sendNodeDisplacement[ndim*i+1] = fi[nodeIndex+1];
+    sendNodeDisplacement[ndim*i+2] = fi[nodeIndex+2];
+  }
+  // Create send requests
+  int forceTag = 2169;
+  MPI_Request *requestListSend =
+        (MPI_Request *)malloc(sizeof(MPI_Request) * sendProcessCount);
+  for (int i = 0; i < sendProcessCount; ++i) {
+    int process = sendProcessID[i];
+    int location = sendNeighbourCountCum[i]*ndim;
+    int size = ndim*sendNeighbourCount[i];
+    MPI_Isend(&(sendNodeDisplacement[location]), size, MPI_DOUBLE, process, \
+        forceTag, MPI_COMM_WORLD, &(requestListSend[i]));
+  }
+  // Create recv requests
+  MPI_Request *requestListRecv =
+        (MPI_Request *)malloc(sizeof(MPI_Request) * sendProcessCount);
+  for (int i = 0; i < sendProcessCount; ++i) {
+    int process = sendProcessID[i];
+    int location = sendNeighbourCountCum[i]*ndim;
+    int size = ndim*sendNeighbourCount[i];
+    MPI_Irecv(&(recvNodeDisplacement[location]), size, MPI_DOUBLE, process, \
+        forceTag, MPI_COMM_WORLD, &(requestListRecv[i]));
+  }
+  // Wait for completion of all requests
+  MPI_Status status;
+  for (int i = 0; i < sendProcessCount; ++i) {
+    MPI_Wait(&(requestListSend[i]), &status);
+  }
+  for (int i = 0; i < sendProcessCount; ++i) {
+    MPI_Wait(&(requestListRecv[i]), &status);
+  }
+  // Update Internal Force values
+  for (int i = 0; i < totalNodeToSend; ++i) {
+    int nodeIndex = ndim*sendNodeIndex[i];
+    fi[nodeIndex] += recvNodeDisplacement[ndim*i];
+    fi[nodeIndex+1] += recvNodeDisplacement[ndim*i+1];
+    fi[nodeIndex+2] += recvNodeDisplacement[ndim*i+2];
+  }
+  free(requestListSend);
+  free(requestListRecv);
+	if(debug && 1==0){
+    const int nDOF = nnodes*ndim;
+	  printf("Lumped Internal Force After Exchange\n");
+	  for(int j = 0; j < nDOF; ++j) {
+	    printf("%d  %12.6f\n", j, fi[j]);
+	  }
+	}
 }

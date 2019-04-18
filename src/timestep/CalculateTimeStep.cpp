@@ -21,6 +21,6 @@ double CalculateTimeStep(int e) {
   if (dt > dtMax) {
     dt = dtMax;
   }
-  printf("Time Step : %.24f\n", dt);
+  // printf("Time Step : %24.12f\n", dt);
 	return dt;
 }

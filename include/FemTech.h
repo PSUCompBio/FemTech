@@ -90,4 +90,5 @@ double CalculateCharacteristicLength(int e);
 double CalculateCharacteristicLength_C3D4(int e);
 double CalculateCharacteristicLength_C3D8(int e);
 
+void updateMassMatrixNeighbour(void);
 #endif
