@@ -78,4 +78,5 @@ void inverse3x3Matrix(double* mat, double* invMat, double* det);
 //void MultiplyMatrices(double* a, double* b, int sizeM, double* result);
 
 void CheckEnergy();
+void updateMassMatrixNeighbour(void);
 #endif

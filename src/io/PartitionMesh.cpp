@@ -527,7 +527,7 @@ bool PartitionMesh() {
 
     // Reorder local connectivity
     updateConnectivityGlobalToLocal();
-    if (debug && 1 == 1) {
+    if (debug && 1 == 0) {
       printf("DEBUG(%d) : Node list to share in local node ID\n", world_rank);
       for (int i = 0; i < sendProcessCount; ++i) {
         printf("With process %d\n", sendProcessID[i]);
@@ -547,7 +547,6 @@ bool PartitionMesh() {
   free(tpwgts);
   free(elmdist);
   free(part);
-  assert(nelements == 0);
   return Result == METIS_OK;
 }
 //-------------------------------------------------------------------------------------------
@@ -1247,6 +1246,7 @@ void createNodalCommunicationPattern(void) {
   free(nodeListNeighbourProcessCount);
 
   // Store the list of intersections
+  // TODO(Anil) Multiply by ndim of count and count cum
   sendNeighbourCountCum = (int *)malloc((sendProcessCount + 1) * sizeof(int));
   sendNeighbourCountCum[0] = 0;
   for (int i = 0; i < sendProcessCount; ++i) {
@@ -1280,6 +1280,6 @@ void createNodalCommunicationPattern(void) {
     printf("\n");
   }
 
-  sendNodeDisplacement = (double *)malloc(totalUniqueNodes * sizeof(double));
-  recvNodeDisplacement = (double *)malloc(totalUniqueNodes * sizeof(double));
+  sendNodeDisplacement = (double *)malloc(ndim*totalUniqueNodes * sizeof(double));
+  recvNodeDisplacement = (double *)malloc(ndim*totalUniqueNodes * sizeof(double));
 }

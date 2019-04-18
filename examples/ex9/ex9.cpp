@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
     double dt;
     double tMax = 1.0; // max simulation time in seconds
     double dMax = 0.05;  // max displacment in meters
-    double Time = 1.1;
+    double Time = 0.0;
     int time_step_counter = 0;
     int plot_counter = 0;
     /** Central Difference Method - Beta and Gamma */
