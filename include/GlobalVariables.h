@@ -82,14 +82,15 @@ extern double Time;
 
 // Variables to keep store the communication patterns between processes
 // Implemented in PartitionMesh.cpp
-extern int *recvProcessID;
-extern int *recvNeighbourCount;
-extern int *recvNeighbourCountCum;
-extern int *recvNodeIndex;
-extern double *recvNodeDisplacement;
-
+extern int sendProcessCount;
 extern int *sendProcessID;
 extern int *sendNeighbourCount;
 extern int *sendNeighbourCountCum;
 extern int *sendNodeIndex;
 extern double *sendNodeDisplacement;
+extern double *recvNodeDisplacement;
+
+// extern int *recvProcessID;
+// extern int *recvNeighbourCount;
+// extern int *recvNeighbourCountCum;
+// extern int *recvNodeIndex;

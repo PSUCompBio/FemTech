@@ -3,28 +3,24 @@
 #include <assert.h>
 
 // Variables to keep store the communication patterns between processes
-int *recvProcessID;
-int *recvNeighbourCount;
-int *recvNeighbourCountCum;
-int *recvNodeIndex;
-double *recvNodeDisplacement;
-
+int sendProcessCount;
 int *sendProcessID;
 int *sendNeighbourCount;
 int *sendNeighbourCountCum;
 int *sendNodeIndex;
 double *sendNodeDisplacement;
+double *recvNodeDisplacement;
 
 void updateConnectivityGlobalToLocal(void);
 void createNodalCommunicationPattern(void);
 
-bool PartitionMesh(){
+bool PartitionMesh() {
 
   // Options for ParMETIS
   idx_t options[3];
-  options[0] = 1; // timing info printed
-  options[1] = 0; // timing info suppressed
-  options[2] = 15; //seed for random number generator
+  options[0] = 1;  // timing info printed
+  options[1] = 0;  // timing info suppressed
+  options[2] = 15; // seed for random number generator
 
   // Number of partitions (one for each process)
   idx_t nparts = world_size; // number of parts equals number of processes
@@ -33,14 +29,15 @@ bool PartitionMesh(){
   idx_t ncon = 1; // number of balance constraints
 
   // Prepare remaining arguments for ParMETIS
-  idx_t* elmwgt = NULL;
-  idx_t wgtflag = 0; // we don't use weights
-  idx_t numflag = 0; // we are using C-style arrays
+  idx_t *elmwgt = NULL;
+  idx_t wgtflag = 0;      // we don't use weights
+  idx_t numflag = 0;      // we are using C-style arrays
   idx_t ncommonnodes = 2; // number of nodes elements must have in common
-  if(nallelements == 2){
-		printf("PartitionMesh.cpp: nallelements = 2 so ncommonnodes set to 8 (for parmetis)\n");
-		ncommonnodes = 8;
-	}
+  if (nallelements == 2) {
+    printf("PartitionMesh.cpp: nallelements = 2 so ncommonnodes set to 8 (for "
+           "parmetis)\n");
+    ncommonnodes = 8;
+  }
   const int tpwgts_size = ncon * nparts;
   real_t *tpwgts = (real_t *)malloc(tpwgts_size * sizeof(real_t));
   for (int i = 0; i < tpwgts_size; i++) {
@@ -49,7 +46,8 @@ bool PartitionMesh(){
 
   real_t *ubvec = (real_t *)malloc(ncon * sizeof(real_t));
   for (int i = 0; i < ncon; i++) {
-    ubvec[i] = (real_t)1.05; // weight tolerance (same weight tolerance for every weight there is)
+    ubvec[i] = (real_t)1.05; // weight tolerance (same weight tolerance for
+                             // every weight there is)
   }
 
   // "elmdist" array describes initial distribution of elements to processors
@@ -62,34 +60,34 @@ bool PartitionMesh(){
   elmdist[world_size] += (nallelements % world_size);
 
   // part array is output of ParMETIS_V3_PartMeshKway() function
-  // Size of this array equals to number/count of mesh elements local to processor
-  // This array indicates which processor i-th element belongs to
+  // Size of this array equals to number/count of mesh elements local to
+  // processor This array indicates which processor i-th element belongs to
   idx_t edgecut; // output of ParMETIS_V3_PartMeshKway function
   idx_t *part = (idx_t *)calloc(nelements, sizeof(idx_t));
 
   MPI_Comm comm;
   MPI_Comm_dup(MPI_COMM_WORLD, &comm);
-  const int Result = ParMETIS_V3_PartMeshKway(elmdist, eptr, connectivity, elmwgt, \
-      &wgtflag, &numflag, &ncon, &ncommonnodes, &nparts, tpwgts, ubvec, options, \
-      &edgecut, part, &comm);
+  const int Result = ParMETIS_V3_PartMeshKway(
+      elmdist, eptr, connectivity, elmwgt, &wgtflag, &numflag, &ncon,
+      &ncommonnodes, &nparts, tpwgts, ubvec, options, &edgecut, part, &comm);
 
   // Output of ParMETIS_V3_PartMeshKway call will be used here
   if (Result == METIS_OK) {
     // Variable to count number of elements to move to each MPI process
     // from the current local set of elements
     // variable part the output of parmetis is used to populate this array
-    int *elementRedistributePattern = (int*)calloc(world_size, sizeof(int));
-    int *nodeRedistributePattern = (int*)calloc(world_size, sizeof(int));
+    int *elementRedistributePattern = (int *)calloc(world_size, sizeof(int));
+    int *nodeRedistributePattern = (int *)calloc(world_size, sizeof(int));
     int processorToMoveElement, cordInElement;
     for (int i = 0; i < nelements; ++i) {
       processorToMoveElement = (int)part[i];
-      cordInElement = eptr[i+1]-eptr[i];
+      cordInElement = eptr[i + 1] - eptr[i];
       elementRedistributePattern[processorToMoveElement] += 1;
       nodeRedistributePattern[processorToMoveElement] += cordInElement;
     }
     // Create cumulative array to act as sendbuffer pointer
-    int *elementSendCum = (int*)malloc((world_size+1)*sizeof(int));
-    int *nodeSendCum = (int*)malloc((world_size+1)*sizeof(int));
+    int *elementSendCum = (int *)malloc((world_size + 1) * sizeof(int));
+    int *nodeSendCum = (int *)malloc((world_size + 1) * sizeof(int));
     elementSendCum[0] = 0;
     nodeSendCum[0] = 0;
     // Variables to keep track of requests
@@ -98,38 +96,42 @@ bool PartitionMesh(){
       if (elementRedistributePattern[i] && i != world_rank) {
         sendCount += 1;
       }
-      elementSendCum[i+1] = elementSendCum[i]+elementRedistributePattern[i];
-      nodeSendCum[i+1] = nodeSendCum[i]+nodeRedistributePattern[i];
+      elementSendCum[i + 1] = elementSendCum[i] + elementRedistributePattern[i];
+      nodeSendCum[i + 1] = nodeSendCum[i] + nodeRedistributePattern[i];
     }
     // Multiply by 5 as we are sending 5 seperate lists for each process
-    sendCount*=5;
+    sendCount *= 5;
     int nnodes_process = nodeSendCum[world_size];
     // Verify that all elements are included for distribution
     assert(nelements == elementSendCum[world_size]);
 
     // Get count to receive from each processor
-    int *elementReceivePattern = (int*)malloc(world_size*sizeof(int));
-    int *nodeReceivePattern = (int*)malloc(world_size*sizeof(int));
-    memcpy(elementReceivePattern, elementRedistributePattern, world_size*sizeof(int));
-    memcpy(nodeReceivePattern, nodeRedistributePattern, world_size*sizeof(int));
-    MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, elementReceivePattern, 1, MPI_INT, MPI_COMM_WORLD);
-    MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, nodeReceivePattern, 1, MPI_INT, MPI_COMM_WORLD);
-    if (debug && 1==0) {
+    int *elementReceivePattern = (int *)malloc(world_size * sizeof(int));
+    int *nodeReceivePattern = (int *)malloc(world_size * sizeof(int));
+    memcpy(elementReceivePattern, elementRedistributePattern,
+           world_size * sizeof(int));
+    memcpy(nodeReceivePattern, nodeRedistributePattern,
+           world_size * sizeof(int));
+    MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, elementReceivePattern, 1,
+                 MPI_INT, MPI_COMM_WORLD);
+    MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, nodeReceivePattern, 1,
+                 MPI_INT, MPI_COMM_WORLD);
+    if (debug && 1 == 0) {
       printf("\nDEBUG (proc %d): Element Redistribution Pattern\n", world_rank);
       for (int i = 0; i < world_size; ++i) {
-        printf("%d\t",elementRedistributePattern[i]);
+        printf("%d\t", elementRedistributePattern[i]);
       }
       printf("\nDEBUG (proc %d): Element Receive Pattern\n", world_rank);
       for (int i = 0; i < world_size; ++i) {
-        printf("%d\t",elementReceivePattern[i]);
+        printf("%d\t", elementReceivePattern[i]);
       }
       printf("\nDEBUG (proc %d): Node Redistribution Pattern\n", world_rank);
       for (int i = 0; i < world_size; ++i) {
-        printf("%d\t",nodeRedistributePattern[i]);
+        printf("%d\t", nodeRedistributePattern[i]);
       }
       printf("\nDEBUG (proc %d): Node Receive Pattern\n", world_rank);
       for (int i = 0; i < world_size; ++i) {
-        printf("%d\t",nodeReceivePattern[i]);
+        printf("%d\t", nodeReceivePattern[i]);
       }
       printf("\n");
     }
@@ -139,41 +141,43 @@ bool PartitionMesh(){
     // Create send buffers
 
     // Create array to keep track of current count during packing
-    int *elementCount = (int*)calloc(world_size, sizeof(int));
-    int *nodeCount = (int*)calloc(world_size, sizeof(int));
+    int *elementCount = (int *)calloc(world_size, sizeof(int));
+    int *nodeCount = (int *)calloc(world_size, sizeof(int));
 
     // Variables to reorder local data to send
-    int *connectivityPacked = (int*)malloc(nnodes_process*sizeof(int));
-    double *coordinatesPacked = (double*)malloc(nnodes_process*sizeof(double)*ndim);
-    int *eptrPacked = (int*)malloc(nelements*sizeof(int));
-    int *pidPacked = (int*)malloc(nelements*sizeof(int));
-    char *ElementTypePacked = (char*)malloc(nelements*MAX_ELEMENT_TYPE_SIZE*sizeof(char*));
+    int *connectivityPacked = (int *)malloc(nnodes_process * sizeof(int));
+    double *coordinatesPacked =
+        (double *)malloc(nnodes_process * sizeof(double) * ndim);
+    int *eptrPacked = (int *)malloc(nelements * sizeof(int));
+    int *pidPacked = (int *)malloc(nelements * sizeof(int));
+    char *ElementTypePacked =
+        (char *)malloc(nelements * MAX_ELEMENT_TYPE_SIZE * sizeof(char *));
 
     // Move data to packed arrays
     for (int i = 0; i < nelements; ++i) {
       // Anil(TODO) This can be optimized to move multiple elements if
       // concecutive elements to move are assigned same destinaation process
       int start = eptr[i];
-      int end = eptr[i+1];
+      int end = eptr[i + 1];
       processorToMoveElement = (int)part[i];
-      int count = end-start;
-      int locationToCopy = nodeSendCum[processorToMoveElement]+\
-                           nodeCount[processorToMoveElement]; 
-      int elementLocToCopy = elementSendCum[processorToMoveElement]+\
+      int count = end - start;
+      int locationToCopy = nodeSendCum[processorToMoveElement] +
+                           nodeCount[processorToMoveElement];
+      int elementLocToCopy = elementSendCum[processorToMoveElement] +
                              elementCount[processorToMoveElement];
-      // Copy connectivity 
-      memcpy(&(connectivityPacked[locationToCopy]), &(connectivity[start]), \
-          sizeof(int)*count);
+      // Copy connectivity
+      memcpy(&(connectivityPacked[locationToCopy]), &(connectivity[start]),
+             sizeof(int) * count);
       // Copy coordinates
-      memcpy(&(coordinatesPacked[locationToCopy*ndim]), &(coordinates[start*ndim]), \
-          sizeof(double)*count*ndim);
+      memcpy(&(coordinatesPacked[locationToCopy * ndim]),
+             &(coordinates[start * ndim]), sizeof(double) * count * ndim);
       // Store number of nodes to recreate eptr on destination
       eptrPacked[elementLocToCopy] = count;
       // Copy pid to send
       pidPacked[elementLocToCopy] = pid[i];
       // Copy element type
-      memcpy(&(ElementTypePacked[elementLocToCopy*MAX_ELEMENT_TYPE_SIZE]), 
-          ElementType[i], sizeof(char)*MAX_ELEMENT_TYPE_SIZE);
+      memcpy(&(ElementTypePacked[elementLocToCopy * MAX_ELEMENT_TYPE_SIZE]),
+             ElementType[i], sizeof(char) * MAX_ELEMENT_TYPE_SIZE);
 
       // Advance next write memory location
       nodeCount[processorToMoveElement] += count;
@@ -188,7 +192,8 @@ bool PartitionMesh(){
     // Create MPI non-blocking sends of the packed data
     // One MPI send is used per process pair by using the packed structure above
     // Create an array of requests to keep track of completion of the send calls
-    MPI_Request* requestListSend = (MPI_Request*)malloc(sizeof(MPI_Request)*sendCount); 
+    MPI_Request *requestListSend =
+        (MPI_Request *)malloc(sizeof(MPI_Request) * sendCount);
     int requestIndex = 0;
     // Tag for communication
     int connectivityTag = 7132;
@@ -211,17 +216,19 @@ bool PartitionMesh(){
       int sizeElem = elementRedistributePattern[i];
       int startElemLocation = elementSendCum[i];
       // Send connectivity array
-      MPI_Isend(&(connectivityPacked[startLocation]), size, MPI_INT, i, \
-          connectivityTag, MPI_COMM_WORLD, &(requestListSend[requestIndex]));
-      MPI_Isend(&(coordinatesPacked[startLocation*ndim]), ndim*size, MPI_DOUBLE, i, \
-          coordTag, MPI_COMM_WORLD, &(requestListSend[requestIndex+1]));
-      MPI_Isend(&(eptrPacked[startElemLocation]), sizeElem, MPI_INT, i, \
-          eptrTag, MPI_COMM_WORLD, &(requestListSend[requestIndex+2]));
-      MPI_Isend(&(pidPacked[startElemLocation]), sizeElem, MPI_INT, i, \
-          pidTag, MPI_COMM_WORLD, &(requestListSend[requestIndex+3]));
-      MPI_Isend(&(ElementTypePacked[startElemLocation*MAX_ELEMENT_TYPE_SIZE]), \
-          sizeElem*MAX_ELEMENT_TYPE_SIZE, MPI_CHAR, i, eTypeTag, MPI_COMM_WORLD, \
-          &(requestListSend[requestIndex+4]));
+      MPI_Isend(&(connectivityPacked[startLocation]), size, MPI_INT, i,
+                connectivityTag, MPI_COMM_WORLD,
+                &(requestListSend[requestIndex]));
+      MPI_Isend(&(coordinatesPacked[startLocation * ndim]), ndim * size,
+                MPI_DOUBLE, i, coordTag, MPI_COMM_WORLD,
+                &(requestListSend[requestIndex + 1]));
+      MPI_Isend(&(eptrPacked[startElemLocation]), sizeElem, MPI_INT, i, eptrTag,
+                MPI_COMM_WORLD, &(requestListSend[requestIndex + 2]));
+      MPI_Isend(&(pidPacked[startElemLocation]), sizeElem, MPI_INT, i, pidTag,
+                MPI_COMM_WORLD, &(requestListSend[requestIndex + 3]));
+      MPI_Isend(&(ElementTypePacked[startElemLocation * MAX_ELEMENT_TYPE_SIZE]),
+                sizeElem * MAX_ELEMENT_TYPE_SIZE, MPI_CHAR, i, eTypeTag,
+                MPI_COMM_WORLD, &(requestListSend[requestIndex + 4]));
       requestIndex = requestIndex + 5;
     }
     // Verify that number of requests send matches the required
@@ -229,17 +236,18 @@ bool PartitionMesh(){
 
     // Setup for MPI Receive
     // Create cumulative array to act as recvbuffer pointer
-    int *elementRecvCum = (int*)malloc((world_size+1)*sizeof(int));
-    int *nodeRecvCum = (int*)malloc((world_size+1)*sizeof(int));
+    int *elementRecvCum = (int *)malloc((world_size + 1) * sizeof(int));
+    int *nodeRecvCum = (int *)malloc((world_size + 1) * sizeof(int));
     elementRecvCum[0] = 0;
     nodeRecvCum[0] = 0;
     for (int i = 0; i < world_size; ++i) {
       if (elementReceivePattern[i] && i != world_rank) {
-        // printf("DEBUG : recv pattern on %d of %d is %d\n", world_rank, i, elementRedistributePattern[i]);
+        // printf("DEBUG : recv pattern on %d of %d is %d\n", world_rank, i,
+        // elementRedistributePattern[i]);
         recvCount += 1;
       }
-      elementRecvCum[i+1] = elementRecvCum[i]+elementReceivePattern[i];
-      nodeRecvCum[i+1] = nodeRecvCum[i]+nodeReceivePattern[i];
+      elementRecvCum[i + 1] = elementRecvCum[i] + elementReceivePattern[i];
+      nodeRecvCum[i + 1] = nodeRecvCum[i] + nodeReceivePattern[i];
     }
     // Multiply recvCount by number of messages to recv per process
     recvCount *= 5;
@@ -247,19 +255,21 @@ bool PartitionMesh(){
     int nelementsRecv = elementRecvCum[world_size];
 
     // Create arrays to receive
-    int *connectivityRecv = (int*)malloc(nnodesRecv*sizeof(int));
-    double *coordinatesRecv = (double*)malloc(nnodesRecv*sizeof(double)*ndim);
-    int *eptrRecv = (int*)malloc((nelementsRecv+1)*sizeof(int));
+    int *connectivityRecv = (int *)malloc(nnodesRecv * sizeof(int));
+    double *coordinatesRecv =
+        (double *)malloc(nnodesRecv * sizeof(double) * ndim);
+    int *eptrRecv = (int *)malloc((nelementsRecv + 1) * sizeof(int));
     eptrRecv[0] = 0;
-    int *pidRecv = (int*)malloc(nelementsRecv*sizeof(int));
-    char *ElementTypeRecv = (char*)malloc(nelementsRecv*\
-        MAX_ELEMENT_TYPE_SIZE*sizeof(char));
+    int *pidRecv = (int *)malloc(nelementsRecv * sizeof(int));
+    char *ElementTypeRecv =
+        (char *)malloc(nelementsRecv * MAX_ELEMENT_TYPE_SIZE * sizeof(char));
 
-    MPI_Request* requestListRecv = (MPI_Request*)malloc(sizeof(MPI_Request)*recvCount); 
+    MPI_Request *requestListRecv =
+        (MPI_Request *)malloc(sizeof(MPI_Request) * recvCount);
     requestIndex = 0;
     // Receive arrays
     for (int i = 0; i < world_size; ++i) {
-      // If no elements to receive from process i 
+      // If no elements to receive from process i
       if (!elementReceivePattern[i]) {
         continue;
       }
@@ -271,31 +281,34 @@ bool PartitionMesh(){
       if (i == world_rank) {
         int startLocSend = nodeSendCum[i];
         int startLocSendElem = elementSendCum[i];
-        memcpy(&(connectivityRecv[startLocation]), \
-            &(connectivityPacked[startLocSend]), sizeof(int)*size);
-        memcpy(&(coordinatesRecv[startLocation*ndim]), \
-            &(coordinatesPacked[startLocSend*ndim]), ndim*sizeof(double)*size);
-        memcpy(&(eptrRecv[startElemLocation+1]), \
-            &(eptrPacked[startLocSendElem]), sizeof(int)*sizeElem);
-        memcpy(&(pidRecv[startElemLocation]), \
-            &(pidPacked[startLocSendElem]), sizeof(int)*sizeElem);
-        memcpy(&(ElementTypeRecv[startElemLocation*MAX_ELEMENT_TYPE_SIZE]), \
-            &(ElementTypePacked[startLocSendElem*MAX_ELEMENT_TYPE_SIZE]), \
-            sizeof(char)*sizeElem*MAX_ELEMENT_TYPE_SIZE);
+        memcpy(&(connectivityRecv[startLocation]),
+               &(connectivityPacked[startLocSend]), sizeof(int) * size);
+        memcpy(&(coordinatesRecv[startLocation * ndim]),
+               &(coordinatesPacked[startLocSend * ndim]),
+               ndim * sizeof(double) * size);
+        memcpy(&(eptrRecv[startElemLocation + 1]),
+               &(eptrPacked[startLocSendElem]), sizeof(int) * sizeElem);
+        memcpy(&(pidRecv[startElemLocation]), &(pidPacked[startLocSendElem]),
+               sizeof(int) * sizeElem);
+        memcpy(&(ElementTypeRecv[startElemLocation * MAX_ELEMENT_TYPE_SIZE]),
+               &(ElementTypePacked[startLocSendElem * MAX_ELEMENT_TYPE_SIZE]),
+               sizeof(char) * sizeElem * MAX_ELEMENT_TYPE_SIZE);
         continue;
       }
       // Recv connectivity array from i
-      MPI_Irecv(&(connectivityRecv[startLocation]), size, MPI_INT, i, \
-          connectivityTag, MPI_COMM_WORLD, &(requestListRecv[requestIndex]));
-      MPI_Irecv(&(coordinatesRecv[startLocation*ndim]), ndim*size, MPI_DOUBLE, i, \
-          coordTag, MPI_COMM_WORLD, &(requestListRecv[requestIndex+1]));
-      MPI_Irecv(&(eptrRecv[startElemLocation+1]), sizeElem, MPI_INT, i, \
-          eptrTag, MPI_COMM_WORLD, &(requestListRecv[requestIndex+2]));
-      MPI_Irecv(&(pidRecv[startElemLocation]), sizeElem, MPI_INT, i, \
-          pidTag, MPI_COMM_WORLD, &(requestListRecv[requestIndex+3]));
-      MPI_Irecv(&(ElementTypeRecv[startElemLocation*MAX_ELEMENT_TYPE_SIZE]), \
-          sizeElem*MAX_ELEMENT_TYPE_SIZE, MPI_CHAR, i, eTypeTag, \
-          MPI_COMM_WORLD, &(requestListRecv[requestIndex+4]));
+      MPI_Irecv(&(connectivityRecv[startLocation]), size, MPI_INT, i,
+                connectivityTag, MPI_COMM_WORLD,
+                &(requestListRecv[requestIndex]));
+      MPI_Irecv(&(coordinatesRecv[startLocation * ndim]), ndim * size,
+                MPI_DOUBLE, i, coordTag, MPI_COMM_WORLD,
+                &(requestListRecv[requestIndex + 1]));
+      MPI_Irecv(&(eptrRecv[startElemLocation + 1]), sizeElem, MPI_INT, i,
+                eptrTag, MPI_COMM_WORLD, &(requestListRecv[requestIndex + 2]));
+      MPI_Irecv(&(pidRecv[startElemLocation]), sizeElem, MPI_INT, i, pidTag,
+                MPI_COMM_WORLD, &(requestListRecv[requestIndex + 3]));
+      MPI_Irecv(&(ElementTypeRecv[startElemLocation * MAX_ELEMENT_TYPE_SIZE]),
+                sizeElem * MAX_ELEMENT_TYPE_SIZE, MPI_CHAR, i, eTypeTag,
+                MPI_COMM_WORLD, &(requestListRecv[requestIndex + 4]));
       requestIndex = requestIndex + 5;
     }
     // Verify that number of requests send matches the required
@@ -307,16 +320,16 @@ bool PartitionMesh(){
       MPI_Wait(&(requestListSend[i]), &status);
     }
 
-    if (debug && 1==0) {
+    if (debug && 1 == 0) {
       printf("Connectivity Array : \n");
       if (world_rank == 0) {
         printf("Send connectivity array from 0 to 1\n");
-        for(int i = 0; i < 10; ++i) {
-          printf("%d\t", connectivityPacked[nodeSendCum[1]+i]);
+        for (int i = 0; i < 10; ++i) {
+          printf("%d\t", connectivityPacked[nodeSendCum[1] + i]);
         }
         printf("\n");
-        for(int i = 1; i < 11; ++i) {
-          printf("%d\t", connectivityPacked[nodeSendCum[2]-i]);
+        for (int i = 1; i < 11; ++i) {
+          printf("%d\t", connectivityPacked[nodeSendCum[2] - i]);
         }
         printf("\n");
       }
@@ -325,12 +338,12 @@ bool PartitionMesh(){
       printf("Coord Array : \n");
       if (world_rank == 0) {
         printf("Send coord array from 0 to 1\n");
-        for(int i = 0; i < 10; ++i) {
-          printf("%.4f\t", coordinatesPacked[ndim*nodeSendCum[1]+i]);
+        for (int i = 0; i < 10; ++i) {
+          printf("%.4f\t", coordinatesPacked[ndim * nodeSendCum[1] + i]);
         }
         printf("\n");
-        for(int i = 1; i < 11; ++i) {
-          printf("%.4f\t", coordinatesPacked[ndim*nodeSendCum[2]-i]);
+        for (int i = 1; i < 11; ++i) {
+          printf("%.4f\t", coordinatesPacked[ndim * nodeSendCum[2] - i]);
         }
         printf("\n");
       }
@@ -339,12 +352,12 @@ bool PartitionMesh(){
       printf("Eptr Array : \n");
       if (world_rank == 0) {
         printf("Send eptr array from 0 to 1\n");
-        for(int i = 0; i < 10; ++i) {
-          printf("%d\t", eptrPacked[elementSendCum[1]+i]);
+        for (int i = 0; i < 10; ++i) {
+          printf("%d\t", eptrPacked[elementSendCum[1] + i]);
         }
         printf("\n");
-        for(int i = 1; i < 11; ++i) {
-          printf("%d\t", eptrPacked[elementSendCum[2]-i]);
+        for (int i = 1; i < 11; ++i) {
+          printf("%d\t", eptrPacked[elementSendCum[2] - i]);
         }
         printf("\n");
       }
@@ -353,12 +366,12 @@ bool PartitionMesh(){
       printf("PID Array : \n");
       if (world_rank == 0) {
         printf("Send pid array from 0 to 1\n");
-        for(int i = 0; i < 10; ++i) {
-          printf("%d\t", pidPacked[elementSendCum[1]+i]);
+        for (int i = 0; i < 10; ++i) {
+          printf("%d\t", pidPacked[elementSendCum[1] + i]);
         }
         printf("\n");
-        for(int i = 1; i < 11; ++i) {
-          printf("%d\t", pidPacked[elementSendCum[2]-i]);
+        for (int i = 1; i < 11; ++i) {
+          printf("%d\t", pidPacked[elementSendCum[2] - i]);
         }
         printf("\n");
       }
@@ -367,12 +380,14 @@ bool PartitionMesh(){
       printf("Element Type Array : \n");
       if (world_rank == 0) {
         printf("Send element type array from 0 to 1\n");
-        for(int i = 0; i < 10; ++i) {
-          printf("%s\t", &(ElementTypePacked[(elementSendCum[1]+i)*MAX_ELEMENT_TYPE_SIZE]));
+        for (int i = 0; i < 10; ++i) {
+          printf("%s\t", &(ElementTypePacked[(elementSendCum[1] + i) *
+                                             MAX_ELEMENT_TYPE_SIZE]));
         }
         printf("\n");
-        for(int i = 1; i < 11; ++i) {
-          printf("%s\t", &(ElementTypePacked[(elementSendCum[2]-i)*MAX_ELEMENT_TYPE_SIZE]));
+        for (int i = 1; i < 11; ++i) {
+          printf("%s\t", &(ElementTypePacked[(elementSendCum[2] - i) *
+                                             MAX_ELEMENT_TYPE_SIZE]));
         }
         printf("\n");
       }
@@ -396,16 +411,16 @@ bool PartitionMesh(){
     for (int i = 0; i < recvCount; ++i) {
       MPI_Wait(&(requestListRecv[i]), &status);
     }
-    if (debug && 1==0) {
+    if (debug && 1 == 0) {
       printf("Connectivity Array : \n");
       if (world_rank == 1) {
         printf("Recv connectivity array from 1 to 0\n");
-        for(int i = 0; i < 10; ++i) {
-          printf("%d\t", connectivityRecv[nodeRecvCum[0]+i]);
+        for (int i = 0; i < 10; ++i) {
+          printf("%d\t", connectivityRecv[nodeRecvCum[0] + i]);
         }
         printf("\n");
-        for(int i = 1; i < 11; ++i) {
-          printf("%d\t", connectivityRecv[nodeRecvCum[1]-i]);
+        for (int i = 1; i < 11; ++i) {
+          printf("%d\t", connectivityRecv[nodeRecvCum[1] - i]);
         }
         printf("\n");
       }
@@ -414,40 +429,40 @@ bool PartitionMesh(){
       printf("Coord Array : \n");
       if (world_rank == 1) {
         printf("Recv coord array from 1 to 0\n");
-        for(int i = 0; i < 10; ++i) {
-          printf("%.4f\t", coordinatesRecv[ndim*nodeRecvCum[0]+i]);
+        for (int i = 0; i < 10; ++i) {
+          printf("%.4f\t", coordinatesRecv[ndim * nodeRecvCum[0] + i]);
         }
         printf("\n");
-        for(int i = 1; i < 11; ++i) {
-          printf("%.4f\t", coordinatesRecv[ndim*nodeRecvCum[1]-i]);
+        for (int i = 1; i < 11; ++i) {
+          printf("%.4f\t", coordinatesRecv[ndim * nodeRecvCum[1] - i]);
         }
         printf("\n");
       }
     }
-    if (debug && 1==0) {
+    if (debug && 1 == 0) {
       printf("Eptr Array : \n");
       if (world_rank == 1) {
         printf("Recv eptr array from 1 to 0\n");
-        for(int i = 0; i < 10; ++i) {
-          printf("%d\t", eptrRecv[elementRecvCum[0]+i+1]);
+        for (int i = 0; i < 10; ++i) {
+          printf("%d\t", eptrRecv[elementRecvCum[0] + i + 1]);
         }
         printf("\n");
-        for(int i = 1; i < 11; ++i) {
-          printf("%d\t", eptrRecv[elementRecvCum[1]-i+1]);
+        for (int i = 1; i < 11; ++i) {
+          printf("%d\t", eptrRecv[elementRecvCum[1] - i + 1]);
         }
         printf("\n");
       }
     }
-    if (debug && 1==0) {
+    if (debug && 1 == 0) {
       printf("PID Array : \n");
       if (world_rank == 1) {
         printf("Recv pid array from 1 to 0\n");
-        for(int i = 0; i < 10; ++i) {
-          printf("%d\t", pidRecv[elementRecvCum[0]+i]);
+        for (int i = 0; i < 10; ++i) {
+          printf("%d\t", pidRecv[elementRecvCum[0] + i]);
         }
         printf("\n");
-        for(int i = 1; i < 11; ++i) {
-          printf("%d\t", pidRecv[elementRecvCum[1]-i]);
+        for (int i = 1; i < 11; ++i) {
+          printf("%d\t", pidRecv[elementRecvCum[1] - i]);
         }
         printf("\n");
       }
@@ -456,12 +471,14 @@ bool PartitionMesh(){
       printf("Element Type Array : \n");
       if (world_rank == 0) {
         printf("Recv element type array from 0 to 1\n");
-        for(int i = 0; i < 10; ++i) {
-          printf("%s\t", &(ElementTypeRecv[(elementRecvCum[1]+i)*MAX_ELEMENT_TYPE_SIZE]));
+        for (int i = 0; i < 10; ++i) {
+          printf("%s\t", &(ElementTypeRecv[(elementRecvCum[1] + i) *
+                                           MAX_ELEMENT_TYPE_SIZE]));
         }
         printf("\n");
-        for(int i = 1; i < 11; ++i) {
-          printf("%s\t", &(ElementTypeRecv[(elementRecvCum[2]-i)*MAX_ELEMENT_TYPE_SIZE]));
+        for (int i = 1; i < 11; ++i) {
+          printf("%s\t", &(ElementTypeRecv[(elementRecvCum[2] - i) *
+                                           MAX_ELEMENT_TYPE_SIZE]));
         }
         printf("\n");
       }
@@ -481,10 +498,10 @@ bool PartitionMesh(){
     coordinates = coordinatesRecv;
     free(pid);
     pid = pidRecv;
-    
+
     // Find cumulative sum on eptr
     for (int i = 0; i < nelementsRecv; ++i) {
-      eptrRecv[i+1] += eptrRecv[i];
+      eptrRecv[i + 1] += eptrRecv[i];
     }
     free(eptr);
     eptr = eptrRecv;
@@ -494,10 +511,11 @@ bool PartitionMesh(){
       free(ElementType[i]);
     }
     free(ElementType);
-    ElementType = (char**)malloc(nelementsRecv*sizeof(char*));
+    ElementType = (char **)malloc(nelementsRecv * sizeof(char *));
     for (int i = 0; i < nelementsRecv; ++i) {
-      ElementType[i] = (char*)malloc(MAX_ELEMENT_TYPE_SIZE*sizeof(char));
-      memcpy(ElementType[i], &(ElementTypeRecv[i*MAX_ELEMENT_TYPE_SIZE]), MAX_ELEMENT_TYPE_SIZE*sizeof(char));
+      ElementType[i] = (char *)malloc(MAX_ELEMENT_TYPE_SIZE * sizeof(char));
+      memcpy(ElementType[i], &(ElementTypeRecv[i * MAX_ELEMENT_TYPE_SIZE]),
+             MAX_ELEMENT_TYPE_SIZE * sizeof(char));
     }
     free(ElementTypeRecv);
 
@@ -509,46 +527,57 @@ bool PartitionMesh(){
 
     // Reorder local connectivity
     updateConnectivityGlobalToLocal();
-    // assert(nelements == 0);
+    if (debug && 1 == 1) {
+      printf("DEBUG(%d) : Node list to share in local node ID\n", world_rank);
+      for (int i = 0; i < sendProcessCount; ++i) {
+        printf("With process %d\n", sendProcessID[i]);
+        for (int j = sendNeighbourCountCum[i]; j < sendNeighbourCountCum[i + 1];
+             ++j) {
+          printf("%d\t", sendNodeIndex[j]);
+        }
+        printf("\n");
+      }
+      printf("\n");
+    }
   } else {
-    printf("\nERROR( proc %d ): ParMETIS returned error code %d\n", world_rank, Result);
+    printf("\nERROR( proc %d ): ParMETIS returned error code %d\n", world_rank,
+           Result);
   }
   free(ubvec);
   free(tpwgts);
   free(elmdist);
   free(part);
+  assert(nelements == 0);
   return Result == METIS_OK;
 }
 //-------------------------------------------------------------------------------------------
-int compare (const void * a, const void * b) {
-  return ( *(int*)a - *(int*)b );
-}
+int compare(const void *a, const void *b) { return (*(int *)a - *(int *)b); }
 //-------------------------------------------------------------------------------------------
 int unique(int *arr, int n) {
-	int *temp;
-	int j = 0;
-	temp = (int *)calloc(n, sizeof(int));
-  for (int i=0; i < n-1; i++) {
-    if (arr[i] != arr[i+1]) {
+  int *temp;
+  int j = 0;
+  temp = (int *)calloc(n, sizeof(int));
+  for (int i = 0; i < n - 1; i++) {
+    if (arr[i] != arr[i + 1]) {
       temp[j++] = arr[i];
     }
   }
-  temp[j++] = arr[n-1];
+  temp[j++] = arr[n - 1];
   for (int i = 0; i < j; i++) {
     arr[i] = temp[i];
   }
-	free(temp);
+  free(temp);
   return j;
 }
 //-------------------------------------------------------------------------------------------
 void updateConnectivityGlobalToLocal(void) {
   int totalSize = eptr[nelements];
-  int *newConnectivity = (int*)malloc(totalSize*sizeof(int));
-  int *sorted = (int*)malloc(totalSize*sizeof(int));
-  memcpy(sorted, connectivity, totalSize*sizeof(int));
+  int *newConnectivity = (int *)malloc(totalSize * sizeof(int));
+  int *sorted = (int *)malloc(totalSize * sizeof(int));
+  memcpy(sorted, connectivity, totalSize * sizeof(int));
   qsort(sorted, totalSize, sizeof(int), compare);
   nnodes = unique(sorted, totalSize);
-  for(int i = 0; i < totalSize; ++i) {
+  for (int i = 0; i < totalSize; ++i) {
     int j;
     for (j = 0; j < nnodes; ++j) {
       if (sorted[j] == connectivity[i]) {
@@ -557,16 +586,29 @@ void updateConnectivityGlobalToLocal(void) {
     }
     newConnectivity[i] = j;
   }
+
   // Reoder co-ordinates
-  double *newCoordinates = (double*)malloc(ndim*nnodes*sizeof(double));
+  double *newCoordinates = (double *)malloc(ndim * nnodes * sizeof(double));
   for (int j = 0; j < nnodes; ++j) {
     int i;
-    for(i = 0; i < totalSize; ++i) {
+    for (i = 0; i < totalSize; ++i) {
       if (sorted[j] == connectivity[i]) {
         break;
       }
     }
-    memcpy(newCoordinates+ndim*j, coordinates+ndim*i, ndim*sizeof(double));
+    memcpy(newCoordinates + ndim * j, coordinates + ndim * i,
+           ndim * sizeof(double));
+  }
+  // Global to local map of sendNodeIndex Array
+  totalSize = sendNeighbourCountCum[sendProcessCount];
+  for (int i = 0; i < totalSize; ++i) {
+    int j;
+    for (j = 0; j < nnodes; ++j) {
+      if (sorted[j] == sendNodeIndex[i]) {
+        break;
+      }
+    }
+    sendNodeIndex[i] = j;
   }
   free(connectivity);
   connectivity = newConnectivity;
@@ -574,44 +616,90 @@ void updateConnectivityGlobalToLocal(void) {
   coordinates = newCoordinates;
   free(sorted);
 }
+// Function to compute intersection of two sorted arrays
+int getIntersection(int *list1, int *list2, int size1, int size2,
+                    int **intersection) {
+  // Create a temperory array of size of smallest of the two arrays
+  int maxSize = (size1 < size2) ? size1 : size2;
+  int *temp = (int *)malloc(maxSize * sizeof(int));
+  int i = 0, j = 0, k = 0;
+
+  while (i < size1 && j < size2) {
+    if (list1[i] < list2[j]) {
+      i = i + 1;
+    } else {
+      if (list2[j] < list1[i]) {
+        j = j + 1;
+      } else { // Both list are equal
+        temp[k] = list2[j];
+        i = i + 1;
+        j = j + 1;
+        k = k + 1;
+      }
+    }
+  }
+
+  int intSize = k; // Size of the intersection
+  (*intersection) = (int *)malloc(intSize * sizeof(int));
+  memcpy(*intersection, temp, intSize * sizeof(int));
+  free(temp);
+  return intSize;
+}
 void createNodalCommunicationPattern(void) {
+  // Creates the nodal communication pattern between processes
+  // 1 . Identify the neighbours or ghost node of each element after the mesh is
+  // partitoned.
+  // 2. Find the boundary and interior nodes.
+  // 3. For boundary nodes identify the process ID of neighbour ghost elements
+  // 4. Send element ID to neighbour process
+  // 5. Create list of node list of received element ID
+  // 6. Send back the node list and node ptr of ghost elements
+  // 7. Create a list of common node and the processID to which it belong
+  // 8. Finally populate the data structure that can be used for communication
+  // every time step.
+
   // Create dual of mesh to figure out ghost elements of the local mesh
   MPI_Comm comm;
   MPI_Comm_dup(MPI_COMM_WORLD, &comm);
   idx_t *xadj;
   idx_t *adjncy;
   idx_t ncommonnodes = 1; // number of nodes elements must have in common
-  idx_t numflag = 0; // we are using C-style arrays
+  idx_t numflag = 0;      // we are using C-style arrays
   // Create the elelemnt distribution array
-  int *elementCount = (int*)malloc(world_size*sizeof(int));
+  int *elementCount = (int *)malloc(world_size * sizeof(int));
   MPI_Allgather(&nelements, 1, MPI_INT, elementCount, 1, MPI_INT, comm);
 
-  idx_t *elmdist = (idx_t *)malloc((world_size + 1)*sizeof(idx_t));
+  idx_t *elmdist = (idx_t *)malloc((world_size + 1) * sizeof(idx_t));
   elmdist[0] = 0;
   for (int i = 0; i < world_size; ++i) {
-    elmdist[i+1] = elmdist[i]+elementCount[i];
+    elmdist[i + 1] = elmdist[i] + elementCount[i];
   }
-  // for (int i = 0; i < world_size; ++i) {
-  //   printf("DEBUG (%d) : %d, %d \n", world_rank, elementCount[i], elmdist[i+1]);
-  // }
+  if (debug && 1 == 0) {
+    for (int i = 0; i < world_size; ++i) {
+      printf("DEBUG (%d) : %d, %d \n", world_rank, elementCount[i],
+             elmdist[i + 1]);
+    }
+  }
   free(elementCount);
-  const int Result = ParMETIS_V3_Mesh2Dual(elmdist, eptr, connectivity, &numflag, &ncommonnodes, &xadj, &adjncy, &comm);
+  const int Result =
+      ParMETIS_V3_Mesh2Dual(elmdist, eptr, connectivity, &numflag,
+                            &ncommonnodes, &xadj, &adjncy, &comm);
   // Check the success of Mesh2Dual
   assert(Result == METIS_OK);
 
   // Partition the neighbours to process they belong to
   const int totalGhosts = xadj[nelements];
-  int *processID_ghost = (int*)malloc(totalGhosts*sizeof(int));
+  int *processID_ghost = (int *)malloc(totalGhosts * sizeof(int));
 
-  int *ghostCountProcess = (int*)calloc(world_size, sizeof(int));
-  int *ghostCountProcessCum = (int*)malloc((world_size+1)*sizeof(int));
+  int *ghostCountProcess = (int *)calloc(world_size, sizeof(int));
+  int *ghostCountProcessCum = (int *)malloc((world_size + 1) * sizeof(int));
   int totalGhostCount = 0;
 
   for (int i = 0; i < totalGhosts; ++i) {
     int elementID = adjncy[i];
     int j;
     for (j = 0; j < world_size; ++j) {
-      if (elementID < elmdist[j+1]) {
+      if (elementID < elmdist[j + 1]) {
         processID_ghost[i] = j;
         if (j != world_rank) {
           totalGhostCount += 1;
@@ -629,7 +717,8 @@ void createNodalCommunicationPattern(void) {
 
   ghostCountProcessCum[0] = 0;
   for (int i = 0; i < world_size; ++i) {
-    ghostCountProcessCum[i+1] = ghostCountProcessCum[i] + ghostCountProcess[i];
+    ghostCountProcessCum[i + 1] =
+        ghostCountProcessCum[i] + ghostCountProcess[i];
   }
 
   // for (int i = 0; i < world_size; ++i) {
@@ -642,34 +731,42 @@ void createNodalCommunicationPattern(void) {
   // If all the neighbours of a cell are in the same process its classified as
   // an interior element
   // This can be used to skip all interior elements quickly
-  int *boundaryElement = (int*)calloc(nelements, sizeof(int));
+  int *boundaryElement = (int *)calloc(nelements, sizeof(int));
   for (int i = 0; i < nelements; ++i) {
-    int end = xadj[i+1];
+    int end = xadj[i + 1];
     for (int j = xadj[i]; j < end; ++j) {
       if (processID_ghost[j] != world_rank) {
         boundaryElement[i] = 1;
         break;
-      }  
+      }
     }
   }
   // for (int i = 0; i < nelements; ++i) {
-  //   printf("DEBUG (%d) boundary element : %d is %d\n", world_rank, i, boundaryElement[i]);
+  //   printf("DEBUG (%d) boundary element : %d is %d\n", world_rank, i,
+  //   boundaryElement[i]);
   // }
 
   // Create array to store elementID for request from other process
-  int *elemID_request = (int*)malloc(totalGhostCount*sizeof(int));
-  int *elemCurrentLoc = (int*)calloc(world_size, sizeof(int));
+  int *elemID_request = (int *)malloc(totalGhostCount * sizeof(int));
+  int *elemCurrentLoc = (int *)calloc(world_size, sizeof(int));
 
+  // Node list count of elements that share with ghost nodes
+  // This count will be used in the last step to create local node list to
+  // compare with ghost node list from each process
+  int *nodeListCountProcess = (int *)calloc(world_size, sizeof(int));
   for (int j = 0; j < nelements; ++j) {
     if (boundaryElement[j]) {
-      int end = xadj[j+1];
+      int localElementNodeSize = eptr[j + 1] - eptr[j];
+      int end = xadj[j + 1];
       for (int i = xadj[j]; i < end; ++i) {
         int elementID = adjncy[i];
         int processID = processID_ghost[i];
         if (processID != world_rank) {
-          int location = ghostCountProcessCum[processID] + elemCurrentLoc[processID];
+          int location =
+              ghostCountProcessCum[processID] + elemCurrentLoc[processID];
           elemID_request[location] = elementID;
           elemCurrentLoc[processID] += 1;
+          nodeListCountProcess[processID] += localElementNodeSize;
         }
       }
     }
@@ -678,6 +775,8 @@ void createNodalCommunicationPattern(void) {
   for (int i = 0; i < world_size; ++i) {
     assert(elemCurrentLoc[i] == ghostCountProcess[i]);
   }
+  free(elemCurrentLoc);
+
   // Create unique set of elementIDs to request by removing duplicates in
   // elemID_request
   // Array ghostCountProcess is updated to store the count of unique element ids
@@ -685,21 +784,22 @@ void createNodalCommunicationPattern(void) {
   for (int i = 0; i < world_size; ++i) {
     if (ghostCountProcess[i]) {
       sendCount += 1;
-      if (debug && 1==0) {
+      if (debug && 1 == 0) {
         printf("DEBUG (%d) : Before Make Unique for %d\n", world_rank, i);
-        for (int j = ghostCountProcessCum[i]; j < ghostCountProcessCum[i+1]; ++j) {
+        for (int j = ghostCountProcessCum[i]; j < ghostCountProcessCum[i + 1];
+             ++j) {
           printf("%d\t", elemID_request[j]);
         }
         printf("\n");
       }
-      qsort(&(elemID_request[ghostCountProcessCum[i]]),  ghostCountProcess[i], \
-          sizeof(int), compare);
-      ghostCountProcess[i] = unique(&(elemID_request[ghostCountProcessCum[i]]),  \
-          ghostCountProcess[i]);
-      if (debug && 1==0) {
+      qsort(&(elemID_request[ghostCountProcessCum[i]]), ghostCountProcess[i],
+            sizeof(int), compare);
+      ghostCountProcess[i] = unique(&(elemID_request[ghostCountProcessCum[i]]),
+                                    ghostCountProcess[i]);
+      if (debug && 1 == 0) {
         printf("DEBUG (%d) : After Make Unique for %d\n", world_rank, i);
         for (int j = 0; j < ghostCountProcess[i]; ++j) {
-          printf("%d\t", elemID_request[ghostCountProcessCum[i]+j]);
+          printf("%d\t", elemID_request[ghostCountProcessCum[i] + j]);
         }
         printf("\n");
       }
@@ -707,11 +807,12 @@ void createNodalCommunicationPattern(void) {
   }
   // Prepare arrays to recv request for ghost
   // Get count to receive from each processor
-  int *elemID_recvCount = (int*)malloc(world_size*sizeof(int));
-  memcpy(elemID_recvCount, ghostCountProcess, world_size*sizeof(int));
-  MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, elemID_recvCount, 1, MPI_INT, MPI_COMM_WORLD);
+  int *elemID_recvCount = (int *)malloc(world_size * sizeof(int));
+  memcpy(elemID_recvCount, ghostCountProcess, world_size * sizeof(int));
+  MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, elemID_recvCount, 1, MPI_INT,
+               MPI_COMM_WORLD);
 
-  if (debug && 1==0) {
+  if (debug && 1 == 0) {
     printf("\nDEBUG (proc %d): Element ID Request Pattern\n", world_rank);
     for (int i = 0; i < world_size; ++i) {
       printf("%d\t", ghostCountProcess[i]);
@@ -724,30 +825,33 @@ void createNodalCommunicationPattern(void) {
   }
 
   // Create the required send and receive patterns
-  int *elemID_recvCountCum = (int*)malloc((world_size+1)*sizeof(int));
+  int *elemID_recvCountCum = (int *)malloc((world_size + 1) * sizeof(int));
   elemID_recvCountCum[0] = 0;
 
   int recvCount = 0;
   for (int i = 0; i < world_size; ++i) {
-    elemID_recvCountCum[i+1] = elemID_recvCountCum[i] + elemID_recvCount[i];
+    elemID_recvCountCum[i + 1] = elemID_recvCountCum[i] + elemID_recvCount[i];
     if (elemID_recvCount[i]) {
       recvCount += 1;
     }
   }
   int totalElemID_ToRecv = elemID_recvCountCum[world_size];
-  int *elemID_recv = (int*)malloc(totalElemID_ToRecv*sizeof(int));
+  int *elemID_recv = (int *)malloc(totalElemID_ToRecv * sizeof(int));
 
   // factor of 2 used in below malloc required to transfer nodeID and nodePtr
-  MPI_Request* requestListSend = (MPI_Request*)malloc(sizeof(MPI_Request)*2*sendCount); 
-  MPI_Request* requestListRecv = (MPI_Request*)malloc(sizeof(MPI_Request)*2*recvCount); 
+  MPI_Request *requestListSend =
+      (MPI_Request *)malloc(sizeof(MPI_Request) * 2 * sendCount);
+  MPI_Request *requestListRecv =
+      (MPI_Request *)malloc(sizeof(MPI_Request) * 2 * recvCount);
   int requestIndex = 0;
   int elemIDTag = 923;
 
   // Post all send requests
   for (int i = 0; i < world_size; ++i) {
     if (ghostCountProcess[i]) {
-      MPI_Isend(&(elemID_request[ghostCountProcessCum[i]]), ghostCountProcess[i], MPI_INT, i, \
-          elemIDTag, MPI_COMM_WORLD, &(requestListSend[requestIndex]));
+      MPI_Isend(&(elemID_request[ghostCountProcessCum[i]]),
+                ghostCountProcess[i], MPI_INT, i, elemIDTag, MPI_COMM_WORLD,
+                &(requestListSend[requestIndex]));
       requestIndex += 1;
     }
   }
@@ -759,8 +863,9 @@ void createNodalCommunicationPattern(void) {
   for (int i = 0; i < world_size; ++i) {
     if (elemID_recvCount[i]) {
       // Recv elemt id list array from i
-      MPI_Irecv(&(elemID_recv[elemID_recvCountCum[i]]), elemID_recvCount[i], MPI_INT, i, \
-          elemIDTag, MPI_COMM_WORLD, &(requestListRecv[requestIndex]));
+      MPI_Irecv(&(elemID_recv[elemID_recvCountCum[i]]), elemID_recvCount[i],
+                MPI_INT, i, elemIDTag, MPI_COMM_WORLD,
+                &(requestListRecv[requestIndex]));
       requestIndex += 1;
     }
   }
@@ -778,11 +883,12 @@ void createNodalCommunicationPattern(void) {
   // free(requestListSend);
   // free(requestListRecv);
 
-  if (debug && 1==0) {
+  if (debug && 1 == 0) {
     printf("DEBUG(%d) : Element id requests received \n", world_rank);
     for (int i = 0; i < world_size; ++i) {
       printf("From %d\n", i);
-      for (int j = elemID_recvCountCum[i]; j < elemID_recvCountCum[i+1]; ++j) {
+      for (int j = elemID_recvCountCum[i]; j < elemID_recvCountCum[i + 1];
+           ++j) {
         printf("%d\t", elemID_recv[j]);
       }
       printf("\n");
@@ -791,26 +897,31 @@ void createNodalCommunicationPattern(void) {
 
   // Prepare to send nodelist of requested elements
   int totalElementRequest = elemID_recvCountCum[world_size];
-  int *nodePtr = (int*)malloc((totalElementRequest+1)*sizeof(int));
-  int *nodeCount = (int*)malloc(totalElementRequest*sizeof(int));
+  int *nodePtr = (int *)malloc((totalElementRequest + 1) * sizeof(int));
+  int *nodeCount = (int *)malloc(totalElementRequest * sizeof(int));
   nodePtr[0] = 0;
   for (int i = 0; i < totalElementRequest; ++i) {
     // Convert global element ID to local element ID
-    int elementID = elemID_recv[i]-elmdist[world_rank];
-    nodeCount[i] = eptr[elementID+1]-eptr[elementID];
-    nodePtr[i+1] = nodePtr[i] + nodeCount[i];
+    int elementID = elemID_recv[i] - elmdist[world_rank];
+    nodeCount[i] = eptr[elementID + 1] - eptr[elementID];
+    nodePtr[i + 1] = nodePtr[i] + nodeCount[i];
   }
+
   int totalNodes = nodePtr[totalElementRequest];
   // Create node list
-  int *nodeList = (int*)malloc(totalNodes*sizeof(int));
+  int *nodeList = (int *)malloc(totalNodes * sizeof(int));
   for (int i = 0; i < totalElementRequest; ++i) {
     // Convert global element ID to local element ID
-    int elementID = elemID_recv[i]-elmdist[world_rank];
-    int nodesInElement = eptr[elementID+1]-eptr[elementID];
-    memcpy(&(nodeList[nodePtr[i]]), &(connectivity[eptr[elementID]]), \
-        sizeof(int)*nodesInElement);
+    int elementID = elemID_recv[i] - elmdist[world_rank];
+    int nodesInElement = eptr[elementID + 1] - eptr[elementID];
+    memcpy(&(nodeList[nodePtr[i]]), &(connectivity[eptr[elementID]]),
+           sizeof(int) * nodesInElement);
   }
-  if (debug && 1==0) {
+
+  free(elmdist);
+  free(elemID_recv);
+
+  if (debug && 1 == 0) {
     printf("DEBUG(%d) : Node id populated \n", world_rank);
     for (int i = 0; i < totalNodes; ++i) {
       printf("%d\t", nodeList[i]);
@@ -821,20 +932,21 @@ void createNodalCommunicationPattern(void) {
   // Send nodesIDs associated with corresponding elemntID to requested process
   // First exchange number of nodeIDs to send between process
   // Create array for the same
-  int *nodeID_countSend = (int*)calloc(world_size, sizeof(int));
+  int *nodeID_countSend = (int *)calloc(world_size, sizeof(int));
   for (int i = 0; i < world_size; ++i) {
     if (elemID_recvCount[i]) {
       int start = elemID_recvCountCum[i];
-      int end = elemID_recvCountCum[i+1];
-      nodeID_countSend[i] = nodePtr[end]-nodePtr[start];
+      int end = elemID_recvCountCum[i + 1];
+      nodeID_countSend[i] = nodePtr[end] - nodePtr[start];
     }
   }
-  int *nodeID_countRecv = (int*)malloc(world_size*sizeof(int));
-  int *nodeID_countRecvCum = (int*)malloc((world_size+1)*sizeof(int));
-  memcpy(nodeID_countRecv, nodeID_countSend, world_size*sizeof(int));
-  MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, nodeID_countRecv, 1, MPI_INT, MPI_COMM_WORLD);
+  int *nodeID_countRecv = (int *)malloc(world_size * sizeof(int));
+  int *nodeID_countRecvCum = (int *)malloc((world_size + 1) * sizeof(int));
+  memcpy(nodeID_countRecv, nodeID_countSend, world_size * sizeof(int));
+  MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, nodeID_countRecv, 1, MPI_INT,
+               MPI_COMM_WORLD);
 
-  if (debug && 1==0) {
+  if (debug && 1 == 0) {
     printf("\nDEBUG (proc %d): Node ID Send Pattern\n", world_rank);
     for (int i = 0; i < world_size; ++i) {
       printf("%d\t", nodeID_countSend[i]);
@@ -845,20 +957,21 @@ void createNodalCommunicationPattern(void) {
     }
     printf("\n");
   }
-  // Create storage space to receive node ID 
+  // Create storage space to receive node ID
   nodeID_countRecvCum[0] = 0;
   // Update ghostCountProcessCum
-  int *uniqueElementCountCum = (int*)malloc((world_size+1)*sizeof(int));
+  int *uniqueElementCountCum = (int *)malloc((world_size + 1) * sizeof(int));
   uniqueElementCountCum[0] = 0;
   for (int i = 0; i < world_size; ++i) {
-    nodeID_countRecvCum[i+1] = nodeID_countRecvCum[i]+nodeID_countRecv[i];
-    uniqueElementCountCum[i+1] = uniqueElementCountCum[i] + ghostCountProcess[i];
+    nodeID_countRecvCum[i + 1] = nodeID_countRecvCum[i] + nodeID_countRecv[i];
+    uniqueElementCountCum[i + 1] =
+        uniqueElementCountCum[i] + ghostCountProcess[i];
   }
   int nodePtrSize = uniqueElementCountCum[world_size];
   int totalNodeIDToRecv = nodeID_countRecvCum[world_size];
 
-  int *nodeListRecv = (int*)malloc(totalNodeIDToRecv*sizeof(int));
-  int *nodePtrRecv = (int*)malloc((nodePtrSize+1)*sizeof(int));
+  int *nodeListRecv = (int *)malloc(totalNodeIDToRecv * sizeof(int));
+  int *nodePtrRecv = (int *)malloc((nodePtrSize + 1) * sizeof(int));
   nodePtrRecv[0] = 0;
 
   // Send Node ID to all requested process
@@ -869,12 +982,13 @@ void createNodalCommunicationPattern(void) {
   for (int i = 0; i < world_size; ++i) {
     if (elemID_recvCount[i]) {
       int start = elemID_recvCountCum[i];
-      int location = nodePtr[start]; 
+      int location = nodePtr[start];
       int nodeIDCount = nodeID_countSend[i];
-      MPI_Isend(&(nodeList[location]), nodeIDCount, MPI_INT, i, nodeIDTag, \
-          MPI_COMM_WORLD, &(requestListRecv[requestIndex]));
-      MPI_Isend(&(nodeCount[start]), elemID_recvCount[i], MPI_INT, i, \
-          nodeID_PtrTag, MPI_COMM_WORLD, &(requestListRecv[requestIndex+1]));
+      MPI_Isend(&(nodeList[location]), nodeIDCount, MPI_INT, i, nodeIDTag,
+                MPI_COMM_WORLD, &(requestListRecv[requestIndex]));
+      MPI_Isend(&(nodeCount[start]), elemID_recvCount[i], MPI_INT, i,
+                nodeID_PtrTag, MPI_COMM_WORLD,
+                &(requestListRecv[requestIndex + 1]));
       // printf("DEBUG(%d) : Sent to %d\t : ", world_rank, i);
       // for (int j = 0; j < elemID_recvCount[i]; ++j) {
       //   printf("%d\t", nodeCount[start+j]);
@@ -884,55 +998,65 @@ void createNodalCommunicationPattern(void) {
     }
   }
   // Check if sends tally with element recv count
-  assert(requestIndex == 2*recvCount);
+  assert(requestIndex == 2 * recvCount);
 
+  free(elemID_recvCount);
+  free(elemID_recvCountCum);
+  free(nodePtr);
+  free(nodeCount);
+  free(nodeList);
+  free(nodeID_countSend);
 
   // Receive the node IDs
   requestIndex = 0;
   for (int i = 0; i < world_size; ++i) {
     if (ghostCountProcess[i]) {
       int location = nodeID_countRecvCum[i];
-      MPI_Irecv(&(nodeListRecv[location]), nodeID_countRecv[i], MPI_INT, i, nodeIDTag, \
-          MPI_COMM_WORLD, &(requestListSend[requestIndex]));
-      MPI_Irecv(&(nodePtrRecv[uniqueElementCountCum[i]+1]), ghostCountProcess[i], MPI_INT, i, \
-          nodeID_PtrTag, MPI_COMM_WORLD, &(requestListSend[requestIndex+1]));
+      MPI_Irecv(&(nodeListRecv[location]), nodeID_countRecv[i], MPI_INT, i,
+                nodeIDTag, MPI_COMM_WORLD, &(requestListSend[requestIndex]));
+      MPI_Irecv(&(nodePtrRecv[uniqueElementCountCum[i] + 1]),
+                ghostCountProcess[i], MPI_INT, i, nodeID_PtrTag, MPI_COMM_WORLD,
+                &(requestListSend[requestIndex + 1]));
       requestIndex += 2;
     }
   }
-  assert(requestIndex == 2*sendCount);
+  assert(requestIndex == 2 * sendCount);
 
   // Wait for all sends and recvs to be over
-  for (int i = 0; i < 2*recvCount; ++i) {
+  for (int i = 0; i < 2 * recvCount; ++i) {
     MPI_Wait(&(requestListRecv[i]), &status);
   }
-  for (int i = 0; i < 2*sendCount; ++i) {
+  for (int i = 0; i < 2 * sendCount; ++i) {
     MPI_Wait(&(requestListSend[i]), &status);
   }
+  free(requestListSend);
+  free(requestListRecv);
+
   // Convert nodePtrRecv to cumulative array
   for (int i = 0; i < nodePtrSize; ++i) {
-    nodePtrRecv[i+1] += nodePtrRecv[i];
+    nodePtrRecv[i + 1] += nodePtrRecv[i];
   }
   if (debug && 1 == 0) {
     for (int i = 0; i < world_size; ++i) {
       if (ghostCountProcess[i]) {
         printf("DEBUG(%d) : Recv from %d\t : ", world_rank, i);
         for (int j = 0; j < ghostCountProcess[i]; ++j) {
-          printf("%d\t", nodePtrRecv[uniqueElementCountCum[i]+1+j]);
+          printf("%d\t", nodePtrRecv[uniqueElementCountCum[i] + 1 + j]);
         }
         printf("\n");
       }
     }
   }
 
-  if (debug && 1==1) {
+  if (debug && 1 == 0) {
     printf("\nDEBUG(%d) : Printing available ghost data\n", world_rank);
     for (int i = 0; i < world_size; ++i) {
       printf("\nElement ID from process %d\n", i);
-      for (int j = ghostCountProcessCum[i], l = 0; \
-          j < (ghostCountProcessCum[i]+ghostCountProcess[i]); ++j, ++l) {
+      for (int j = ghostCountProcessCum[i], l = 0;
+           j < (ghostCountProcessCum[i] + ghostCountProcess[i]); ++j, ++l) {
         printf("%d\t : ", elemID_request[j]);
-        int loc = uniqueElementCountCum[i]+l;
-        for (int k = nodePtrRecv[loc]; k < nodePtrRecv[loc+1]; ++k) {
+        int loc = uniqueElementCountCum[i] + l;
+        for (int k = nodePtrRecv[loc]; k < nodePtrRecv[loc + 1]; ++k) {
           printf("%d\t", nodeListRecv[k]);
         }
         printf("\n");
@@ -940,33 +1064,222 @@ void createNodalCommunicationPattern(void) {
     }
     printf("\n");
   }
-
-  assert(nelements == 0);
+  free(ghostCountProcessCum);
+  free(elemID_request);
   free(uniqueElementCountCum);
-  free(nodeID_countSend);
-  free(requestListSend);
-  free(requestListRecv);
-
-  // Get elements from other processes which are current ghosts
-  // Create a list of elements where node info is required from other process
-  //
-  free(nodeID_countRecv);
-  free(nodeID_countRecvCum);
-  
-  free(nodeList);
-  free(nodePtr);
-  free(nodeCount);
-  free(nodeListRecv);
   free(nodePtrRecv);
 
-  free(elemID_recv);
-  free(elemID_request);
-  free(elemCurrentLoc);
+  // Find common nodes between boundary elements and ghost elements
+  // Create cumulative array of node list for each process
+  int *nodeListCountProcessCum = (int *)malloc((world_size + 1) * sizeof(int));
+  int *nodeListCurrentProcess = (int *)calloc(world_size, sizeof(int));
+  nodeListCountProcessCum[0] = 0;
+  for (int i = 0; i < world_size; ++i) {
+    nodeListCountProcessCum[i + 1] =
+        nodeListCountProcessCum[i] + nodeListCountProcess[i];
+  }
+  int totalLocalNodes = nodeListCountProcessCum[world_size];
+  int *localBoundaryNodeList = (int *)malloc(totalLocalNodes * sizeof(int));
 
-  free(boundaryElement);
-  free(elementCount);
-  free(elmdist);
+  // Find total number of processes to communicate
+  sendProcessCount = 0;
+  for (int i = 0; i < world_size; ++i) {
+    if (ghostCountProcess[i]) {
+      sendProcessCount += 1;
+    }
+  }
+  // Create list of all processes to communicate
+  sendProcessID = (int *)malloc(sendProcessCount * sizeof(int));
+  int loc = 0;
+  for (int i = 0; i < world_size; ++i) {
+    if (ghostCountProcess[i]) {
+      sendProcessID[loc] = i;
+      loc = loc + 1;
+    }
+  }
+  // Check if all prcoess ID are assigned
+  assert(loc == sendProcessCount);
+
+  if (debug && 1 == 0) {
+    printf("DEBUG (%d) : List of process sharing boundary : ", world_rank);
+    for (int i = 0; i < sendProcessCount; ++i) {
+      printf("%d\t", sendProcessID[i]);
+    }
+    printf("\n");
+  }
+
+  for (int j = 0; j < nelements; ++j) {
+    if (boundaryElement[j]) {
+      int startLoc = eptr[j];
+      int localElementNodeSize = eptr[j + 1] - eptr[j];
+      int end = xadj[j + 1];
+      for (int i = xadj[j]; i < end; ++i) {
+        int processID = processID_ghost[i];
+        if (processID != world_rank) {
+          int location = nodeListCountProcessCum[processID] +
+                         nodeListCurrentProcess[processID];
+          memcpy(&(localBoundaryNodeList[location]), &(connectivity[startLoc]),
+                 sizeof(int) * localElementNodeSize);
+          nodeListCurrentProcess[processID] += localElementNodeSize;
+        }
+      }
+    }
+  }
+  // Check if node list is fully populated
+  for (int i = 0; i < world_size; ++i) {
+    assert(nodeListCurrentProcess[i] == nodeListCountProcess[i]);
+  }
   free(processID_ghost);
+  free(boundaryElement);
+
+  if (debug && 1 == 0) {
+    printf("DEBUG (%d) : Shared node list before unique \n", world_rank);
+    for (int i = 0; i < world_size; ++i) {
+      printf("On process %d\n", i);
+      for (int j = nodeListCountProcessCum[i];
+           j < nodeListCountProcessCum[i + 1]; ++j) {
+        printf("%d\t", localBoundaryNodeList[j]);
+      }
+      printf("\n");
+    }
+    printf("\n");
+  }
+  // Make all local node list unique
+  // Use variable nodeListCurrentProcess to store unique size
+  for (int i = 0; i < world_size; ++i) {
+    if (ghostCountProcess[i]) {
+      int location = nodeListCountProcessCum[i];
+      int size = nodeListCountProcess[i];
+      qsort(&(localBoundaryNodeList[location]), size, sizeof(int), compare);
+      nodeListCurrentProcess[i] =
+          unique(&(localBoundaryNodeList[location]), size);
+    }
+  }
+  free(nodeListCountProcess);
+
+  if (debug && 1 == 0) {
+    printf("DEBUG (%d) : Shared node list after unique \n", world_rank);
+    for (int i = 0; i < world_size; ++i) {
+      printf("On process %d\n", i);
+      int location = nodeListCountProcessCum[i];
+      int size = nodeListCurrentProcess[i];
+      for (int j = 0; j < size; ++j) {
+        printf("%d\t", localBoundaryNodeList[location + j]);
+      }
+      printf("\n");
+    }
+    printf("\n");
+  }
+  // Make node list received from processes unique
+  if (debug && 1 == 0) {
+    printf("DEBUG (%d) : Received node list before unique \n", world_rank);
+    for (int i = 0; i < world_size; ++i) {
+      printf("On process %d\n", i);
+      for (int j = nodeID_countRecvCum[i]; j < nodeID_countRecvCum[i + 1];
+           ++j) {
+        printf("%d\t", nodeListRecv[j]);
+      }
+      printf("\n");
+    }
+    printf("\n");
+  }
+  // Make all local node list unique
+  // Use variable nodeListNeighbourProcess to store unique size
+  int *nodeListNeighbourProcessCount = (int *)calloc(world_size, sizeof(int));
+  for (int i = 0; i < world_size; ++i) {
+    if (ghostCountProcess[i]) {
+      int location = nodeID_countRecvCum[i];
+      int size = nodeID_countRecv[i];
+      qsort(&(nodeListRecv[location]), size, sizeof(int), compare);
+      nodeListNeighbourProcessCount[i] =
+          unique(&(nodeListRecv[location]), size);
+    }
+  }
+  free(nodeID_countRecv);
+  if (debug && 1 == 0) {
+    printf("DEBUG (%d) : Received node list after unique \n", world_rank);
+    for (int i = 0; i < world_size; ++i) {
+      printf("On process %d\n", i);
+      int location = nodeID_countRecvCum[i];
+      int size = nodeListNeighbourProcessCount[i];
+      for (int j = 0; j < size; ++j) {
+        printf("%d\t", nodeListRecv[location + j]);
+      }
+      printf("\n");
+    }
+    printf("\n");
+  }
+
+  // int a[] = {1, 2, 7, 9, 13, 22, 27, 29, 31, 37, 41, 56, 57, 58, 60, 61};
+  // int b[] = {1, 3, 7, 8, 11, 12, 13, 15, 21, 22, 36, 37, 56, 58, 61, 67, 91};
+  // int *c;
+  // int cSize = getIntersection(a, b, 16, 17, &c);
+  // printf("Intersection of array test\n");
+  // for (int i = 0; i < cSize; ++i) {
+  //   printf("%d\t", c[i]);
+  // }
+  // printf("\n");
+
+  // Create intersection of local node list and node list from neighbour process
+  sendNeighbourCount = (int *)malloc(sendProcessCount * sizeof(int));
+  int **intersectionStorage = (int **)malloc(sendProcessCount * sizeof(int *));
+  int countLocation = 0;
+  for (int i = 0; i < world_size; ++i) {
+    if (ghostCountProcess[i]) {
+      int location1 = nodeListCountProcessCum[i];
+      int size1 = nodeListCurrentProcess[i];
+      int location2 = nodeID_countRecvCum[i];
+      int size2 = nodeListNeighbourProcessCount[i];
+      sendNeighbourCount[countLocation] = getIntersection(
+          &(localBoundaryNodeList[location1]), &(nodeListRecv[location2]),
+          size1, size2, &(intersectionStorage[countLocation]));
+      countLocation += 1;
+    }
+  }
+  assert(countLocation == sendProcessCount);
+
   free(ghostCountProcess);
-  free(ghostCountProcessCum);
+  free(nodeListCountProcessCum);
+  free(nodeID_countRecvCum);
+  free(nodeListRecv);
+  free(nodeListCurrentProcess);
+  free(localBoundaryNodeList);
+  free(nodeListNeighbourProcessCount);
+
+  // Store the list of intersections
+  sendNeighbourCountCum = (int *)malloc((sendProcessCount + 1) * sizeof(int));
+  sendNeighbourCountCum[0] = 0;
+  for (int i = 0; i < sendProcessCount; ++i) {
+    sendNeighbourCountCum[i + 1] =
+        sendNeighbourCountCum[i] + sendNeighbourCount[i];
+  }
+  int totalUniqueNodes = sendNeighbourCountCum[sendProcessCount];
+  sendNodeIndex = (int *)malloc(totalUniqueNodes * sizeof(int));
+  for (int i = 0; i < sendProcessCount; ++i) {
+    int location = sendNeighbourCountCum[i];
+    int size = sendNeighbourCount[i];
+    memcpy(&(sendNodeIndex[location]), intersectionStorage[i],
+           sizeof(int) * size);
+  }
+
+  for (int i = 0; i < sendProcessCount; ++i) {
+    free(intersectionStorage[i]);
+  }
+  free(intersectionStorage);
+
+  if (debug && 1 == 0) {
+    printf("DEBUG(%d) : Node list to share \n", world_rank);
+    for (int i = 0; i < sendProcessCount; ++i) {
+      printf("With process %d\n", sendProcessID[i]);
+      for (int j = sendNeighbourCountCum[i]; j < sendNeighbourCountCum[i + 1];
+           ++j) {
+        printf("%d\t", sendNodeIndex[j]);
+      }
+      printf("\n");
+    }
+    printf("\n");
+  }
+
+  sendNodeDisplacement = (double *)malloc(totalUniqueNodes * sizeof(double));
+  recvNodeDisplacement = (double *)malloc(totalUniqueNodes * sizeof(double));
 }

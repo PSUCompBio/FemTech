@@ -49,10 +49,10 @@ void FreeArrays() {
 	free1DArray(E);
 	free1DArray(detFptr);
   // Free arrays used for communication
-  free1DArray(recvProcessID);
-  free1DArray(recvNeighbourCount);
-  free1DArray(recvNeighbourCountCum);
-  free1DArray(recvNodeIndex);
+  // free1DArray(recvProcessID);
+  // free1DArray(recvNeighbourCount);
+  // free1DArray(recvNeighbourCountCum);
+  // free1DArray(recvNodeIndex);
   free1DArray(recvNodeDisplacement);
 
   free1DArray(sendProcessID);
