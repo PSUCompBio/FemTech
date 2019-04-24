@@ -18,8 +18,8 @@ void InternalForceUpdate(int e, int gp, double *force) {
       &oneI, &zero, fintGQ, &oneI);
   // Add to fint
   int wIndex = gpPtr[e]+gp;
-  // const double preFactor = gaussWeights[wIndex]*detF[wIndex];
-  const double preFactor = gaussWeights[wIndex]*detJacobian[wIndex];
+  // Following Belytschko equation 4.4.50 and Box 4.3
+  const double preFactor = gaussWeights[wIndex]*detF[wIndex]*detJacobian[wIndex];
   for (int k = 0; k < bColSize; ++k) {
     force[k] += preFactor*fintGQ[k];
   }
