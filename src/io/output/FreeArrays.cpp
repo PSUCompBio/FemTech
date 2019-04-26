@@ -30,11 +30,11 @@ void FreeArrays() {
 	free1DArray(boundary);
 	free1DArray(velocities_half);
   free1DArray(fe);
+  free1DArray(fi);
 	free1DArray(f_net);
 	free1DArray(fr_prev);
 	free1DArray(fr_curr);
 	free1DArray(fi_prev);
-	free1DArray(fi_curr);
 	free1DArray(f_damp_prev);
 	free1DArray(f_damp_curr);
 	free1DArray(displacements_prev);
@@ -48,7 +48,18 @@ void FreeArrays() {
 	free1DArray(b);
 	free1DArray(E);
 	free1DArray(detFptr);
+  // Free arrays used for communication
+  // free1DArray(recvProcessID);
+  // free1DArray(recvNeighbourCount);
+  // free1DArray(recvNeighbourCountCum);
+  // free1DArray(recvNodeIndex);
+  free1DArray(recvNodeDisplacement);
 
+  free1DArray(sendProcessID);
+  free1DArray(sendNeighbourCount);
+  free1DArray(sendNeighbourCountCum);
+  free1DArray(sendNodeIndex);
+  free1DArray(sendNodeDisplacement);
 
   if (ElementType != NULL){
     for (int i = 0; i < nelements; i++){

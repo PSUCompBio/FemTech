@@ -5,12 +5,15 @@ void CalculateAccelerations(){
 	//printf("Calculate Accelerations.\n");
 	//Accelerations = VectorXd::Zero(F_net.size());
 
-	//for (int i = 0; i < F_net.size(); i++) {
-	//	Accelerations(i) = (F_net(i) / mm(i));
-	//}
+  if (debug && 1 == 0) {
+    printf("RHS of solution\n");
+    for (int i = 0; i < ndim*nnodes; ++i) {
+	    printf("%d  %12.6f\n", i, f_net[i]);
+	  }
+  }
   for (int i = 0; i < ndim*nnodes; ++i) {
-    accelerations[i] = f_net[i]/mass[i]; 
-    printf("Acceleration %d : %.5f\n", i, accelerations[i]);
+    accelerations[i] = f_net[i]/mass[i];
+    // printf("Acceleration %d : %.5f\n", i, accelerations[i]);
   }
 	return;
 }

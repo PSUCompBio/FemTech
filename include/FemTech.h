@@ -64,13 +64,31 @@ void CalculateAccelerations();
 void CalculateFR();
 
 void CalculateDeformationGradient(int e, int gp);
-void StressDisplacementMatrix(int e, int gp, int nI, double *B);
+void StrainDisplacementMatrix(int e, int gp, int nI, double *B);
 void CompressibleNeoHookean(int e, int gp);
 void StressUpdate(int e, int gp);
 void DeterminateF(int e, int gp);
 void InverseF(int e, int gp);
-void InternalForceUpdate(int e, int gp);
+void InternalForceUpdate(int e, int gp, double *force);
+void ReadMaterials();
+void StVenantKirchhoff(int e, int gp);
+void LinearElastic(int e, int gp);
 
 void inverse3x3Matrix(double* mat, double* invMat, double* det);
 //void MultiplyMatrices(double* a, double* b, int sizeM, double* result);
+double tripleProduct(double* s, double* a, double* b);
+double normOfCrossProduct(double *a, double *b);
+void crossProduct(double* a, double* b, double* result);
+double norm3D(double *a);
+double dotProduct3D(double *a, double *b);
+
+
+void CheckEnergy();
+
+/* Functions to calculate characteristic lengths */
+double CalculateCharacteristicLength(int e);
+double CalculateCharacteristicLength_C3D4(int e);
+double CalculateCharacteristicLength_C3D8(int e);
+
+void updateMassMatrixNeighbour(void);
 #endif

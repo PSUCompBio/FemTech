@@ -1,9 +1,9 @@
 #include "FemTech.h"
 
-void StressDisplacementMatrix(int e, int gp, int nI, double *B) {
+void StrainDisplacementMatrix(int e, int gp, int nI, double *B) {
 
 	//FT = F.transpose();
-	if(ndim == 2){
+	if(ndim == 2) {
 		// B in 2D is a 3 x 2 matrix
 		double B11,B12,B21,B22,B31,B32;
 		double dnIdx = 0.0;

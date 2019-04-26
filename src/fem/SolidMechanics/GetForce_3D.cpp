@@ -1,72 +1,98 @@
 #include "FemTech.h"
-#include "blas.h"
+
+void updateInternalForceNeighbour(void);
 
 void GetForce_3D() {
   // TODO(Anil) special treatment for first time step
   // Below algorithm works for n > 0
-  const int nDOF = nnodes*ndim;
+  const int nDOF = nnodes * ndim;
+  // Store internal force from previous step to compute energy
+  memcpy(fi_prev, fi, nDOF * sizeof(double));
   // Following Belytschko
   // Set force_n to zero
-  memset(f_net, 0, nDOF*sizeof(double));
-  int cSize = 6;
-  // Variables to store intermediate outputs
-  double *Bdn = (double*)calloc(cSize, sizeof(double));
-  double *CBdn = (double*)calloc(cSize, sizeof(double));
-  // Loop over elements and Gauss points 
-	for(int i=0; i<nelements; i++) {
+  memset(f_net, 0, nDOF * sizeof(double));
+  memset(fi, 0, nDOF * sizeof(double));
+  // Loop over elements and Gauss points
+  for (int i = 0; i < nelements; i++) {
     int nNodes = nShapeFunctions[i];
     // number of shape functions * ndim
-    int bColSize = nNodes*ndim;
-    int Bsize = bColSize*cSize;
-    double *B = (double*)calloc(Bsize, sizeof(double));
-    double *localDisplacement = (double*)calloc(nNodes*ndim, sizeof(double));
-    double *fintLocal = (double*)calloc(nNodes*ndim, sizeof(double));
-    // Copy local displacement to array
-    for (int k = 0; k < nNodes; ++k) {
-      int dIndex = connectivity[eptr[i]+k];
-      localDisplacement[k*ndim+0] = displacements[dIndex*ndim+0];
-      localDisplacement[k*ndim+1] = displacements[dIndex*ndim+1];
-      localDisplacement[k*ndim+2] = displacements[dIndex*ndim+2];
-    }
-		for(int j=0; j<GaussPoints[i]; j++) {
+    double *fintLocal = (double *)calloc(nNodes * ndim, sizeof(double));
+    for (int j = 0; j < GaussPoints[i]; j++) {
       // calculate F^n
-			CalculateDeformationGradient(i, j);
+      CalculateDeformationGradient(i, j);
       // Calculate Determinant of F
-			DeterminateF(i, j);
-      // Calculate B matrix for each shape function
-      for (int k = 0; k < nShapeFunctions[i]; ++k) {
-        StressDisplacementMatrix(i, j, k, &(B[6*ndim*k]));
-      }
-      // Compute B*d^n
-      dgemv_(chn, &cSize, &bColSize, &one, B, &cSize, localDisplacement, \
-          &oneI, &zero, Bdn, &oneI);
-      // Compute sigma^n = C*B*d^n
-      dgemv_(chn, &cSize, &cSize, &one, C, &cSize, Bdn, \
-          &oneI, &zero, CBdn, &oneI);
-      // Compute B^T*sigma^n
-      dgemv_(chy, &cSize, &bColSize, &one, B, &cSize, CBdn, \
-          &oneI, &zero, fintLocal, &oneI);
-      // Add to fint
-      int wIndex = gpPtr[i]+j;
-      const double preFactor = gaussWeights[wIndex]*detF[wIndex];
-      for (int k = 0; k < bColSize; ++k) {
-        fintLocal[k] += preFactor*fintLocal[k];
-      }
-			// InverseF(i,j);
-			// StressUpdate(i,j);
-			// InternalForceUpdate(i,j);
-		} //loop on gauss points
+      DeterminateF(i, j);
+      // Calculate sigma^n
+      StressUpdate(i, j);
+      InternalForceUpdate(i, j, fintLocal);
+    } // loop on gauss points
+    // Move Local internal for to global force
     for (int k = 0; k < nNodes; ++k) {
-      int dIndex = connectivity[eptr[i]+k];
-      f_net[dIndex*ndim+0] -= fintLocal[k*ndim+0];
-      f_net[dIndex*ndim+1] -= fintLocal[k*ndim+1];
-      f_net[dIndex*ndim+2] -= fintLocal[k*ndim+2];
+      int dIndex = connectivity[eptr[i] + k];
+      for (int l = 0; l < ndim; ++l) {
+        fi[dIndex * ndim + l] += fintLocal[k * ndim + l];
+      }
     }
-    free(B);
-    free(localDisplacement);
     free(fintLocal);
-	} // loop on i, nelements
-  free(Bdn);
-  free(CBdn);
-	return;
+  } // loop on i, nelements
+  updateInternalForceNeighbour();
+  // Update net force with internal force
+  for (int i = 0; i < nnodes * ndim; ++i) {
+    f_net[i] -= fi[i];
+  }
+  return;
+}
+void updateInternalForceNeighbour(void) {
+  // Update array to send
+  int totalNodeToSend = sendNeighbourCountCum[sendProcessCount];
+  for (int i = 0; i < totalNodeToSend; ++i) {
+    int nodeIndex = ndim * sendNodeIndex[i];
+    memcpy(&(sendNodeDisplacement[ndim * i]), &(fi[nodeIndex]),
+           sizeof(double) * ndim);
+  }
+  // Create send requests
+  int forceTag = 2169;
+  MPI_Request *requestListSend =
+      (MPI_Request *)malloc(sizeof(MPI_Request) * sendProcessCount);
+  for (int i = 0; i < sendProcessCount; ++i) {
+    int process = sendProcessID[i];
+    int location = sendNeighbourCountCum[i] * ndim;
+    int size = ndim * sendNeighbourCount[i];
+    MPI_Isend(&(sendNodeDisplacement[location]), size, MPI_DOUBLE, process,
+              forceTag, MPI_COMM_WORLD, &(requestListSend[i]));
+  }
+  // Create recv requests
+  MPI_Request *requestListRecv =
+      (MPI_Request *)malloc(sizeof(MPI_Request) * sendProcessCount);
+  for (int i = 0; i < sendProcessCount; ++i) {
+    int process = sendProcessID[i];
+    int location = sendNeighbourCountCum[i] * ndim;
+    int size = ndim * sendNeighbourCount[i];
+    MPI_Irecv(&(recvNodeDisplacement[location]), size, MPI_DOUBLE, process,
+              forceTag, MPI_COMM_WORLD, &(requestListRecv[i]));
+  }
+  // Wait for completion of all requests
+  MPI_Status status;
+  for (int i = 0; i < sendProcessCount; ++i) {
+    MPI_Wait(&(requestListSend[i]), &status);
+  }
+  for (int i = 0; i < sendProcessCount; ++i) {
+    MPI_Wait(&(requestListRecv[i]), &status);
+  }
+  // Update Internal Force values
+  for (int i = 0; i < totalNodeToSend; ++i) {
+    int nodeIndex = ndim * sendNodeIndex[i];
+    for (int l = 0; l < ndim; ++l) {
+      fi[nodeIndex + l] += recvNodeDisplacement[ndim * i + l];
+    }
+  }
+  free(requestListSend);
+  free(requestListRecv);
+  if (debug && 1 == 0) {
+    const int nDOF = nnodes * ndim;
+    printf("Lumped Internal Force After Exchange\n");
+    for (int j = 0; j < nDOF; ++j) {
+      printf("%d  %12.6f\n", j, fi[j]);
+    }
+  }
 }
