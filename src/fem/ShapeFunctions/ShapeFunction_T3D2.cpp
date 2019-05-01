@@ -2,11 +2,6 @@
 
 
 void ShapeFunction_T3D2(int e, int gp, double *Chi, double *detJ){
-	 //  Purpose : Compute 3-d isoparametric 4 - node tet element shape
-	 //            functions and their derivatives w / r x, y, z
-
-	 //  Introduction to Finite Elements in Engineering, 3th Edition
-   //  by Chandrupatla and Belegundu
 
 	double chi, eta, iota;
 	chi =  Chi[ndim*gp + 0];
@@ -17,22 +12,6 @@ void ShapeFunction_T3D2(int e, int gp, double *Chi, double *detJ){
 	int g = GaussPoints[e];
 	const int indexShp = gptr[e] + gp * g;
   const int indexDshp = dsptr[e] + gp * g * ndim;
-  // determine natural or intrinsic corrdinate to be used in shp functions
-	int x = 0, y = 1, z = 2;
-	int node1 = 0, node2 = 1;
-  double x1,x2,y1,y2,z1,z2;
-	int index=eptr[e];
-	x1 = coordinates[ndim*connectivity[index+node1]+x];
-  x2 = coordinates[ndim*connectivity[index+node2]+x];
-  y1 = coordinates[ndim*connectivity[index+node1]+y];
-  y2 = coordinates[ndim*connectivity[index+node2]+y];
-  z1 = coordinates[ndim*connectivity[index+node1]+z];
-	z2 = coordinates[ndim*connectivity[index+node2]+z];
-  double le = sqrt( pow((x2-x1),2) + pow((y2-y1),2) + pow((z2-z1),2) );
-  // direction cosines
-  double l = (x2-x1)/le;
-  double m = (y2-y1)/le;
-  double n = (z2-z1)/le;
 
 	shp[indexShp + 0] = 0.5*(1.0-chi);
 	shp[indexShp + 1] = 0.5*(1.0+chi);
@@ -43,19 +22,19 @@ void ShapeFunction_T3D2(int e, int gp, double *Chi, double *detJ){
 	// The first derivatives
 
 	// with respect to chi
-	dshp[indexDshp + ndim * 0 + 0] =  1.0;
-	dshp[indexDshp + ndim * 1 + 0] =  0.0;
-	dshp[indexDshp + ndim * 2 + 0] =  0.0;
-	dshp[indexDshp + ndim * 3 + 0] = -1.0;
+	dshp[indexDshp + ndim * 0 + 0] = -0.5; // derivative of N_1
+ 	dshp[indexDshp + ndim * 1 + 0] =  0.5; // derivative of N_2
+	//dshp[indexDshp + ndim * 2 + 0] =  1.0;
+	//dshp[indexDshp + ndim * 3 + 0] =  1.0;
 
-	// // with respect to eta
-	// dshp[indexDshp + ndim * 0 + 1] =  0.0;
-	// dshp[indexDshp + ndim * 1 + 1] =  1.0;
+	// with respect to eta
+	dshp[indexDshp + ndim * 0 + 1] =  0.0; // derivative of N_1
+	dshp[indexDshp + ndim * 1 + 1] =  0.0; // derivative of N_2
 	// dshp[indexDshp + ndim * 2 + 1] =  0.0;
 	// dshp[indexDshp + ndim * 3 + 1] = -1.0;
-	// // with respect to iota
-	// dshp[indexDshp + ndim * 0 + 2] =  0.0;
-	// dshp[indexDshp + ndim * 1 + 2] =  0.0;
+	// with respect to iota
+	 dshp[indexDshp + ndim * 0 + 2] =  0.0; // derivative of N_1
+	 dshp[indexDshp + ndim * 1 + 2] =  0.0; // derivative of N_2
 	// dshp[indexDshp + ndim * 2 + 2] =  1.0;
 	// dshp[indexDshp + ndim * 3 + 2] = -1.0;
 

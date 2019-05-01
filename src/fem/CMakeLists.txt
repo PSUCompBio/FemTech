@@ -18,6 +18,7 @@ Set(fem_src
 		SolidMechanics/CalculateFR.cpp
 		SolidMechanics/StressUpdate.cpp
 		SolidMechanics/InternalForceUpdate.cpp
+		SolidMechanics/TrussStressForceUpdate.cpp
     SolidMechanics/CheckEnergy.cpp
     )
 

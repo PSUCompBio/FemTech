@@ -48,7 +48,8 @@ void FreeArrays() {
 	free1DArray(b);
 	free1DArray(E);
 	free1DArray(detFptr);
-
+	free1DArray(InternalsPtr);
+	free1DArray(internals);
 
   if (ElementType != NULL){
     for (int i = 0; i < nelements; i++){

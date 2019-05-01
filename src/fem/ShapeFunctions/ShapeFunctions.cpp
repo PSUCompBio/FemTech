@@ -18,6 +18,8 @@ double *E; //Green Lagrange strain tensor
 double *cauchy; // Cauchy Stress
 int *cptr; // pointer for iterating through cauchy stress.
 int *detFptr; //pointer for iterating through detF array.
+int *InternalsPtr; // pointer for iteratign through internals array
+double *internals; /*internal variables for history dependent models */
 
 int *gpPtr;
 double *detJacobian;
@@ -45,6 +47,7 @@ void ShapeFunctions() {
   fptr = (int *)malloc((nelements+1) * sizeof(int));
 	cptr = (int *)malloc((nelements+1) * sizeof(int));
 	detFptr = (int *)malloc((nelements+1) * sizeof(int));
+	InternalsPtr = (int *)malloc((nelements+1) * sizeof(int));
 
   int counter = 0; //counter for storage of shp nShapeFunctions
   int dshp_counter = 0; // counter for deriviatives of shp function
@@ -52,6 +55,7 @@ void ShapeFunctions() {
 	int F_counter = 0; //counter for storage of deformation gradient, F
   int cauchy_counter = 0; //counter for storage of cauchy stress.
 	int detF_counter = 0; // counter for storage of detF for each element.
+	int internals_counter = 0; //counter for storage of internals for each gauss point.
 
   gptr[0] = 0;
   dsptr[0] = 0;
@@ -104,6 +108,14 @@ void ShapeFunctions() {
 			// gauss point. Since detF is a scalar value there is only 8 values per
 			// hex element.
 			detF_counter +=8;
+
+			// the next counter is for holding internal variables. These are stored at
+			// each of the gauss points. Depending on the material model, such as
+			// plasticity, there are different number of internals stored. For now
+			// we define the same number, MAXINTERNALVARS to each gauss point, or
+			// MAXINTERNALVARS*GaussPoints[i].
+			internals_counter += MAXINTERNALVARS * GaussPoints[i];
+
     }
     if (strcmp(ElementType[i], "C3D4") == 0) {
       gpCount = 1; // only one gauss point
@@ -118,7 +130,7 @@ void ShapeFunctions() {
 			F_counter += 9;
 			cauchy_counter += 6; // six positions for 3D, it is symmetric
 			detF_counter +=1;
-
+			internals_counter += MAXINTERNALVARS * GaussPoints[i];
       // gpCount = 4;
       // nShapeFunctions[i] = 4;
       // counter += 16;
@@ -126,7 +138,7 @@ void ShapeFunctions() {
     }
 		if (strcmp(ElementType[i], "T3D2") == 0) {
       gpCount = 1; // only one gauss point
-      nShapeFunctions[i] = 2;
+      nShapeFunctions[i] = 2; // b/c there is two nodes in truss
       // same arguments as above in C3D8, see those comments for details
       // counter = counter + nShapeFunctions[i]*gpCount;
       // dshp_counter = dshp_counter + (ndim * nShapeFunctions[i]*gpCount);
@@ -137,6 +149,7 @@ void ShapeFunctions() {
 			F_counter += (ndim*ndim*gpCount);
 			cauchy_counter += 6; // six positions for 3D, it is symmetric
 			detF_counter +=1; // detF stored only at gauss point
+			internals_counter += MAXINTERNALVARS * GaussPoints[i];
     }
     GaussPoints[i] = gpCount;
     gptr[i + 1] = counter;
@@ -145,6 +158,8 @@ void ShapeFunctions() {
     fptr[i+1] = F_counter;
 		cptr[i+1] = cauchy_counter;
 		detFptr[i+1] = detF_counter;
+		InternalsPtr[i+1]=internals_counter;
+
   } // loop on i, nelements
 
   // for debugging purposes
@@ -172,6 +187,7 @@ void ShapeFunctions() {
 	invF = (double *)calloc(F_counter, sizeof(double));
 	b = (double *)calloc(F_counter, sizeof(double));
 	E = (double *)calloc(F_counter, sizeof(double));
+	internals = (double *)calloc(internals_counter, sizeof(double));
 	/*  size of Cauchy stress is 6 values for each gauss point
 	  	the Cauchy stress is symmetric */
 	cauchy = (double *)calloc(cauchy_counter, sizeof(double));
@@ -228,22 +244,31 @@ void ShapeFunctions() {
     //   // free(GaussWeights);
     // } // if loop
 
-		double *Chi = (double*)malloc(GaussPoints[i] * ndim * sizeof(double));
-		double *GaussWeightsLocal = &(gaussWeights[gpPtr[i]]);
-		double *detJacobianLocal = &(detJacobian[gpPtr[i]]);
-		GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
-		for (int k = 0; k < GaussPoints[i]; k++) {
-	    if (strcmp(ElementType[i], "C3D8") == 0) {
-					ShapeFunction_C3D8(i, k, Chi, detJacobianLocal);
-			}
-	  	if (strcmp(ElementType[i], "C3D4") == 0) {
-					ShapeFunction_C3D4(i, k, Chi, detJacobianLocal);
-			}
-			if (strcmp(ElementType[i], "T3D2") == 0) {
-					ShapeFunction_T3D2(i, k, Chi, detJacobianLocal);
-		  }
+	double *Chi = (double*)malloc(GaussPoints[i] * ndim * sizeof(double));
+	double *GaussWeightsLocal = &(gaussWeights[gpPtr[i]]);
+	double *detJacobianLocal = &(detJacobian[gpPtr[i]]);
+	for (int k = 0; k < GaussPoints[i]; k++) {
+	  if (strcmp(ElementType[i], "C3D8") == 0) {
+				//double *Chi = (double*)malloc(GaussPoints[i] * ndim * sizeof(double));
+				//double *GaussWeightsLocal = &(gaussWeights[gpPtr[i]]);
+				//double *detJacobianLocal = &(detJacobian[gpPtr[i]]);
+				GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
+				ShapeFunction_C3D8(i, k, Chi, detJacobianLocal);
 		}
-    free(Chi);
+		if (strcmp(ElementType[i], "C3D4") == 0) {
+				//double *Chi = (double*)malloc(GaussPoints[i] * ndim * sizeof(double));
+				//double *GaussWeightsLocal = &(gaussWeights[gpPtr[i]]);
+				//double *detJacobianLocal = &(detJacobian[gpPtr[i]]);
+				GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
+				ShapeFunction_C3D4(i, k, Chi, detJacobianLocal);
+		}
+		if (strcmp(ElementType[i], "T3D2") == 0)
+				GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
+				ShapeFunction_T3D2(i, k, Chi, detJacobianLocal);
+	  }
+		free(Chi);
+
+
   }// loop on nelements
 
   // for debugging

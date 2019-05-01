@@ -5,7 +5,7 @@
 double StableTimeStep() {
 
 	double dt;
-	double dtMin = HUGE;
+	double dtMin = huge;
 
 	for(int i=0;i<nelements;i++){
  		dt = CalculateTimeStep(i);

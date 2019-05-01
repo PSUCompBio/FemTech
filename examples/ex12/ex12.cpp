@@ -31,13 +31,11 @@ int main(int argc, char **argv) {
   AllocateArrays();
 	ReadMaterials();
 
-
-
   /* Write inital, undeformed configuration*/
   Time = 0.0;
   nStep = 0;
   WriteVTU(argv[1], nStep, Time);
-exit(0);
+
   // Dynamic Explcit solution using....
   double dt;
   double tMax = 1; // max simulation time in seconds
@@ -57,6 +55,7 @@ exit(0);
 
   /* Step-2: getforce step from Belytschko */
   GetForce(); // Calculating the force term.
+
   /* obtain dt, according to Belytschko dt is calculated at end of getForce */
   dt = ExplicitTimeStepReduction * StableTimeStep();
   tMax = 2*dt;
@@ -94,14 +93,13 @@ exit(0);
           velocities[i] + (t_nphalf - t_n) * accelerations[i];
     }
 
-
     /* Update Nodal Displacements */
     printf("%d (%.6f) Dispalcements\n--------------------\n",
             time_step_counter, Time);
     for (int i = 0; i < ndim * nnodes; i++) {
       displacements[i] = displacements[i] + dt_nphalf * velocities_half[i];
-      // printf("%.6f, %0.6f, %0.6f\n", displacements[i], velocities[i],
-      // accelerations[i]);
+       printf("%.6f, %0.6f, %0.6f\n", displacements[i], velocities[i],
+       accelerations[i]);
     }
     /* Step 6 Enfotce velocity boundary Conditions */
     ApplyBoundaryConditions(Time, dMax, tMax);
@@ -171,7 +169,6 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
   // Apply Ramped Displacment
   if (ExplicitDynamic || ImplicitDynamic) {
     k = Time * (dMax / tMax);
-    // AppliedDisp = 0.04;
   } else if (ImplicitStatic) {
     k = dMax;
   }
@@ -188,6 +185,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
 		if (fabs(coordinates[ndim * i + 0] - 1.0) < tol) {
 			boundary[ndim * i + 0] = 1;
 			displacements[ndim * i + 0] += k;
+			printf("app disp = %3.3f\n",displacements[ndim * i + 0]);
 			count = count + 1;
 		}
 
@@ -196,7 +194,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
     displacements[ndim * i + 1] = 0.0;
     count = count + 1;
 
-    	// constrain in y
+    	// constrain in z
     boundary[ndim * i + 2] = 1;
     displacements[ndim * i + 2] = 0.0;
     count = count + 1;

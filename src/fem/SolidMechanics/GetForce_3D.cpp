@@ -10,20 +10,31 @@ void GetForce_3D() {
   // Set force_n to zero
   memset(f_net, 0, nDOF*sizeof(double));
   memset(fi, 0, nDOF*sizeof(double));
+
   // Loop over elements and Gauss points
 	for(int i=0; i<nelements; i++) {
     int nNodes = nShapeFunctions[i];
     // number of shape functions * ndim
     double *fintLocal = (double*)calloc(nNodes*ndim, sizeof(double));
+		// force calculaton for hexes, tets and quads
 		for(int j=0; j<GaussPoints[i]; j++) {
-      // calculate F^n
-			CalculateDeformationGradient(i, j);
-      // Calculate Determinant of F
-			DeterminateF(i, j);
-      // Calculate sigma^n
-			StressUpdate(i, j);
-		  InternalForceUpdate(i, j, fintLocal);
+			// truss elements are unique b/c the 3D formulation is not like solid
+			// elmeents like quads or hexes, or tets.
+	    if(strcmp(ElementType[i], "T3D2") == 0){
+				TrussStressForceUpdate(i,j,fintLocal);
+				//CalculateDeformationGradient(i, j);
+				//exit(0);
+			}else{
+	      // calculate F^n
+				CalculateDeformationGradient(i, j);
+	      // Calculate Determinant of F
+				DeterminateF(i, j);
+	      // Calculate sigma^n
+				StressUpdate(i, j);
+			  InternalForceUpdate(i, j, fintLocal);
+			} // else
 		} //loop on gauss points
+
     // Move Local internal for to global force
     for (int k = 0; k < nNodes; ++k) {
       int dIndex = connectivity[eptr[i]+k];
@@ -33,9 +44,12 @@ void GetForce_3D() {
     }
     free(fintLocal);
 	} // loop on i, nelements
+
   // Update net force with internal force
   for (int i = 0; i < nnodes*ndim; ++i) {
     f_net[i] -= fi[i];
   }
+
+
 	return;
 }

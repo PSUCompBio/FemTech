@@ -100,9 +100,10 @@ void GaussQuadrature3D(int element, int nGaussPoint, double *Chi, double *GaussW
 		Chi[0 * ndim + 0] = 0.0;
 		Chi[0 * ndim + 1] = 0.0;
 		Chi[0 * ndim + 2] = 0.0;
-	
+
 		GaussWeights[0] = 2.0;
 
 	}
+
    return;
 }

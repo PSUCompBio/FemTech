@@ -35,6 +35,7 @@ int main(int argc, char **argv) {
   Time = 0.0;
   nStep = 0;
   WriteVTU(argv[1], nStep, Time);
+printf("going to exit - rk\n");
 exit(0);
   // Dynamic Explcit solution using....
   double dt;

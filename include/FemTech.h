@@ -71,6 +71,7 @@ void StressUpdate(int e, int gp);
 void DeterminateF(int e, int gp);
 void InverseF(int e, int gp);
 void InternalForceUpdate(int e, int gp, double *force);
+void TrussStressForceUpdate(int e, int gp, double *force);
 void ReadMaterials();
 void StVenantKirchhoff(int e, int gp);
 void LinearElastic(int e, int gp);

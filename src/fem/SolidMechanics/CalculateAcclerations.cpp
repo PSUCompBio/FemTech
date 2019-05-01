@@ -10,7 +10,7 @@ void CalculateAccelerations(){
 	//}
   for (int i = 0; i < ndim*nnodes; ++i) {
     accelerations[i] = f_net[i]/mass[i];
-    // printf("Acceleration %d : %.5f\n", i, accelerations[i]);
+    printf("Acceleration %d : %.5f\n", i, accelerations[i]);
   }
 	return;
 }
