@@ -48,8 +48,23 @@ void FreeArrays() {
 	free1DArray(b);
 	free1DArray(E);
 	free1DArray(detFptr);
+//<<<<<<< addtrussV1
 	free1DArray(InternalsPtr);
 	free1DArray(internals);
+///=======
+  // Free arrays used for communication
+  // free1DArray(recvProcessID);
+  // free1DArray(recvNeighbourCount);
+  // free1DArray(recvNeighbourCountCum);
+  // free1DArray(recvNodeIndex);
+  free1DArray(recvNodeDisplacement);
+
+  free1DArray(sendProcessID);
+  free1DArray(sendNeighbourCount);
+  free1DArray(sendNeighbourCountCum);
+  free1DArray(sendNodeIndex);
+  free1DArray(sendNodeDisplacement);
+//>>>>>>> master
 
   if (ElementType != NULL){
     for (int i = 0; i < nelements; i++){

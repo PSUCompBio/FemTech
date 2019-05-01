@@ -71,10 +71,12 @@ extern int *materialID; /* material id for each element */
 extern double *properties; /* holds material parameters for each element */
 static int MAXMATPARAMS = 10; /* maximum number of material parameters stored for each element */
 
+//<<<<<<< addtrussV1
 extern double *internals; /* internal variables, typically used for damage or plasticity varialbes*/
 static int MAXINTERNALVARS = 5; /* max internal variables per gauss point */
 extern int *InternalsPtr; /* pointer for iterating through internals array */
-
+//=======
+//>>>>>>> master
 static int debug = 1;
 
 // Variables to keep track of time ans step count
@@ -83,3 +85,18 @@ static int debug = 1;
 // For unsteady nStep and time are set by solver
 extern int nStep;
 extern double Time;
+
+// Variables to keep store the communication patterns between processes
+// Implemented in PartitionMesh.cpp
+extern int sendProcessCount;
+extern int *sendProcessID;
+extern int *sendNeighbourCount;
+extern int *sendNeighbourCountCum;
+extern int *sendNodeIndex;
+extern double *sendNodeDisplacement;
+extern double *recvNodeDisplacement;
+
+// extern int *recvProcessID;
+// extern int *recvNeighbourCount;
+// extern int *recvNeighbourCountCum;
+// extern int *recvNodeIndex;
