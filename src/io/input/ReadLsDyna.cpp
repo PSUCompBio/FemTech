@@ -2,6 +2,7 @@
 
 #define TITLE_ELEMENT_SOLID  "*ELEMENT_SOLID"
 #define TITLE_ELEMENT_SHELL  "*ELEMENT_SHELL"
+#define TITLE_ELEMENT_BEAM   "*ELEMENT_BEAM"
 #define TITLE_NODE           "*NODE"
 #define TITLE_END            "*END"
 
@@ -19,10 +20,13 @@ bool ReadLsDyna(const char *FileName) {
     const char *Delim = " \t";
     char Line[MAX_FILE_LINE];
     long ElementsSectionPos = -1, NodesSectionPos = -1;
+    bool NDimExceptRuleExists = false;
     ndim = 0;
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (strncmp(Line, TITLE_ELEMENT_SOLID, strlen(TITLE_ELEMENT_SOLID)) == 0 ||
-            strncmp(Line, TITLE_ELEMENT_SHELL, strlen(TITLE_ELEMENT_SHELL)) == 0) {
+            strncmp(Line, TITLE_ELEMENT_SHELL, strlen(TITLE_ELEMENT_SHELL)) == 0 ||
+            strncmp(Line, TITLE_ELEMENT_BEAM, strlen(TITLE_ELEMENT_BEAM)) == 0) {
+            NDimExceptRuleExists = strncmp(Line, TITLE_ELEMENT_BEAM, strlen(TITLE_ELEMENT_BEAM)) == 0;
             ElementsSectionPos = ftell(File);
             while (fgets(Line, sizeof(Line), File) != NULL) {
                 if (LineToArray(true, false, 2, 1, Line) > 0 && LineToArray(true, true, 3, 0, Line) > 0) {
@@ -34,12 +38,13 @@ bool ReadLsDyna(const char *FileName) {
                 }
             }
         }
-        
+
         if (NodesSectionPos != -1 && ndim == 0) {
             NodesSectionPos = -1;
             bool Dim3Exists = false;
             while (!Dim3Exists && fgets(Line, sizeof(Line), File) != NULL) {
                 if (ndim == 0 && strstr(Line, "nid") != NULL) {
+                    // Defining ndim using x, y, z column names
                     if (strstr(Line, "x") != NULL) {
                         ndim = ndim + 1;
                     }
@@ -54,6 +59,8 @@ bool ReadLsDyna(const char *FileName) {
                     }
                 }
                 else if (ndim == 3) {
+                    // if ndim is 3, let's check values of rows of Z column
+                    // Dim3Exists gets TRUE if there is a non-zero row
                     double *ZColumnValue;
                     if (LineToArray(false, false, 4, 1, Line, Delim, (void**)&ZColumnValue) > 0) {
                         Dim3Exists = ZColumnValue[0] != 0;
@@ -61,8 +68,10 @@ bool ReadLsDyna(const char *FileName) {
                     }
                 }
             }
+            // Even each row in Z column of NODE section is 0, ndim will be 3 IF input file contains ELEMENT_BEAM section
+            // For ELEMENT_SHELL and ELEMENT_SOLID files, ndim will be 2 IF there are not non-zero rows in Z column
             if (ndim == 2 || ndim == 3) {
-                if (!Dim3Exists) {
+                if (!Dim3Exists && !NDimExceptRuleExists) {
                     ndim = 2;
                 }
                 break;
@@ -86,7 +95,7 @@ bool ReadLsDyna(const char *FileName) {
         }
         return false;
     }
-    
+
     // Determining number/count of elements processor will hold
     nelements = nallelements / world_size;
     if (world_rank == world_size - 1) {
@@ -96,7 +105,7 @@ bool ReadLsDyna(const char *FileName) {
     // Fixing range of lines (in elements section of mesh file) from which processor will read its own elements
     const int From = world_rank * (nallelements / world_size);
     const int To = From + nelements - 1;
-    
+
     // Creating and initializing "eptr" array, and determining size of "connectivity" array of processor
     eptr = (int *)calloc(nelements + 1, sizeof(int));
     int i = 0, j = 0, ConnectivitySize = 0;
@@ -155,15 +164,18 @@ bool ReadLsDyna(const char *FileName) {
         }
         else if (i >= From && i <= To) {
             pid[pi] = PIDs[0];
-            
+
             if (nn == 8) {
                 strcpy(ElementType[pi], "C3D8");
             }
             else if (nn == 4) {
                 strcpy(ElementType[pi], "C3D4");
             }
+            else if (nn == 2) {
+                strcpy(ElementType[pi], "T3D2");
+            }
             pi = pi + 1;
-             
+
             for (int j = 0; j < nn; j++) {
                 connectivity[ci] = Nodes[j] - 1;
                 ci = ci + 1;
@@ -184,7 +196,7 @@ bool ReadLsDyna(const char *FileName) {
         printf("\nERROR( proc %d ): 'fseek()' call failed.\n", world_rank);
         return false;
     }
-    
+
     // Initializing "coordinates" array
     int compare (const void * a, const void * b);
     int unique(int *arr, int n);

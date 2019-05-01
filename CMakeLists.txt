@@ -9,9 +9,9 @@ endif(WIN32)
 
 include_directories(include)
 
-option(ENABLE_MPI "Enable MPI parallelization" OFF)
+option(ENABLE_MPI "Enable MPI parallelization" ON)
 
-SET(PARALLEL 0 CACHE INTEGER "Defines a Parallel Build")
+#SET(PARALLEL 0 CACHE INTEGER "Defines a Parallel Build")
 
 # Define a set of values to identify each MPI implementation supported (when enabled)
 #set(MS_MPI "Microsoft")
@@ -41,16 +41,16 @@ if(ENABLE_MPI)
 		#message("MPIEXEC_EXECUTABLE: ${MPIEXEC_EXECUTABLE}") # debugging purposes
 #	endif()
 
-#	include_directories(${MPI_INCLUDE_PATH})
-#	set(CMAKE_C_FLAGS "${CMAKE_FLAGS} ${MPI_FLAGS}")
-#	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_CXX_FLAGS}")
-#	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_EXE_LINKER_FLAGS}")
+	include_directories(${MPI_INCLUDE_PATH})
+	set(CMAKE_C_FLAGS "${CMAKE_FLAGS} ${MPI_FLAGS}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_CXX_FLAGS}")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_EXE_LINKER_FLAGS}")
 	add_subdirectory(third-party/parmetis-4.0.3)
 	include_directories(third-party/parmetis-4.0.3/include)
 	include_directories(third-party/parmetis-4.0.3/metis/include)
-	unset(PARALLEL CACHE)
-	SET(PARALLEL 1 CACHE INTEGER "Defines a Parallel Build")
-	add_definitions( -DPARALLEL=${PARALLEL} )
+#	unset(PARALLEL CACHE)
+#	SET(PARALLEL 1 CACHE INTEGER "Defines a Parallel Build")
+#	add_definitions( -DPARALLEL=${PARALLEL} )
 endif(ENABLE_MPI)
 
 

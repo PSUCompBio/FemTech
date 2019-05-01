@@ -86,11 +86,15 @@ void WriteVTU(const char* FileName, int step,double time){
 	// write cell types
 	fprintf(fp,"\t\t\t\t<DataArray type=\"Int32\" Name=\"types\" format=\"ascii\">\n");
 	for(i=0;i<nelements;i++){
+
 		if( strcmp(ElementType[i], "C3D8") == 0){
 			fprintf(fp,"\t\t\t\t\t%d\n",12);
 		}
 		else if (strcmp(ElementType[i], "C3D4") == 0){
 			fprintf(fp, "\t\t\t\t\t%d\n", 10);
+		}
+		else if (strcmp(ElementType[i], "T3D2") == 0){
+			fprintf(fp, "\t\t\t\t\t%d\n", 3);
 		}
 	}
 	fprintf(fp, "\t\t\t\t</DataArray>\n");
@@ -127,7 +131,9 @@ void WriteVTU(const char* FileName, int step,double time){
 				fprintf(fp,"%d ",boundary[ndim*i+j]);
 			}
 			// Temporary solution for ndim
-			if(ndim == 2){fprintf(fp,"%d", 0);}
+			if(ndim == 1){fprintf(fp,"0.0  0.0");}
+			if(ndim == 2){fprintf(fp," 0.0");}
+
 			fprintf(fp,"\n");
 	}
 	fprintf(fp,"\t\t\t\t</DataArray>\n");

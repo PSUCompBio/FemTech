@@ -93,5 +93,17 @@ void GaussQuadrature3D(int element, int nGaussPoint, double *Chi, double *GaussW
 		GaussWeights[2] = 0.25 / 6.0;
 		GaussWeights[3] = 0.25 / 6.0;
 	}
+
+	// 2-noded truss with 1 integration point
+	if (strcmp(ElementType[element], "T3D2") == 0 && nGaussPoint == 1) {
+		/*integration point 1*/
+		Chi[0 * ndim + 0] = 0.0;
+		Chi[0 * ndim + 1] = 0.0;
+		Chi[0 * ndim + 2] = 0.0;
+
+		GaussWeights[0] = 2.0;
+
+	}
+
    return;
 }

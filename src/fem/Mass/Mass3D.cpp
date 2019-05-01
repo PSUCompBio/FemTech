@@ -57,7 +57,7 @@ void MassElementMatrix(double *Me, int e) {
     Me[n] *= rho;
   }
   // print Me Matrix
-  if (debug && 1==0) {
+  if (debug && 1==1) {
     printf("DEBUG : Printing Me (Mass Matrix) for Element %d\n", e);
     for (int j = 0; j < bColSize; ++j) {
       for (int k = 0; k < bColSize; ++k) {
