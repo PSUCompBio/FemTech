@@ -20,7 +20,6 @@ void WriteVTU(const char* FileName, int step,double time){
 	}
 	strip_ext(outfile);
 
-#if PARALLEL
 	//printf("\nwrite_VTU partition: %d\n", world_rank);
 	sprintf(s, ".vtu.%04d.%04d",step,world_rank);
   sprintf(paths,"./results/vtu/");
@@ -30,9 +29,7 @@ void WriteVTU(const char* FileName, int step,double time){
  	strcat(paths2,outfileP2);
   strcat(paths,outfile);
   strcat(paths,s);
-#else
-	strcat(outfile, ".vtu");
-#endif
+
 
 	//printf("\nnew name: %s\n",outfile);
 	fp=fopen(paths,"w");

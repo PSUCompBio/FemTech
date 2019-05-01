@@ -46,7 +46,6 @@ int main(int argc, char **argv) {
   /** Central Difference Method - Beta and Gamma */
   // double beta = 0;
   // double gamma = 0.5;
-
   ShapeFunctions();
   ReadMaterialProperties();
   /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
