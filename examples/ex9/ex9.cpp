@@ -10,7 +10,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax);
 double Time;
 int nStep;
 int nSteps;
-int nPlotSteps = 10;
+int nPlotSteps = 2;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
   }
 
   AllocateArrays();
-	ReadMaterials();
+  ReadMaterials();
 
   if (debug && 1 == 0) {
     // Printing local arrays of processor (this section can be removed)
@@ -106,8 +106,8 @@ int main(int argc, char **argv) {
   } else if (ExplicitDynamic) {
     // Dynamic Explcit solution using....
     double dt;
-    double tMax = 1.0; // max simulation time in seconds
-    double dMax = 0.05;  // max displacment in meters
+    double tMax = 2.0; // max simulation time in seconds
+    double dMax = 0.5; // max displacment in meters
     double Time = 0.0;
     int time_step_counter = 0;
     int plot_counter = 0;
@@ -124,13 +124,15 @@ int main(int argc, char **argv) {
     /* Step-2: getforce step from Belytschko */
     GetForce(); // Calculating the force term.
     /* obtain dt, according to Belytschko dt is calculated at end of getForce */
-    dt = ExplicitTimeStepReduction * StableTimeStep();
+    // dt = ExplicitTimeStepReduction * StableTimeStep();
+    dt = 1.0;
 
     /* Step-3: Calculate accelerations */
     CalculateAccelerations();
 
     nSteps = (int)(tMax / dt);
-    int nsteps_plot = (int)(nSteps / nPlotSteps);
+    // int nsteps_plot = (int)(nSteps / nPlotSteps);
+    int nsteps_plot = 1;
     printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
            nsteps_plot);
 
@@ -140,9 +142,11 @@ int main(int argc, char **argv) {
     /* Step-4: Time loop starts....*/
     time_step_counter = time_step_counter + 1;
     double t_n = 0.0;
-    const int nDOF = ndim*nnodes;
-    while (Time <= tMax) {
-		// for(int i=0;i<2;i++){
+    const int nDOF = ndim * nnodes;
+    printf("------------------------------- Loop ----------------------------\n");
+    printf("Time : %f, tmax : %f\n", Time, tMax);
+    while (Time < tMax) {
+      // for(int i=0;i<2;i++){
       /*Step 4 */
       // note: box 6.1 in belytschko
       // varibles t_np1 = t_n+1
@@ -150,8 +154,9 @@ int main(int argc, char **argv) {
 
       double t_n = Time;
       double t_np1 = Time + dt;
-      Time = t_np1; /*Update the time by adding full time step */
-      double dt_nphalf = dt;        // equ 6.2.1
+      Time = t_np1;          /*Update the time by adding full time step */
+      printf("Time : %f, tmax : %f\n", Time, tMax);
+      double dt_nphalf = dt; // equ 6.2.1
       double t_nphalf = 0.5 * (t_np1 + t_n); // equ 6.2.1
 
       /* Step 5 from Belytschko Box 6.1 - Update velocity */
@@ -164,11 +169,16 @@ int main(int argc, char **argv) {
       printf("%d (%.6f) Dispalcements\n--------------------\n",
              time_step_counter, Time);
       // Store old displacements for energy computation
-      memcpy(displacements_prev, displacements, ndim*nnodes*sizeof(double));
+      memcpy(displacements_prev, displacements, ndim * nnodes * sizeof(double));
       for (int i = 0; i < ndim * nnodes; i++) {
         displacements[i] = displacements[i] + dt_nphalf * velocities_half[i];
-        // printf("%.6f, %0.6f, %0.6f\n", displacements[i], velocities[i],
-        // accelerations[i]);
+        printf("%12.6f, %12.6f, %12.6f\n", displacements[i], velocities[i],
+        accelerations[i]);
+      }
+      printf("%d (%.6f) Accel\n--------------------\n",
+             time_step_counter, Time);
+      for (int i = 0; i < nnodes; i++) {
+        printf("%d, %12.6f\n", i, accelerations[3*i+2]);
       }
       /* Step 6 Enforce displacement boundary Conditions */
       ApplyBoundaryConditions(Time, dMax, tMax);
@@ -197,7 +207,7 @@ int main(int argc, char **argv) {
           printf("DEBUG : Printing Displacement Solution\n");
           for (int i = 0; i < nnodes; ++i) {
             for (int j = 0; j < ndim; ++j) {
-              printf("%12.4f", displacements[i*ndim+j]);
+              printf("%12.8f", displacements[i * ndim + j]);
             }
             printf("\n");
           }
@@ -206,21 +216,21 @@ int main(int argc, char **argv) {
       time_step_counter = time_step_counter + 1;
 
       // not sure if this is needed. part of getForce in Belytschko
-      dt = ExplicitTimeStepReduction * StableTimeStep();
+      // dt = ExplicitTimeStepReduction * StableTimeStep();
 
     } // end explcit while loop
 
     nStep = plot_counter;
   } // end if ExplicitDynamic
-  if (debug) {
-    printf("DEBUG : Printing Displacement Solution\n");
-    for (int i = 0; i < nnodes; ++i) {
-      for (int j = 0; j < ndim; ++j) {
-        printf("%12.4f", displacements[i*ndim+j]);
-      }
-      printf("\n");
-    }
-  }
+  // if (debug) {
+  //   printf("DEBUG : Printing Displacement Solution\n");
+  //   for (int i = 0; i < nnodes; ++i) {
+  //     for (int j = 0; j < ndim; ++j) {
+  //       printf("%12.4f", displacements[i * ndim + j]);
+  //     }
+  //     printf("\n");
+  //   }
+  // }
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {
@@ -281,7 +291,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
       // CalculateDisplacement to get current increment out
       //  displacment to be applied.
       displacements[ndim * i + 1] = AppliedDisp;
-      velocities[ndim * i + 1] = dMax/tMax;
+      velocities[ndim * i + 1] = dMax / tMax;
     }
   }
   // printf("Time = %3.3e, Applied Disp = %3.3e\n",Time,AppliedDisp);
