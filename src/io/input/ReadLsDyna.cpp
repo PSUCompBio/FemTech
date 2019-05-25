@@ -7,6 +7,41 @@
 #define TITLE_END            "*END"
 
 //-------------------------------------------------------------------------------------------
+static bool IsElementSection(char *Line, FILE *File, int *NDimExceptRuleExists = NULL) {
+    const bool ElementSection =
+        strncmp(Line, TITLE_ELEMENT_SOLID, strlen(TITLE_ELEMENT_SOLID)) == 0 ||
+        strncmp(Line, TITLE_ELEMENT_SHELL, strlen(TITLE_ELEMENT_SHELL)) == 0 ||
+        strncmp(Line, TITLE_ELEMENT_BEAM, strlen(TITLE_ELEMENT_BEAM)) == 0;
+
+    if (ElementSection) {
+        if (NDimExceptRuleExists != NULL && strncmp(Line, TITLE_ELEMENT_BEAM, strlen(TITLE_ELEMENT_BEAM)) == 0) {
+            *NDimExceptRuleExists = 1;
+        }
+        fgets(Line, MAX_FILE_LINE * sizeof(char), File);
+    }
+    return ElementSection;
+}
+//-------------------------------------------------------------------------------------------
+static bool IsNodeSection(char *Line) {
+    return strncmp(Line, TITLE_NODE, strlen(TITLE_NODE)) == 0;
+}
+//-------------------------------------------------------------------------------------------
+static int CalcUniqueValues(const int *Array, const int Size) {
+    int Result = 1;
+    for (int i = 1; i < Size; i++) {
+        int j = 0;
+        for (j = 0; j < i; j++) {
+            if (Array[i] == Array[j]) {
+                break;
+            }
+        }
+        if (i == j) {
+            Result++;
+        }
+    }
+    return Result;
+}
+//-------------------------------------------------------------------------------------------
 bool ReadLsDyna(const char *FileName) {
     // Checking if mesh file can be opened or not
     FILE *File;
@@ -19,28 +54,27 @@ bool ReadLsDyna(const char *FileName) {
     // And fixing elements and nodes sections' positions in the file
     const char *Delim = " \t";
     char Line[MAX_FILE_LINE];
-    long ElementsSectionPos = -1, NodesSectionPos = -1;
-    bool NDimExceptRuleExists = false;
+    long ElementsSectionPos = -1, NodesSectionPos = -1, CurrentPos = ftell(File);;
+    int NDimExceptRuleExists = 0;
     ndim = 0;
     while (fgets(Line, sizeof(Line), File) != NULL) {
-        if (strncmp(Line, TITLE_ELEMENT_SOLID, strlen(TITLE_ELEMENT_SOLID)) == 0 ||
-            strncmp(Line, TITLE_ELEMENT_SHELL, strlen(TITLE_ELEMENT_SHELL)) == 0 ||
-            strncmp(Line, TITLE_ELEMENT_BEAM, strlen(TITLE_ELEMENT_BEAM)) == 0) {
-            NDimExceptRuleExists = strncmp(Line, TITLE_ELEMENT_BEAM, strlen(TITLE_ELEMENT_BEAM)) == 0;
-            ElementsSectionPos = ftell(File);
+        if (IsElementSection(Line, File, &NDimExceptRuleExists)) {
+            if (ElementsSectionPos == -1) {
+                ElementsSectionPos = CurrentPos;
+            }
+            long LastValidElemDataLinePos = -1;
             while (fgets(Line, sizeof(Line), File) != NULL) {
-                if (LineToArray(true, false, 2, 1, Line) > 0 && LineToArray(true, true, 3, 0, Line) > 0) {
-                    nallelements++;
-                }
-                if (strncmp(Line, TITLE_NODE, strlen(TITLE_NODE)) == 0) {
-                    NodesSectionPos = ftell(File);
+                if (LineToArray(true, false, 2, 1, Line) == 0 || LineToArray(true, true, 3, 0, Line) == 0) {
                     break;
                 }
+                nallelements++;
+                LastValidElemDataLinePos = ftell(File);
+            }
+            if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
+                printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
             }
         }
-
-        if (NodesSectionPos != -1 && ndim == 0) {
-            NodesSectionPos = -1;
+        else if (NodesSectionPos == -1 && IsNodeSection(Line)) {
             bool Dim3Exists = false;
             while (!Dim3Exists && fgets(Line, sizeof(Line), File) != NULL) {
                 if (ndim == 0 && strstr(Line, "nid") != NULL) {
@@ -71,11 +105,14 @@ bool ReadLsDyna(const char *FileName) {
             // Even each row in Z column of NODE section is 0, ndim will be 3 IF input file contains ELEMENT_BEAM section
             // For ELEMENT_SHELL and ELEMENT_SOLID files, ndim will be 2 IF there are not non-zero rows in Z column
             if (ndim == 2 || ndim == 3) {
-                if (!Dim3Exists && !NDimExceptRuleExists) {
+                if (!Dim3Exists && NDimExceptRuleExists == 0) {
                     ndim = 2;
                 }
-                break;
             }
+        }
+
+        if (ElementsSectionPos == -1) {
+            CurrentPos = ftell(File);
         }
     }
 
@@ -110,20 +147,28 @@ bool ReadLsDyna(const char *FileName) {
     eptr = (int *)calloc(nelements + 1, sizeof(int));
     int i = 0, j = 0, ConnectivitySize = 0;
     while (fgets(Line, sizeof(Line), File) != NULL) {
-        const int np = LineToArray(true, false, 2, 1, Line);
-        const int nn = LineToArray(true, true, 3, 0, Line);
-        if (np == 0 || nn == 0) {
-            continue;
+        if (IsElementSection(Line, File)) {
+
+            long LastValidElemDataLinePos = -1;
+            while (fgets(Line, sizeof(Line), File) != NULL) {
+                const int np = LineToArray(true, false, 2, 1, Line);
+                const int nn = LineToArray(true, true, 3, 0, Line);
+                if (np == 0 || nn == 0) {
+                    break;
+                }
+                if (i >= From && i <= To) {
+                    j = j + 1;
+                    eptr[j] = eptr[j - 1] + nn;
+                    ConnectivitySize = ConnectivitySize + nn;
+                }
+                i = i + 1;
+                LastValidElemDataLinePos = ftell(File);
+            }
+
+            if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
+                printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
+            }
         }
-        else if (i >= From && i <= To) {
-            j = j + 1;
-            eptr[j] = eptr[j - 1] + nn;
-            ConnectivitySize = ConnectivitySize + nn;
-        }
-        if (strncmp(Line, TITLE_NODE, strlen(TITLE_NODE)) == 0) {
-            break;
-        }
-        i = i + 1;
     }
 
     // Checking if calculated size of connectivity array is valid
@@ -150,43 +195,56 @@ bool ReadLsDyna(const char *FileName) {
     i = 0;
     int ci = 0, pi = 0;
     while (fgets(Line, sizeof(Line), File) != NULL) {
-        int *PIDs, *Nodes;
-        const int np = LineToArray(true, false, 2, 1, Line, Delim, (void**)&PIDs);
-        const int nn = LineToArray(true, true, 3, 0, Line, Delim, (void**)&Nodes);
-        if (np == 0 || nn == 0) {
-            if (np > 0) {
+        if (IsElementSection(Line, File)) {
+
+            long LastValidElemDataLinePos = -1;
+            while (fgets(Line, sizeof(Line), File) != NULL) {
+                int *PIDs, *Nodes;
+                const int np = LineToArray(true, false, 2, 1, Line, Delim, (void**)&PIDs);
+                const int nn = LineToArray(true, true, 3, 0, Line, Delim, (void**)&Nodes);
+                if (np == 0 || nn == 0) {
+                    if (np > 0) {
+                        free(PIDs);
+                    }
+                    if (nn > 0) {
+                        free(Nodes);
+                    }
+                    break;
+                }
+                if (i >= From && i <= To) {
+                    pid[pi] = PIDs[0];
+
+                    const int N = nn == 8 ? CalcUniqueValues(Nodes, nn) : nn;
+                    if (N > 4) {
+                        strcpy(ElementType[pi], "C3D8");
+                    }
+                    else if (N == 4) {
+                        strcpy(ElementType[pi], "C3D4");
+                    }
+                    else if (N == 2) {
+                        strcpy(ElementType[pi], "T3D2");
+                    }
+                    else {
+                        printf("\nERROR( proc %d ): Unknown element type \"%d\" in line %s\n", world_rank, N, Line);
+                    }
+                    
+                    pi = pi + 1;
+
+                    for (int j = 0; j < nn; j++) {
+                        connectivity[ci] = Nodes[j] - 1;
+                        ci = ci + 1;
+                    }
+                }
                 free(PIDs);
-            }
-            if (nn > 0) {
                 free(Nodes);
+                i = i + 1;
+                LastValidElemDataLinePos = ftell(File);
             }
-            continue;
-        }
-        else if (i >= From && i <= To) {
-            pid[pi] = PIDs[0];
 
-            if (nn == 8) {
-                strcpy(ElementType[pi], "C3D8");
-            }
-            else if (nn == 4) {
-                strcpy(ElementType[pi], "C3D4");
-            }
-            else if (nn == 2) {
-                strcpy(ElementType[pi], "T3D2");
-            }
-            pi = pi + 1;
-
-            for (int j = 0; j < nn; j++) {
-                connectivity[ci] = Nodes[j] - 1;
-                ci = ci + 1;
+            if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
+                printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
             }
         }
-        free(PIDs);
-        free(Nodes);
-        if (strncmp(Line, TITLE_NODE, strlen(TITLE_NODE)) == 0) {
-            break;
-        }
-        i = i + 1;
     }
 
     // Checking if we can go to nodes section of mesh file
