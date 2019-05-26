@@ -71,7 +71,7 @@ int LineToArray(
     char Line[MAX_FILE_LINE];
     strcpy(Line, ConstLine);
     double LastVal = INT_MAX;
-    int Column = 0;
+    int Column = 0, LastRepeatedValuesCount = 0;
     char *T = strtok(Line, Delim);
     while (T != NULL) {
         char *EndPtr;
@@ -86,12 +86,32 @@ int LineToArray(
             // Skip columns to go to required ones.
             continue;
         }
-        if ((CheckLastVal && (Val == 0 || Val == LastVal)) || (ColumnCount > 0 && Result >= ColumnCount)) {
-            // Stop fetching columns.
-            break;
+        if (CheckLastVal) {
+            if (Val <= 0) {
+                LastRepeatedValuesCount = 0;
+                break;
+            }
+            else if (Val == LastVal) {
+                LastRepeatedValuesCount = LastRepeatedValuesCount + 1;
+            }
+            else {
+                LastRepeatedValuesCount = 0;
+            }
         }
         LastVal = Val;
         Result = Result + 1;
+    }
+
+    if (Result > 0) {
+        if (CheckLastVal && LastRepeatedValuesCount > 1) {
+            Result = Result - LastRepeatedValuesCount;
+            if (Result < 0) {
+                Result = 0;
+            }
+        }
+        if (ColumnCount > 0 && Result > ColumnCount) {
+            Result = ColumnCount;
+        }
     }
 
     if (Result == 0 || Array == NULL) {
