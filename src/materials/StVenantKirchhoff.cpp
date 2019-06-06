@@ -93,6 +93,13 @@ void StVenantKirchhoff(int e, int gp) {
     cauchy[cptr[e] + 6 * gp + 4] = S[6];
     // in voigt notation, sigma12
     cauchy[cptr[e] + 6 * gp + 5] = S[3];
+    printf("---- Calculate Stress ---\n");
+    printf("Element : %d, GP : %d\n", e, gp);
+    for (int k = 0; k < 6; ++k) {
+      int index_1 = cptr[e]+6*gp+k;
+      printf("Start : %d, Stress value : %12.6f\n", index_1, cauchy[index_1]);
+    }
+    printf("---- ----\n");
 
     // // Compute cauchy stress sigma = J^(-1) F S F^T
     // double *sigma = (double *)malloc(matSize * sizeof(double));

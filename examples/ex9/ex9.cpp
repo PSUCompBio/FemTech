@@ -192,6 +192,7 @@ int main(int argc, char **argv) {
 
       /** Step- 10 - Second Partial Update of Nodal Velocities */
       for (int i = 0; i < ndim * nnodes; i++) {
+        if (!boundary[i])
         velocities[i] =
             velocities_half[i] + (t_np1 - t_nphalf) * accelerations[i];
       }
