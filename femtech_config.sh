@@ -20,3 +20,5 @@ make -j8
 #mpirun -n 1 ex11 1-elt-cube.k > debug_log.txt
 #mpirun -n 1 ex12 1-elt-truss.k > debug_log.txt
 #paraview 1-elt-cube.pvd  here the *.pvd file
+
+#fileellelkfalfhf
