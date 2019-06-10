@@ -47,77 +47,21 @@ void CompressibleNeoHookean(int e, int gp){
 		}
 	}
 	if(ndim == 3){
-    int index = fptr[e] + ndim*ndim*gp;
-		int index2 = detFptr[e]+gp;
-		double F_local[3][3];
-    double FT_local[3][3];
-		double b_local[3][3];
-		double cauchy_local[3][3];
-		double mu = 100.0; // in future will be equal to component from  properties array
-		double lambda = 166.6667; // in future will be equal to component from  properties array
-		double J=detF[index2];
+    int index = fptr[e] + ndim * ndim * gp;
+    int index2 = detFptr[e] + gp;
+    double mu = properties[MAXMATPARAMS * e + 1];
+    double lambda = properties[MAXMATPARAMS * e + 2];
+    double J = detF[index2];
 
-		// local deformation gradient, F
-    F_local[0][0]=F[index + ndim*0+0];
-    F_local[0][1]=F[index + ndim*0+1];
-		F_local[0][2]=F[index + ndim*0+2];
-    F_local[1][0]=F[index + ndim*1+0];
-		F_local[1][1]=F[index + ndim*1+1];
-		F_local[1][2]=F[index + ndim*1+2];
-		F_local[2][0]=F[index + ndim*2+0];
-		F_local[2][1]=F[index + ndim*2+1];
-		F_local[2][2]=F[index + ndim*2+2];
-
-    // local transpose of deformation gradient, FT
-		FT_local[0][0]=F[index + ndim*0+0];
- 	 	FT_local[0][1]=F[index + ndim*1+0];
- 	 	FT_local[0][2]=F[index + ndim*2+0];
- 	 	FT_local[1][0]=F[index + ndim*0+1];
- 	 	FT_local[1][1]=F[index + ndim*1+1];
- 	 	FT_local[1][2]=F[index + ndim*2+1];
- 	 	FT_local[2][0]=F[index + ndim*0+2];
- 	 	FT_local[2][1]=F[index + ndim*1+2];
- 	 	FT_local[2][2]=F[index + ndim*2+2];
-
-		// b = F * F^T
-		for (int i = 0; i < ndim; i++) {
-			 for (int j = 0; j < ndim; j++) {
-					double sum = 0.0;
-					for (int k = 0; k < ndim; k++) {
-						 sum = sum +  F_local[j][k] * FT_local[k][i];
-					}
-					b_local[i][j] = sum;
-			 }
-	  }
-
-		// for debugging can be removed , good example of how to reference F
-		if (debug && 1==1){
-			// print F
-			for(int i=0;i<ndim;i++){
-				for(int j=0;j<ndim;j++){
-					printf(" F[%d%d]:%3.3e   ",i,j,F_local[i][j]);
-				}
-				printf("\n");
-			}
-			printf("\n");
-			// Print F transpose
-			for(int i=0;i<ndim;i++){
-				for(int j=0;j<ndim;j++){
-					printf(" FT[%d%d]:%3.3e   ",i,j,FT_local[i][j]);
-				}
-				printf("\n");
-			}
-			printf("\n");
-			// Print left Cauchy Green tensor, b
-			for(int i=0;i<ndim;i++){
-				for(int j=0;j<ndim;j++){
-					printf(" b[%d%d]:%3.3e   ",i,j,b_local[i][j]);
-				}
-				printf("\n");
-			}
-			printf("\n");
-		}
-		printf("\n");
+    // Compute Green-Lagrange Tensor: C = F^T*F
+    double matSize = ndim * ndim;
+    double *C = (double *)malloc(matSize * sizeof(double));
+    double *Cinv = (double *)malloc(matSize * sizeof(double));
+    double *F_element_gp = &(F[index]);
+    dgemm_(chy, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
+           F_element_gp, &ndim, &zero, C, &ndim);
+    double Cdet;
+    inverse3x3Matrix(C, Cinv, &Cdet);
 
 		//From Bonet and Wood - Flagshyp
 		//mu              = properties(2);
@@ -125,28 +69,32 @@ void CompressibleNeoHookean(int e, int gp){
 		//J               = kinematics.J;
 		//b               = kinematics.b;
 		//Cauchy          = (mu/J)*(b - cons.I) + (lambda/J)*log(J)*cons.I;
+    //C = F^T F
+    // Bonet and Wood Equation 5.28
+		//S          = mu*(I - C^{-1}) + lambda*ln(J)*C^{-1};
 
 		// 6 values saved per gauss point for 3d
+    // Computing PK2
+    double logJ = lambda*log(J);
 		// in voigt notation, sigma11
-		cauchy[cptr[e]+6*gp+0]=(mu/J)*(b_local[0][0]-1.0) + (lambda/J)*log(J)*1.0;
+		cauchy[cptr[e]+6*gp+0] = mu*(1.0-Cinv[0]) + logJ*Cinv[0];
 			// in voigt notation, sigma22
-		cauchy[cptr[e]+6*gp+1]=(mu/J)*(b_local[1][1]-1.0) + (lambda/J)*log(J)*1.0;
+		cauchy[cptr[e]+6*gp+1] = mu*(1.0-Cinv[4]) + logJ*Cinv[4];
 			// in voigt notation, sigma33
-		cauchy[cptr[e]+6*gp+2]=(mu/J)*(b_local[2][2]-1.0) + (lambda/J)*log(J)*1.0;
+		cauchy[cptr[e]+6*gp+2] = mu*(1.0-Cinv[8]) + logJ*Cinv[8];
 			// in voigt notation, sigma23
-		cauchy[cptr[e]+6*gp+3]=(mu/J)*(b_local[1][2]-0.0) + (lambda/J)*log(J)*0.0;
+		cauchy[cptr[e]+6*gp+3] = -mu*Cinv[7] + logJ*Cinv[7];
 			// in voigt notation, sigma13
-		cauchy[cptr[e]+6*gp+4]=(mu/J)*(b_local[0][2]-0.0) + (lambda/J)*log(J)*0.0;
+		cauchy[cptr[e]+6*gp+4] = -mu*Cinv[6] + logJ*Cinv[6];
 			// in voigt notation, sigma12
-		cauchy[cptr[e]+6*gp+5]=(mu/J)*(b_local[0][1]-0.0) + (lambda/J)*log(J)*0.0;
+		cauchy[cptr[e]+6*gp+5] = -mu*Cinv[3] + logJ*Cinv[3];
 
 		for(int i=0;i<6;i++){
 			int index = cptr[e]+6*gp+i;
 			printf("cauchy[%d] = %3.3e\n",index,cauchy[index]);
 		}
+    free(C);
+    free(Cinv);
 	}
-	//printf("\n");
 	return;
-
-
 }

@@ -105,9 +105,9 @@ int main(int argc, char **argv) {
     SolveUnsteadyNewmarkImplicit(beta, gamma, dt, tMax, argv[1]);
   } else if (ExplicitDynamic) {
     // Dynamic Explcit solution using....
-    double dt;
-    double tMax = 2.0; // max simulation time in seconds
-    double dMax = 0.5; // max displacment in meters
+    double dt = 2.29285e-06;
+    double tMax = 2*dt; // max simulation time in seconds
+    double dMax = 0.001; // max displacment in meters
     double Time = 0.0;
     int time_step_counter = 0;
     int plot_counter = 0;
@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
     GetForce(); // Calculating the force term.
     /* obtain dt, according to Belytschko dt is calculated at end of getForce */
     // dt = ExplicitTimeStepReduction * StableTimeStep();
-    dt = 1.0;
+    // dt = 1.0;
 
     /* Step-3: Calculate accelerations */
     CalculateAccelerations();
