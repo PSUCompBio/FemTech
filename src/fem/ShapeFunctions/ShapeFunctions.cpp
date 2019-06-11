@@ -265,6 +265,8 @@ void ShapeFunctions() {
 		if (strcmp(ElementType[i], "T3D2") == 0)
 				GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
 				ShapeFunction_T3D2(i, k, Chi, detJacobianLocal);
+				printf("Here we are outside of the gates of valhala\n");
+				exit (EXIT_FAILURE);
 	  }
 		free(Chi);
 
