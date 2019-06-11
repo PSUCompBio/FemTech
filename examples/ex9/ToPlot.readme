@@ -1,0 +1,5 @@
+gnuplot gnuplot.script
+
+on windows:
+-start x, at prompt type: startxwin 
+-cygstart plot.png
