@@ -89,6 +89,7 @@ void CompressibleNeoHookean(int e, int gp){
 			// in voigt notation, sigma12
 		cauchy[cptr[e]+6*gp+5] = -mu*Cinv[3] + logJ*Cinv[3];
 
+    printf("J : %12.6E, log(J) : %12.6E, lambdalogJ : %12.6E\n", J, log(J), logJ);
 		for(int i=0;i<6;i++){
 			int index = cptr[e]+6*gp+i;
 			printf("cauchy[%d] = %3.3e\n",index,cauchy[index]);

@@ -113,6 +113,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
   double c1, c2, c3;
   int baseIndex;
   printf("---- Shape Function C3D8 ----\n");
+  printf("Determinant of Jacobian : %12.6e\n", det);
   printf("Derivatives eid : %d, gpid : %d, chi : %12.6f, eta : %12.6f, iota : %12.6f\n", e, gp, chi, eta, iota);
   for (int i = 0; i < nShapeFunctions[e]; ++i) {
     baseIndex = dsptr[e] + gp * g*ndim + ndim * i;

@@ -5,12 +5,13 @@
 
 /*Delare Functions*/
 void ApplyBoundaryConditions(double Time, double dMax, double tMax);
+void CustomPlot(double Time);
 
 /* Global Variables/Parameters  - could be moved to parameters.h file?  */
 double Time;
 int nStep;
 int nSteps;
-int nPlotSteps = 2;
+int nPlotSteps = 10;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
@@ -31,7 +32,7 @@ int main(int argc, char **argv) {
   }
 
   AllocateArrays();
-  ReadMaterials();
+	ReadMaterials();
 
   if (debug && 1 == 0) {
     // Printing local arrays of processor (this section can be removed)
@@ -72,6 +73,7 @@ int main(int argc, char **argv) {
   Time = 0.0;
   nStep = 0;
   WriteVTU(argv[1], nStep, Time);
+	CustomPlot(Time);
   // assert(1==0);
 
   if (ImplicitStatic) {
@@ -105,8 +107,8 @@ int main(int argc, char **argv) {
     SolveUnsteadyNewmarkImplicit(beta, gamma, dt, tMax, argv[1]);
   } else if (ExplicitDynamic) {
     // Dynamic Explcit solution using....
-    double dt = 2.29285e-06;
-    double tMax = 2*dt; // max simulation time in seconds
+    double dt = 2.5e-06;
+    double tMax = 1.0; // max simulation time in seconds
     double dMax = 0.001; // max displacment in meters
     double Time = 0.0;
     int time_step_counter = 0;
@@ -132,7 +134,7 @@ int main(int argc, char **argv) {
 
     nSteps = (int)(tMax / dt);
     // int nsteps_plot = (int)(nSteps / nPlotSteps);
-    int nsteps_plot = 1;
+    int nsteps_plot = 100;
     printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
            nsteps_plot);
 
@@ -192,10 +194,10 @@ int main(int argc, char **argv) {
 
       /** Step- 10 - Second Partial Update of Nodal Velocities */
       for (int i = 0; i < ndim * nnodes; i++) {
-        if (!boundary[i])
         velocities[i] =
             velocities_half[i] + (t_np1 - t_nphalf) * accelerations[i];
       }
+
 
       /** Step - 11 Checking* Energy Balance */
       CheckEnergy();
@@ -204,11 +206,13 @@ int main(int argc, char **argv) {
         plot_counter = plot_counter + 1;
         printf("------Plot %d: WriteVTU\n", plot_counter);
         WriteVTU(argv[1], plot_counter, Time);
+				CustomPlot(Time);
+
         if (debug) {
           printf("DEBUG : Printing Displacement Solution\n");
           for (int i = 0; i < nnodes; ++i) {
             for (int j = 0; j < ndim; ++j) {
-              printf("%12.8f", displacements[i * ndim + j]);
+              printf("%15.6E", displacements[i * ndim + j]);
             }
             printf("\n");
           }
@@ -223,15 +227,15 @@ int main(int argc, char **argv) {
 
     nStep = plot_counter;
   } // end if ExplicitDynamic
-  // if (debug) {
-  //   printf("DEBUG : Printing Displacement Solution\n");
-  //   for (int i = 0; i < nnodes; ++i) {
-  //     for (int j = 0; j < ndim; ++j) {
-  //       printf("%12.4f", displacements[i * ndim + j]);
-  //     }
-  //     printf("\n");
-  //   }
-  // }
+  if (debug) {
+    printf("DEBUG : Printing Displacement Solution\n");
+    for (int i = 0; i < nnodes; ++i) {
+      for (int j = 0; j < ndim; ++j) {
+        printf("%15.6E", displacements[i*ndim+j]);
+      }
+      printf("\n");
+    }
+  }
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {
@@ -281,7 +285,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
       count = count + 1;
     }
     // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
-    if (fabs(coordinates[ndim * i + 1] - 1.0) < tol) {
+    if (fabs(coordinates[ndim * i + 1] - 0.005) < tol) {
       boundary[ndim * i + 1] = 1;
       // printf("node : %d y2 : %d\n", i, count);
       count = count + 1;
@@ -297,4 +301,36 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
   }
   // printf("Time = %3.3e, Applied Disp = %3.3e\n",Time,AppliedDisp);
   return;
+}
+
+void CustomPlot(double Time){
+	double tol = 1e-5;
+	FILE *datFile;
+  int x=0;
+  int y=1;
+  int z=2;
+
+	if(fabs(Time - 0.0) < 1e-16){
+		datFile=fopen("plot.dat", "w");
+		fprintf(datFile,"# Results for Node ?\n");
+		fprintf(datFile,"# Time  DispX    DispY   DispZ\n");
+		fprintf(datFile,"%11.3e %11.3e  %11.3e  %11.3e\n",0.0,0.0,0.0,0.0);
+
+	}else{
+		datFile=fopen("plot.dat", "a");
+		for (int i = 0; i < nnodes; i++) {
+	    if (fabs(coordinates[ndim * i + x] - 0.005) < tol &&
+	 				fabs(coordinates[ndim * i + y] - 0.005) < tol &&
+					fabs(coordinates[ndim * i + z] - 0.005) < tol ) {
+
+						fprintf(datFile,"%11.3e %11.3e  %11.3e  %11.3e\n",Time,
+											displacements[ndim * i + x],
+											displacements[ndim * i + y],
+											displacements[ndim * i + z] );
+			}
+	 	}
+	}
+
+	fclose(datFile);
+	return;
 }

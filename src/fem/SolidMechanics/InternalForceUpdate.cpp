@@ -32,11 +32,12 @@ void InternalForceUpdate(int e, int gp, double *force) {
     }
     printf("\n");
   }
+  printf("Prefactor : %12.6E , %12.6E\n", preFactor, detJacobian[wIndex]);
   for (int k = 0; k < bColSize; ++k) {
-    printf("NodeNo : %d, dim = %d, Local force : %12.6f, Cum force : %12.6f\n", k/3, k%3, fintGQ[k], force[k]);
+    printf("NodeNo : %d, dim = %d, Local force : %12.6E, Cum force : %12.6E\n", k/3, k%3, fintGQ[k], force[k]);
   }
   for (int k = 0; k < cSize; ++k) {
-    printf("Start : %d, Stress value : %12.6f\n", cptr[e]+6*gp, sigma[k]);
+    printf("Start : %d, Stress value : %12.6E\n", cptr[e]+6*gp, sigma[k]);
   }
   printf("---- ----\n");
   free(fintGQ);

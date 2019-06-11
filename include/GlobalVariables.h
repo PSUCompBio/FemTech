@@ -71,7 +71,7 @@ extern int *materialID; /* material id for each element */
 extern double *properties; /* holds material parameters for each element */
 static int MAXMATPARAMS = 10; /* maximum number of material parameters stored for each element */
 
-static int debug = 1;
+static int debug = 0;
 
 // Variables to keep track of time ans step count
 // Initial configuration nStep = 0 and time = 0
