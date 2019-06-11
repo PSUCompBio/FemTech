@@ -5,6 +5,7 @@
 
 /*Delare Functions*/
 void ApplyBoundaryConditions(double Time, double dMax, double tMax);
+void CustomPlot(double Time);
 
 /* Global Variables/Parameters  - could be moved to parameters.h file?  */
 double Time;
@@ -72,6 +73,7 @@ int main(int argc, char **argv) {
   Time = 0.0;
   nStep = 0;
   WriteVTU(argv[1], nStep, Time);
+	CustomPlot(Time);
   // assert(1==0);
 
   if (ImplicitStatic) {
@@ -142,7 +144,7 @@ int main(int argc, char **argv) {
     double t_n = 0.0;
     const int nDOF = ndim*nnodes;
     while (Time <= tMax) {
-		// for(int i=0;i<2;i++){
+		 //for(int i=0;i<1;i++){
       /*Step 4 */
       // note: box 6.1 in belytschko
       // varibles t_np1 = t_n+1
@@ -186,6 +188,7 @@ int main(int argc, char **argv) {
             velocities_half[i] + (t_np1 - t_nphalf) * accelerations[i];
       }
 
+
       /** Step - 11 Checking* Energy Balance */
       CheckEnergy();
 
@@ -193,6 +196,8 @@ int main(int argc, char **argv) {
         plot_counter = plot_counter + 1;
         printf("------Plot %d: WriteVTU\n", plot_counter);
         WriteVTU(argv[1], plot_counter, Time);
+				CustomPlot(Time);
+
         if (debug) {
           printf("DEBUG : Printing Displacement Solution\n");
           for (int i = 0; i < nnodes; ++i) {
@@ -286,4 +291,36 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
   }
   // printf("Time = %3.3e, Applied Disp = %3.3e\n",Time,AppliedDisp);
   return;
+}
+
+void CustomPlot(double Time){
+	double tol = 1e-5;
+	FILE *datFile;
+  int x=0;
+  int y=1;
+  int z=2;
+
+	if(fabs(Time - 0.0) < 1e-16){
+		datFile=fopen("plot.dat", "w");
+		fprintf(datFile,"# Results for Node ?\n");
+		fprintf(datFile,"# Time  DispX    DispY   DispZ\n");
+		fprintf(datFile,"%11.3e %11.3e  %11.3e  %11.3e\n",0.0,0.0,0.0,0.0);
+
+	}else{
+		datFile=fopen("plot.dat", "a");
+		for (int i = 0; i < nnodes; i++) {
+	    if (fabs(coordinates[ndim * i + x] - 1.0) < tol &&
+	 				fabs(coordinates[ndim * i + y] - 1.0) < tol &&
+					fabs(coordinates[ndim * i + z] - 1.0) < tol ) {
+
+						fprintf(datFile,"%11.3e %11.3e  %11.3e  %11.3e\n",Time,
+											displacements[ndim * i + x],
+											displacements[ndim * i + y],
+											displacements[ndim * i + z] );
+			}
+	 	}
+	}
+
+	fclose(datFile);
+	return;
 }

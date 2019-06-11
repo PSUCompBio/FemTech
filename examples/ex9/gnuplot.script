@@ -1,0 +1,15 @@
+
+
+set termoption dashed
+set style line 1 lc rgb "#FF0055" lt 1
+set style line 2
+set style line 3
+
+set xlabel "Time (s)"
+set ylabel "Displacement (m)"
+
+set term png
+set output "plot.png"
+plot "plot.dat" using 1:2  ls 1 title "DispX",  \
+		 "plot.dat" using 1:3  ls 2 title "DispY",  \
+		 "plot.dat" using 1:4  ls 3 title "DispZ",
