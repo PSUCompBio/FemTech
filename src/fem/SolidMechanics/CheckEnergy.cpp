@@ -20,7 +20,7 @@ void CheckEnergy(void) {
   }
   WKE *= 0.5;
   printf("Kinetic Energy : %.24f\n", WKE);
-  double total = fabs(WKE+Wint_n+Wext_n);
+  double total = fabs(WKE+Wint_n-Wext_n);
   double max = fabs(Wint_n);
   if (max < fabs(Wext_n)) {
     max = fabs(Wext_n);
@@ -32,4 +32,5 @@ void CheckEnergy(void) {
   if (total > epsilon*max) {
     printf("\nERROR : Energy Violation\n\n");
   }
+  // Wint_n = -WKE;
 }

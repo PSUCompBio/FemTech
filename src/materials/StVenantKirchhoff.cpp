@@ -80,33 +80,54 @@ void StVenantKirchhoff(int e, int gp) {
     S[4] += lambda * traceE;
     S[8] += lambda * traceE;
 
-    // Compute cauchy stress sigma = J^(-1) F S F^T
-    double *sigma = (double *)malloc(matSize * sizeof(double));
-    double *FS = (double *)malloc(matSize * sizeof(double));
-    // compute FS
-    dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim, S, &ndim,
-           &zero, FS, &ndim);
-    // compute sigma
-    double JInv = 1.0 / detF[index2];
-    dgemm_(chn, chy, &ndim, &ndim, &ndim, &JInv, FS, &ndim, F_element_gp, &ndim,
-           &zero, sigma, &ndim);
-
-
     // 6 values saved per gauss point for 3d
     // in voigt notation, sigma11
-    cauchy[cptr[e] + 6 * gp + 0] = sigma[0];
+    cauchy[cptr[e] + 6 * gp + 0] = S[0];
     // in voigt notation, sigma22
-    cauchy[cptr[e] + 6 * gp + 1] = sigma[4];
+    cauchy[cptr[e] + 6 * gp + 1] = S[4];
     // in voigt notation, sigma33
-    cauchy[cptr[e] + 6 * gp + 2] = sigma[8];
+    cauchy[cptr[e] + 6 * gp + 2] = S[8];
     // in voigt notation, sigma23
-    cauchy[cptr[e] + 6 * gp + 3] = sigma[7];
+    cauchy[cptr[e] + 6 * gp + 3] = S[7];
     // in voigt notation, sigma13
-    cauchy[cptr[e] + 6 * gp + 4] = sigma[6];
+    cauchy[cptr[e] + 6 * gp + 4] = S[6];
     // in voigt notation, sigma12
-    cauchy[cptr[e] + 6 * gp + 5] = sigma[3];
+    cauchy[cptr[e] + 6 * gp + 5] = S[3];
+    printf("---- Calculate Stress ---\n");
+    printf("Element : %d, GP : %d\n", e, gp);
+    for (int k = 0; k < 6; ++k) {
+      int index_1 = cptr[e]+6*gp+k;
+      printf("Start : %d, Stress value : %12.6f\n", index_1, cauchy[index_1]);
+    }
+    printf("---- ----\n");
 
-    if (debug && 1 == 0) {
+    // // Compute cauchy stress sigma = J^(-1) F S F^T
+    // double *sigma = (double *)malloc(matSize * sizeof(double));
+    // double *FS = (double *)malloc(matSize * sizeof(double));
+    // // compute FS
+    // dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim, S, &ndim,
+    //        &zero, FS, &ndim);
+    // // compute sigma
+    // double JInv = 1.0 / detF[index2];
+    // dgemm_(chn, chy, &ndim, &ndim, &ndim, &JInv, FS, &ndim, F_element_gp, &ndim,
+    //        &zero, sigma, &ndim);
+    //
+    //
+    // // 6 values saved per gauss point for 3d
+    // // in voigt notation, sigma11
+    // cauchy[cptr[e] + 6 * gp + 0] = sigma[0];
+    // // in voigt notation, sigma22
+    // cauchy[cptr[e] + 6 * gp + 1] = sigma[4];
+    // // in voigt notation, sigma33
+    // cauchy[cptr[e] + 6 * gp + 2] = sigma[8];
+    // // in voigt notation, sigma23
+    // cauchy[cptr[e] + 6 * gp + 3] = sigma[7];
+    // // in voigt notation, sigma13
+    // cauchy[cptr[e] + 6 * gp + 4] = sigma[6];
+    // // in voigt notation, sigma12
+    // cauchy[cptr[e] + 6 * gp + 5] = sigma[3];
+
+    if (debug && 1 == 1) {
       printf("Printing F Matrix\n");
       for (int i = 0; i < ndim; ++i) {
         for (int j = 0; j < ndim; ++j) {
@@ -138,8 +159,8 @@ void StVenantKirchhoff(int e, int gp) {
     }
     free(E);
     free(S);
-    free(FS);
-    free(sigma);
+    // free(FS);
+    // free(sigma);
   } // if ndim == 3
   return;
 }

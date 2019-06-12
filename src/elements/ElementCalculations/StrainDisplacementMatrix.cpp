@@ -46,6 +46,7 @@ void StrainDisplacementMatrix(int e, int gp, int nI, double *B) {
 
 		double B11,B12,B13,B21,B22,B23,B31,B32,B33;
 		double B41,B42,B43,B51,B52,B53,B61,B62,B63;
+    // Following Belytschko pg. 214 B_I^0 equation : 4.9.25
 		B11 = dnIdx * F11;
 		B12 = dnIdx * F21;
 		B13 = dnIdx * F31;

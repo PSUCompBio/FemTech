@@ -71,13 +71,11 @@ extern int *materialID; /* material id for each element */
 extern double *properties; /* holds material parameters for each element */
 static int MAXMATPARAMS = 10; /* maximum number of material parameters stored for each element */
 
-//<<<<<<< addtrussV1
 extern double *internals; /* internal variables, typically used for damage or plasticity varialbes*/
 static int MAXINTERNALVARS = 5; /* max internal variables per gauss point */
 extern int *InternalsPtr; /* pointer for iterating through internals array */
-//=======
-//>>>>>>> master
-static int debug = 1;
+
+static int debug = 0;
 
 // Variables to keep track of time ans step count
 // Initial configuration nStep = 0 and time = 0
@@ -95,8 +93,3 @@ extern int *sendNeighbourCountCum;
 extern int *sendNodeIndex;
 extern double *sendNodeDisplacement;
 extern double *recvNodeDisplacement;
-
-// extern int *recvProcessID;
-// extern int *recvNeighbourCount;
-// extern int *recvNeighbourCountCum;
-// extern int *recvNodeIndex;
