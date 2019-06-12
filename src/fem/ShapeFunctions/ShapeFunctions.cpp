@@ -215,60 +215,28 @@ void ShapeFunctions() {
     }
   }
 
- // Depending on element type call correct shape function library
+  // Depending on element type call correct shape function library
   for (int i = 0; i < nelements; i++) {
-    // 3D 8-noded hex shape function routine
-    // if (strcmp(ElementType[i], "C3D8") == 0) {
-    //   double *Chi = (double*)malloc(GaussPoints[i] * ndim * sizeof(double));
-    //   double *GaussWeightsLocal = &(gaussWeights[gpPtr[i]]);
-    //   double *detJacobianLocal = &(detJacobian[gpPtr[i]]);
-    //   GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
-    //   for (int k = 0; k < GaussPoints[i]; k++) {
-    //     ShapeFunction_C3D8(i, k, Chi, detJacobianLocal);
-    //   }
-    //   // Free all allocated memories
-    //   free(Chi);
-    // }
-		//
-    // // 3D 4-noded tet shape function routine
-    // if (strcmp(ElementType[i], "C3D4") == 0) {
-    //   double *Chi = (double*)malloc(GaussPoints[i]* ndim * sizeof(double));
-    //   double *GaussWeightsLocal = &(gaussWeights[gpPtr[i]]);
-    //   double *detJacobianLocal = &(detJacobian[gpPtr[i]]);
-    //   GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
-    //   //printf("chi, eta, iota = %f, %f, %f\n", Chi[0], Chi[1], Chi[2]);
-    //   for (int k = 0; k < GaussPoints[i]; k++) {
-    //     ShapeFunction_C3D4(i, k, Chi, detJacobianLocal);
-    //   }
-    //   free(Chi);
-    //   // free(GaussWeights);
-    // } // if loop
-
-	double *Chi = (double*)malloc(GaussPoints[i] * ndim * sizeof(double));
-	double *GaussWeightsLocal = &(gaussWeights[gpPtr[i]]);
-	double *detJacobianLocal = &(detJacobian[gpPtr[i]]);
-	for (int k = 0; k < GaussPoints[i]; k++) {
-	  if (strcmp(ElementType[i], "C3D8") == 0) {
-				//double *Chi = (double*)malloc(GaussPoints[i] * ndim * sizeof(double));
-				//double *GaussWeightsLocal = &(gaussWeights[gpPtr[i]]);
-				//double *detJacobianLocal = &(detJacobian[gpPtr[i]]);
-				GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
-				ShapeFunction_C3D8(i, k, Chi, detJacobianLocal);
-		}
-		if (strcmp(ElementType[i], "C3D4") == 0) {
-				//double *Chi = (double*)malloc(GaussPoints[i] * ndim * sizeof(double));
-				//double *GaussWeightsLocal = &(gaussWeights[gpPtr[i]]);
-				//double *detJacobianLocal = &(detJacobian[gpPtr[i]]);
-				GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
-				ShapeFunction_C3D4(i, k, Chi, detJacobianLocal);
-		}
-		if (strcmp(ElementType[i], "T3D2") == 0)
-				GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
-				ShapeFunction_T3D2(i, k, Chi, detJacobianLocal);
-	  }
-		free(Chi);
-
-
+    double *Chi = (double*)malloc(GaussPoints[i] * ndim * sizeof(double));
+    double *GaussWeightsLocal = &(gaussWeights[gpPtr[i]]);
+    double *detJacobianLocal = &(detJacobian[gpPtr[i]]);
+    for (int k = 0; k < GaussPoints[i]; k++) {
+      // 3D 8-noded hex shape function routine
+      if (strcmp(ElementType[i], "C3D8") == 0) {
+          GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
+          ShapeFunction_C3D8(i, k, Chi, detJacobianLocal);
+      }
+      // 3D 4-noded tet shape function routine
+      if (strcmp(ElementType[i], "C3D4") == 0) {
+          GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
+          ShapeFunction_C3D4(i, k, Chi, detJacobianLocal);
+      }
+      if (strcmp(ElementType[i], "T3D2") == 0) {
+          GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
+          ShapeFunction_T3D2(i, k, Chi, detJacobianLocal);
+      }
+    }
+    free(Chi);
   }// loop on nelements
 
   // for debugging

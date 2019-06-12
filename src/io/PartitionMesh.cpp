@@ -160,16 +160,6 @@ bool PartitionMesh() {
       int start = eptr[i];
       int end = eptr[i + 1];
       processorToMoveElement = (int)part[i];
-//<<<<<<< addtrussV1
-    //  int count = end-start;
-    //  int locationToCopy = nodeSendCum[processorToMoveElement]+\
-     //                      nodeCount[processorToMoveElement];
-     // int elementLocToCopy = elementSendCum[processorToMoveElement]+\
-     //                        elementCount[processorToMoveElement];
-      // Copy connectivity
-      //memcpy(&(connectivityPacked[locationToCopy]), &(connectivity[start]), \
-      //    sizeof(int)*count);
-//=======
       int count = end - start;
       int locationToCopy = nodeSendCum[processorToMoveElement] +
                            nodeCount[processorToMoveElement];
@@ -178,7 +168,6 @@ bool PartitionMesh() {
       // Copy connectivity
       memcpy(&(connectivityPacked[locationToCopy]), &(connectivity[start]),
              sizeof(int) * count);
-//>>>>>>> master
       // Copy coordinates
       memcpy(&(coordinatesPacked[locationToCopy * ndim]),
              &(coordinates[start * ndim]), sizeof(double) * count * ndim);
@@ -187,13 +176,8 @@ bool PartitionMesh() {
       // Copy pid to send
       pidPacked[elementLocToCopy] = pid[i];
       // Copy element type
-//<<<<<<< addtrussV1
- //     memcpy(&(ElementTypePacked[elementLocToCopy*MAX_ELEMENT_TYPE_SIZE]),
-  //        ElementType[i], sizeof(char)*MAX_ELEMENT_TYPE_SIZE);
-//=======
       memcpy(&(ElementTypePacked[elementLocToCopy * MAX_ELEMENT_TYPE_SIZE]),
              ElementType[i], sizeof(char) * MAX_ELEMENT_TYPE_SIZE);
-//>>>>>>> master
 
       // Advance next write memory location
       nodeCount[processorToMoveElement] += count;
@@ -208,12 +192,8 @@ bool PartitionMesh() {
     // Create MPI non-blocking sends of the packed data
     // One MPI send is used per process pair by using the packed structure above
     // Create an array of requests to keep track of completion of the send calls
-//<<<<<<< addtrussV1
-////    MPI_Request* requestListSend = (MPI_Request*)malloc(sizeof(MPI_Request)*sendCount);
-//=======
     MPI_Request *requestListSend =
         (MPI_Request *)malloc(sizeof(MPI_Request) * sendCount);
-//>>>>>>> master
     int requestIndex = 0;
     // Tag for communication
     int connectivityTag = 7132;
@@ -284,12 +264,8 @@ bool PartitionMesh() {
     char *ElementTypeRecv =
         (char *)malloc(nelementsRecv * MAX_ELEMENT_TYPE_SIZE * sizeof(char));
 
-//<<<<<<< addtrussV1
-//    MPI_Request* requestListRecv = (MPI_Request*)malloc(sizeof(MPI_Request)*recvCount);
-//=======
     MPI_Request *requestListRecv =
         (MPI_Request *)malloc(sizeof(MPI_Request) * recvCount);
-//>>>>>>> master
     requestIndex = 0;
     // Receive arrays
     for (int i = 0; i < world_size; ++i) {
