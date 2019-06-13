@@ -11,7 +11,9 @@ void CheckEnergy(void) {
   }
   sum *= 0.5;
   Wint_n += sum;
-  printf("Internal Work : %.24f\n", Wint_n);
+	if(debug){
+  	printf("Internal Work : %.24f\n", Wint_n);
+	}
   double WKE = 0.0;
   for(int i = 0; i < nnodes*ndim; ++i) {
     // if(!boundary[i]) {
@@ -19,7 +21,9 @@ void CheckEnergy(void) {
     // }
   }
   WKE *= 0.5;
-  printf("Kinetic Energy : %.24f\n", WKE);
+	if(debug){
+  	printf("Kinetic Energy : %.24f\n", WKE);
+	}
   double total = fabs(WKE+Wint_n-Wext_n);
   double max = fabs(Wint_n);
   if (max < fabs(Wext_n)) {
@@ -30,7 +34,7 @@ void CheckEnergy(void) {
   }
   const double epsilon = 0.01;
   if (total > epsilon*max) {
-    printf("\nERROR : Energy Violation\n\n");
+    printf("\nERROR : Energy Violation - IW = %3.3e, KE=%3.3e \n\n",Wint_n,WKE);
   }
   // Wint_n = -WKE;
 }

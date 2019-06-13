@@ -23,23 +23,25 @@ void InternalForceUpdate(int e, int gp, double *force) {
   for (int k = 0; k < bColSize; ++k) {
     force[k] += preFactor*fintGQ[k];
   }
-  printf("---- Internal Force Update ---\n");
-  printf("Element : %d, GP : %d\n", e, gp);
-  printf("B Matrix Transpose ---------\n");
-  for (int j = 0; j < bColSize; ++j) {
-    for (int i = 0; i < cSize; ++i) {
-      printf("%12.6f  ", B[i+j*cSize]);
-    }
-    printf("\n");
-  }
-  printf("Prefactor : %12.6E , %12.6E\n", preFactor, detJacobian[wIndex]);
-  for (int k = 0; k < bColSize; ++k) {
-    printf("NodeNo : %d, dim = %d, Local force : %12.6E, Cum force : %12.6E\n", k/3, k%3, fintGQ[k], force[k]);
-  }
-  for (int k = 0; k < cSize; ++k) {
-    printf("Start : %d, Stress value : %12.6E\n", cptr[e]+6*gp, sigma[k]);
-  }
-  printf("---- ----\n");
+	if(debug){
+	  printf("---- Internal Force Update ---\n");
+	  printf("Element : %d, GP : %d\n", e, gp);
+	  printf("B Matrix Transpose ---------\n");
+	  for (int j = 0; j < bColSize; ++j) {
+	    for (int i = 0; i < cSize; ++i) {
+	      printf("%12.6f  ", B[i+j*cSize]);
+	    }
+	    printf("\n");
+	  }
+	  printf("Prefactor : %12.6E , %12.6E\n", preFactor, detJacobian[wIndex]);
+	  for (int k = 0; k < bColSize; ++k) {
+	    printf("NodeNo : %d, dim = %d, Local force : %12.6E, Cum force : %12.6E\n", k/3, k%3, fintGQ[k], force[k]);
+	  }
+	  for (int k = 0; k < cSize; ++k) {
+	    printf("Start : %d, Stress value : %12.6E\n", cptr[e]+6*gp, sigma[k]);
+	  }
+	  printf("---- ----\n");
+	}
   free(fintGQ);
   free(B);
 	return;
