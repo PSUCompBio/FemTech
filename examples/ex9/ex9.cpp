@@ -55,8 +55,7 @@ int main(int argc, char **argv) {
       printf("%s/%d  ", ElementType[i], pid[i]);
     }
     printf("\n");
-    printf(
-        "\nSize of coordinates array in processor %d after partitioning = %d\n",
+    printf("\nSize of coordinates array in processor %d after partitioning = %d\n",
         world_rank, nnodes * ndim);
     printf("\nCoordinates array in processor %d after partitioning =",
            world_rank);
@@ -108,7 +107,7 @@ int main(int argc, char **argv) {
   } else if (ExplicitDynamic) {
     // Dynamic Explcit solution using....
     double dt = 2.5e-06;
-    double tMax = 1.0; // max simulation time in seconds
+    double tMax = 2*dt; // max simulation time in seconds
     double dMax = 0.001; // max displacment in meters
     double Time = 0.0;
     int time_step_counter = 0;
@@ -122,6 +121,8 @@ int main(int argc, char **argv) {
     /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
     Assembly((char *)"mass"); // Add Direct-lumped as an option
     LumpMassMatrix();
+    // Include effect of elements on other processors
+    updateMassMatrixNeighbour();
 
     /* Step-2: getforce step from Belytschko */
     GetForce(); // Calculating the force term.
@@ -197,7 +198,6 @@ int main(int argc, char **argv) {
         velocities[i] =
             velocities_half[i] + (t_np1 - t_nphalf) * accelerations[i];
       }
-
 
       /** Step - 11 Checking* Energy Balance */
       CheckEnergy();

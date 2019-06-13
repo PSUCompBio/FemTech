@@ -75,7 +75,7 @@ extern double *internals; /* internal variables, typically used for damage or pl
 static int MAXINTERNALVARS = 5; /* max internal variables per gauss point */
 extern int *InternalsPtr; /* pointer for iterating through internals array */
 
-static int debug = 0;
+static int debug = 1;
 
 // Variables to keep track of time ans step count
 // Initial configuration nStep = 0 and time = 0
