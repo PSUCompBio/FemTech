@@ -15,6 +15,10 @@ int nPlotSteps = 10;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
 
+bool ImplicitStatic = false;
+bool ImplicitDynamic = false;
+bool ExplicitDynamic = true;
+
 int main(int argc, char **argv) {
 
   // Initialize the MPI environment
@@ -164,15 +168,9 @@ int main(int argc, char **argv) {
 void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
   double tol = 1e-5;
   int count = 0;
-  double AppliedDisp;
 
   // Apply Ramped Displacment
-  if (ExplicitDynamic || ImplicitDynamic) {
-    AppliedDisp = Time * (dMax / tMax);
-    // AppliedDisp = 0.04;
-  } else if (ImplicitStatic) {
-    AppliedDisp = dMax;
-  }
+  double AppliedDisp = Time * (dMax / tMax);
 
   for (int i = 0; i < nnodes; i++) {
     // if x value = 0, constrain node to x plane (0-direction)
