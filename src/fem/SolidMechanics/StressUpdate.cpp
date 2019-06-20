@@ -20,6 +20,5 @@ void StressUpdate(int e, int gp){
   if(materialID[e] == 3) {
     LinearElastic(e, gp);
   }
-
-	return;
+  return;
 }

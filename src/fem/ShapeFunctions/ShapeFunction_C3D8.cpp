@@ -79,9 +79,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 
 	// Compute jacobian transformation
 
-	// R. Kraft does not like using multidimensional arrays.
-	// this wss done just to keep making prgress
-	// ALSO, if this gets called everytime function is called,
+	// If this gets called everytime function is called,
 	// I don't like it.
 	// The redeclaration needs to find memory and will cut down
 	// on speed.

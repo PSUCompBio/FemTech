@@ -41,11 +41,6 @@ void GetForce_3D() {
       int dIndex = connectivity[eptr[i] + k];
       for (int l = 0; l < ndim; ++l) {
         fi[dIndex * ndim + l] += fintLocal[k * ndim + l];
-				if(debug){
-	        if (l ==2 || l == 0){
-	        	printf("e : %d, node : %d, dim : %d, nID, %d, Value : %12.6f\n", i, k, l, dIndex, fintLocal[k*ndim+l]);
-					}
-				}
       }
     }
     free(fintLocal);
@@ -111,5 +106,4 @@ void updateInternalForceNeighbour(void) {
       printf("%d  %12.6f\n", j, fi[j]);
     }
   }
-
 }
