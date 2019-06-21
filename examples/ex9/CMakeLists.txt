@@ -10,8 +10,11 @@ else()
   TARGET_LINK_LIBRARIES(ex9 FemTech)
 endif(ENABLE_MPI)
 
-file(COPY 1-elt-cube.k DESTINATION .)
-file(COPY materials.dat DESTINATION .)
+file(INSTALL 1-elt-cube.k DESTINATION .)
+file(INSTALL materials.dat DESTINATION .)
+file(INSTALL gnuplot.script DESTINATION .)
+file(INSTALL ToPlot.readme DESTINATION .)
+file(INSTALL TensionNoDamping.dat DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
 

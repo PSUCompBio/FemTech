@@ -5,8 +5,7 @@
 // Evaluates the Cauchy stress tensor
 
 void CompressibleNeoHookean(int e, int gp){
-//good example of how to reference F
-	if (debug && 1==1) {
+	if (debug && 1==0) {
 		printf("shp array e.%d with %d Gauss points, each with %d shp functions \n", e, GaussPoints[e], nShapeFunctions[e]);
 		//printf("int.%d:\n", j);
 		if(1==0){
@@ -19,20 +18,6 @@ void CompressibleNeoHookean(int e, int gp){
 						dshp[dsptr[e] + gp * GaussPoints[e] * ndim + k * ndim + 2]);
 			}
 		}
-		//printf("\n");
-		if(1==1){
-			printf("Deformation Gradient, F for Gauss Point %d\n",gp);
-			for(int i=0;i<ndim;i++){
-					for(int j=0;j<ndim;j++){
-						int index = fptr[e] + ndim*ndim*gp + ndim*i+j;
-						printf(" F[%d]:%3.3e   ",index,F[index]);
-					}
-					printf("\n");
-			}
-			printf("\n");
-		}
-		int index2 = detFptr[e]+gp;
-		printf("detF[%d]\n",index2);
 	}
 
 	//double J = 1;
@@ -88,11 +73,11 @@ void CompressibleNeoHookean(int e, int gp){
 		cauchy[cptr[e]+6*gp+4] = -mu*Cinv[6] + logJ*Cinv[6];
 			// in voigt notation, sigma12
 		cauchy[cptr[e]+6*gp+5] = -mu*Cinv[3] + logJ*Cinv[3];
-
-    printf("J : %12.6E, log(J) : %12.6E, lambdalogJ : %12.6E\n", J, log(J), logJ);
-		for(int i=0;i<6;i++){
-			int index = cptr[e]+6*gp+i;
-			printf("cauchy[%d] = %3.3e\n",index,cauchy[index]);
+		if(debug){
+			for(int i=0;i<6;i++){
+				int index = cptr[e]+6*gp+i;
+				printf("PK2[%d] = %3.3e\n",index,cauchy[index]);
+			}
 		}
     free(C);
     free(Cinv);
