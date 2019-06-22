@@ -50,15 +50,16 @@ extern bool ImplicitStatic;
 extern bool ImplicitDynamic;
 extern bool ExplicitDynamic;
 
-extern double *fe;
-extern double *fi;
-extern double *fi_prev;
+extern double *fe; /*external forces for current step - used in engery calculation*/
+extern double *fe_prev; /*external forces for previous step - used in engery calculation*/
+extern double *fi; /*internal forces for current step - used in engery calculation*/
+extern double *fi_prev; /*internal forces for previous step - used in engery calculation*/
 extern double *f_net;
 extern double *fr_prev;
 extern double *fr_curr;
 extern double *f_damp_prev;
 extern double *f_damp_curr;
-extern double *displacements_prev;
+extern double *displacements_prev; /*displacements for previous step - used in engery calculation*/
 
 extern double *F; /* deformation graident tensor array */
 extern double *detF; /*determinate of F for all gauss points */
