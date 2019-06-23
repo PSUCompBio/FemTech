@@ -2,6 +2,10 @@
 
 Can you see this in Figure 
 
+$$
+x=1 \tag{1} \label{equ:test}
+$$
+
 Check out this page: [http://what-when-how.com/the-finite-element-method/fem-for-3d-solids-finite-element-method-part-2/](http://what-when-how.com/the-finite-element-method/fem-for-3d-solids-finite-element-method-part-2/)
 
 ![8 node hex](../.gitbook/assets/img208.png)
