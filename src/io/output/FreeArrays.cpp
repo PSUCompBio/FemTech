@@ -39,6 +39,7 @@ void FreeArrays() {
 	free1DArray(f_damp_curr);
 	free1DArray(displacements_prev);
   free1DArray(F);
+  free1DArray(Favg);
 	free1DArray(cauchy);
 	free1DArray(cptr);
 	free1DArray(materialID);
@@ -47,6 +48,7 @@ void FreeArrays() {
 	free1DArray(invF);
 	free1DArray(b);
 	free1DArray(E);
+	free1DArray(Eavg);
 	free1DArray(detFptr);
 	free1DArray(InternalsPtr);
 	free1DArray(internals);
