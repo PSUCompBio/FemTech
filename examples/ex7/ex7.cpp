@@ -11,7 +11,7 @@ void CustomPlot(double Time);
 double Time;
 int nStep;
 int nSteps;
-int nPlotSteps = 10;
+int nPlotSteps = 100;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
 
@@ -43,7 +43,8 @@ int main(int argc, char **argv) {
 
   // Dynamic Explcit solution using....
   double dt = 2.5e-06;
-  double tMax = 1; // max simulation time in seconds
+  double tMax = 1.0; // max simulation time in seconds
+
   double dMax = 0.001;  // max displacment in meters
   double Time = 0.0;
   int time_step_counter = 0;
@@ -60,14 +61,13 @@ int main(int argc, char **argv) {
   /* Step-2: getforce step from Belytschko */
   GetForce(); // Calculating the force term.
   /* obtain dt, according to Belytschko dt is calculated at end of getForce */
-  // dt = ExplicitTimeStepReduction * StableTimeStep();
+  dt = ExplicitTimeStepReduction * StableTimeStep();
 
   /* Step-3: Calculate accelerations */
   CalculateAccelerations();
 
   nSteps = (int)(tMax / dt);
-  // int nsteps_plot = (int)(nSteps / nPlotSteps);
-  int nsteps_plot = 100;
+  int nsteps_plot = (int)(nSteps / nPlotSteps);
   printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
          nsteps_plot);
 
@@ -79,12 +79,12 @@ int main(int argc, char **argv) {
   double t_n = 0.0;
   const int nDOF = ndim * nnodes;
   printf("------------------------------- Loop ----------------------------\n");
-  printf("Time : %f, tmax : %f\n", Time, tMax);
+  printf("Time : %10.5E, tmax : %10.5E\n", Time, tMax);
   while (Time < tMax) {
     double t_n = Time;
     double t_np1 = Time + dt;
     Time = t_np1; /*Update the time by adding full time step */
-    printf("Time : %f, tmax : %f\n", Time, tMax);
+    printf("Time : %10.5E, tmax : %10.5E\n", Time, tMax);
     double dt_nphalf = dt;                 // equ 6.2.1
     double t_nphalf = 0.5 * (t_np1 + t_n); // equ 6.2.1
 
@@ -94,18 +94,10 @@ int main(int argc, char **argv) {
     }
 
     /* Update Nodal Displacements */
-    printf("%d (%.6f) Dispalcements\n--------------------\n", time_step_counter,
-           Time);
     // Store old displacements for energy computation
     memcpy(displacements_prev, displacements, ndim * nnodes * sizeof(double));
     for (int i = 0; i < ndim * nnodes; i++) {
       displacements[i] = displacements[i] + dt_nphalf * velocities_half[i];
-      printf("%12.6f, %12.6f, %12.6f\n", displacements[i], velocities[i],
-             accelerations[i]);
-    }
-    printf("%d (%.6f) Accel\n--------------------\n", time_step_counter, Time);
-    for (int i = 0; i < nnodes; i++) {
-      printf("%d, %12.6f\n", i, accelerations[3 * i + 2]);
     }
     /* Step 6 Enforce displacement boundary Conditions */
     ApplyBoundaryConditions(Time, dMax, tMax);
@@ -143,7 +135,7 @@ int main(int argc, char **argv) {
       }
     }
     time_step_counter = time_step_counter + 1;
-    // dt = ExplicitTimeStepReduction * StableTimeStep();
+    dt = ExplicitTimeStepReduction * StableTimeStep();
   } // end explcit while loop
   nStep = plot_counter;
   if (debug) {
@@ -177,24 +169,18 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
     if (fabs(coordinates[ndim * i + 0] - 0.0) < tol) {
       boundary[ndim * i + 0] = 1;
       displacements[ndim * i + 0] = 0.0;
-      velocities[ndim * i + 0] = 0.0;
-      // printf("node : %d x : %d\n", i, count);
       count = count + 1;
     }
     // if y coordinate = 0, constrain node to y plane (1-direction)
     if (fabs(coordinates[ndim * i + 1] - 0.0) < tol) {
       boundary[ndim * i + 1] = 1;
       displacements[ndim * i + 1] = 0.0;
-      velocities[ndim * i + 1] = 0.0;
-      // printf("node : %d y : %d\n", i, count);
       count = count + 1;
     }
     // if z coordinate = 0, constrain node to z plane (2-direction)
     if (fabs(coordinates[ndim * i + 2] - 0.0) < tol) {
       boundary[ndim * i + 2] = 1;
       displacements[ndim * i + 2] = 0.0;
-      velocities[ndim * i + 2] = 0.0;
-      // printf("node : %d z : %d\n", i, count);
       count = count + 1;
     }
     // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
@@ -209,10 +195,9 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
       // CalculateDisplacement to get current increment out
       //  displacment to be applied.
       displacements[ndim * i + 1] = AppliedDisp;
-      velocities[ndim * i + 1] = dMax / tMax;
     }
   }
-  // printf("Time = %3.3e, Applied Disp = %3.3e\n",Time,AppliedDisp);
+  printf("Time = %10.5E, Applied Disp = %10.5E\n",Time, AppliedDisp);
   return;
 }
 

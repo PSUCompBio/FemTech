@@ -14,7 +14,7 @@ file(INSTALL 1-elt-cube.k DESTINATION .)
 file(INSTALL materials.dat DESTINATION .)
 file(INSTALL gnuplot.script DESTINATION .)
 file(INSTALL ToPlot.readme DESTINATION .)
-file(INSTALL TensionNoDamping.dat DESTINATION .)
+file(INSTALL abaqus DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
 

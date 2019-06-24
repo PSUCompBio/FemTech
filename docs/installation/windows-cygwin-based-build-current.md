@@ -27,7 +27,7 @@ The current suggested setup to work on Windows is to use Atom \(or Vi for advanc
    15. lua 5.3.5-1 
    16. lua-devel 5.3.5.1
 3. Download and install Paraview: [https://www.paraview.org/](https://www.paraview.org/)
-4. **Build FemTech**:  Open cygwin terminal Navigate to a directory where you would like to install FemTech or make one, e.g.  mkdir code cd code git clone [https://github.com/PSUCompBio/FemTech](https://github.com/PSUCompBio/FemTech) cd FemTech mkdir build cd build ccmake .. In the ccmake gui, add "Enable MPI" and "Examples", then configure In the ccmake gui, select the examples you would like to turn on \(see list here\) In the ccmake gui, configure again, then generate \(g\) to create the Makefile. make -j 8 \(where 8 is the number of processors you have\)
+4. **Build FemTech**:  - Open cygwin terminal - Navigate to a directory where you would like to install FemTech \(e.g.  mkdir code/FemTech\) - cd code - git clone [https://github.com/PSUCompBio/FemTech](https://github.com/PSUCompBio/FemTech) - cd FemTech - mkdir build - cd build - ccmake ..  - In the ccmake GUI, add "Enable MPI" and "Examples", then configure \(using the "c" button\). If there are no errors, go to next step. If you get error see **Common Build Errors** below.    - If you have no configuration errors, then in the ccmake GUI, you should see a list of examples. Select the examples you would like to turn on \(see list here\), and configure again.  - If you have no configuration errors, then select generate \(g\) to create the Makefile. make -j 8 \(where 8 is the number of processors you have\)
 
 ## Common Build Errors
 
