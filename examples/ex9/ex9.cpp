@@ -15,7 +15,7 @@ int nPlotSteps = 100;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
-double ExplicitTimeStepReduction = 0.05;
+double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
 
 int main(int argc, char **argv) {
