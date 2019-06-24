@@ -11,6 +11,7 @@ double *dshp; //pointer for deriviatives of shp functions
 int *fptr; //pointer for incrementing through deformation gradient, F, detF, InvF, b, E
 int *nShapeFunctions;
 double *F; // deformation gradient array, F
+double *Favg; // avg deformation gradient array
 double *detF; // inverse of deformation gradient array
 double *invF; // inverse of deformation gradient array
 double *b; // left Cauchy Green tensor
@@ -53,6 +54,7 @@ void ShapeFunctions() {
   int dshp_counter = 0; // counter for deriviatives of shp function
   int gpCount = 0; // counter for gaupp points
 	int F_counter = 0; //counter for storage of deformation gradient, F
+  int Favg_counter = 0; //counter for storing avg of deformation gradient
   int cauchy_counter = 0; //counter for storage of cauchy stress.
 	int detF_counter = 0; // counter for storage of detF for each element.
 	int internals_counter = 0; //counter for storage of internals for each gauss point.
@@ -95,6 +97,11 @@ void ShapeFunctions() {
 	    // Also this counter will be used (as well as fptr) for detF, InvF, b and E.
 			F_counter += 72;
 
+      //This counter is used to keep track of avg deformation gradient across gauss points for
+      //every element. Since it is an average, it doesn't depend on the number of gauss points
+      //and for every element is just an array of 9 terms.
+      Favg_counter += 9;
+
 
 			//the next counter is for the Cauchy stress array
 			//there is a cauchy stress tensor stored at each gauss point
@@ -124,10 +131,12 @@ void ShapeFunctions() {
       // counter = counter + nShapeFunctions[i]*GaussPoints[i];
       // dshp_counter = dshp_counter + (ndim * nShapeFunctions[i]*GaussPoints[i]);
 			// F_counter = ndim*ndim*ngausspoint = 3*3*1
+      // Favg_counter = ndim*ndim = 3*3
       //cauchy_counter = 6*1 = 6
       counter += 4;
       dshp_counter += 12;
 			F_counter += 9;
+      Favg_counter += 9;
 			cauchy_counter += 6; // six positions for 3D, it is symmetric
 			detF_counter +=1;
 			internals_counter += MAXINTERNALVARS * GaussPoints[i];
@@ -143,10 +152,12 @@ void ShapeFunctions() {
       // counter = counter + nShapeFunctions[i]*gpCount;
       // dshp_counter = dshp_counter + (ndim * nShapeFunctions[i]*gpCount);
 			// F_counter = ndim*ndim*gpCount
+      // Favg_counter = ndim*ndim = 3*3
       //cauchy_counter = 6*1 = 6
       counter += nShapeFunctions[i]*gpCount;
       dshp_counter += (ndim * nShapeFunctions[i] * gpCount);
 			F_counter += (ndim*ndim*gpCount);
+      Favg_counter += 9;
 			cauchy_counter += 6; // six positions for 3D, it is symmetric
 			detF_counter +=1; // detF stored only at gauss point
 			internals_counter += MAXINTERNALVARS * GaussPoints[i];
@@ -183,6 +194,7 @@ void ShapeFunctions() {
   /* set size of deformation gradient, F array -
 		it holds F for all gauss points in all elemnts */
   F = (double *)calloc(F_counter, sizeof(double));
+  Favg = (double *)calloc(Favg_counter, sizeof(double));
   detF = (double *)calloc(detF_counter, sizeof(double));
 	invF = (double *)calloc(F_counter, sizeof(double));
 	b = (double *)calloc(F_counter, sizeof(double));

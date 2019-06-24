@@ -62,6 +62,7 @@ void CompressibleNeoHookean(int e, int gp){
            F_element_gp, &ndim, &zero, C, &ndim);
     double Cdet;
     inverse3x3Matrix(C, Cinv, &Cdet);
+		//printf("%3.3f   ",*C);
 
 		//From Bonet and Wood - Flagshyp
 		//mu              = properties(2);

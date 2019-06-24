@@ -20,6 +20,7 @@ extern "C" {
      int *ipiv, double *b, int *ldb, int *info);
  extern void dgemv_(char *trans, int *m, int *n, double *alpha, double *a, \
      int *lda, double *x, int *incx, double *beta, double *y, int *incy);
+ extern void daxpy_(int *n, double *alpha, double *x, int *incx, double *y, int *incy);
 }
 
 #endif // INCLUDE_BLAS_H_

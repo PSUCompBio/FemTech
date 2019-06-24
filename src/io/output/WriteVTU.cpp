@@ -117,6 +117,22 @@ void WriteVTU(const char* FileName, int step,double time){
 	}
 	fprintf(fp,"\t\t\t\t</DataArray>\n");
 
+  // write acceleration
+  fprintf(fp,"\t\t\t\t<DataArray type=\"Float64\" Name=\"Accelerations\" "
+                  "NumberOfComponents=\"%d\" ComponentName0=\"X\" "
+                  "ComponentName1=\"Y\" ComponentName2=\"Z\" "
+                  "format=\"ascii\">\n",ndim);
+  for(i=0;i<nnodes;i++){
+      fprintf(fp,"\t\t\t\t\t");
+      for(j=0;j<ndim;j++){
+        fprintf(fp,"%10.8e ",accelerations[ndim*i+j]);
+      }
+      // Temporary solution for ndim
+      if(ndim == 2){fprintf(fp,"%10.8e", 0.0);}
+      fprintf(fp,"\n");
+  }
+  fprintf(fp,"\t\t\t\t</DataArray>\n");
+
 	// write boundary
 	fprintf(fp,"\t\t\t\t<DataArray type=\"Int32\" Name=\"Boundary\" "
 									"NumberOfComponents=\"%d\" ComponentName0=\"X\" "
@@ -146,6 +162,25 @@ void WriteVTU(const char* FileName, int step,double time){
 		 fprintf(fp,"\t\t\t\t\t%d\n",pid[i]);
 	}
 	fprintf(fp,"\t\t\t\t</DataArray>\n");
+
+  fprintf(fp,"\t\t\t\t<DataArray type=\"Float64\" Name=\"AvgStrain\" "
+                  "NumberOfComponents=\"%d\" ComponentName0=\"E11\" "
+                  "ComponentName1=\"E12\" ComponentName2=\"E13\" "
+                  "ComponentName3=\"E12\" ComponentName4=\"E13\" "
+                  "ComponentName5=\"E12\" ComponentName6=\"E13\" "
+                  "ComponentName7=\"E12\" ComponentName8=\"E33\" "
+                  "format=\"ascii\">\n",ndim*ndim);
+  for(i=0;i<nelements;i++){
+      fprintf(fp,"\t\t\t\t\t");
+        for(j=0;j<ndim*ndim;j++){
+           fprintf(fp,"%10.8e ",Eavg[i*ndim*ndim+j]);
+      }
+      // Temporary solution for ndim
+      if(ndim == 2){fprintf(fp,"%10.8e", 0.0);}
+      fprintf(fp,"\n");
+  }
+  fprintf(fp,"\t\t\t\t</DataArray>\n");
+
 	// write proc ID
 	fprintf(fp, "\t\t\t\t<DataArray type=\"Int32\" Name=\"ProcID\" format=\"ascii\">\n");
 	for (i = 0; i < nelements; i++) {
@@ -180,18 +215,28 @@ void WriteVTU(const char* FileName, int step,double time){
     fprintf(fp,"\t\t</PCells>\n");
 
 		/*-----------POINT DATA -----------------*/
-		fprintf(fp,"\t\t<PPointData  Vectors=\"Displacements\">\n");
+		fprintf(fp,"\t\t<PPointData  Vectors=\"Displacements Accelerations\" >\n");
 		fprintf(fp,"\t\t\t<PDataArray type=\"Float64\" Name=\"Displacements\" "
                "NumberOfComponents=\"%d\" ComponentName0=\"X\" ComponentName1=\"Y\" "
                "ComponentName2=\"Z\" format=\"ascii\" />\n",ndim);
+   fprintf(fp,"\t\t\t<PDataArray type=\"Float64\" Name=\"Accelerations\" "
+              "NumberOfComponents=\"%d\" ComponentName0=\"X\" ComponentName1=\"Y\" "
+              "ComponentName2=\"Z\" format=\"ascii\" />\n",ndim);
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"Boundary\" "
 							 "NumberOfComponents=\"%d\" ComponentName0=\"X\" ComponentName1=\"Y\" "
 							 "ComponentName2=\"Z\" format=\"ascii\" />\n",ndim);
     fprintf(fp,"\t\t</PPointData>\n");
 
 		/*-----------CELL DATA -----------------*/
-  	fprintf(fp,"\t\t<PCellData Scalars=\"PartID\">\n");
+  	fprintf(fp,"\t\t<PCellData Scalars=\"PartID\" Tensors=\"AvgStrain\">\n");
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"PartID\"/>\n");
+    fprintf(fp,"\t\t\t<PDataArray type=\"Float64\" Name=\"AvgStrain\" "
+                    "NumberOfComponents=\"%d\" ComponentName0=\"E11\" "
+                    "ComponentName1=\"E12\" ComponentName2=\"E13\" "
+                    "ComponentName3=\"E12\" ComponentName4=\"E13\" "
+                    "ComponentName5=\"E12\" ComponentName6=\"E13\" "
+                    "ComponentName7=\"E12\" ComponentName8=\"E33\" "
+                    "format=\"ascii\"/>\n",ndim*ndim);
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"ProcID\"/>\n");
     fprintf(fp,"\t\t</PCellData>\n");
     for (int i = 0; i < world_size; ++i) {
