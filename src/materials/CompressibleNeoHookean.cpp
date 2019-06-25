@@ -5,6 +5,7 @@
 // Evaluates the Cauchy stress tensor
 
 void CompressibleNeoHookean(int e, int gp){
+#ifdef DEBUG
 	if (debug && 1==0) {
 		printf("shp array e.%d with %d Gauss points, each with %d shp functions \n", e, GaussPoints[e], nShapeFunctions[e]);
 		//printf("int.%d:\n", j);
@@ -19,6 +20,7 @@ void CompressibleNeoHookean(int e, int gp){
 			}
 		}
 	}
+#endif //DEBUG
 
 	//double J = 1;
 	//printf("element %d, gauss point %d\n",e,gp);
@@ -73,12 +75,14 @@ void CompressibleNeoHookean(int e, int gp){
 		cauchy[cptr[e]+6*gp+4] = -mu*Cinv[6] + logJ*Cinv[6];
 			// in voigt notation, sigma12
 		cauchy[cptr[e]+6*gp+5] = -mu*Cinv[3] + logJ*Cinv[3];
+#ifdef DEBUG
 		if(debug){
 			for(int i=0;i<6;i++){
 				int index = cptr[e]+6*gp+i;
 				printf("PK2[%d] = %3.3e\n",index,cauchy[index]);
 			}
 		}
+#endif //DEBUG
     free(C);
     free(Cinv);
 	}

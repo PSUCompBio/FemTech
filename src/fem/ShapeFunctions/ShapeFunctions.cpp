@@ -163,6 +163,7 @@ void ShapeFunctions() {
   } // loop on i, nelements
 
   // for debugging purposes
+#ifdef DEBUG
   if (debug && 1==0) {
     for (int i = 0; i < nelements; i++) {
       printf("(e.%d) - eptr:[%d->%d] - gptr:[%d->%d] -  dsptr:[%d->%d] - fptr:[%d->%d] - cptr:[%d->%d] \n",
@@ -173,6 +174,7 @@ void ShapeFunctions() {
     printf("size of derivatives of shp functions array, dshp = %d \n", dshp_counter);
 		printf("size of deformation gradient array, F = %d \n", F_counter);
   }
+#endif //DEBUG
 
   /*set size of shp array  - this holds shp functions for all elements */
   shp =  (double *)calloc(counter, sizeof(double));
@@ -193,6 +195,7 @@ void ShapeFunctions() {
 	cauchy = (double *)calloc(cauchy_counter, sizeof(double));
 
   /* for debugging */
+#ifdef DEBUG
   if (debug && 1==0) {
     for (int i = 0; i < nelements; i++) {
       printf("e.%d: int. pts = %d, # shp functions = %d\n", i, GaussPoints[i], nShapeFunctions[i]);
@@ -214,6 +217,7 @@ void ShapeFunctions() {
       }
     }
   }
+#endif //DEBUG
 
   // Depending on element type call correct shape function library
   for (int i = 0; i < nelements; i++) {
@@ -240,6 +244,7 @@ void ShapeFunctions() {
   }// loop on nelements
 
   // for debugging
+#ifdef DEBUG
   if (debug && 1==0) {
     for (int i = 0; i < nelements; i++) {
       printf("shp array e.%d with %d Gauss points, each with %d shp functions \n", i, GaussPoints[i], nShapeFunctions[i]);
@@ -257,5 +262,6 @@ void ShapeFunctions() {
       }
     }
   }
+#endif //DEBUG
   return;
 }

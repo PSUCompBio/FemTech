@@ -1,6 +1,28 @@
+#To compile in debug mode                    : -DCMAKE_BUILD_TYPE=Debug
+#Default behaviour is to use Release mode.
+
 cmake_minimum_required(VERSION 3.3)
 
 PROJECT (FemTech)
+
+#============================================================================
+# BUILD TYPE SPECIFIC PARTS
+#==============================================================================
+STRING(TOUPPER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_NO_BUILD_TYPE)
+  message(STATUS "No build type selected, default to Release")
+  set(CMAKE_BUILD_TYPE "RELEASE" CACHE STRING "Build type (default Release)" FORCE)
+endif()
+
+if(${CMAKE_BUILD_TYPE} STREQUAL DEBUG)
+  message("Adding Debug flag...")
+  add_compile_definitions(DEBUG)
+endif()
+
+message(STATUS "Configuring application: ${PROJECT_NAME}")
+message(STATUS "Install Directory : ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "Current built type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "Current build type flags: ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}")
 
 # set install rules (windows only)
 if(WIN32)
@@ -73,11 +95,7 @@ endif()
 #=============================================================================
 
 
-
 ADD_SUBDIRECTORY (src)
-
-
-
 
 #===============================================================================
 # Examples and tests

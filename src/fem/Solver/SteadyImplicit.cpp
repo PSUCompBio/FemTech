@@ -20,6 +20,7 @@ void SolveSteadyImplicit(void) {
     }
   }
 
+#ifdef DEBUG
   if (debug && 1==0) {
     printf("DEBUG : Printing Displacement Solution\n");
     for (int i = 0; i < nnodes; ++i) {
@@ -29,6 +30,7 @@ void SolveSteadyImplicit(void) {
       printf("\n");
     }
   }
+#endif //DEBUG
   free(pivot);
   return;
 }

@@ -313,6 +313,7 @@ printf("le = %3.3f\n",le);
 	// 	}
 	// }
 
+#ifdef DEBUG
 	if(debug && 1==0){
 		printf("--------F for gauss point %d --------\n",gp);
 		for(int i=0;i<ndim;i++){
@@ -323,9 +324,6 @@ printf("le = %3.3f\n",le);
 			printf("\n");
 		} //loop on i
 	} // if debug
-
-
-
-
+#endif //DEBUG
 	return ;
 }
