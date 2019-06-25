@@ -2,7 +2,7 @@
 #include "blas.h"
 
 // plane strain or three-dimensional compressible neo-Hookean
-// Evaluates the Cauchy stress tensor
+// Evaluates the PK2 stress tensor
 
 void CompressibleNeoHookean(int e, int gp){
 #ifdef DEBUG
@@ -28,9 +28,7 @@ void CompressibleNeoHookean(int e, int gp){
 	if(ndim == 2){
 		// 6 values saved per gauss point for 3d
 		for(int i=0;i<3;i++){
-			int index = cptr[e]+3*gp+i;
-			//cauchy[index] = 0.0
-		  //printf("cauchy[%d]\n",index);
+			int index = pk2[e]+3*gp+i;
 		}
 	}
 	if(ndim == 3){
@@ -64,22 +62,22 @@ void CompressibleNeoHookean(int e, int gp){
     // Computing PK2
     double logJ = lambda*log(J);
 		// in voigt notation, sigma11
-		cauchy[cptr[e]+6*gp+0] = mu*(1.0-Cinv[0]) + logJ*Cinv[0];
+		pk2[pk2ptr[e]+6*gp+0] = mu*(1.0-Cinv[0]) + logJ*Cinv[0];
 			// in voigt notation, sigma22
-		cauchy[cptr[e]+6*gp+1] = mu*(1.0-Cinv[4]) + logJ*Cinv[4];
+		pk2[pk2ptr[e]+6*gp+1] = mu*(1.0-Cinv[4]) + logJ*Cinv[4];
 			// in voigt notation, sigma33
-		cauchy[cptr[e]+6*gp+2] = mu*(1.0-Cinv[8]) + logJ*Cinv[8];
+		pk2[pk2ptr[e]+6*gp+2] = mu*(1.0-Cinv[8]) + logJ*Cinv[8];
 			// in voigt notation, sigma23
-		cauchy[cptr[e]+6*gp+3] = -mu*Cinv[7] + logJ*Cinv[7];
+		pk2[pk2ptr[e]+6*gp+3] = -mu*Cinv[7] + logJ*Cinv[7];
 			// in voigt notation, sigma13
-		cauchy[cptr[e]+6*gp+4] = -mu*Cinv[6] + logJ*Cinv[6];
+		pk2[pk2ptr[e]+6*gp+4] = -mu*Cinv[6] + logJ*Cinv[6];
 			// in voigt notation, sigma12
-		cauchy[cptr[e]+6*gp+5] = -mu*Cinv[3] + logJ*Cinv[3];
+		pk2[pk2ptr[e]+6*gp+5] = -mu*Cinv[3] + logJ*Cinv[3];
 #ifdef DEBUG
 		if(debug){
 			for(int i=0;i<6;i++){
-				int index = cptr[e]+6*gp+i;
-				printf("PK2[%d] = %3.3e\n",index,cauchy[index]);
+				int index = pk2ptr[e]+6*gp+i;
+				printf("PK2[%d] = %3.3e\n",index,pk2[index]);
 			}
 		}
 #endif //DEBUG

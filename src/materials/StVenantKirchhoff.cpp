@@ -2,7 +2,7 @@
 #include "blas.h"
 
 // St. Venant-Kirchhoff
-// Evaluates the Cauchy stress tensor
+// Evaluates the PK2 stress tensor
 
 void StVenantKirchhoff(int e, int gp) {
 #ifdef DEBUG
@@ -29,9 +29,7 @@ void StVenantKirchhoff(int e, int gp) {
   if (ndim == 2) {
     // 6 values saved per gauss point for 3d
     for (int i = 0; i < 3; i++) {
-      int index = cptr[e] + 3 * gp + i;
-      // cauchy[index] = 0.0
-      // printf("cauchy[%d]\n",index);
+      int index = pk2ptr[e] + 3 * gp + i;
     }
   }
   if (ndim == 3) {
@@ -68,24 +66,24 @@ void StVenantKirchhoff(int e, int gp) {
 
     // 6 values saved per gauss point for 3d
     // in voigt notation, sigma11
-    cauchy[cptr[e] + 6 * gp + 0] = S[0];
+    pk2[pk2ptr[e] + 6 * gp + 0] = S[0];
     // in voigt notation, sigma22
-    cauchy[cptr[e] + 6 * gp + 1] = S[4];
+    pk2[pk2ptr[e] + 6 * gp + 1] = S[4];
     // in voigt notation, sigma33
-    cauchy[cptr[e] + 6 * gp + 2] = S[8];
+    pk2[pk2ptr[e] + 6 * gp + 2] = S[8];
     // in voigt notation, sigma23
-    cauchy[cptr[e] + 6 * gp + 3] = S[7];
+    pk2[pk2ptr[e] + 6 * gp + 3] = S[7];
     // in voigt notation, sigma13
-    cauchy[cptr[e] + 6 * gp + 4] = S[6];
+    pk2[pk2ptr[e] + 6 * gp + 4] = S[6];
     // in voigt notation, sigma12
-    cauchy[cptr[e] + 6 * gp + 5] = S[3];
+    pk2[pk2ptr[e] + 6 * gp + 5] = S[3];
 #ifdef DEBUG
 		if(debug){
 	    printf("---- Calculate Stress ---\n");
 	    printf("Element : %d, GP : %d\n", e, gp);
 	    for (int k = 0; k < 6; ++k) {
-	      int index_1 = cptr[e]+6*gp+k;
-	      printf("Stress value : %12.4E\n", cauchy[index_1]);
+	      int index_1 = pk2ptr[e]+6*gp+k;
+	      printf("Stress value : %12.4E\n", pk2[index_1]);
 	    }
 	    printf("---- ----\n");
 		}
@@ -118,8 +116,8 @@ void StVenantKirchhoff(int e, int gp) {
       }
       printf("\n");
       for (int i = 0; i < 6; i++) {
-        int index = cptr[e] + 6 * gp + i;
-        printf("cauchy[%d] = %3.3e\n", index, cauchy[index]);
+        int index = pk2ptr[e] + 6 * gp + i;
+        printf("cauchy[%d] = %3.3e\n", index, pk2[index]);
       }
     }
 #endif //DEBUG

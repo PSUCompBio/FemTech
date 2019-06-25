@@ -39,7 +39,6 @@ int main(int argc, char **argv) {
   nStep = 0;
   WriteVTU(argv[1], nStep, Time);
 	CustomPlot(Time);
-  // assert(1==0);
 
   if (ImplicitStatic) {
     // Static solution
