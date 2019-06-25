@@ -19,7 +19,7 @@ extern int *gptr;			/*gauss point pointer - helps step through shp array*/
 extern int *dsptr;			/*deriviative of shp functions pointer array - helps step through dshp array*/
 extern int *gpPtr;			/*gauss point pointer - helps step through detJ and gaussWeights*/
 extern int *fptr; /*deformation gradient pointer - helps step through F array */
-extern int *cptr; /*counter array for iterating through cauchy stress */
+extern int *pk2ptr; /*counter array for iterating through PK2 stress */
 extern int *nShapeFunctions;/*number of shp functions per element */
 extern double *shp;			/*shape functions*/
 extern double *dshp;		/*derivatives of shape functions*/
@@ -66,8 +66,8 @@ extern double *detF; /*determinate of F for all gauss points */
 extern double *invF; /*Inverse of F for all gauss points */
 extern double *b; /*Left Cauchy  Greeen tensor */
 extern double *E; /*Green Lagrange Strain Tensor for each Gauss point */
+extern double *pk2; /*PK2 Stress */
 extern double *Eavg; /*Green Lagrange Strain Tensor Averaged */
-extern double *cauchy; /*Cauchy Stress */
 
 extern int *materialID; /* material id for each element */
 extern double *properties; /* holds material parameters for each element */
@@ -77,7 +77,7 @@ extern double *internals; /* internal variables, typically used for damage or pl
 static int MAXINTERNALVARS = 5; /* max internal variables per gauss point */
 extern int *InternalsPtr; /* pointer for iterating through internals array */
 
-static int debug = 0;
+static int debug = 1; /* Setting it to 1 has no effect when compiled in non-debug mode */
 
 // Variables to keep track of time ans step count
 // Initial configuration nStep = 0 and time = 0

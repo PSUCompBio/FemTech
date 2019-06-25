@@ -124,6 +124,7 @@ int main(int argc, char **argv) {
       WriteVTU(argv[1], plot_counter, Time);
       CustomPlot(Time);
 
+#ifdef DEBUG
       if (debug) {
         printf("DEBUG : Printing Displacement Solution\n");
         for (int i = 0; i < nnodes; ++i) {
@@ -133,11 +134,13 @@ int main(int argc, char **argv) {
           printf("\n");
         }
       }
+#endif //DEBUG
     }
     time_step_counter = time_step_counter + 1;
     dt = ExplicitTimeStepReduction * StableTimeStep();
   } // end explcit while loop
   nStep = plot_counter;
+#ifdef DEBUG
   if (debug) {
     printf("DEBUG : Printing Displacement Solution\n");
     for (int i = 0; i < nnodes; ++i) {
@@ -147,6 +150,7 @@ int main(int argc, char **argv) {
       printf("\n");
     }
   }
+#endif //DEBUG
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {

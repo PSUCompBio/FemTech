@@ -116,6 +116,7 @@ bool PartitionMesh() {
                  MPI_INT, MPI_COMM_WORLD);
     MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, nodeReceivePattern, 1,
                  MPI_INT, MPI_COMM_WORLD);
+#ifdef DEBUG
     if (debug && 1 == 0) {
       printf("\nDEBUG (proc %d): Element Redistribution Pattern\n", world_rank);
       for (int i = 0; i < world_size; ++i) {
@@ -135,6 +136,7 @@ bool PartitionMesh() {
       }
       printf("\n");
     }
+#endif //DEBUG
     // Pack data to redistribute mesh
     // Data to send and receive include node coordinates, element connectivity,
     // eptr array, part id array, Element type array
@@ -320,6 +322,7 @@ bool PartitionMesh() {
       MPI_Wait(&(requestListSend[i]), &status);
     }
 
+#ifdef DEBUG
     if (debug && 1 == 0) {
       printf("Connectivity Array : \n");
       if (world_rank == 0) {
@@ -392,6 +395,7 @@ bool PartitionMesh() {
         printf("\n");
       }
     }
+#endif //DEBUG
 
     free(connectivityPacked);
     free(coordinatesPacked);
@@ -411,6 +415,7 @@ bool PartitionMesh() {
     for (int i = 0; i < recvCount; ++i) {
       MPI_Wait(&(requestListRecv[i]), &status);
     }
+#ifdef DEBUG
     if (debug && 1 == 0) {
       printf("Connectivity Array : \n");
       if (world_rank == 1) {
@@ -483,6 +488,7 @@ bool PartitionMesh() {
         printf("\n");
       }
     }
+#endif //DEBUG
     free(elementReceivePattern);
     free(nodeReceivePattern);
     free(requestListRecv);
@@ -527,6 +533,7 @@ bool PartitionMesh() {
 
     // Reorder local connectivity
     updateConnectivityGlobalToLocal();
+#ifdef DEBUG
     if (debug && 1 == 0) {
       printf("DEBUG(%d) : Node list to share in local node ID\n", world_rank);
       for (int i = 0; i < sendProcessCount; ++i) {
@@ -539,6 +546,7 @@ bool PartitionMesh() {
       }
       printf("\n");
     }
+#endif //DEBUG
   } else {
     printf("\nERROR( proc %d ): ParMETIS returned error code %d\n", world_rank,
            Result);
@@ -673,12 +681,14 @@ void createNodalCommunicationPattern(void) {
   for (int i = 0; i < world_size; ++i) {
     elmdist[i + 1] = elmdist[i] + elementCount[i];
   }
+#ifdef DEBUG
   if (debug && 1 == 0) {
     for (int i = 0; i < world_size; ++i) {
       printf("DEBUG (%d) : %d, %d \n", world_rank, elementCount[i],
              elmdist[i + 1]);
     }
   }
+#endif //DEBUG
   free(elementCount);
   const int Result =
       ParMETIS_V3_Mesh2Dual(elmdist, eptr, connectivity, &numflag,
@@ -783,6 +793,7 @@ void createNodalCommunicationPattern(void) {
   for (int i = 0; i < world_size; ++i) {
     if (ghostCountProcess[i]) {
       sendCount += 1;
+#ifdef DEBUG
       if (debug && 1 == 0) {
         printf("DEBUG (%d) : Before Make Unique for %d\n", world_rank, i);
         for (int j = ghostCountProcessCum[i]; j < ghostCountProcessCum[i + 1];
@@ -791,10 +802,12 @@ void createNodalCommunicationPattern(void) {
         }
         printf("\n");
       }
+#endif //DEBUG
       qsort(&(elemID_request[ghostCountProcessCum[i]]), ghostCountProcess[i],
             sizeof(int), compare);
       ghostCountProcess[i] = unique(&(elemID_request[ghostCountProcessCum[i]]),
                                     ghostCountProcess[i]);
+#ifdef DEBUG
       if (debug && 1 == 0) {
         printf("DEBUG (%d) : After Make Unique for %d\n", world_rank, i);
         for (int j = 0; j < ghostCountProcess[i]; ++j) {
@@ -802,6 +815,7 @@ void createNodalCommunicationPattern(void) {
         }
         printf("\n");
       }
+#endif //DEBUG
     }
   }
   // Prepare arrays to recv request for ghost
@@ -811,6 +825,7 @@ void createNodalCommunicationPattern(void) {
   MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, elemID_recvCount, 1, MPI_INT,
                MPI_COMM_WORLD);
 
+#ifdef DEBUG
   if (debug && 1 == 0) {
     printf("\nDEBUG (proc %d): Element ID Request Pattern\n", world_rank);
     for (int i = 0; i < world_size; ++i) {
@@ -822,6 +837,7 @@ void createNodalCommunicationPattern(void) {
     }
     printf("\n");
   }
+#endif //DEBUG
 
   // Create the required send and receive patterns
   int *elemID_recvCountCum = (int *)malloc((world_size + 1) * sizeof(int));
@@ -882,6 +898,7 @@ void createNodalCommunicationPattern(void) {
   // free(requestListSend);
   // free(requestListRecv);
 
+#ifdef DEBUG
   if (debug && 1 == 0) {
     printf("DEBUG(%d) : Element id requests received \n", world_rank);
     for (int i = 0; i < world_size; ++i) {
@@ -893,6 +910,7 @@ void createNodalCommunicationPattern(void) {
       printf("\n");
     }
   }
+#endif //DEBUG
 
   // Prepare to send nodelist of requested elements
   int totalElementRequest = elemID_recvCountCum[world_size];
@@ -920,6 +938,7 @@ void createNodalCommunicationPattern(void) {
   free(elmdist);
   free(elemID_recv);
 
+#ifdef DEBUG
   if (debug && 1 == 0) {
     printf("DEBUG(%d) : Node id populated \n", world_rank);
     for (int i = 0; i < totalNodes; ++i) {
@@ -927,6 +946,7 @@ void createNodalCommunicationPattern(void) {
     }
     printf("\n");
   }
+#endif //DEBUG
 
   // Send nodesIDs associated with corresponding elemntID to requested process
   // First exchange number of nodeIDs to send between process
@@ -945,6 +965,7 @@ void createNodalCommunicationPattern(void) {
   MPI_Alltoall(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, nodeID_countRecv, 1, MPI_INT,
                MPI_COMM_WORLD);
 
+#ifdef DEBUG
   if (debug && 1 == 0) {
     printf("\nDEBUG (proc %d): Node ID Send Pattern\n", world_rank);
     for (int i = 0; i < world_size; ++i) {
@@ -956,6 +977,7 @@ void createNodalCommunicationPattern(void) {
     }
     printf("\n");
   }
+#endif //DEBUG
   // Create storage space to receive node ID
   nodeID_countRecvCum[0] = 0;
   // Update ghostCountProcessCum
@@ -1035,6 +1057,7 @@ void createNodalCommunicationPattern(void) {
   for (int i = 0; i < nodePtrSize; ++i) {
     nodePtrRecv[i + 1] += nodePtrRecv[i];
   }
+#ifdef DEBUG
   if (debug && 1 == 0) {
     for (int i = 0; i < world_size; ++i) {
       if (ghostCountProcess[i]) {
@@ -1046,7 +1069,6 @@ void createNodalCommunicationPattern(void) {
       }
     }
   }
-
   if (debug && 1 == 0) {
     printf("\nDEBUG(%d) : Printing available ghost data\n", world_rank);
     for (int i = 0; i < world_size; ++i) {
@@ -1063,6 +1085,7 @@ void createNodalCommunicationPattern(void) {
     }
     printf("\n");
   }
+#endif //DEBUG
   free(ghostCountProcessCum);
   free(elemID_request);
   free(uniqueElementCountCum);
@@ -1099,6 +1122,7 @@ void createNodalCommunicationPattern(void) {
   // Check if all prcoess ID are assigned
   assert(loc == sendProcessCount);
 
+#ifdef DEBUG
   if (debug && 1 == 0) {
     printf("DEBUG (%d) : List of process sharing boundary : ", world_rank);
     for (int i = 0; i < sendProcessCount; ++i) {
@@ -1106,6 +1130,7 @@ void createNodalCommunicationPattern(void) {
     }
     printf("\n");
   }
+#endif //DEBUG
 
   for (int j = 0; j < nelements; ++j) {
     if (boundaryElement[j]) {
@@ -1131,6 +1156,7 @@ void createNodalCommunicationPattern(void) {
   free(processID_ghost);
   free(boundaryElement);
 
+#ifdef DEBUG
   if (debug && 1 == 0) {
     printf("DEBUG (%d) : Shared node list before unique \n", world_rank);
     for (int i = 0; i < world_size; ++i) {
@@ -1143,6 +1169,7 @@ void createNodalCommunicationPattern(void) {
     }
     printf("\n");
   }
+#endif //DEBUG
   // Make all local node list unique
   // Use variable nodeListCurrentProcess to store unique size
   for (int i = 0; i < world_size; ++i) {
@@ -1156,6 +1183,7 @@ void createNodalCommunicationPattern(void) {
   }
   free(nodeListCountProcess);
 
+#ifdef DEBUG
   if (debug && 1 == 0) {
     printf("DEBUG (%d) : Shared node list after unique \n", world_rank);
     for (int i = 0; i < world_size; ++i) {
@@ -1182,6 +1210,7 @@ void createNodalCommunicationPattern(void) {
     }
     printf("\n");
   }
+#endif //DEBUG
   // Make all local node list unique
   // Use variable nodeListNeighbourProcess to store unique size
   int *nodeListNeighbourProcessCount = (int *)calloc(world_size, sizeof(int));
@@ -1195,6 +1224,7 @@ void createNodalCommunicationPattern(void) {
     }
   }
   free(nodeID_countRecv);
+#ifdef DEBUG
   if (debug && 1 == 0) {
     printf("DEBUG (%d) : Received node list after unique \n", world_rank);
     for (int i = 0; i < world_size; ++i) {
@@ -1208,16 +1238,7 @@ void createNodalCommunicationPattern(void) {
     }
     printf("\n");
   }
-
-  // int a[] = {1, 2, 7, 9, 13, 22, 27, 29, 31, 37, 41, 56, 57, 58, 60, 61};
-  // int b[] = {1, 3, 7, 8, 11, 12, 13, 15, 21, 22, 36, 37, 56, 58, 61, 67, 91};
-  // int *c;
-  // int cSize = getIntersection(a, b, 16, 17, &c);
-  // printf("Intersection of array test\n");
-  // for (int i = 0; i < cSize; ++i) {
-  //   printf("%d\t", c[i]);
-  // }
-  // printf("\n");
+#endif //DEBUG
 
   // Create intersection of local node list and node list from neighbour process
   sendNeighbourCount = (int *)malloc(sendProcessCount * sizeof(int));
@@ -1267,6 +1288,7 @@ void createNodalCommunicationPattern(void) {
   }
   free(intersectionStorage);
 
+#ifdef DEBUG
   if (debug && 1 == 0) {
     printf("DEBUG(%d) : Node list to share \n", world_rank);
     for (int i = 0; i < sendProcessCount; ++i) {
@@ -1279,6 +1301,7 @@ void createNodalCommunicationPattern(void) {
     }
     printf("\n");
   }
+#endif //DEBUG
 
   sendNodeDisplacement = (double *)malloc(ndim*totalUniqueNodes * sizeof(double));
   recvNodeDisplacement = (double *)malloc(ndim*totalUniqueNodes * sizeof(double));

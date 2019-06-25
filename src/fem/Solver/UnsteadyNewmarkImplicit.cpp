@@ -72,6 +72,7 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double dt, \
       accelerations[i] = a*(displacements[i]-displacementsOld[i])-b*velocities[i]-c*accelerationsOld[i];
       velocities[i] += e*accelerations[i]+d*accelerationsOld[i];
     }
+#ifdef DEBUG
     if (debug) {
       printf("DEBUG : Printing Displacement Solution\n");
       for (int i = 0; i < nnodes; ++i) {
@@ -81,6 +82,7 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double dt, \
         printf("\n");
       }
     }
+#endif //DEBUG
     // Write the solution to file
     WriteVTU(name, n, Time);
   }
@@ -99,7 +101,9 @@ void ModifyMassAndStiffnessMatrix() {
       nSpecifiedDispBC += 1;
     }
   }
+#ifdef DEBUG
   printf("Debug : %d\n", nSpecifiedDispBC);
+#endif //DEBUG
   // Eliminate columns
   if (nSpecifiedDispBC == 0) {
    return;

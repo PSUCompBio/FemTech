@@ -63,6 +63,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 
 
 	//for debugging can be removed...
+#ifdef DEBUG
 	if (debug && 1==0) {
 		//printf("e.%d ", e);
 		for (int i = eptr[e]; i < eptr[e + 1]; i++) {
@@ -75,6 +76,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 		}
 		printf("\n");
 	}
+#endif //DEBUG
 
 
 	// Compute jacobian transformation
@@ -110,27 +112,34 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
   // Transform derivatives to global co-ordinates
   double c1, c2, c3;
   int baseIndex;
+#ifdef DEBUG
 	if(debug){
 	  printf("---- Shape Function C3D8 ----\n");
 	  printf("Determinant of Jacobian : %12.6e\n", det);
 	  printf("Derivatives eid : %d, gpid : %d, chi : %12.6f, eta : %12.6f, iota : %12.6f\n", e, gp, chi, eta, iota);
 	}
+#endif //DEBUG
   for (int i = 0; i < nShapeFunctions[e]; ++i) {
     baseIndex = dsptr[e] + gp * g*ndim + ndim * i;
     c1 = dshp[baseIndex]*J_Inv[0]+dshp[baseIndex+1]*J_Inv[3]+dshp[baseIndex+2]*J_Inv[6];
     c2 = dshp[baseIndex]*J_Inv[1]+dshp[baseIndex+1]*J_Inv[4]+dshp[baseIndex+2]*J_Inv[7];
     c3 = dshp[baseIndex]*J_Inv[2]+dshp[baseIndex+1]*J_Inv[5]+dshp[baseIndex+2]*J_Inv[8];
+#ifdef DEBUG
     if(debug){
 			printf("Shape fn        : %d, %12.6f, %12.6f, %12.6f\n", i, dshp[baseIndex], dshp[baseIndex+1], dshp[baseIndex+2]);
 		}
+#endif //DEBUG
     dshp[baseIndex] = c1;
     dshp[baseIndex+1] = c2;
     dshp[baseIndex+2] = c3;
+#ifdef DEBUG
     if(debug){
 			printf("Shape fn Global : %d, %12.6f, %12.6f, %12.6f\n", i, dshp[baseIndex], dshp[baseIndex+1], dshp[baseIndex+2]);
 		}
+#endif //DEBUG
  }
 	//for debugging can be removed...
+#ifdef DEBUG
 	if(debug){
 	  printf("---- XS Matrix ----\n");
 		if (debug && 1==1) {
@@ -148,5 +157,6 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 		}
 	  printf("---- End Shape Function C3D8 ----\n");
 	}
+#endif //DEBUG
   return;
 }

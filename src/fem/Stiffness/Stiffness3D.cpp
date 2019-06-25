@@ -53,6 +53,7 @@ void StiffnessElementMatrix(double* Ke, int e) {
   }
 
   // print Ke Matrix
+#ifdef DEBUG
   if (debug && 1==0) {
     printf("RK:DEBUG : Printing Ke (Elemental Stiffness Matrix) for Element %d\n", e);
     for (int j = 0; j < bColSize; ++j) {
@@ -62,6 +63,7 @@ void StiffnessElementMatrix(double* Ke, int e) {
       printf("\n");
     }
   }
+#endif //DEBUG
   free(B);
   free(BtC);
   free(KeGQ);

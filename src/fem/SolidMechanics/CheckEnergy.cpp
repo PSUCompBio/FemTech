@@ -11,9 +11,11 @@ void CheckEnergy(void) {
   }
   sum *= 0.5;
   Wint_n += sum;
+#ifdef DEBUG
 	if(debug){
   	printf("Internal Work : %.24f\n", Wint_n);
 	}
+#endif //DEBUG
   double WKE = 0.0;
   for(int i = 0; i < nnodes*ndim; ++i) {
     // if(!boundary[i]) {
@@ -21,9 +23,11 @@ void CheckEnergy(void) {
     // }
   }
   WKE *= 0.5;
+#ifdef DEBUG
 	if(debug){
   	printf("Kinetic Energy : %.24f\n", WKE);
 	}
+#endif //DEBUG
   double total = fabs(WKE+Wint_n-Wext_n);
   double max = fabs(Wint_n);
   if (max < fabs(Wext_n)) {

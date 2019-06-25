@@ -56,6 +56,7 @@ void MassElementMatrix(double *Me, int e) {
   for (int n = 0; n < mLocalSize; ++n) {
     Me[n] *= rho;
   }
+#ifdef DEBUG
   // print Me Matrix
   if (debug && 1==0) {
     printf("DEBUG : Printing Me (Mass Matrix) for Element %d\n", e);
@@ -66,6 +67,7 @@ void MassElementMatrix(double *Me, int e) {
       printf("\n");
     }
   }
+#endif //DEBUG
   free(MeGQ);
   free(N);
   return;
@@ -78,12 +80,14 @@ void LumpMassMatrix(void) {
       mass[j] += mass[j+i*massSize];
     }
   }
+#ifdef DEBUG
 	if(debug && 1==0){
 	  printf("Lumped Mass\n");
 	  for(int j = 0; j < massSize; ++j) {
 	    printf("%d  %12.6f\n", j, mass[j]);
 	  }
 	}
+#endif //DEBUG
 }
 void updateMassMatrixNeighbour(void) {
   // Update array to send 
@@ -132,6 +136,7 @@ void updateMassMatrixNeighbour(void) {
   }
   free(requestListSend);
   free(requestListRecv);
+#ifdef DEBUG
 	if(debug && 1==0){
     const int massSize = nnodes*ndim;
 	  printf("Lumped Mass After Exchange\n");
@@ -139,4 +144,5 @@ void updateMassMatrixNeighbour(void) {
 	    printf("%d  %12.6f\n", j, mass[j]);
 	  }
 	}
+#endif //DEBUG
 }

@@ -2,7 +2,7 @@
 #include "blas.h"
 
 void DeterminateF(int e, int gp){
-	//good example of how to reference F
+#ifdef DEBUG
 	if (debug && 1==0) {
 			printf("shp array e.%d with %d Gauss points, each with %d shp functions \n", e, GaussPoints[e], nShapeFunctions[e]);
 			//printf("int.%d:\n", j);
@@ -31,6 +31,7 @@ void DeterminateF(int e, int gp){
 			int index2 = gpPtr[e]+gp;
 			printf("detF[%d]\n",index2);
 	}
+#endif //DEBUG
 
   int index2 = gpPtr[e]+gp;
 
