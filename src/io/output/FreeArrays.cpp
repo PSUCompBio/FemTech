@@ -41,12 +41,14 @@ void FreeArrays() {
   free1DArray(F);
 	free1DArray(pk2);
 	free1DArray(pk2ptr);
+  free1DArray(Favg);
 	free1DArray(materialID);
 	free1DArray(properties);
 	free1DArray(detF);
 	free1DArray(invF);
 	free1DArray(b);
 	free1DArray(E);
+	free1DArray(Eavg);
 	free1DArray(detFptr);
 	free1DArray(InternalsPtr);
 	free1DArray(internals);
