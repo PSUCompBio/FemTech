@@ -2,8 +2,8 @@
 #include "blas.h"
 
 void InverseF(int e, int gp){
-
 	//good example of how to reference F
+#ifdef DEBUG
 	if (debug && 1==0) {
 			printf("shp array e.%d with %d Gauss points, each with %d shp functions \n", e, GaussPoints[e], nShapeFunctions[e]);
 			//printf("int.%d:\n", j);
@@ -30,9 +30,9 @@ void InverseF(int e, int gp){
 				printf("\n");
 			}
 	}
+#endif //DEBUG
 
-
-	if(ndim == 2){
+	if(ndim == 2) {
 		int index = fptr[e] + ndim*ndim*gp;
 		int index2 = detFptr[e]+gp;
 		double da,db,dc,dd;

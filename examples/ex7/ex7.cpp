@@ -44,6 +44,7 @@ int main(int argc, char **argv) {
   // Dynamic Explcit solution using....
   double dt = 2.5e-06;
   double tMax = 1.0; // max simulation time in seconds
+
   double dMax = 0.001;  // max displacment in meters
   double Time = 0.0;
   int time_step_counter = 0;
@@ -123,6 +124,7 @@ int main(int argc, char **argv) {
       WriteVTU(argv[1], plot_counter, Time);
       CustomPlot(Time);
 
+#ifdef DEBUG
       if (debug) {
         printf("DEBUG : Printing Displacement Solution\n");
         for (int i = 0; i < nnodes; ++i) {
@@ -132,11 +134,13 @@ int main(int argc, char **argv) {
           printf("\n");
         }
       }
+#endif //DEBUG
     }
     time_step_counter = time_step_counter + 1;
     dt = ExplicitTimeStepReduction * StableTimeStep();
   } // end explcit while loop
   nStep = plot_counter;
+#ifdef DEBUG
   if (debug) {
     printf("DEBUG : Printing Displacement Solution\n");
     for (int i = 0; i < nnodes; ++i) {
@@ -146,6 +150,7 @@ int main(int argc, char **argv) {
       printf("\n");
     }
   }
+#endif //DEBUG
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {

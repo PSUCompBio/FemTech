@@ -83,17 +83,17 @@ printf("le = %3.3f\n",le);
 
 	// 6 values saved per gauss point for 3d
 	// in voigt notation, sigma11
-	cauchy[cptr[e] + 6 * gp + 0] = cauchystress;
+	pk2[pk2ptr[e] + 6 * gp + 0] = cauchystress;
 	// in voigt notation, sigma22
-	cauchy[cptr[e] + 6 * gp + 1] = 0;
+	pk2[pk2ptr[e] + 6 * gp + 1] = 0;
 	// in voigt notation, sigma33
-	cauchy[cptr[e] + 6 * gp + 2] = 0;
+	pk2[pk2ptr[e] + 6 * gp + 2] = 0;
 	// in voigt notation, sigma23
-	cauchy[cptr[e] + 6 * gp + 3] = 0;
+	pk2[pk2ptr[e] + 6 * gp + 3] = 0;
 	// in voigt notation, sigma13
-	cauchy[cptr[e] + 6 * gp + 4] = 0;
+	pk2[pk2ptr[e] + 6 * gp + 4] = 0;
 	// in voigt notation, sigma12
-	cauchy[cptr[e] + 6 * gp + 5] = 0;
+	pk2[pk2ptr[e] + 6 * gp + 5] = 0;
 
 	force[0] = truss_axial_force;
 	force[1] = 0.0;
@@ -313,6 +313,7 @@ printf("le = %3.3f\n",le);
 	// 	}
 	// }
 
+#ifdef DEBUG
 	if(debug && 1==0){
 		printf("--------F for gauss point %d --------\n",gp);
 		for(int i=0;i<ndim;i++){
@@ -323,9 +324,6 @@ printf("le = %3.3f\n",le);
 			printf("\n");
 		} //loop on i
 	} // if debug
-
-
-
-
+#endif //DEBUG
 	return ;
 }

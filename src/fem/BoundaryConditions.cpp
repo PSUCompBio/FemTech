@@ -89,6 +89,7 @@ void ApplySteadyBoundaryConditions(void) {
   memcpy(&(rhs[modifiedMatSize]), rhsAux, sizeof(double)*nSpecifiedDispBC);
   free(rhsAux);
 
+#ifdef DEBUG
   if (debug) {
     printf("DEBUG : Printing Full Stiffness Matrix\n");
     for (int j = 0; j < modifiedMatSize; ++j) {
@@ -115,4 +116,5 @@ void ApplySteadyBoundaryConditions(void) {
       printf("%12.4f\n", rhs[j]);
     }
   }
+#endif //DEBUG
 }

@@ -17,25 +17,33 @@ void CheckEnergy(void) {
       sum_Wint_n += delta_d*(fi_prev[i] + fi[i]); /* equ 6.2.14 */
 			sum_Wext_n += delta_d*(fe_prev[i] + fe[i]); /* equ 6.2.15 */
   }
+
   sum_Wint_n *= 0.5;
   sum_Wext_n *= 0.5;
   Wint_n += sum_Wint_n;
   Wext_n += sum_Wext_n;
 
+#ifdef DEBUG
 	if(debug){
   	printf("Internal Work : %.24f\n", Wint_n);
 	}
-
-	/* Calculate Kinetic Energy */
+#endif //DEBUG
+  
+/* Calculate Kinetic Energy */
   double WKE = 0.0;
   for(int i = 0; i < nnodes*ndim; ++i) {
       WKE += mass[i]*velocities[i]*velocities[i];
   }
   WKE *= 0.5;
+  
+#ifdef DEBUG
 	if(debug){
   	printf("Kinetic Energy : %.24f\n", WKE);
 	}
-  double total = fabs(WKE + Wint_n - Wext_n);
+#endif //DEBUG
+  
+  double total = fabs(WKE+Wint_n-Wext_n);
+
   double max = fabs(Wint_n);
   if (max < fabs(Wext_n)) {
     max = fabs(Wext_n);

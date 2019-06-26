@@ -39,22 +39,20 @@ void FreeArrays() {
 	free1DArray(f_damp_curr);
 	free1DArray(displacements_prev);
   free1DArray(F);
-	free1DArray(cauchy);
-	free1DArray(cptr);
+	free1DArray(pk2);
+	free1DArray(pk2ptr);
+  free1DArray(Favg);
 	free1DArray(materialID);
 	free1DArray(properties);
 	free1DArray(detF);
 	free1DArray(invF);
 	free1DArray(b);
 	free1DArray(E);
+	free1DArray(Eavg);
 	free1DArray(detFptr);
 	free1DArray(InternalsPtr);
 	free1DArray(internals);
   // Free arrays used for communication
-  // free1DArray(recvProcessID);
-  // free1DArray(recvNeighbourCount);
-  // free1DArray(recvNeighbourCountCum);
-  // free1DArray(recvNodeIndex);
   free1DArray(recvNodeDisplacement);
 
   free1DArray(sendProcessID);

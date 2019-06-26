@@ -101,6 +101,7 @@ void updateInternalForceNeighbour(void) {
   }
   free(requestListSend);
   free(requestListRecv);
+#ifdef DEBUG
   if (debug && 1 == 0) {
     const int nDOF = nnodes * ndim;
     printf("Lumped Internal Force After Exchange\n");
@@ -108,4 +109,5 @@ void updateInternalForceNeighbour(void) {
       printf("%d  %12.6f\n", j, fi[j]);
     }
   }
+#endif //DEBUG
 }

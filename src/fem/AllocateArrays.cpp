@@ -6,6 +6,7 @@ double *properties;
 double *velocities;
 double *velocities_half;
 double *accelerations;
+double *Eavg;
 double *fe;
 double *fe_prev;
 double *fi;
@@ -36,7 +37,7 @@ void AllocateArrays(){
     accelerations = (double*)calloc(nnodes*ndim, sizeof(double));
     velocities_half = (double*)calloc(nnodes*ndim, sizeof(double));
 		displacements_prev = (double*)calloc(nnodes*ndim, sizeof(double));
-
+    Eavg = (double*)calloc(nelements*ndim*ndim, sizeof(double));
 		fe = (double*)calloc(nnodes*ndim, sizeof(double)); // External Nodal force vector
 		fe_prev = (double*)calloc(nnodes*ndim, sizeof(double)); // External Nodal force vector at previous timestep
 		fi = (double*)calloc(nnodes*ndim, sizeof(double)); // Internal Nodal force vector

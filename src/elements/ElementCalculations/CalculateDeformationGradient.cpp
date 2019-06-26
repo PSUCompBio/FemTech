@@ -25,6 +25,7 @@ void CalculateDeformationGradient(int e, int gp) {
     }
   }
 
+#ifdef DEBUG
   if (debug && 1 == 1) {
     printf("--------F for gauss point %d --------\n", gp);
     for (int i = 0; i < ndim; i++) {
@@ -35,5 +36,6 @@ void CalculateDeformationGradient(int e, int gp) {
       printf("\n");
     } // loop on i
   }   // if debug
+#endif //DEBUG
   return;
 }

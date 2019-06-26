@@ -2,15 +2,13 @@
 #include "blas.h"
 
 // plane strain or three-dimensional Linear Elastic Material
-// Evaluates the Cauchy stress tensor
+// Evaluates the PK2 stress tensor
 
 void LinearElastic(int e, int gp) {
 	if(ndim == 2){
 		// 6 values saved per gauss point for 3d
 		for(int i=0;i<3;i++){
-			int index = cptr[e]+3*gp+i;
-			//cauchy[index] = 0.0
-		  //printf("cauchy[%d]\n",index);
+			int index = pk2ptr[e]+3*gp+i;
 		}
 	}
 	if(ndim == 3){
@@ -45,28 +43,20 @@ void LinearElastic(int e, int gp) {
         &oneI, &zero, CBdn, &oneI);
 		// 6 values saved per gauss point for 3d
 		// in voigt notation, sigma11
-		cauchy[cptr[e]+6*gp+0]=CBdn[0];
-			// in voigt notation, sigma22
-		cauchy[cptr[e]+6*gp+1]=CBdn[1];
+		pk2[pk2ptr[e]+6*gp+1]=CBdn[1];
 			// in voigt notation, sigma33
-		cauchy[cptr[e]+6*gp+2]=CBdn[2];
+		pk2[pk2ptr[e]+6*gp+2]=CBdn[2];
 			// in voigt notation, sigma23
-		cauchy[cptr[e]+6*gp+3]=CBdn[3];
+		pk2[pk2ptr[e]+6*gp+3]=CBdn[3];
 			// in voigt notation, sigma13
-		cauchy[cptr[e]+6*gp+4]=CBdn[4];
+		pk2[pk2ptr[e]+6*gp+4]=CBdn[4];
 			// in voigt notation, sigma12
-		cauchy[cptr[e]+6*gp+5]=CBdn[5];
+		pk2[pk2ptr[e]+6*gp+5]=CBdn[5];
 
     free(Bdn);
     free(CBdn);
     free(B);
     free(localDisplacement);
-
-		// for(int i=0;i<6;i++){
-		// 	int index = cptr[e]+6*gp+i;
-		// 	printf("cauchy[%d] = %3.3e\n",index,cauchy[index]);
-		// }
 	}
-	//printf("\n");
 	return;
 }

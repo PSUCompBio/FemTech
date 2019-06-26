@@ -39,7 +39,6 @@ int main(int argc, char **argv) {
   nStep = 0;
   WriteVTU(argv[1], nStep, Time);
 	CustomPlot(Time);
-  // assert(1==0);
 
   if (ImplicitStatic) {
     // Static solution
@@ -72,9 +71,11 @@ int main(int argc, char **argv) {
     SolveUnsteadyNewmarkImplicit(beta, gamma, dt, tMax, argv[1]);
   } else if (ExplicitDynamic) {
     // Dynamic Explcit solution using....
+
     double dt=0.0;
     double tMax = 1.0; // max simulation time in seconds
     double dMax = 0.007; // max displacment in meters
+
     double Time = 0.0;
     int time_step_counter = 0;
     int plot_counter = 0;
@@ -114,6 +115,7 @@ int main(int argc, char **argv) {
     const int nDOF = ndim * nnodes;
     printf("------------------------------- Loop ----------------------------\n");
     while (Time < tMax) {
+
       double t_n = Time;
       double t_np1 = Time + dt;
       Time = t_np1;          /*Update the time by adding full time step */
@@ -136,7 +138,6 @@ int main(int argc, char **argv) {
 
       /* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
       GetForce(); // Calculating the force term.
-
       /* Step - 9 from Belytschko Box 6.1 - Calculate Accelerations */
       CalculateAccelerations(); // Calculating the new accelerations from total
                                 // nodal forces.
@@ -152,11 +153,24 @@ int main(int argc, char **argv) {
 
       if (time_step_counter % nsteps_plot == 0) {
         plot_counter = plot_counter + 1;
+
         printf("Plot %d/%d: dt=%3.2e s, Time=%3.2e s, Tmax=%3.2e s\n",
 					plot_counter,nPlotSteps,dt,Time,tMax);
+
+        for(int i = 0; i<nelements; i++){
+           for(int l = 0; l < ndim*ndim; l++){
+            Favg[i*ndim*ndim+l] = 0.0;}          //initializing avg def gradient to zero for each time step
+           for(int j = 0; j<GaussPoints[i]; j++){
+              SumOfDeformationGradient(i, j);} //calculating sum of deformation gradient for all gauss points
+           for(int k = 0; k < ndim*ndim; k++){
+               Favg[i*ndim*ndim+k] = Favg[i*ndim*ndim+k]/GaussPoints[i];} //dividing by number of gauss points to get average deformation gradient
+            CalculateStrain(i);} //calculating avergae strain for every element
+        printf("------Plot %d: WriteVTU\n", plot_counter);
+
         WriteVTU(argv[1], plot_counter, Time);
 				CustomPlot(Time);
 
+#ifdef DEBUG
         if (debug) {
           printf("DEBUG : Printing Displacement Solution\n");
           for (int i = 0; i < nnodes; ++i) {
@@ -166,6 +180,7 @@ int main(int argc, char **argv) {
             printf("\n");
           }
         }
+#endif //DEBUG
       }
       time_step_counter = time_step_counter + 1;
       dt = ExplicitTimeStepReduction * StableTimeStep();
@@ -174,6 +189,7 @@ int main(int argc, char **argv) {
 
     nStep = plot_counter;
   } // end if ExplicitDynamic
+#ifdef DEBUG
   if (debug) {
     printf("DEBUG : Printing Displacement Solution\n");
     for (int i = 0; i < nnodes; ++i) {
@@ -183,6 +199,7 @@ int main(int argc, char **argv) {
       printf("\n");
     }
   }
+#endif //DEBUG
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {
