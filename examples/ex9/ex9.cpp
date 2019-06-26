@@ -72,10 +72,10 @@ int main(int argc, char **argv) {
   } else if (ExplicitDynamic) {
     // Dynamic Explcit solution using....
 
-    double dt=2.5e-6;
+    double dt=0.0;
     double tMax = 1.0; // max simulation time in seconds
+    double dMax = 0.007; // max displacment in meters
 
-    double dMax = 0.001; // max displacment in meters
     double Time = 0.0;
     int time_step_counter = 0;
     int plot_counter = 0;
@@ -114,13 +114,11 @@ int main(int argc, char **argv) {
     double t_n = 0.0;
     const int nDOF = ndim * nnodes;
     printf("------------------------------- Loop ----------------------------\n");
-    printf("Time : %f, tmax : %f\n", Time, tMax);
     while (Time < tMax) {
 
       double t_n = Time;
       double t_np1 = Time + dt;
       Time = t_np1;          /*Update the time by adding full time step */
-      printf("Time : %f, dt=%3.3e, tmax : %f\n", Time, dt, tMax);
       double dt_nphalf = dt; // equ 6.2.1
       double t_nphalf = 0.5 * (t_np1 + t_n); // equ 6.2.1
 
@@ -155,6 +153,10 @@ int main(int argc, char **argv) {
 
       if (time_step_counter % nsteps_plot == 0) {
         plot_counter = plot_counter + 1;
+
+        printf("Plot %d/%d: dt=%3.2e s, Time=%3.2e s, Tmax=%3.2e s\n",
+					plot_counter,nPlotSteps,dt,Time,tMax);
+
         for(int i = 0; i<nelements; i++){
            for(int l = 0; l < ndim*ndim; l++){
             Favg[i*ndim*ndim+l] = 0.0;}          //initializing avg def gradient to zero for each time step
@@ -164,6 +166,7 @@ int main(int argc, char **argv) {
                Favg[i*ndim*ndim+k] = Favg[i*ndim*ndim+k]/GaussPoints[i];} //dividing by number of gauss points to get average deformation gradient
             CalculateStrain(i);} //calculating avergae strain for every element
         printf("------Plot %d: WriteVTU\n", plot_counter);
+
         WriteVTU(argv[1], plot_counter, Time);
 				CustomPlot(Time);
 
@@ -251,7 +254,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
       displacements[ndim * i + 1] = AppliedDisp;
     }
   }
-  printf("Time = %10.5e, Applied Disp = %10.5e\n",Time,AppliedDisp);
+  //printf("Time = %10.5e, Applied Disp = %10.5e\n",Time,AppliedDisp);
   return;
 }
 

@@ -8,6 +8,8 @@ void GetForce_3D() {
   const int nDOF = nnodes * ndim;
   // Store internal force from previous step to compute energy
   memcpy(fi_prev, fi, nDOF * sizeof(double));
+	// Store externall force from previous step to compute energy
+  memcpy(fe_prev, fe, nDOF * sizeof(double));
   // Following Belytschko
   // Set force_n to zero
   memset(f_net, 0, nDOF * sizeof(double));
