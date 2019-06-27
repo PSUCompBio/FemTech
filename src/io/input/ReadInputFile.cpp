@@ -68,11 +68,13 @@ bool ReadInputFile(const char *FileName) {
       int globalPIDmax = sortedPID[nPID-1]+1;
       MPI_Allreduce(MPI_IN_PLACE, &globalPIDmax, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
       nPIDglobal = globalPIDmax;
+#ifdef DEBUG
       printf("DEBUG : Number of local pid : %d, global : %d \n", nPID, nPIDglobal);
       for (int i = 0; i < nPID; ++i) {
         printf("DEBUG : %d\t", sortedPID[i]);
       }
       printf("\n");
+#endif //DEBUG
       assert(nPID <= nPIDglobal);
       assert(nPIDglobal > 0);
     }
