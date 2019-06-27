@@ -95,4 +95,7 @@ double CalculateCharacteristicLength_C3D4(int e);
 double CalculateCharacteristicLength_C3D8(int e);
 
 void updateMassMatrixNeighbour(void);
+
+int compare(const void *a, const void *b);
+int unique(int *arr, int n);
 #endif

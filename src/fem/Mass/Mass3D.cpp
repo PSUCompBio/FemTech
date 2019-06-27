@@ -53,6 +53,7 @@ void MassElementMatrix(double *Me, int e) {
   }
   // Multiply all elements of mass matrix by density
   // TODO(Anil) Use material property rho and remove variable rho
+  double rho = properties[MAXMATPARAMS * pid[e]];
   for (int n = 0; n < mLocalSize; ++n) {
     Me[n] *= rho;
   }

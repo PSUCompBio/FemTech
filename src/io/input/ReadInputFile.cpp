@@ -1,4 +1,5 @@
 #include "FemTech.h"
+#include <assert.h>
 
 /* Global Variables */
 int nparts=0;
@@ -14,6 +15,8 @@ int *mid;
 char **ElementType;
 int world_rank;
 int world_size;
+int nPIDglobal = 0;
+int nPID = 0;
 
 //-------------------------------------------------------------------------------------------
 int StrCmpCI(const char *str1, const char *str2);
@@ -41,17 +44,39 @@ bool ReadInputFile(const char *FileName) {
             break;
         }
     }
+    int returnValue = 0;
     if (StrCmpCI(Ext, ".k") == 0) {
-        return ReadLsDyna(FileName);
+        returnValue = ReadLsDyna(FileName);
     }
     else if (StrCmpCI(Ext, ".inp") == 0) {
-        return ReadAbaqus(FileName);
+        returnValue = ReadAbaqus(FileName);
     }
     else {
         printf("\nERROR( proc %d ): Input file type is unknown.\n", world_rank);
     }
-
-    return false;
+    if (returnValue) {
+      // Change pid from 1 based number to zero based numbering
+      for (int i = 0; i < nelements; ++i) {
+        pid[i] -= 1;
+      }
+      // Get ans set unique number of partIDs both local and global
+      // Find the unique number of pid in the mesh
+      int *sortedPID = (int*)malloc(nelements * sizeof(int));
+      memcpy(sortedPID, pid, nelements * sizeof(int));
+      qsort(sortedPID, nelements, sizeof(int), compare);
+      nPID = unique(sortedPID, nelements);
+      int globalPIDmax = sortedPID[nPID-1]+1;
+      MPI_Allreduce(MPI_IN_PLACE, &globalPIDmax, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+      nPIDglobal = globalPIDmax;
+      printf("DEBUG : Number of local pid : %d, global : %d \n", nPID, nPIDglobal);
+      for (int i = 0; i < nPID; ++i) {
+        printf("DEBUG : %d\t", sortedPID[i]);
+      }
+      printf("\n");
+      assert(nPID <= nPIDglobal);
+      assert(nPIDglobal > 0);
+    }
+    return returnValue;
 }
 //-------------------------------------------------------------------------------------------
 /*
