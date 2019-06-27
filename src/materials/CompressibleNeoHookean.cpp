@@ -34,8 +34,9 @@ void CompressibleNeoHookean(int e, int gp){
 	if(ndim == 3){
     int index = fptr[e] + ndim * ndim * gp;
     int index2 = detFptr[e] + gp;
-    double mu = properties[MAXMATPARAMS * e + 1];
-    double lambda = properties[MAXMATPARAMS * e + 2];
+    int pide = pid[e];
+    double mu = properties[MAXMATPARAMS * pide + 1];
+    double lambda = properties[MAXMATPARAMS * pide + 2];
     double J = detF[index2];
 
     // Compute Green-Lagrange Tensor: C = F^T*F

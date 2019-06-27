@@ -26,8 +26,8 @@ void AllocateArrays(){
 
   // Allocate and initialize global displacements
 	displacements=(double*)calloc(nnodes*ndim,sizeof(double));
-	materialID=(int*)calloc(nelements,sizeof(int));
-	properties=(double*)calloc(nelements*MAXMATPARAMS,sizeof(double));
+	materialID=(int*)calloc(nPIDglobal,sizeof(int));
+	properties=(double*)calloc(nPIDglobal*MAXMATPARAMS,sizeof(double));
 
 	//Allocate and initialize global boundary conditions
 	boundary=(int*)calloc(nnodes*ndim, sizeof(int));
