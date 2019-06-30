@@ -13,7 +13,7 @@ endif(ENABLE_MPI)
 file(INSTALL 6elements.inp DESTINATION .)
 file(INSTALL materials.dat DESTINATION .)
 file(INSTALL gnuplot.script DESTINATION .)
-file(INSTALL abaqus.rpt DESTINATION .)
+file(INSTALL abaqus/abaqus.rpt DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
 
