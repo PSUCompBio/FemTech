@@ -13,6 +13,7 @@ double StableTimeStep() {
 			dtMin = dt;
 		}
 	}
+  MPI_Allreduce(MPI_IN_PLACE, &dtMin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 
   if(dtMin < FailureTimeStep){
 		printf("Simulation Failed - Timestep too small.\n");

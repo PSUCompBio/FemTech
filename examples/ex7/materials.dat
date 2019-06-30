@@ -1,9 +1,8 @@
 0 1 1040 100.0 100.00
-1 1 1040 100.0 100.00
 
 
 # form of file
-# element number (starting at 0), material ID (goes with consitutive model), ...
+# partID (starting at 0), material ID (goes with consitutive model), ...
 # n properties (reads MAXMATPARAMS defined in GlobalVariables.h)
 
 # mat ID 1 - CompressibleNeoHookean props: density mu lambda

@@ -212,7 +212,7 @@ bool ReadLsDyna(const char *FileName) {
                     break;
                 }
                 if (i >= From && i <= To) {
-                    pid[pi] = PIDs[0];
+                    pid[pi] = PIDs[0]-1;
 
                     const int N = nn == 8 ? CalcUniqueValues(Nodes, nn) : nn;
                     if (N > 4) {

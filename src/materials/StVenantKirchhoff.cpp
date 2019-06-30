@@ -35,11 +35,12 @@ void StVenantKirchhoff(int e, int gp) {
   if (ndim == 3) {
     int index = fptr[e] + ndim * ndim * gp;
     int index2 = detFptr[e] + gp;
+    int pide = pid[e];
     double mu =
-        properties[MAXMATPARAMS * e + 1]; // in future will be equal to
+        properties[MAXMATPARAMS * pide + 1]; // in future will be equal to
                                           // component from  properties array
     double lambda =
-        properties[MAXMATPARAMS * e + 2]; // in future will be equal to
+        properties[MAXMATPARAMS * pide + 2]; // in future will be equal to
                                           // component from  properties array
 
     // Compute Green-Lagrange Tensor: E= (1/2)*(F^T*F - I)

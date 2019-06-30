@@ -6,6 +6,7 @@ extern int nelements;
 extern int nallelements;
 extern int nnodes;
 extern int ndim;
+extern int nPID, nPIDglobal; /* Local and global number of unique parts*/
 extern int world_rank;
 extern int world_size;
 
@@ -33,7 +34,6 @@ extern double *rhs;              /*to store rhs matrix equation (implicit) */
 extern char **ElementType;	/* element type, e.g. C3D8 */
 
 extern double *C; /*Stores C matrix for isotropic elastic material */
-extern double rho; /*Stores material density for isotropic material */
 extern double *gaussWeights;
 extern double *detJacobian;
 

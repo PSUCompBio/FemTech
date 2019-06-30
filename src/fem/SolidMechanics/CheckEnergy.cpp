@@ -53,7 +53,9 @@ void CheckEnergy(void) {
   }
   const double epsilon = 0.01;
   if (total > epsilon*max) {
-    printf("\nERROR - Energy Violation:  IW = %3.3e, KE=%3.3e \n\n",Wint_n,WKE);
+    if (world_rank == 0) {
+      printf("\nERROR - Energy Violation:  IW = %3.3e, KE=%3.3e \n\n",Wint_n,WKE);
+    }
   }
   // Wint_n = -WKE;
 }

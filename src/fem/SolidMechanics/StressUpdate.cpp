@@ -7,21 +7,21 @@ void StressUpdate(int e, int gp){
 	}
 #endif //DEBUG
 	//Compressible Neohookean
-	if(materialID[e]==1){
-		CompressibleNeoHookean(e,gp);
+	if(materialID[pid[e]]==1){
+		CompressibleNeoHookean(e, gp);
 	}
 	// St. Venant-Kirchhoff
-	if(materialID[e]==2){
+	if(materialID[pid[e]]==2){
 #ifdef DEBUG
 		if(debug){
     	printf("---- Calling Material Model St. Venant %d, %d ---\n", e, gp);
     	printf("---- ----\n");
 		}
 #endif //DEBUG
-		StVenantKirchhoff(e,gp);
+		StVenantKirchhoff(e, gp);
 	}
   // Linear Elastic
-  if(materialID[e] == 3) {
+  if(materialID[pid[e]] == 3) {
     LinearElastic(e, gp);
   }
   return;
