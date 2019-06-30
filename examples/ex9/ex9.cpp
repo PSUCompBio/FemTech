@@ -103,8 +103,10 @@ int main(int argc, char **argv) {
     nSteps = (int)(tMax / dt);
     int nsteps_plot = (int)(nSteps / nPlotSteps);
 
-    printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
-           nsteps_plot);
+    if (world_rank == 0) {
+      printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
+            nsteps_plot);
+    }
 
     // Save old displacements
     // memcpy(displacements_prev, displacements, ndim*nnodes*sizeof(double));
@@ -113,15 +115,19 @@ int main(int argc, char **argv) {
     time_step_counter = time_step_counter + 1;
     double t_n = 0.0;
     const int nDOF = ndim * nnodes;
-    printf(
-        "------------------------------- Loop ----------------------------\n");
-    printf("Time : %f, tmax : %f\n", Time, tMax);
-    while (Time < tMax) {
+    if (world_rank == 0) {
+      printf(
+          "------------------------------- Loop ----------------------------\n");
+      printf("Time : %f, tmax : %f\n", Time, tMax);
+    }
 
+    while (Time < tMax) {
       double t_n = Time;
       double t_np1 = Time + dt;
       Time = t_np1; /*Update the time by adding full time step */
-      printf("Time : %f, dt=%3.3e, tmax : %f\n", Time, dt, tMax);
+      if (world_rank == 0) {
+        printf("Time : %f, dt=%3.3e, tmax : %f\n", Time, dt, tMax);
+      }
       double dt_nphalf = dt;                 // equ 6.2.1
       double t_nphalf = 0.5 * (t_np1 + t_n); // equ 6.2.1
 
@@ -170,7 +176,7 @@ int main(int argc, char **argv) {
             // gradient
           CalculateStrain(i);
         } // calculating avergae strain for every element
-        printf("------Plot %d: WriteVTU\n", plot_counter);
+        printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter, world_rank);
         WriteVTU(argv[1], plot_counter, Time);
         CustomPlot(Time);
 
@@ -193,6 +199,8 @@ int main(int argc, char **argv) {
     } // end explcit while loop
 
     nStep = plot_counter;
+    // Write out the last time step
+    CustomPlot(Time);
   } // end if ExplicitDynamic
 #ifdef DEBUG
   if (debug) {
