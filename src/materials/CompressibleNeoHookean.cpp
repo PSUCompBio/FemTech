@@ -86,6 +86,5 @@ void CompressibleNeoHookean(int e, int gp){
     free(C);
     free(Cinv);
 	}
-  printf("PK2 compuataion done on rank : %d\n", world_rank);
 	return;
 }
