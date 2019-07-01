@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
   } else if (ExplicitDynamic) {
     // Dynamic Explcit solution using....
 
-    double dt = 2.5e-6;
+    double dt = 0.0;
     double tMax = 1.0; // max simulation time in seconds
     double dMax = 0.007; // max displacment in meters
 
