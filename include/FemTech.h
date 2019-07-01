@@ -32,22 +32,29 @@ int LineToArray(const bool IntOrFloat, const bool CheckLastVal, \
     const char *Delim = " \t", void **Array = NULL);
 bool ReadInputFile(const char *FileName);
 bool PartitionMesh();
+
 void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWeights);
+
 void ShapeFunctions();
 void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ);
 void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ);
 void ShapeFunction_T3D2(int e, int gp, double *Chi, double *detJ);
+void get_cos(int e, double *cx, double *cy, double *cz)
+
 void ReadMaterialProperties();
 void ReadBoundaryCondition(void);
+
 void AllocateArrays();
 
 void Assembly(char *operation);
 void StiffnessElementMatrix(double* Ke, int e);
 void MassElementMatrix(double* Me, int e);
+
 void WriteVTU(const char* FileName, int step, double time);
 void WritePVD(const char* FileName, int step, double time);
+
 void FreeArrays();
-void ReadMaterialProperties();
+
 void ApplySteadyBoundaryConditions(void);
 void SolveSteadyImplicit(void);
 void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double dt, \

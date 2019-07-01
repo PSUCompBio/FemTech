@@ -12,8 +12,9 @@
 void GetForce() {
 
 	if(ndim == 1){
-		printf("GetForce function not yet implemented for 1D. Bye.\n");
-		exit(0);
+		GetForce_3D();
+		printf("Here we are outside of the gates of valhala\n");
+		exit (EXIT_FAILURE);
 	}
 	else if (ndim == 2){
 		printf("GetForce function not yet implemented for 2D. Bye.\n");

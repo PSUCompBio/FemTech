@@ -21,20 +21,23 @@ void GetForce_3D() {
 		// force calculaton for hexes, tets and quads
 		for(int j=0; j<GaussPoints[i]; j++) {
 			// truss elements are unique b/c the 3D formulation is not like solid
-			// elmeents like quads or hexes, or tets.
-	    if(strcmp(ElementType[i], "T3D2") == 0){
+			// elements like quads or hexes, or tets.
+	            if(strcmp(ElementType[i], "T3D2") == 0){
+				printf("Calculate the forces for truss\n");
+				exit (EXIT_FAILURE);
 				TrussStressForceUpdate(i,j,fintLocal);
 				//CalculateDeformationGradient(i, j);
 				//exit(0);
-			}else{
-	      // calculate F^n
+		      }
+		      else{
+	            // calculate F^n
 				CalculateDeformationGradient(i, j);
-	      // Calculate Determinant of F
+	            // Calculate Determinant of F
 				DeterminateF(i, j);
-	      // Calculate sigma^n
+	            // Calculate sigma^n
 				StressUpdate(i, j);
-			  InternalForceUpdate(i, j, fintLocal);
-			} // else
+			      InternalForceUpdate(i, j, fintLocal);
+		      } // else
 		} //loop on gauss points
     // Move Local internal for to global force
     for (int k = 0; k < nNodes; ++k) {
