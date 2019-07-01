@@ -56,9 +56,6 @@ bool ReadInputFile(const char *FileName) {
     }
     if (returnValue) {
       // Change pid from 1 based number to zero based numbering
-      for (int i = 0; i < nelements; ++i) {
-        pid[i] -= 1;
-      }
       // Get ans set unique number of partIDs both local and global
       // Find the unique number of pid in the mesh
       int *sortedPID = (int*)malloc(nelements * sizeof(int));
@@ -75,6 +72,7 @@ bool ReadInputFile(const char *FileName) {
       }
       printf("\n");
 #endif //DEBUG
+      free(sortedPID);
       assert(nPID <= nPIDglobal);
       assert(nPIDglobal > 0);
     }

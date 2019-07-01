@@ -32,13 +32,13 @@ int main(int argc, char **argv) {
   }
 
   AllocateArrays();
-	ReadMaterials();
+  ReadMaterials();
 
   /* Write inital, undeformed configuration*/
   Time = 0.0;
   nStep = 0;
   WriteVTU(argv[1], nStep, Time);
-	CustomPlot(Time);
+  CustomPlot(Time);
 
   if (ImplicitStatic) {
     // Static solution
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
   } else if (ExplicitDynamic) {
     // Dynamic Explcit solution using....
 
-    double dt=0.0;
+    double dt = 0.0;
     double tMax = 1.0; // max simulation time in seconds
     double dMax = 0.007; // max displacment in meters
 
@@ -103,8 +103,10 @@ int main(int argc, char **argv) {
     nSteps = (int)(tMax / dt);
     int nsteps_plot = (int)(nSteps / nPlotSteps);
 
-    printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
-           nsteps_plot);
+    if (world_rank == 0) {
+      printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
+            nsteps_plot);
+    }
 
     // Save old displacements
     // memcpy(displacements_prev, displacements, ndim*nnodes*sizeof(double));
@@ -113,13 +115,20 @@ int main(int argc, char **argv) {
     time_step_counter = time_step_counter + 1;
     double t_n = 0.0;
     const int nDOF = ndim * nnodes;
-    printf("------------------------------- Loop ----------------------------\n");
-    while (Time < tMax) {
+    if (world_rank == 0) {
+      printf(
+          "------------------------------- Loop ----------------------------\n");
+      printf("Time : %f, tmax : %f\n", Time, tMax);
+    }
 
+    while (Time < tMax) {
       double t_n = Time;
       double t_np1 = Time + dt;
-      Time = t_np1;          /*Update the time by adding full time step */
-      double dt_nphalf = dt; // equ 6.2.1
+      Time = t_np1; /*Update the time by adding full time step */
+      if (world_rank == 0) {
+        printf("Time : %f, dt=%3.3e, tmax : %f\n", Time, dt, tMax);
+      }
+      double dt_nphalf = dt;                 // equ 6.2.1
       double t_nphalf = 0.5 * (t_np1 + t_n); // equ 6.2.1
 
       /* Step 5 from Belytschko Box 6.1 - Update velocity */
@@ -149,26 +158,27 @@ int main(int argc, char **argv) {
       }
 
       /** Step - 11 Checking* Energy Balance */
-      CheckEnergy();
+      // CheckEnergy();
 
       if (time_step_counter % nsteps_plot == 0) {
         plot_counter = plot_counter + 1;
-
-        printf("Plot %d/%d: dt=%3.2e s, Time=%3.2e s, Tmax=%3.2e s\n",
-					plot_counter,nPlotSteps,dt,Time,tMax);
-
-        for(int i = 0; i<nelements; i++){
-           for(int l = 0; l < ndim*ndim; l++){
-            Favg[i*ndim*ndim+l] = 0.0;}          //initializing avg def gradient to zero for each time step
-           for(int j = 0; j<GaussPoints[i]; j++){
-              SumOfDeformationGradient(i, j);} //calculating sum of deformation gradient for all gauss points
-           for(int k = 0; k < ndim*ndim; k++){
-               Favg[i*ndim*ndim+k] = Favg[i*ndim*ndim+k]/GaussPoints[i];} //dividing by number of gauss points to get average deformation gradient
-            CalculateStrain(i);} //calculating avergae strain for every element
-        printf("------Plot %d: WriteVTU\n", plot_counter);
-
+        for (int i = 0; i < nelements; i++) {
+          for (int l = 0; l < ndim * ndim; l++) {
+            Favg[i * ndim * ndim + l] = 0.0;
+          } // initializing avg def gradient to zero for each time step
+          for (int j = 0; j < GaussPoints[i]; j++) {
+            SumOfDeformationGradient(i, j);
+          } // calculating sum of deformation gradient for all gauss points
+          for (int k = 0; k < ndim * ndim; k++) {
+            Favg[i * ndim * ndim + k] =
+                Favg[i * ndim * ndim + k] / GaussPoints[i];
+          } // dividing by number of gauss points to get average deformation
+            // gradient
+          CalculateStrain(i);
+        } // calculating avergae strain for every element
+        printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter, world_rank);
         WriteVTU(argv[1], plot_counter, Time);
-				CustomPlot(Time);
+        CustomPlot(Time);
 
 #ifdef DEBUG
         if (debug) {
@@ -180,26 +190,29 @@ int main(int argc, char **argv) {
             printf("\n");
           }
         }
-#endif //DEBUG
+#endif // DEBUG
       }
       time_step_counter = time_step_counter + 1;
       dt = ExplicitTimeStepReduction * StableTimeStep();
-
+      // Barrier not a must
+      MPI_Barrier(MPI_COMM_WORLD);
     } // end explcit while loop
 
     nStep = plot_counter;
+    // Write out the last time step
+    CustomPlot(Time);
   } // end if ExplicitDynamic
 #ifdef DEBUG
   if (debug) {
     printf("DEBUG : Printing Displacement Solution\n");
     for (int i = 0; i < nnodes; ++i) {
       for (int j = 0; j < ndim; ++j) {
-        printf("%15.6E", displacements[i*ndim+j]);
+        printf("%15.6E", displacements[i * ndim + j]);
       }
       printf("\n");
     }
   }
-#endif //DEBUG
+#endif // DEBUG
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {
@@ -254,38 +267,37 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
       displacements[ndim * i + 1] = AppliedDisp;
     }
   }
-  //printf("Time = %10.5e, Applied Disp = %10.5e\n",Time,AppliedDisp);
+  printf("Time = %10.5e, Applied Disp = %10.5e\n", Time, AppliedDisp);
   return;
 }
 
-void CustomPlot(double Time){
-	double tol = 1e-5;
-	FILE *datFile;
-  int x=0;
-  int y=1;
-  int z=2;
+void CustomPlot(double Time) {
+  double tol = 1e-5;
+  FILE *datFile;
+  int x = 0;
+  int y = 1;
+  int z = 2;
 
-	if(fabs(Time - 0.0) < 1e-16){
-		datFile=fopen("plot.dat", "w");
-		fprintf(datFile,"# Results for Node ?\n");
-		fprintf(datFile,"# Time  DispX    DispY   DispZ\n");
-		fprintf(datFile,"%11.3e %11.3e  %11.3e  %11.3e\n",0.0,0.0,0.0,0.0);
+  if (fabs(Time - 0.0) < 1e-16) {
+    datFile = fopen("plot.dat", "w");
+    fprintf(datFile, "# Results for Node ?\n");
+    fprintf(datFile, "# Time  DispX    DispY   DispZ\n");
+    fprintf(datFile, "%11.3e %11.3e  %11.3e  %11.3e\n", 0.0, 0.0, 0.0, 0.0);
 
-	}else{
-		datFile=fopen("plot.dat", "a");
-		for (int i = 0; i < nnodes; i++) {
-	    if (fabs(coordinates[ndim * i + x] - 0.005) < tol &&
-	 				fabs(coordinates[ndim * i + y] - 0.005) < tol &&
-					fabs(coordinates[ndim * i + z] - 0.005) < tol ) {
+  } else {
+    datFile = fopen("plot.dat", "a");
+    for (int i = 0; i < nnodes; i++) {
+      if (fabs(coordinates[ndim * i + x] - 0.005) < tol &&
+          fabs(coordinates[ndim * i + y] - 0.005) < tol &&
+          fabs(coordinates[ndim * i + z] - 0.005) < tol) {
 
-						fprintf(datFile,"%11.3e %11.3e  %11.3e  %11.3e\n",Time,
-											displacements[ndim * i + x],
-											displacements[ndim * i + y],
-											displacements[ndim * i + z] );
-			}
-	 	}
-	}
+        fprintf(datFile, "%11.3e %11.3e  %11.3e  %11.3e\n", Time,
+                displacements[ndim * i + x], displacements[ndim * i + y],
+                displacements[ndim * i + z]);
+      }
+    }
+  }
 
-	fclose(datFile);
-	return;
+  fclose(datFile);
+  return;
 }

@@ -76,7 +76,7 @@ void CompressibleNeoHookean(int e, int gp){
 			// in voigt notation, sigma12
 		pk2[pk2ptr[e]+6*gp+5] = -mu*Cinv[3] + logJ*Cinv[3];
 #ifdef DEBUG
-		if(debug){
+		if(debug && 0){
 			for(int i=0;i<6;i++){
 				int index = pk2ptr[e]+6*gp+i;
 				printf("PK2[%d] = %3.3e\n",index,pk2[index]);
