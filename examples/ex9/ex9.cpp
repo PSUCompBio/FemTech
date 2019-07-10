@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
     }
 
     // Save old displacements
-    // memcpy(displacements_prev, displacements, ndim*nnodes*sizeof(double));
+    memcpy(displacements_prev, displacements, ndim*nnodes*sizeof(double));
 
     /* Step-4: Time loop starts....*/
     time_step_counter = time_step_counter + 1;
@@ -133,14 +133,20 @@ int main(int argc, char **argv) {
 
       /* Step 5 from Belytschko Box 6.1 - Update velocity */
       for (int i = 0; i < nDOF; i++) {
-        velocities_half[i] =
-            velocities[i] + (t_nphalf - t_n) * accelerations[i];
+        if (boundary[i]) {
+          velocities_half[i] = velocities[i];
+        } else {
+          velocities_half[i] =
+              velocities[i] + (t_nphalf - t_n) * accelerations[i];
+        }
       }
 
       // Store old displacements for energy computation
       memcpy(displacements_prev, displacements, ndim * nnodes * sizeof(double));
-      for (int i = 0; i < ndim * nnodes; i++) {
-        displacements[i] = displacements[i] + dt_nphalf * velocities_half[i];
+      for (int i = 0; i < nDOF; i++) {
+        if (!boundary[i]) {
+          displacements[i] = displacements[i] + dt_nphalf * velocities_half[i];
+        }
       }
       /* Step 6 Enforce displacement boundary Conditions */
       ApplyBoundaryConditions(Time, dMax, tMax);
@@ -152,13 +158,17 @@ int main(int argc, char **argv) {
                                 // nodal forces.
 
       /** Step- 10 - Second Partial Update of Nodal Velocities */
-      for (int i = 0; i < ndim * nnodes; i++) {
-        velocities[i] =
-            velocities_half[i] + (t_np1 - t_nphalf) * accelerations[i];
+      for (int i = 0; i < nDOF; i++) {
+        if (!boundary[i]) {
+          velocities[i] =
+              velocities_half[i] + (t_np1 - t_nphalf) * accelerations[i];
+        }
       }
 
       /** Step - 11 Checking* Energy Balance */
-      CheckEnergy();
+      CheckEnergy(Time);
+      if (time_step_counter > 20)
+        break;
 
       if (time_step_counter % nsteps_plot == 0) {
         plot_counter = plot_counter + 1;
@@ -236,29 +246,37 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
   } else if (ImplicitStatic) {
     AppliedDisp = dMax;
   }
+  int index;
 
   for (int i = 0; i < nnodes; i++) {
     // if x value = 0, constrain node to x plane (0-direction)
-    if (fabs(coordinates[ndim * i + 0] - 0.0) < tol) {
-      boundary[ndim * i + 0] = 1;
-      displacements[ndim * i + 0] = 0.0;
+    index = ndim * i + 0;
+    if (fabs(coordinates[index] - 0.0) < tol) {
+      boundary[index] = 1;
+      displacements[index] = 0.0;
+      velocities[index] = 0.0;
       count = count + 1;
     }
     // if y coordinate = 0, constrain node to y plane (1-direction)
-    if (fabs(coordinates[ndim * i + 1] - 0.0) < tol) {
-      boundary[ndim * i + 1] = 1;
-      displacements[ndim * i + 1] = 0.0;
+    index = ndim * i + 1;
+    if (fabs(coordinates[index] - 0.0) < tol) {
+      boundary[index] = 1;
+      displacements[index] = 0.0;
+      velocities[index] = 0.0;
       count = count + 1;
     }
     // if z coordinate = 0, constrain node to z plane (2-direction)
-    if (fabs(coordinates[ndim * i + 2] - 0.0) < tol) {
-      boundary[ndim * i + 2] = 1;
-      displacements[ndim * i + 2] = 0.0;
+    index = ndim * i + 2;
+    if (fabs(coordinates[index] - 0.0) < tol) {
+      boundary[index] = 1;
+      displacements[index] = 0.0;
+      velocities[index] = 0.0;
       count = count + 1;
     }
     // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
-    if (fabs(coordinates[ndim * i + 1] - 0.005) < tol) {
-      boundary[ndim * i + 1] = 1;
+    index = ndim * i + 1;
+    if (fabs(coordinates[index] - 0.005) < tol) {
+      boundary[index] = 1;
       count = count + 1;
       // note that this may have to be divided into
       // diplacement increments for both implicit and
@@ -266,7 +284,8 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
       // equal to some time dependent function i.e.,
       // CalculateDisplacement to get current increment out
       //  displacment to be applied.
-      displacements[ndim * i + 1] = AppliedDisp;
+      displacements[index] = AppliedDisp;
+      velocities[index] = dMax/tMax;
     }
   }
   if (world_rank == 0) {

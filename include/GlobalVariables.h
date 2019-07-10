@@ -96,3 +96,6 @@ extern int *sendNeighbourCountCum;
 extern int *sendNodeIndex;
 extern double *sendNodeDisplacement;
 extern double *recvNodeDisplacement;
+
+// File to write energy
+extern FILE *energyFile;

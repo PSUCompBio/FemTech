@@ -68,4 +68,8 @@ void FreeArrays() {
     free(ElementType);
     ElementType = NULL;
   }
+
+  if (world_rank == 0) {
+    fclose(energyFile);
+  }
 }

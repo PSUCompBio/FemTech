@@ -21,6 +21,7 @@ double *displacements_prev;
 
 
 int *boundary;
+FILE *energyFile;
 
 void AllocateArrays(){
 
@@ -48,6 +49,9 @@ void AllocateArrays(){
 		fi_curr = (double*)calloc(nnodes*ndim, sizeof(double)); // Internal Nodal force vector at current timestep
 		f_damp_curr = (double*)calloc(nnodes*ndim, sizeof(double)); // Linear Bulk Viscosity Damping Nodal force vector
 		f_damp_prev = (double*)calloc(nnodes*ndim, sizeof(double)); // Linear Bulk Viscosity Damping Nodal force vector at previous timestep
+    energyFile = fopen("energy.dat", "w");
+    fprintf(energyFile, "# Energy for FEM\n");
+    fprintf(energyFile, "# Time  Winternal   Wexternal   WKE   total\n");
   }
 	return;
 }

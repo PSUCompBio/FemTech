@@ -1,6 +1,6 @@
 #include "FemTech.h"
 
-void CheckEnergy(void) {
+void CheckEnergy(double time) {
   static double Wint_n = 0.0;
   static double Wext_n = 0.0;
 
@@ -8,54 +8,78 @@ void CheckEnergy(void) {
 		 Section 6.2.3 Energy Balance */
 
   /* Calculate Internal and External Energies */
+  /* Calculate Kinetic Energy */
   double sum_Wint_n = 0.0;
 	double sum_Wext_n = 0.0;
-	double delta_d=0.0;
-
-  for(int i = 0; i < nnodes*ndim; ++i) {
-			delta_d=displacements[i]-displacements_prev[i];
-      sum_Wint_n += delta_d*(fi_prev[i] + fi[i]); /* equ 6.2.14 */
-			sum_Wext_n += delta_d*(fe_prev[i] + fe[i]); /* equ 6.2.15 */
-  }
-
-  sum_Wint_n *= 0.5;
-  sum_Wext_n *= 0.5;
-  Wint_n += sum_Wint_n;
-  Wext_n += sum_Wext_n;
-
-#ifdef DEBUG
-	if(debug){
-  	printf("Internal Work : %.24f\n", Wint_n);
-	}
-#endif //DEBUG
-  
-/* Calculate Kinetic Energy */
+	double delta_d = 0.0;
   double WKE = 0.0;
-  for(int i = 0; i < nnodes*ndim; ++i) {
-      WKE += mass[i]*velocities[i]*velocities[i];
-  }
-  WKE *= 0.5;
-  
-#ifdef DEBUG
-	if(debug){
-  	printf("Kinetic Energy : %.24f\n", WKE);
-	}
-#endif //DEBUG
-  
-  double total = fabs(WKE+Wint_n-Wext_n);
 
-  double max = fabs(Wint_n);
-  if (max < fabs(Wext_n)) {
-    max = fabs(Wext_n);
-  }
-  if (max < fabs(WKE)) {
-    max = fabs(WKE);
-  }
-  const double epsilon = 0.01;
-  if (total > epsilon*max) {
-    if (world_rank == 0) {
-      printf("\nERROR - Energy Violation:  IW = %3.3e, KE=%3.3e \n\n",Wint_n,WKE);
+  // Calculate in parallel 
+  // Loop over all the nodes
+  for(int i = 0; i < nnodes; ++i) {
+    bool includeSum = true;
+    for (int j = 0; (j < sendProcessCount) && includeSum; ++j) {
+      // If sending to a node with lower rank its already included 
+      // in the KE calculation
+      if (sendProcessID[j] < world_rank) {
+        for (int k = sendNeighbourCountCum[j]; k < sendNeighbourCountCum[j+1]; ++k) {
+          if (sendNodeIndex[k] == i) {
+            includeSum = false;
+            break;
+            // skip addition of KE from this node
+          }
+        }
+      }
+    }
+    if (includeSum) {
+      int index = i*ndim;
+      for (int j = 0; j < ndim; ++j) {
+        int indexJ = index + j;
+			  delta_d = displacements[indexJ]-displacements_prev[indexJ];
+        // printf("Index : %d, Mass : %15.8e, velocities : %15.8e\n", indexJ, mass[indexJ], velocities[indexJ]);
+        printf("Index : %d, delta_d : %15.8e, fi_prev : %15.8e, fi : %15.8e\n", indexJ, delta_d, fi_prev[indexJ], fi[indexJ]);
+        printf("Contribution : %15.8e\n", delta_d*(fi_prev[indexJ] + fi[indexJ]));
+        WKE += mass[indexJ]*velocities[indexJ]*velocities[indexJ];
+        sum_Wint_n += delta_d*(fi_prev[indexJ] + fi[indexJ]); /* equ 6.2.14 */
+			  sum_Wext_n += delta_d*(fe_prev[indexJ] + fe[indexJ]); /* equ 6.2.15 */
+      }
     }
   }
-  // Wint_n = -WKE;
+  WKE *= 0.5;
+  sum_Wint_n *= 0.5;
+  sum_Wext_n *= 0.5;
+
+  double WKE_Total = 0.0, Wint_n_total = 0.0, Wext_n_total = 0.0;
+  MPI_Reduce(&WKE, &WKE_Total, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&sum_Wint_n, &Wint_n_total, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&sum_Wext_n, &Wext_n_total, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  
+  if (world_rank ==0) {
+    Wint_n += Wint_n_total;
+    Wext_n += Wext_n_total;
+    double total = fabs(WKE_Total-Wint_n-Wext_n);
+// #ifdef DEBUG
+// 	if(debug){
+  	printf("Internal Work : %15.9e\n", Wint_n);
+  	printf("External Work : %15.9e\n", Wext_n);
+    printf("Kinetic Energy : %15.9e\n", WKE_Total);
+    printf("Total Energy : %15.9e\n", total);
+// }
+// #endif //DEBUG
+
+    double max = fabs(Wint_n);
+    if (max < fabs(Wext_n)) {
+      max = fabs(Wext_n);
+    }
+    if (max < fabs(WKE_Total)) {
+      max = fabs(WKE_Total);
+    }
+    const double epsilon = 0.01;
+    if (total > epsilon*max) {
+      printf("\nERROR - Energy Violation:  IW = %15.9e, KE=%15.9e \n", Wint_n, WKE_Total);
+    }
+    fprintf(energyFile, "%12.6e %12.6e  %12.6e  %12.6e %12.6e\n", time,
+            Wint_n, Wext_n, WKE_Total, total);
+  }
+  // Wint_n = WKE;
 }
