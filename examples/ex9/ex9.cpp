@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
 
     double dt = 0.0;
     double tMax = 1.0; // max simulation time in seconds
-    double dMax = 0.007; // max displacment in meters
+    double dMax = 0.001; // max displacment in meters
 
     double Time = 0.0;
     int time_step_counter = 0;
@@ -167,13 +167,13 @@ int main(int argc, char **argv) {
 
       /** Step - 11 Checking* Energy Balance */
       CheckEnergy(Time);
-      if (time_step_counter > 20)
-        break;
+      // if (time_step_counter > 20)
+      //   break;
 
       if (time_step_counter % nsteps_plot == 0) {
         plot_counter = plot_counter + 1;
-        printf("Plot %d/%d: dt=%3.2e s, Time=%3.2e s, Tmax=%3.2e s on rank : %d\n",
-					plot_counter,nPlotSteps,dt,Time,tMax, world_rank);
+        // printf("Plot %d/%d: dt=%3.2e s, Time=%3.2e s, Tmax=%3.2e s on rank : %d\n",
+				// 	plot_counter,nPlotSteps,dt,Time,tMax, world_rank);
         for (int i = 0; i < nelements; i++) {
           for (int l = 0; l < ndim * ndim; l++) {
             Favg[i * ndim * ndim + l] = 0.0;
@@ -289,7 +289,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
     }
   }
   if (world_rank == 0) {
-    printf("Time = %10.5e, Applied Disp = %10.5e\n", Time, AppliedDisp);
+    printf("Applied Disp = %10.5e\n", AppliedDisp);
   }
   return;
 }

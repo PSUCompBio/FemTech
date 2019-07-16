@@ -37,9 +37,12 @@ void CheckEnergy(double time) {
         int indexJ = index + j;
 			  delta_d = displacements[indexJ]-displacements_prev[indexJ];
         // printf("Index : %d, Mass : %15.8e, velocities : %15.8e\n", indexJ, mass[indexJ], velocities[indexJ]);
-        printf("Index : %d, delta_d : %15.8e, fi_prev : %15.8e, fi : %15.8e\n", indexJ, delta_d, fi_prev[indexJ], fi[indexJ]);
-        printf("Contribution : %15.8e\n", delta_d*(fi_prev[indexJ] + fi[indexJ]));
+        // printf("Index : %d, delta_d : %15.8e, fi_prev : %15.8e, fi : %15.8e\n", indexJ, delta_d, fi_prev[indexJ], fi[indexJ]);
+        // printf("Contribution : %15.8e\n", delta_d*(fi_prev[indexJ] + fi[indexJ]));
         WKE += mass[indexJ]*velocities[indexJ]*velocities[indexJ];
+        // if (boundary[indexJ]) {
+			  //   sum_Wext_n += delta_d*(fi_prev[indexJ] + fi[indexJ]);
+        // }
         sum_Wint_n += delta_d*(fi_prev[indexJ] + fi[indexJ]); /* equ 6.2.14 */
 			  sum_Wext_n += delta_d*(fe_prev[indexJ] + fe[indexJ]); /* equ 6.2.15 */
       }
@@ -57,15 +60,15 @@ void CheckEnergy(double time) {
   if (world_rank ==0) {
     Wint_n += Wint_n_total;
     Wext_n += Wext_n_total;
-    double total = fabs(WKE_Total-Wint_n-Wext_n);
-// #ifdef DEBUG
-// 	if(debug){
+    double total = fabs(WKE_Total+Wint_n-Wext_n);
+#ifdef DEBUG
+	if(debug){
   	printf("Internal Work : %15.9e\n", Wint_n);
   	printf("External Work : %15.9e\n", Wext_n);
     printf("Kinetic Energy : %15.9e\n", WKE_Total);
     printf("Total Energy : %15.9e\n", total);
-// }
-// #endif //DEBUG
+}
+#endif //DEBUG
 
     double max = fabs(Wint_n);
     if (max < fabs(Wext_n)) {
@@ -76,7 +79,7 @@ void CheckEnergy(double time) {
     }
     const double epsilon = 0.01;
     if (total > epsilon*max) {
-      printf("\nERROR - Energy Violation:  IW = %15.9e, KE=%15.9e \n", Wint_n, WKE_Total);
+      printf("\nERROR - Energy Violation:  Total = %15.9e, Max = %15.9e, Error\% : %10.2f \n", total, max, total*100.0/max);
     }
     fprintf(energyFile, "%12.6e %12.6e  %12.6e  %12.6e %12.6e\n", time,
             Wint_n, Wext_n, WKE_Total, total);
