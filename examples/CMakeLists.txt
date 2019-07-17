@@ -15,6 +15,7 @@ option (EXAMPLE14  "3D sphere-in-sphere model - abaqus inp format exported from 
 option (EXAMPLE15  "3D course brain model - lsdyna k format based off of simon model" OFF)
 option (EXAMPLE16  "6-elements per direction hex model - abaqus inp format" OFF)
 option (EXAMPLE17  "Plate Impact problem of Valerie Martin - abaqus inp format" OFF)
+option (EXAMPLE18  "1 elt hex: Force Application" OFF)
 
 if (EXAMPLE1)
 	add_subdirectory(ex1)
@@ -85,3 +86,7 @@ endif (EXAMPLE16)
 if (EXAMPLE17)
 	add_subdirectory(ex17)
 endif (EXAMPLE17)
+
+if (EXAMPLE18)
+	add_subdirectory(ex18)
+endif (EXAMPLE18)

@@ -10,6 +10,7 @@ void GetForce_3D() {
   memcpy(fi_prev, fi, nDOF * sizeof(double));
 	// Store externall force from previous step to compute energy
   memcpy(fe_prev, fe, nDOF * sizeof(double));
+
   // Following Belytschko
   // Set force_n to zero
   memset(f_net, 0, nDOF * sizeof(double));
@@ -50,7 +51,7 @@ void GetForce_3D() {
   updateInternalForceNeighbour();
   // Update net force with internal force
   for (int i = 0; i < nnodes * ndim; ++i) {
-    f_net[i] -= fi[i];
+    f_net[i] += fe[i] - fi[i];
   }
 
   return;

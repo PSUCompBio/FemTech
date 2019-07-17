@@ -1,0 +1,54 @@
+set termoption dashed
+
+unset colorbox
+
+# nomirror means do not put tics on the opposite side of the plot
+set xtics nomirror
+set ytics nomirror
+
+# On the Y axis put a major tick every 5
+#set ytics 5
+
+# On both the x and y axes split each space in half and put a minor tic there
+#set mxtics 2
+#set mytics 2
+
+set grid xtics
+set grid ytics
+set grid mxtics
+set grid mytics
+
+# Set the range of our x and y axes
+#set xrange [1:10]
+#set yrange [-30:5]
+
+# scale plot canvas size
+set size square 0.9,0.9
+
+# set line style; can be: lines, linespoints, points, impulse
+set style data lines
+
+# Create some linestyles for our data
+# pt = point type (triangles, circles, squares, etc.)
+# ps = point size
+set style line 1 lt 2 dt 2 lc rgb "red" lw 6 pt 2 ps 2
+set style line 2 lt 2 dt 2 lc rgb "blue" lw 6 pt 3 ps 2
+set style line 3 lt 1 lc rgb "black" lw 8 pt 6 ps 2
+set style line 4 lt 1 lc rgb "orange" lw 8 pt 9 ps 2
+
+set xtics font ",18"
+set ytics font ",18"
+set bmargin 8
+set xlabel "Time (s)" offset 0,-2 font ",28"
+set ylabel "Displacement (m)" offset -4,0 font ",28"
+
+# set location of legend
+set key left top
+# set font size of legend
+set key font ",18"
+set term pngcairo dashed notransparent size 1200,960 dashlength .4
+set output "plot.png"
+plot "abaqus/abaqus.rpt" every ::4 using 1:11 ls 3 title "ABAQUS DispX", \
+     "abaqus/abaqus.rpt" every ::4 using 1:12 ls 4 title "ABAQUS DispY", \
+		 "plot.dat" using 1:2 ls 1 title "FEMTECH DispX",  \
+		 "plot.dat" using 1:3 ls 2 title "FEMTECH DispY"
