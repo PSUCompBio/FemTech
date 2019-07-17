@@ -11,7 +11,9 @@ void CalculateAccelerations(){
   }
 #endif //DEBUG
   for (int i = 0; i < ndim*nnodes; ++i) {
-    accelerations[i] = f_net[i]/mass[i];
+    if (!boundary[i]) {
+      accelerations[i] = f_net[i]/mass[i];
+    }
   }
 	return;
 }

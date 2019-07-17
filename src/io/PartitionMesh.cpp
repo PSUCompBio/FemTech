@@ -533,6 +533,10 @@ bool PartitionMesh() {
 
     // Reorder local connectivity
     updateConnectivityGlobalToLocal();
+
+    printf("INFO(%d) : Number of nodes : %d\n",world_rank, nnodes);
+    const int nDOF = nnodes*ndim;
+    printf("INFO(%d) : Number of DOFs : %d\n",world_rank, nDOF);
 #ifdef DEBUG
     if (debug && 1 == 0) {
       printf("DEBUG(%d) : Node list to share in local node ID\n", world_rank);

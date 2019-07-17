@@ -36,13 +36,13 @@ void CheckEnergy(double time) {
       for (int j = 0; j < ndim; ++j) {
         int indexJ = index + j;
 			  delta_d = displacements[indexJ]-displacements_prev[indexJ];
-        // printf("Index : %d, Mass : %15.8e, velocities : %15.8e\n", indexJ, mass[indexJ], velocities[indexJ]);
-        // printf("Index : %d, delta_d : %15.8e, fi_prev : %15.8e, fi : %15.8e\n", indexJ, delta_d, fi_prev[indexJ], fi[indexJ]);
-        // printf("Contribution : %15.8e\n", delta_d*(fi_prev[indexJ] + fi[indexJ]));
         WKE += mass[indexJ]*velocities[indexJ]*velocities[indexJ];
-        // if (boundary[indexJ]) {
-			  //   sum_Wext_n += delta_d*(fi_prev[indexJ] + fi[indexJ]);
-        // }
+        if (boundary[indexJ]) {
+          // Fext = Fint + m*Acceleration
+          double reaction = fi_prev[indexJ] + fi[indexJ] + mass[indexJ]*(accelerations[i]+accelerations_prev[i]);
+
+			    sum_Wext_n += delta_d*reaction;
+        }
         sum_Wint_n += delta_d*(fi_prev[indexJ] + fi[indexJ]); /* equ 6.2.14 */
 			  sum_Wext_n += delta_d*(fe_prev[indexJ] + fe[indexJ]); /* equ 6.2.15 */
       }
