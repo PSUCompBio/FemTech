@@ -27,6 +27,7 @@ void FreeArrays() {
 	free1DArray(displacements);
 	free1DArray(velocities);
 	free1DArray(accelerations);
+	free1DArray(accelerations_prev);
 	free1DArray(boundary);
 	free1DArray(velocities_half);
   free1DArray(fe);
@@ -67,5 +68,9 @@ void FreeArrays() {
     }
     free(ElementType);
     ElementType = NULL;
+  }
+
+  if (world_rank == 0) {
+    fclose(energyFile);
   }
 }
