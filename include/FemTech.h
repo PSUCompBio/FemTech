@@ -87,7 +87,7 @@ double norm3D(double *a);
 double dotProduct3D(double *a, double *b);
 
 
-void CheckEnergy();
+void CheckEnergy(double time);
 
 /* Functions to calculate characteristic lengths */
 double CalculateCharacteristicLength(int e);
