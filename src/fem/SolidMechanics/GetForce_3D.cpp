@@ -6,13 +6,10 @@ void GetForce_3D() {
   // TODO(Anil) special treatment for first time step
   // Below algorithm works for n > 0
   const int nDOF = nnodes * ndim;
-  // Store internal force from previous step to compute energy
-  memcpy(fi_prev, fi, nDOF * sizeof(double));
-	// Store externall force from previous step to compute energy
-  memcpy(fe_prev, fe, nDOF * sizeof(double));
   // Following Belytschko
   // Set force_n to zero
-  memset(f_net, 0, nDOF * sizeof(double));
+  // TODO : Call function to update fe
+  memcpy(f_net, fe, nDOF * sizeof(double));
   memset(fi, 0, nDOF * sizeof(double));
 
   // Loop over elements and Gauss points
@@ -52,7 +49,6 @@ void GetForce_3D() {
   for (int i = 0; i < nnodes * ndim; ++i) {
     f_net[i] -= fi[i];
   }
-
   return;
 }
 void updateInternalForceNeighbour(void) {

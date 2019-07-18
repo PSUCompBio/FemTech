@@ -60,6 +60,7 @@ extern double *fr_curr;
 extern double *f_damp_prev;
 extern double *f_damp_curr;
 extern double *displacements_prev; /*displacements for previous step - used in engery calculation*/
+extern double *accelerations_prev; /*displacements for previous step - used in engery calculation*/
 
 extern double *F; /* deformation graident tensor array */
 extern double *Favg; /*deformation gradient average*/

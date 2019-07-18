@@ -53,6 +53,7 @@ void SolveSteadyImplicit(void);
 void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double dt, \
     double timeFinal, char* name);
 void LumpMassMatrix(void);
+void AssembleLumpedMass(void);
 void SolveUnsteadyExplicit(double timeFinal, char* name);
 void ExplicitDynamics(double timeFinal, char* name);
 

@@ -79,6 +79,7 @@ int main(int argc, char **argv) {
     double Time = 0.0;
     int time_step_counter = 0;
     int plot_counter = 0;
+    const int nDOF = nnodes * ndim;
     /** Central Difference Method - Beta and Gamma */
     // double beta = 0;
     // double gamma = 0.5;
@@ -86,11 +87,10 @@ int main(int argc, char **argv) {
     ShapeFunctions();
     ReadMaterialProperties();
     /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
-    Assembly((char *)"mass"); // Add Direct-lumped as an option
-    LumpMassMatrix();
-    // Include effect of elements on other processors
-    updateMassMatrixNeighbour();
+    AssembleLumpedMass();
 
+    // Used if initial velocity and acceleration BC is to be set.
+    ApplyBoundaryConditions(Time, dMax, tMax);
     /* Step-2: getforce step from Belytschko */
     GetForce(); // Calculating the force term.
 
@@ -108,19 +108,16 @@ int main(int argc, char **argv) {
             nsteps_plot);
     }
 
-    // Save old displacements
-    memcpy(displacements_prev, displacements, ndim*nnodes*sizeof(double));
-
-    /* Step-4: Time loop starts....*/
     time_step_counter = time_step_counter + 1;
     double t_n = 0.0;
-    const int nDOF = ndim * nnodes;
+
     if (world_rank == 0) {
       printf(
           "------------------------------- Loop ----------------------------\n");
       printf("Time : %f, tmax : %f\n", Time, tMax);
     }
 
+    /* Step-4: Time loop starts....*/
     while (Time < tMax) {
       double t_n = Time;
       double t_np1 = Time + dt;
@@ -141,8 +138,13 @@ int main(int argc, char **argv) {
         }
       }
 
-      // Store old displacements for energy computation
-      memcpy(displacements_prev, displacements, ndim * nnodes * sizeof(double));
+      // Store old displacements and accelerations for energy computation
+      memcpy(displacements_prev, displacements, nDOF * sizeof(double));
+      memcpy(accelerations_prev, accelerations, nDOF * sizeof(double));
+      // Store internal external force from previous step to compute energy
+      memcpy(fi_prev, fi, nDOF * sizeof(double));
+      memcpy(fe_prev, fe, nDOF * sizeof(double));
+
       for (int i = 0; i < nDOF; i++) {
         if (!boundary[i]) {
           displacements[i] = displacements[i] + dt_nphalf * velocities_half[i];
@@ -167,8 +169,6 @@ int main(int argc, char **argv) {
 
       /** Step - 11 Checking* Energy Balance */
       CheckEnergy(Time);
-      // if (time_step_counter > 20)
-      //   break;
 
       if (time_step_counter % nsteps_plot == 0) {
         plot_counter = plot_counter + 1;
@@ -255,6 +255,8 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
       boundary[index] = 1;
       displacements[index] = 0.0;
       velocities[index] = 0.0;
+      // For energy computations
+      accelerations[index] = 0.0;
       count = count + 1;
     }
     // if y coordinate = 0, constrain node to y plane (1-direction)
@@ -263,6 +265,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
       boundary[index] = 1;
       displacements[index] = 0.0;
       velocities[index] = 0.0;
+      accelerations[index] = 0.0;
       count = count + 1;
     }
     // if z coordinate = 0, constrain node to z plane (2-direction)
@@ -271,6 +274,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
       boundary[index] = 1;
       displacements[index] = 0.0;
       velocities[index] = 0.0;
+      accelerations[index] = 0.0;
       count = count + 1;
     }
     // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
@@ -286,6 +290,8 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
       //  displacment to be applied.
       displacements[index] = AppliedDisp;
       velocities[index] = dMax/tMax;
+      // For energy computations
+      accelerations[index] = 0.0;
     }
   }
   if (world_rank == 0) {

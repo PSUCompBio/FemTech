@@ -147,3 +147,43 @@ void updateMassMatrixNeighbour(void) {
 	}
 #endif //DEBUG
 }
+
+void AssembleLumpedMass(void) {
+  // Create global mass matrix
+  const int massSize = nnodes*ndim;
+  mass = (double*)calloc(massSize, sizeof(double));
+  if (!mass) {
+    printf("ERROR(%d) : Allocation of mass amtrix failed\n", world_rank);
+    exit(12);
+  }
+  for (int e = 0; e < nelements; ++e) {
+    int bColSize = nShapeFunctions[e]*ndim;
+    int mLocalSize = bColSize*bColSize;
+    double *Me = (double*)calloc(mLocalSize, sizeof(double));
+    MassElementMatrix(Me, e);
+    // Lump local mass matrix by summing up along the row
+    for(int i = 1; i < bColSize; ++i) {
+      for(int j = 0; j < bColSize; ++j) {
+        Me[j] += Me[j+i*bColSize];
+      }
+    }
+    // Move local matrix to global matrix
+    for (int l = 0; l < nShapeFunctions[e]; ++l) {
+      const int gIndex = connectivity[eptr[e]+l];
+      for (int k = 0; k < ndim; ++k) {
+        mass[gIndex*ndim+k] += Me[l*ndim+k];
+      }
+    }
+    free(Me);
+  }
+#ifdef DEBUG
+  if(debug && 1==0){
+    printf("Lumped Mass\n");
+    for(int j = 0; j < massSize; ++j) {
+      printf("%d  %12.6f\n", j, mass[j]);
+    }
+  }
+#endif //DEBUG
+  // Include effect of elements on other processors
+  updateMassMatrixNeighbour();
+}

@@ -48,12 +48,17 @@ set key left top
 set key font ",18"
 set term pngcairo dashed notransparent size 1200,960 dashlength .4
 set output "WorkInternalExternal.png"
-plot "energy.rpt" every ::4 using 1:3 ls 3 title "WInt ABAQUS",  \
-     "energy.rpt" every ::4 using 1:2 ls 1 title "WExt ABAQUS",  \
+plot "abaqus/energy.rpt" every ::4 using 1:3 ls 3 title "WInt ABAQUS",  \
+     "abaqus/energy.rpt" every ::4 using 1:2 ls 1 title "WExt ABAQUS",  \
 		 "energy.dat" using 1:2 ls 4 title "WInt FEMTech",  \
 		 "energy.dat" using 1:3 ls 2 title "WExt FEMTech"
 
 set ylabel "KE (J)" offset -4,0 font ",28"
 set output "KineticEnergy.png"
-plot "energy.rpt" every ::4 using 1:4 ls 3 title "KE ABAQUS",  \
+plot "abaqus/energy.rpt" every ::4 using 1:4 ls 3 title "KE ABAQUS",  \
 		 "energy.dat" using 1:4 ls 2 title "KE FEMTech"
+
+set ylabel "Total Energy (J)" offset -4,0 font ",28"
+set output "TotalEnergy.png"
+plot "abaqus/energy.rpt" every ::4 using 1:5 ls 3 title "Total ABAQUS",  \
+		 "energy.dat" using 1:5 ls 2 title "Total FEMTech"
