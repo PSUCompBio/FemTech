@@ -258,7 +258,6 @@ void ApplyForce(double Time, double fext, double tMax){
   for (int i = 0; i < nnodes; i++) {
     // if y value = 0.005, apply force in y direction (1-direction)
     if (fabs(coordinates[ndim * i + 1] - 0.005) < tol) {
-      boundary[ndim * i + 1] = 1;
       fe[ndim * i + 1] = AppliedForce;
       count = count + 1;
     }
