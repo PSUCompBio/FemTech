@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
     AssembleLumpedMass();
 
     // Used if initial velocity and acceleration BC is to be set.
-exit(0);
+
     ApplyBoundaryConditions(Time, dMax, tMax);
     /* Step-2: getforce step from Belytschko */
     GetForce(); // Calculating the force term.
