@@ -39,7 +39,7 @@ void ShapeFunctions();
 void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ);
 void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ);
 void ShapeFunction_T3D2(int e, int gp, double *Chi, double *detJ);
-void get_cos(int e, double *cx, double *cy, double *cz)
+void get_cos(int e, double *cx, double *cy, double *cz);
 
 void ReadMaterialProperties();
 void ReadBoundaryCondition(void);

@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
   Time = 0.0;
   nStep = 0;
   WriteVTU(argv[1], nStep, Time);
-  
+
   // Dynamic Explcit solution using....
   double dt;
   double tMax = 1; // max simulation time in seconds
@@ -47,11 +47,11 @@ int main(int argc, char **argv) {
   // double beta = 0;
   // double gamma = 0.5;
 
-  
+
   ShapeFunctions();
 
-  printf("execut until here\n");
-  exit (EXIT_FAILURE);
+  //printf("execut until here\n");
+  //exit (EXIT_FAILURE);
 
   ReadMaterialProperties();
   /*  Step-1: Calculate the mass matrix similar to that of belytschko. */

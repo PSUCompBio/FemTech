@@ -23,8 +23,8 @@ void GetForce_3D() {
 			// truss elements are unique b/c the 3D formulation is not like solid
 			// elements like quads or hexes, or tets.
 	            if(strcmp(ElementType[i], "T3D2") == 0){
-				printf("Calculate the forces for truss\n");
-				exit (EXIT_FAILURE);
+				//printf("Calculate the forces for truss\n");
+				//exit (EXIT_FAILURE);
 				TrussStressForceUpdate(i,j,fintLocal);
 				//CalculateDeformationGradient(i, j);
 				//exit(0);
