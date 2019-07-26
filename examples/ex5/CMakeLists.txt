@@ -11,6 +11,10 @@ else()
 endif(ENABLE_MPI)
 
 file(COPY brain.inp DESTINATION .)
+file(COPY materials.dat DESTINATION .)
+file(INSTALL gnuplot.script DESTINATION .)
+file(INSTALL gnuplotEnergy.script DESTINATION .)
+file(INSTALL README.md DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
 
