@@ -14,12 +14,12 @@ void CheckEnergy(double time) {
 	double delta_d = 0.0;
   double WKE = 0.0;
 
-  // Calculate in parallel 
+  // Calculate in parallel
   // Loop over all the nodes
   for(int i = 0; i < nnodes; ++i) {
     bool includeSum = true;
     for (int j = 0; (j < sendProcessCount) && includeSum; ++j) {
-      // If sending to a node with lower rank its already included 
+      // If sending to a node with lower rank its already included
       // in the KE calculation
       if (sendProcessID[j] < world_rank) {
         for (int k = sendNeighbourCountCum[j]; k < sendNeighbourCountCum[j+1]; ++k) {
@@ -56,7 +56,7 @@ void CheckEnergy(double time) {
   MPI_Reduce(&WKE, &WKE_Total, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
   MPI_Reduce(&sum_Wint_n, &Wint_n_total, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
   MPI_Reduce(&sum_Wext_n, &Wext_n_total, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-  
+
   if (world_rank ==0) {
     Wint_n += Wint_n_total;
     Wext_n += Wext_n_total;
@@ -77,12 +77,12 @@ void CheckEnergy(double time) {
     if (max < fabs(WKE_Total)) {
       max = fabs(WKE_Total);
     }
-    const double epsilon = 0.01;
+    const double epsilon = 10;
     if (total > epsilon*max) {
       printf("\nERROR - Energy Violation:  Total = %15.9e, Max = %15.9e, Error\% : %10.2f \n", total, max, total*100.0/max);
     }
-    fprintf(energyFile, "%12.6e %12.6e  %12.6e  %12.6e %12.6e\n", time,
-            Wint_n, Wext_n, WKE_Total, total);
+  /*  fprintf(energyFile, "%12.6e %12.6e  %12.6e  %12.6e %12.6e\n", time,
+            Wint_n, Wext_n, WKE_Total, total); */
   }
   // Wint_n = WKE;
 }
