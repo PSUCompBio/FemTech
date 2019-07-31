@@ -4,7 +4,7 @@ ADD_EXECUTABLE(ex8 ${ex8_src})
 
 if(ENABLE_MPI)
   LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/third-party/parmetis-4.0.3/libparmetis)
-  TARGET_LINK_LIBRARIES(ex8 FemTech parmetis)
+  TARGET_LINK_LIBRARIES(ex8 FemTech parmetis ${lapackblas_libraries})
 else()
   LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
   TARGET_LINK_LIBRARIES(ex8 FemTech)

@@ -47,10 +47,8 @@ int main(int argc, char **argv) {
   // double beta = 0;
   // double gamma = 0.5;
   ShapeFunctions();
-  ReadMaterialProperties();
   /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
-  Assembly((char *)"mass"); // Add Direct-lumped as an option
-  LumpMassMatrix();
+  AssembleLumpedMass();
 
   /* Step-2: getforce step from Belytschko */
   GetForce(); // Calculating the force term.

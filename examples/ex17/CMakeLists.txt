@@ -13,7 +13,7 @@ endif(ENABLE_MPI)
 file(INSTALL PlateImpact_v1_g.inp DESTINATION .)
 file(INSTALL materials.dat DESTINATION .)
 file(INSTALL gnuplot.script DESTINATION .)
-file(INSTALL abaqus/ DESTINATION .)
+# file(INSTALL abaqus/ DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
 

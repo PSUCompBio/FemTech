@@ -8,7 +8,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax);
 double Time;
 int nStep;
 int nSteps;
-int nPlotSteps = 1;
+int nPlotSteps = 10;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
@@ -48,10 +48,8 @@ int main(int argc, char **argv) {
   // double gamma = 0.5;
 
   ShapeFunctions();
-  ReadMaterialProperties();
   /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
-  Assembly((char *)"mass"); // Add Direct-lumped as an option
-  LumpMassMatrix();
+  AssembleLumpedMass();
 
   /* Step-2: getforce step from Belytschko */
   GetForce(); // Calculating the force term.

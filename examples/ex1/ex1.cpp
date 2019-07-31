@@ -1,5 +1,8 @@
 #include "FemTech.h"
 
+bool ImplicitDynamic = true;
+bool ExplicitDynamic = false;
+
 int main(int argc, char **argv){
   
 	// Initialize the MPI environment
@@ -45,7 +48,7 @@ int main(int argc, char **argv){
 	printf("\n");
 #endif
 
-  WriteVTU(argv[1]);  
+  WriteVTU(argv[1], 0, 0.0);  
 
   ShapeFunctions();
 

@@ -37,7 +37,7 @@ void ShapeFunctions();
 void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ);
 void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ);
 void ShapeFunction_T3D2(int e, int gp, double *Chi, double *detJ);
-void ReadMaterialProperties();
+void CreateLinearElasticityCMatrix();
 void ReadBoundaryCondition(void);
 void AllocateArrays();
 
