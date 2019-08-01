@@ -1,5 +1,5 @@
 Set(elements_src
-    elements.cpp
+    Elements.cpp
 		ElementCalculations/CalculateDeformationGradient.cpp
 		ElementCalculations/StrainDisplacementMatrix.cpp
     CharacteristicLength/CalculateCharacteristicLength.cpp
@@ -7,6 +7,9 @@ Set(elements_src
     CharacteristicLength/CalculateCharacteristicLength_C3D8.cpp
     ElementCalculations/CalculateStrain.cpp
     ElementCalculations/SumOfDeformationGradient.cpp
+    CenterOfMass/CalculateCentroidAndVolume.cpp
+    CenterOfMass/CalculateCentroid_C3D4.cpp
+    CenterOfMass/CalculateCentroidAndVolume_C3D8.cpp
     )
 
 add_library(elements OBJECT ${elements_src})

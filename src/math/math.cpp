@@ -1,13 +1,6 @@
 #include "FemTech.h"
 #include "blas.h"
 
-int math()
-{
-   // printf() displays the string inside quotation
-   printf("Hello, World and Digital Brain!!\n");
-   return 0;
-}
-
 void inverse3x3Matrix(double* mat, double* invMat, double* det) {
   // Mat and invMat are 1d arrays with colum major format for storing matrix
   // Compute matrix determinant
@@ -61,21 +54,3 @@ double norm3D(double *a) {
 double dotProduct3D(double *a, double *b) {
   return (a[0]*b[0]+a[1]*b[1]+a[2]*b[2]);
 }
-/*
-void MultiplyMatrices(double* a[], double* b[], int sizeM, double* result ){
-	//Multiplication Logic
-	int sum;
-	double c[sizeM][sizeM];
-	for (int i = 0; i < sizeM; i++) {
-		 for (int j = 0; j < sizeM; j++) {
-				sum = 0;
-				for (int k = 0; k < sizeM; k++) {
-					 sum = sum + a[i][k] * b[k][j];
-				}
-				c[i][j] = sum;
-		 }
-	}
-
-	(*result) = c;
-}
-*/

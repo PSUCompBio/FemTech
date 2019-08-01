@@ -8,6 +8,16 @@ void ReadMaterials() {
     exit(0);
   } 
   int partID;
+  printf("DEBUG(%d) : Number of parts = %d\n", world_rank, nPIDglobal);
+  bool *checkFullRead = (bool*)malloc(nPIDglobal*sizeof(bool));
+  if (checkFullRead == NULL) {
+    printf("ERROR(%d) : Error allocating checkFullRead\n");
+    exit(0);
+  }
+  for (int i = 0; i < nPIDglobal; ++i) {
+    checkFullRead[i] = false;
+  }
+
   for (int i = 0; i < nPIDglobal; i++) {
     fscanf(File, "%d", &partID);
     fscanf(File, "%d", &materialID[partID]);
@@ -46,7 +56,17 @@ void ReadMaterials() {
       printf("ERROR : Material ID for Part %d NOT FOUND!\n", partID);
       exit(0);
     }
+    checkFullRead[partID] = true;
   }
   fclose(File);
+  // Check if all parts have corresponding material properties
+  for (int i = 0; i < nPIDglobal; ++i) {
+    if(checkFullRead[i] == false) {
+      printf("ERROR(%d) : Material properties of partID %d missing\n", world_rank, i);
+      exit(0);
+    }
+  }
+  free(checkFullRead);
+  
   return;
 }

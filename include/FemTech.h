@@ -95,7 +95,18 @@ double CalculateCharacteristicLength(int e);
 double CalculateCharacteristicLength_C3D4(int e);
 double CalculateCharacteristicLength_C3D8(int e);
 
+/* Functions to calculate center of mass */
+void GetBodyCenterofMass(double *cm);
+double CalculateCentroidAndVolume(int e, double *cm);
+double CalculateCentroidAndVolume_C3D8(int e, double *cm);
+void CalculateCentroid_C3D4(int e, double *cm);
+
 void updateMassMatrixNeighbour(void);
+
+/* Geometry related calculations in math folder*/
+double volumeHexahedron(double *coordinates);
+double areaHexahedronFace(double *coordinates, const int * const index);
+double volumeTetrahedron(double *coordinates);
 
 int compare(const void *a, const void *b);
 int unique(int *arr, int n);
