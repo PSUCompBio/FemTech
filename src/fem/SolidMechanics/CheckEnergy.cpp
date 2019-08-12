@@ -77,12 +77,12 @@ void CheckEnergy(double time) {
     if (max < fabs(WKE_Total)) {
       max = fabs(WKE_Total);
     }
-    const double epsilon = 10;
+    const double epsilon = 0.01;
     if (total > epsilon*max) {
       printf("\nERROR - Energy Violation:  Total = %15.9e, Max = %15.9e, Error\% : %10.2f \n", total, max, total*100.0/max);
     }
-  /*  fprintf(energyFile, "%12.6e %12.6e  %12.6e  %12.6e %12.6e\n", time,
-            Wint_n, Wext_n, WKE_Total, total); */
+    fprintf(energyFile, "%12.6e %12.6e  %12.6e  %12.6e %12.6e\n", time,
+            Wint_n, Wext_n, WKE_Total, total);
   }
   // Wint_n = WKE;
 }

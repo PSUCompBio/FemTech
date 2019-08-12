@@ -209,9 +209,9 @@ int main(int argc, char **argv) {
       // Barrier not a must
       MPI_Barrier(MPI_COMM_WORLD);
     } // end explcit while loop
-
+  if (world_rank == 0){
   printf("%11.3e %11.3e  %11.3e  %11.3e\n", Time, displacements[0], displacements[1], displacements[2]);
-
+}
     nStep = plot_counter;
     // Write out the last time step
     //CustomPlot(Time);
