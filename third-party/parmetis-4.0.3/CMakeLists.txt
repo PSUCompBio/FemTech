@@ -28,7 +28,7 @@ include(${GKLIB_PATH}/GKlibSystem.cmake)
 # List of paths that the compiler will search for header files.
 # i.e., the -I equivalent
 include_directories(include)
-include_directories(${MPI_INCLUDE_PATH})
+include_directories(${MPI_C_INCLUDE_DIRS})
 include_directories(${GKLIB_PATH})
 include_directories(${METIS_PATH}/include)
 

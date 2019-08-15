@@ -64,15 +64,11 @@ if(ENABLE_MPI)
 #	endif()
 
 	include_directories(${MPI_INCLUDE_PATH})
-	set(CMAKE_C_FLAGS "${CMAKE_FLAGS} ${MPI_FLAGS}")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_CXX_FLAGS}")
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${MPI_EXE_LINKER_FLAGS}")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MPI_C_COMPILE_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_CXX_COMPILE_FLAGS}")
 	add_subdirectory(third-party/parmetis-4.0.3)
 	include_directories(third-party/parmetis-4.0.3/include)
 	include_directories(third-party/parmetis-4.0.3/metis/include)
-#	unset(PARALLEL CACHE)
-#	SET(PARALLEL 1 CACHE INTEGER "Defines a Parallel Build")
-#	add_definitions( -DPARALLEL=${PARALLEL} )
 endif(ENABLE_MPI)
 
 
