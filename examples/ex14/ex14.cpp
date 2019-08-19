@@ -6,19 +6,20 @@
 /*Delare Functions*/
 void CustomPlot();
 void InitCustomPlot();
-void InitBoundaryCondition(double *aMax);
+void InitBoundaryCondition(double *aMax, double angMax);
 void ApplyAccBoundaryConditions();
 
 /* Global Variables/Parameters  - could be moved to parameters.h file?  */
 double Time;
 int nStep;
 int nSteps;
-int nPlotSteps = 100;
+int nPlotSteps = 1000;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
+static const double radToDeg = 180.0/(atan(1.0)*4.0);
 
 /* Global variables used only in this file */
 const double sphereRadius = 0.08;
@@ -28,11 +29,16 @@ bool rankForCustomPlot;
 int* boundaryID = NULL;
 int boundarySize;
 double aLin[3], bLin[3];
-double aAng[3], bAng[3];
+double aAng, bAng;
 double peakTime, maxTime;
+double thetaOld = 0.0;
+double linDisplOld[3];
+double angNormal[3];
 
 int main(int argc, char **argv) {
-  double accMax[3] = {1.0, 0.0, 0.0};
+  double accMax[3] = {5*9.81, 0.0, 0.0};
+  double angAccMax = 200.0;
+  angNormal[0] = 0.0; angNormal[1] = 0.0; angNormal[2] = 1.0;
   peakTime = 0.001;
   maxTime = 0.005;
   // Initialize the MPI environment
@@ -49,7 +55,7 @@ int main(int argc, char **argv) {
   AllocateArrays();
   ReadMaterials();
   InitCustomPlot();
-  InitBoundaryCondition(accMax);
+  InitBoundaryCondition(accMax, angAccMax);
 
   /* Write inital, undeformed configuration*/
   Time = 0.0;
@@ -58,10 +64,9 @@ int main(int argc, char **argv) {
   CustomPlot();
 
   // Dynamic Explcit solution using....
-  double dt = 0.0;
+  double dt = 0.000005;
   double tMax = 0.01;   // max simulation time in seconds
 
-  double Time = 0.0;
   int time_step_counter = 0;
   int plot_counter = 0;
   const int nDOF = nnodes * ndim;
@@ -80,7 +85,7 @@ int main(int argc, char **argv) {
   GetForce(); // Calculating the force term.
 
   /* Obtain dt, according to Belytschko dt is calculated at end of getForce */
-  dt = ExplicitTimeStepReduction * StableTimeStep();
+  // dt = ExplicitTimeStepReduction * StableTimeStep();
 
   /* Step-3: Calculate accelerations */
   CalculateAccelerations();
@@ -191,7 +196,7 @@ int main(int argc, char **argv) {
 #endif // DEBUG
     }
     time_step_counter = time_step_counter + 1;
-    dt = ExplicitTimeStepReduction * StableTimeStep();
+    // dt = ExplicitTimeStepReduction * StableTimeStep();
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -225,10 +230,14 @@ int main(int argc, char **argv) {
 }
 
 void ApplyAccBoundaryConditions() {
-  double linAcc[3], angAcc[3];
-  double linVel[3], angVel[3];
-  double linDispl[3], angDispl[3];
+  double linAcc[3], angAcc;
+  double linVel[3], angVel;
+  double linDispl[3], angDispl;
   double cm[3];
+  double position[3], rotation[3];
+  double velRotation[3], omega[3];
+  double alpha[3], accCorioli[3], accRotation[3], centrifugal[3];
+  double rotMat[3][3];
 
   // Compute accelerations, velocities and displacements
   // Compute angular accelerations, angular velocities and angles
@@ -237,11 +246,11 @@ void ApplyAccBoundaryConditions() {
       linAcc[i] = aLin[i]*Time;
       linVel[i] = 0.5*aLin[i]*Time*Time;
       linDispl[i] = aLin[i]*Time*Time*Time/6.0;
-
-      // angAcc[i] = 0.0;
-      // angVel[i] = 0.0;
-      // angDispl[i] = 0.0;
     }
+
+    angAcc = aAng*Time;
+    angVel = 0.5*aAng*Time*Time;
+    angDispl = aAng*Time*Time*Time/6.0;
   } else {
     if (Time < maxTime) {
       for (int i = 0; i < ndim; ++i) {
@@ -251,6 +260,12 @@ void ApplyAccBoundaryConditions() {
         linDispl[i] = 0.5*(aLin[i]+bLin[i])*peakTime*(peakTime*peakTime/3.0-\
             peakTime*Time+Time*Time)-bLin[i]*Time*Time*Time/6.0;
       }
+
+      angAcc = (aAng+bAng)*peakTime-bAng*Time;
+      angVel = (aAng+bAng)*(peakTime*Time-0.5*peakTime*peakTime)-\
+                  0.5*bAng*Time*Time;
+      angDispl = 0.5*(aAng+bAng)*peakTime*(peakTime*peakTime/3.0-\
+          peakTime*Time+Time*Time)-bAng*Time*Time*Time/6.0;
     } else {
       for (int i = 0; i < ndim; ++i) {
         linAcc[i] = 0.0;
@@ -260,21 +275,54 @@ void ApplyAccBoundaryConditions() {
             peakTime*maxTime+maxTime*maxTime)-bLin[i]*maxTime*maxTime*maxTime/6.0+\
                       linVel[i]*(Time-maxTime);
       }
+      angAcc = 0.0;
+      angVel = (aAng+bAng)*(peakTime*maxTime-0.5*peakTime*peakTime)-\
+                  0.5*bAng*maxTime*maxTime;
+      angDispl = 0.5*(aAng+bAng)*peakTime*(peakTime*peakTime/3.0-\
+          peakTime*maxTime+maxTime*maxTime)-bAng*maxTime*maxTime*maxTime/6.0+\
+                    angVel*(Time-maxTime);
     }
   }
+  double dTheta = angDispl-thetaOld;
+  thetaOld = angDispl;
   GetBodyCenterofMass(cm);
+  get3dRotationMatrix(angNormal, dTheta, rotMat);
+  for (int j = 0; j < ndim; ++j) {
+    omega[j] = angVel*angNormal[j];
+    alpha[j] = angAcc*angNormal[j];
+    rotation[j] = 0.0;
+  }
+
   for (int i = 0; i < boundarySize; i++) {
     int index = boundaryID[i]*ndim;
     for (int j = 0; j < ndim; ++j) {
-      displacements[index+j] = linDispl[j];
-      velocities[index+j] = linVel[j];
+      position[j] = coordinates[index+j]+displacements[index+j]-cm[j];
+    }
+    for (int j = 0; j < ndim; ++j) {
+      for (int k = 0; k < ndim; ++k) {
+        rotation[j] += rotMat[j][k]*position[k];
+      }
+      rotation[j] -= position[j];
+    }
+    crossProduct(omega, position, velRotation);
+    crossProduct(omega, linVel, accCorioli);
+    crossProduct(omega, velRotation, centrifugal);
+    crossProduct(alpha, position, accRotation);
+    for (int j = 0; j < ndim; ++j) {
+      displacements[index+j] += (linDispl[j]-linDisplOld[j])+rotation[j];
+      velocities[index+j] = linVel[j]+velRotation[j];
       // For energy computations
-      accelerations[index+j] = linAcc[j];
+      accelerations[index+j] = linAcc[j]+2.0*accCorioli[j]+accRotation[j]+centrifugal[j];
     }
   }
   if (world_rank == 0) {
-    printf("INFO(%d) : Applied acceleration = (%10.5e, %10.5e, %10.5e)\n", \
-        world_rank, linAcc[0], linAcc[1], linAcc[2]);
+    FILE *datFile;
+    datFile = fopen("motion.dat", "a");
+    fprintf(datFile, "%11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e\n", Time, linAcc[0], linAcc[1], linAcc[2], linVel[0], linVel[1], linVel[2], linDispl[0], linDispl[1], linDispl[2], angAcc, angVel, angDispl*radToDeg);
+    fclose(datFile);
+  }
+  for (int j = 0; j < ndim; ++j) {
+    linDisplOld[j] = linDispl[j];
   }
   return;
 }
@@ -329,14 +377,14 @@ void CustomPlot() {
   return;
 }
 
-void InitBoundaryCondition(double* aMax) {
+void InitBoundaryCondition(double *aMax, double angMax) {
   double tol = 1e-5;
   // Find the number of nodes on the outer boundary
   // For sphere : find points at specified radius
   double sphereRad2 = sphereRadius*sphereRadius;
   int index;
   double nodeDist2;
-  int boundarySize = 0;
+  boundarySize = 0;
   for (int i = 0; i < nnodes; ++i) {
     index = i*ndim;
     nodeDist2 = coordinates[index]*coordinates[index]+coordinates[index+1]*\
@@ -368,4 +416,19 @@ void InitBoundaryCondition(double* aMax) {
     aLin[i] = aMax[i]/peakTime;
     bLin[i] = aMax[i]/(maxTime-peakTime);
   }
+  aAng = angMax/peakTime;
+  bAng = angMax/(maxTime-peakTime);
+  for (int i = 0; i < 3; ++i) {
+    linDisplOld[i] = 0.0;
+  }
+
+  FILE *datFile;
+  if (world_rank == 0) {
+    datFile = fopen("motion.dat", "w");
+    fprintf(datFile, "# Motion Results\n");
+    fprintf(datFile, "# Time     AccX    AccY    AccZ    VelX    VelY    VelZ    LinDispX  LinDisp Y  LinDisp Z  AngAcc   AngVel   Angle \n");
+    fclose(datFile);
+  }
+
+  return;
 }

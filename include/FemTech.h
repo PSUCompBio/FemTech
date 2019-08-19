@@ -86,7 +86,8 @@ double normOfCrossProduct(double *a, double *b);
 void crossProduct(double* a, double* b, double* result);
 double norm3D(double *a);
 double dotProduct3D(double *a, double *b);
-
+void rotate3d(double *n, double theta, double *xin);
+void get3dRotationMatrix(double *n, double theta, double mat[3][3]);
 
 void CheckEnergy(double time);
 
