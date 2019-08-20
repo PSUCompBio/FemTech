@@ -34,6 +34,7 @@ double peakTime, maxTime;
 double thetaOld = 0.0;
 double linDisplOld[3];
 double angNormal[3];
+double dtMax;
 
 int main(int argc, char **argv) {
   double accMax[3] = {5*9.81, 0.0, 0.0};
@@ -41,6 +42,7 @@ int main(int argc, char **argv) {
   angNormal[0] = 0.0; angNormal[1] = 0.0; angNormal[2] = 1.0;
   peakTime = 0.001;
   maxTime = 0.005;
+  dtMax = peakTime/100;
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
   // Get the number of processes
@@ -64,7 +66,7 @@ int main(int argc, char **argv) {
   CustomPlot();
 
   // Dynamic Explcit solution using....
-  double dt = 0.000005;
+  double dt = dtMax;
   double tMax = 0.01;   // max simulation time in seconds
 
   int time_step_counter = 0;
@@ -85,7 +87,7 @@ int main(int argc, char **argv) {
   GetForce(); // Calculating the force term.
 
   /* Obtain dt, according to Belytschko dt is calculated at end of getForce */
-  // dt = ExplicitTimeStepReduction * StableTimeStep();
+  dt = ExplicitTimeStepReduction * StableTimeStep();
 
   /* Step-3: Calculate accelerations */
   CalculateAccelerations();
@@ -196,7 +198,7 @@ int main(int argc, char **argv) {
 #endif // DEBUG
     }
     time_step_counter = time_step_counter + 1;
-    // dt = ExplicitTimeStepReduction * StableTimeStep();
+    dt = ExplicitTimeStepReduction * StableTimeStep();
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -408,6 +410,7 @@ void InitBoundaryCondition(double *aMax, double angMax) {
     if (fabs(nodeDist2-sphereRad2) < tol) {
       boundaryID[bcIndex] = i;
       bcIndex = bcIndex + 1;
+      boundary[i] = 1;
     }
   }
   assert(bcIndex == boundarySize);

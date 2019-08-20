@@ -6,7 +6,6 @@
 
 double CalculateTimeStep(int e) {
 	double dt;
-  const double dtMax = 0.1;
  	// characteristic element length
   double le = CalculateCharacteristicLength(e);
 	//wave speed of material
@@ -18,10 +17,5 @@ double CalculateTimeStep(int e) {
   // ce calculated using dilatatoin wave speed
 	double ce = sqrt(lambda*(1.0/nu-1.0)/rho);
 	dt = le/ce;
-  // TODO(Anil) : Remove next 3 lines
-  if (dt > dtMax) {
-    dt = dtMax;
-  }
-  // printf("Time Step : %24.12f\n", dt);
 	return dt;
 }
