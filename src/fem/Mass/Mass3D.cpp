@@ -153,7 +153,7 @@ void AssembleLumpedMass(void) {
   const int massSize = nnodes*ndim;
   mass = (double*)calloc(massSize, sizeof(double));
   if (!mass) {
-    printf("ERROR(%d) : Allocation of mass amtrix failed\n", world_rank);
+    printf("ERROR(%d) : Allocation of mass matrix failed\n", world_rank);
     exit(12);
   }
   for (int e = 0; e < nelements; ++e) {

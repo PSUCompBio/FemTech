@@ -37,7 +37,7 @@ void ShapeFunctions();
 void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ);
 void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ);
 void ShapeFunction_T3D2(int e, int gp, double *Chi, double *detJ);
-void ReadMaterialProperties();
+void CreateLinearElasticityCMatrix();
 void ReadBoundaryCondition(void);
 void AllocateArrays();
 
@@ -86,7 +86,8 @@ double normOfCrossProduct(double *a, double *b);
 void crossProduct(double* a, double* b, double* result);
 double norm3D(double *a);
 double dotProduct3D(double *a, double *b);
-
+void rotate3d(double *n, double theta, double *xin);
+void get3dRotationMatrix(double *n, double theta, double mat[3][3]);
 
 void CheckEnergy(double time);
 
@@ -95,7 +96,18 @@ double CalculateCharacteristicLength(int e);
 double CalculateCharacteristicLength_C3D4(int e);
 double CalculateCharacteristicLength_C3D8(int e);
 
+/* Functions to calculate center of mass */
+void GetBodyCenterofMass(double *cm);
+double CalculateCentroidAndVolume(int e, double *cm);
+double CalculateCentroidAndVolume_C3D8(int e, double *cm);
+void CalculateCentroid_C3D4(int e, double *cm);
+
 void updateMassMatrixNeighbour(void);
+
+/* Geometry related calculations in math folder*/
+double volumeHexahedron(double *coordinates);
+double areaHexahedronFace(double *coordinates, const int * const index);
+double volumeTetrahedron(double *coordinates);
 
 int compare(const void *a, const void *b);
 int unique(int *arr, int n);

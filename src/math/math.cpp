@@ -1,13 +1,6 @@
 #include "FemTech.h"
 #include "blas.h"
 
-int math()
-{
-   // printf() displays the string inside quotation
-   printf("Hello, World and Digital Brain!!\n");
-   return 0;
-}
-
 void inverse3x3Matrix(double* mat, double* invMat, double* det) {
   // Mat and invMat are 1d arrays with colum major format for storing matrix
   // Compute matrix determinant
@@ -61,21 +54,39 @@ double norm3D(double *a) {
 double dotProduct3D(double *a, double *b) {
   return (a[0]*b[0]+a[1]*b[1]+a[2]*b[2]);
 }
-/*
-void MultiplyMatrices(double* a[], double* b[], int sizeM, double* result ){
-	//Multiplication Logic
-	int sum;
-	double c[sizeM][sizeM];
-	for (int i = 0; i < sizeM; i++) {
-		 for (int j = 0; j < sizeM; j++) {
-				sum = 0;
-				for (int k = 0; k < sizeM; k++) {
-					 sum = sum + a[i][k] * b[k][j];
-				}
-				c[i][j] = sum;
-		 }
-	}
-
-	(*result) = c;
+// n and x are assumed to be three dimensional
+// Source: http://scipp.ucsc.edu/~haber/ph216/rotation_12.pdf
+// After rotation the results are stored in the input matrix
+// Theta is assumed to be in radians
+void rotate3d(double *n, double theta, double *xin) {
+  double x, y, z;
+  const double cth = cos(theta);
+  const double sth = sin(theta);
+  const double mcth_m1 = 1.0-cth;
+  x = (cth+n[0]*n[0]*mcth_m1)*xin[0] + (n[0]*n[1]*mcth_m1-n[2]*sth)*xin[1] + \
+      (n[0]*n[2]*mcth_m1+n[1]*sth)*xin[2];
+  y = (cth+n[1]*n[1]*mcth_m1)*xin[1] + (n[1]*n[2]*mcth_m1-n[0]*sth)*xin[2] + \
+      (n[0]*n[1]*mcth_m1+n[2]*sth)*xin[0];
+  z = (cth+n[2]*n[2]*mcth_m1)*xin[2] + (n[0]*n[2]*mcth_m1-n[1]*sth)*xin[0] + \
+      (n[2]*n[1]*mcth_m1+n[0]*sth)*xin[1];
+  xin[0] = x; xin[1] = y; xin[2] = z;
 }
-*/
+// Create the rotation matrix in row major format for faster multiplication with
+// position vector
+void get3dRotationMatrix(double *n, double theta, double mat[3][3]) {
+  const double cth = cos(theta);
+  const double sth = sin(theta);
+  const double mcth_m1 = 1.0-cth;
+
+  mat[0][0] = cth+n[0]*n[0]*mcth_m1;
+  mat[0][1] = n[0]*n[1]*mcth_m1-n[2]*sth;
+  mat[0][2] = n[0]*n[2]*mcth_m1+n[1]*sth;
+
+  mat[1][0] = n[0]*n[1]*mcth_m1+n[2]*sth;
+  mat[1][1] = cth+n[1]*n[1]*mcth_m1;
+  mat[1][2] = n[1]*n[2]*mcth_m1-n[0]*sth;
+
+  mat[2][0] = n[0]*n[2]*mcth_m1-n[1]*sth;
+  mat[2][1] = n[2]*n[1]*mcth_m1+n[0]*sth;
+  mat[2][2] = cth+n[2]*n[2]*mcth_m1;
+}

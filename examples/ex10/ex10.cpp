@@ -71,7 +71,7 @@ int main(int argc, char **argv){
     double dMax = 0.1; // max displacment in meters
 		double tMax = 1.0;
     ShapeFunctions();
-    ReadMaterialProperties();
+    CreateLinearElasticityCMatrix();
     ApplyBoundaryConditions(Time,dMax,tMax);
     Assembly((char*)"stiffness");
     ApplySteadyBoundaryConditions();
@@ -87,7 +87,7 @@ int main(int argc, char **argv){
     double tMax = 10.0;
     double dMax = 0.1;// max displacment in meters
     ShapeFunctions();
-    ReadMaterialProperties();
+    CreateLinearElasticityCMatrix();
     ApplyBoundaryConditions(Time,dMax,tMax);
     Assembly((char*)"stiffness");
     Assembly((char*)"mass");
@@ -109,12 +109,11 @@ int main(int argc, char **argv){
 		double gamma = 0.5;
 
     ShapeFunctions();
-    ReadMaterialProperties();
     ApplyBoundaryConditions(Time,dMax,tMax);
     Assembly((char*)"stiffness");
     /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
 
-    Assembly((char*)"mass"); // Add Direct-lumped as an option
+    AssembleLumpedMass(); // Add Direct-lumped as an option
 		/* Step-2: getforce step from Belytschko */
 
     GetForce(); // Calculating the force term.

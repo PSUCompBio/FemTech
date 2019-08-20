@@ -126,7 +126,7 @@ exit(0);
     }
 
     /** Step - 11 Checking* Energy Balance */
-    CheckEnergy();
+    CheckEnergy(Time);
 
     if (time_step_counter % nsteps_plot == 0) {
       plot_counter = plot_counter + 1;

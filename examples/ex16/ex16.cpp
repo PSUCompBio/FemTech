@@ -50,12 +50,8 @@ int main(int argc, char **argv) {
   int plot_counter = 0;
 
   ShapeFunctions();
-  ReadMaterialProperties();
   /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
-  Assembly((char *)"mass"); // Add Direct-lumped as an option
-  LumpMassMatrix();
-  // Include effect of elements on other processors
-  updateMassMatrixNeighbour();
+  AssembleLumpedMass(); // Add Direct-lumped as an option
 
   /* Step-2: getforce step from Belytschko */
   GetForce(); // Calculating the force term.
