@@ -13,7 +13,7 @@ void ApplyAccBoundaryConditions();
 double Time;
 int nStep;
 int nSteps;
-int nPlotSteps = 1000;
+int nPlotSteps = 50;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
@@ -30,19 +30,17 @@ int* boundaryID = NULL;
 int boundarySize;
 double aLin[3], bLin[3];
 double aAng, bAng;
-double peakTime, maxTime;
+double peakTime, tMax;
 double thetaOld = 0.0;
 double linDisplOld[3];
 double angNormal[3];
-double dtMax;
 
 int main(int argc, char **argv) {
-  double accMax[3] = {5*9.81, 0.0, 0.0};
-  double angAccMax = 200.0;
+  double accMax[3] = {10*9.81, 0.0, 0.0};
+  double angAccMax = 1000.0;
   angNormal[0] = 0.0; angNormal[1] = 0.0; angNormal[2] = 1.0;
-  peakTime = 0.001;
-  maxTime = 0.005;
-  dtMax = peakTime/100;
+  peakTime = 0.020;
+  tMax = 0.040;
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
   // Get the number of processes
@@ -66,8 +64,7 @@ int main(int argc, char **argv) {
   CustomPlot();
 
   // Dynamic Explcit solution using....
-  double dt = dtMax;
-  double tMax = 0.01;   // max simulation time in seconds
+  double dt = 0.0;
 
   int time_step_counter = 0;
   int plot_counter = 0;
@@ -254,7 +251,7 @@ void ApplyAccBoundaryConditions() {
     angVel = 0.5*aAng*Time*Time;
     angDispl = aAng*Time*Time*Time/6.0;
   } else {
-    if (Time < maxTime) {
+    if (Time < tMax) {
       for (int i = 0; i < ndim; ++i) {
         linAcc[i] = (aLin[i]+bLin[i])*peakTime-bLin[i]*Time;
         linVel[i] = (aLin[i]+bLin[i])*(peakTime*Time-0.5*peakTime*peakTime)-\
@@ -271,18 +268,18 @@ void ApplyAccBoundaryConditions() {
     } else {
       for (int i = 0; i < ndim; ++i) {
         linAcc[i] = 0.0;
-        linVel[i] = (aLin[i]+bLin[i])*(peakTime*maxTime-0.5*peakTime*peakTime)-\
-                    0.5*bLin[i]*maxTime*maxTime;
+        linVel[i] = (aLin[i]+bLin[i])*(peakTime*tMax-0.5*peakTime*peakTime)-\
+                    0.5*bLin[i]*tMax*tMax;
         linDispl[i] = 0.5*(aLin[i]+bLin[i])*peakTime*(peakTime*peakTime/3.0-\
-            peakTime*maxTime+maxTime*maxTime)-bLin[i]*maxTime*maxTime*maxTime/6.0+\
-                      linVel[i]*(Time-maxTime);
+            peakTime*tMax+tMax*tMax)-bLin[i]*tMax*tMax*tMax/6.0+\
+                      linVel[i]*(Time-tMax);
       }
       angAcc = 0.0;
-      angVel = (aAng+bAng)*(peakTime*maxTime-0.5*peakTime*peakTime)-\
-                  0.5*bAng*maxTime*maxTime;
+      angVel = (aAng+bAng)*(peakTime*tMax-0.5*peakTime*peakTime)-\
+                  0.5*bAng*tMax*tMax;
       angDispl = 0.5*(aAng+bAng)*peakTime*(peakTime*peakTime/3.0-\
-          peakTime*maxTime+maxTime*maxTime)-bAng*maxTime*maxTime*maxTime/6.0+\
-                    angVel*(Time-maxTime);
+          peakTime*tMax+tMax*tMax)-bAng*tMax*tMax*tMax/6.0+\
+                    angVel*(Time-tMax);
     }
   }
   double dTheta = angDispl-thetaOld;
@@ -417,10 +414,10 @@ void InitBoundaryCondition(double *aMax, double angMax) {
   // Compute the constants required for acceleration computations
   for (int i = 0; i < ndim; ++i) {
     aLin[i] = aMax[i]/peakTime;
-    bLin[i] = aMax[i]/(maxTime-peakTime);
+    bLin[i] = aMax[i]/(tMax-peakTime);
   }
   aAng = angMax/peakTime;
-  bAng = angMax/(maxTime-peakTime);
+  bAng = angMax/(tMax-peakTime);
   for (int i = 0; i < 3; ++i) {
     linDisplOld[i] = 0.0;
   }

@@ -72,7 +72,7 @@ void StrainDisplacementMatrix(int e, int gp, int nI, double *B);
 void CompressibleNeoHookean(int e, int gp);
 void StressUpdate(int e, int gp);
 void DeterminateF(int e, int gp);
-void InverseF(int e, int gp);
+void InverseF(int e, int gp, double *fInv);
 void InternalForceUpdate(int e, int gp, double *force);
 void TrussStressForceUpdate(int e, int gp, double *force);
 void ReadMaterials();

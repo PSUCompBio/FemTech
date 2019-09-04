@@ -12,51 +12,66 @@ void LinearElastic(int e, int gp) {
 		}
 	}
 	if(ndim == 3){
-    int index = fptr[e] + ndim*ndim*gp;
-		int index2 = detFptr[e]+gp;
-    int nNodes = nShapeFunctions[e];
-    // double mu = properties[MAXMATPARAMS * e + 1];
-    // double lambda = properties[MAXMATPARAMS * e + 2];
-    int bColSize = nNodes*ndim;
-    int cSize = 6;
-    int Bsize = bColSize*cSize;
-    // Variables to store intermediate outputs
-    double *Bdn = (double*)calloc(cSize, sizeof(double));
-    double *CBdn = (double*)calloc(cSize, sizeof(double));
-    double *B = (double*)calloc(Bsize, sizeof(double));
-    double *localDisplacement = (double*)calloc(nNodes*ndim, sizeof(double));
-    for (int k = 0; k < nNodes; ++k) {
-      int dIndex = connectivity[eptr[e]+k];
-      localDisplacement[k*ndim+0] = displacements[dIndex*ndim+0];
-      localDisplacement[k*ndim+1] = displacements[dIndex*ndim+1];
-      localDisplacement[k*ndim+2] = displacements[dIndex*ndim+2];
+    int index = fptr[e] + ndim * ndim * gp;
+    int index2 = detFptr[e] + gp;
+    int pide = pid[e];
+    double mu = properties[MAXMATPARAMS * pide + 1];    
+    double lambda = properties[MAXMATPARAMS * pide + 2];
+    double J = detF[index2];
+
+    // Compute strain \epsilon = 0.5*(F+F^T)-I
+    double matSize = ndim * ndim;
+    double *eps = (double *)malloc(matSize * sizeof(double));
+    double *F_element_gp = &(F[index]);
+    const double trEps = F_element_gp[0]+F_element_gp[4]+F_element_gp[8]-3.0;
+    for (int i = 0; i < ndim; ++i) {
+      for (int j = 0; j < ndim; ++j) {
+        const int index = j + i*ndim;
+        eps[index] = 0.5*(F_element_gp[index]+F_element_gp[i+j*ndim]);
+      }
     }
-    // Calculate B matrix for each shape function
-    for (int k = 0; k < nShapeFunctions[e]; ++k) {
-      StrainDisplacementMatrix(e, gp, k, &(B[6*ndim*k]));
+    eps[0] -= 1.0;
+    eps[4] -= 1.0;
+    eps[8] -= 1.0;
+
+    // Compute sigma = \lambda tr(\eps) I + 2 \mu \eps
+    double *sigma = (double *)malloc(matSize * sizeof(double));
+    for (int i = 0; i < matSize; ++i) {
+      sigma[i] = 2.0 * mu * eps[i];
     }
-    // Compute B*d^n
-    dgemv_(chn, &cSize, &bColSize, &one, B, &cSize, localDisplacement, \
-        &oneI, &zero, Bdn, &oneI);
-    // Compute sigma^n = C*B*d^n
-    dgemv_(chn, &cSize, &cSize, &one, C, &cSize, Bdn, \
-        &oneI, &zero, CBdn, &oneI);
+    sigma[0] += lambda * trEps;
+    sigma[4] += lambda * trEps;
+    sigma[8] += lambda * trEps;
+
+    // Compute pk2 : S = det(F) F^{-1} \sigma F^{-T}
+    double *fInv = (double *)malloc(matSize * sizeof(double));
+    double *S1 = (double *)malloc(matSize * sizeof(double));
+    double *S = (double *)malloc(matSize * sizeof(double));
+    InverseF(e, gp, fInv);
+    // Compute F^{-1}*\sigma
+    dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim,
+           sigma, &ndim, &zero, S1, &ndim);
+    // Compute det(F)*F^{-1}*\sigma*F^{-T}
+    dgemm_(chn, chy, &ndim, &ndim, &ndim, &J, S1, &ndim,
+           fInv, &ndim, &zero, S, &ndim);
 		// 6 values saved per gauss point for 3d
 		// in voigt notation, sigma11
-		pk2[pk2ptr[e]+6*gp+1]=CBdn[1];
-			// in voigt notation, sigma33
-		pk2[pk2ptr[e]+6*gp+2]=CBdn[2];
-			// in voigt notation, sigma23
-		pk2[pk2ptr[e]+6*gp+3]=CBdn[3];
-			// in voigt notation, sigma13
-		pk2[pk2ptr[e]+6*gp+4]=CBdn[4];
-			// in voigt notation, sigma12
-		pk2[pk2ptr[e]+6*gp+5]=CBdn[5];
+    pk2[pk2ptr[e] + 6 * gp + 0] = S[0];
+    // in voigt notation, sigma22
+    pk2[pk2ptr[e] + 6 * gp + 1] = S[4];
+    // in voigt notation, sigma33
+    pk2[pk2ptr[e] + 6 * gp + 2] = S[8];
+    // in voigt notation, sigma23
+    pk2[pk2ptr[e] + 6 * gp + 3] = S[7];
+    // in voigt notation, sigma13
+    pk2[pk2ptr[e] + 6 * gp + 4] = S[6];
+    // in voigt notation, sigma12
+    pk2[pk2ptr[e] + 6 * gp + 5] = S[3];
 
-    free(Bdn);
-    free(CBdn);
-    free(B);
-    free(localDisplacement);
+    free(eps);
+    free(sigma);
+    free(fInv);
+    free(S);
 	}
 	return;
 }

@@ -100,5 +100,3 @@ extern double *recvNodeDisplacement;
 
 // File to write energy
 extern FILE *energyFile;
-
-extern double dtMax;
