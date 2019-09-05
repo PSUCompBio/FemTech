@@ -23,6 +23,7 @@ void LinearElastic(int e, int gp) {
     double matSize = ndim * ndim;
     double *eps = (double *)malloc(matSize * sizeof(double));
     double *F_element_gp = &(F[index]);
+    // trace(\epsilon) = trace(F)-3
     const double trEps = F_element_gp[0]+F_element_gp[4]+F_element_gp[8]-3.0;
     for (int i = 0; i < ndim; ++i) {
       for (int j = 0; j < ndim; ++j) {
@@ -71,6 +72,7 @@ void LinearElastic(int e, int gp) {
     free(eps);
     free(sigma);
     free(fInv);
+    free(S1);
     free(S);
 	}
 	return;
