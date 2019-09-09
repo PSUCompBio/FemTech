@@ -22,7 +22,7 @@ double FailureTimeStep = 1e-11;
 static const double radToDeg = 180.0/(atan(1.0)*4.0);
 
 /* Global variables used only in this file */
-const double sphereRadius = 0.08;
+const double maxSize = 0.16;
 int nodeIDtoPlot;
 bool rankForCustomPlot;
 /* Global variables for bc */
@@ -36,8 +36,9 @@ double linDisplOld[3];
 double angNormal[3];
 
 int main(int argc, char **argv) {
-  double accMax[3] = {10*9.81, 0.0, 0.0};
-  double angAccMax = 1000.0;
+  double accMax[3] = {100.0*9.81, 0.0, 0.0};
+  // double angAccMax = 1000.0;
+  double angAccMax = 0.0;
   angNormal[0] = 0.0; angNormal[1] = 0.0; angNormal[2] = 1.0;
   peakTime = 0.020;
   tMax = 0.040;
@@ -327,9 +328,9 @@ void ApplyAccBoundaryConditions() {
 }
 
 void InitCustomPlot() {
-  double xPlot = sphereRadius;
-  double yPlot = 0.00;
-  double zPlot = 0.00;
+  double xPlot = maxSize*0.5;
+  double yPlot = maxSize*0.5;
+  double zPlot = maxSize*0.5;
   double tol = 1e-5;
   FILE *datFile;
   rankForCustomPlot = false;
@@ -380,16 +381,21 @@ void InitBoundaryCondition(double *aMax, double angMax) {
   double tol = 1e-5;
   // Find the number of nodes on the outer boundary
   // For sphere : find points at specified radius
-  double sphereRad2 = sphereRadius*sphereRadius;
   int index;
   double nodeDist2;
   boundarySize = 0;
   for (int i = 0; i < nnodes; ++i) {
     index = i*ndim;
-    nodeDist2 = coordinates[index]*coordinates[index]+coordinates[index+1]*\
-                coordinates[index+1]+coordinates[index+2]*coordinates[index+2];
-    if (fabs(nodeDist2-sphereRad2) < tol) {
+    if (fabs(coordinates[index]-maxSize) < tol || fabs(coordinates[index]) < tol) {
       boundarySize = boundarySize + 1;
+    } else {
+      if (fabs(coordinates[index+1]-maxSize) < tol || fabs(coordinates[index+1]) < tol) {
+        boundarySize = boundarySize + 1;
+      } else {
+        if (fabs(coordinates[index+2]-maxSize) < tol || fabs(coordinates[index+2]) < tol) {
+          boundarySize = boundarySize + 1;
+        }       
+      }
     }
   }
   if (boundarySize) {
@@ -402,12 +408,22 @@ void InitBoundaryCondition(double *aMax, double angMax) {
   int bcIndex = 0;
   for (int i = 0; i < nnodes; ++i) {
     index = i*ndim;
-    nodeDist2 = coordinates[index]*coordinates[index]+coordinates[index+1]*\
-                coordinates[index+1]+coordinates[index+2]*coordinates[index+2];
-    if (fabs(nodeDist2-sphereRad2) < tol) {
+    if (fabs(coordinates[index]-maxSize) < tol || fabs(coordinates[index]) < tol) {
       boundaryID[bcIndex] = i;
       bcIndex = bcIndex + 1;
       boundary[i] = 1;
+    } else {
+      if (fabs(coordinates[index+1]-maxSize) < tol || fabs(coordinates[index+1]) < tol) {
+        boundaryID[bcIndex] = i;
+        bcIndex = bcIndex + 1;
+        boundary[i] = 1;
+      } else {
+        if (fabs(coordinates[index+2]-maxSize) < tol || fabs(coordinates[index+2]) < tol) {
+          boundaryID[bcIndex] = i;
+          bcIndex = bcIndex + 1;
+          boundary[i] = 1;
+        }       
+      }
     }
   }
   assert(bcIndex == boundarySize);
