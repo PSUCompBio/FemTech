@@ -9,7 +9,7 @@ void InitCustomPlot();
 void InitBoundaryCondition(double *aMax, double angMax);
 void ApplyAccBoundaryConditions();
 
-/* Global Variables/Parameters  - could be moved to parameters.h file?  */
+/* Global Variables/Parameters */
 double Time;
 int nStep;
 int nSteps;
@@ -22,7 +22,6 @@ double FailureTimeStep = 1e-11;
 static const double radToDeg = 180.0/(atan(1.0)*4.0);
 
 /* Global variables used only in this file */
-const double maxSize = 0.16;
 int nodeIDtoPlot;
 bool rankForCustomPlot;
 /* Global variables for bc */
@@ -34,6 +33,7 @@ double peakTime, tMax;
 double thetaOld = 0.0;
 double linDisplOld[3];
 double angNormal[3];
+const int rigidPartID = 1; // part ID of elements to be made rigid
 
 int main(int argc, char **argv) {
   double accMax[3] = {100.0*9.81, 0.0, 0.0};
@@ -328,9 +328,9 @@ void ApplyAccBoundaryConditions() {
 }
 
 void InitCustomPlot() {
-  double xPlot = maxSize*0.5;
-  double yPlot = maxSize*0.5;
-  double zPlot = maxSize*0.5;
+  double xPlot = 0.0;
+  double yPlot = 0.0;
+  double zPlot = 0.0;
   double tol = 1e-5;
   FILE *datFile;
   rankForCustomPlot = false;
@@ -350,6 +350,7 @@ void InitCustomPlot() {
       break;
     }
   }
+  // TODO : If multiple points have same point to plot use the lowest rank
   if (rankForCustomPlot) {
     datFile = fopen("plot.dat", "w");
     fprintf(datFile, "# Results for Node %d\n", nodeIDtoPlot);
@@ -379,54 +380,45 @@ void CustomPlot() {
 
 void InitBoundaryCondition(double *aMax, double angMax) {
   double tol = 1e-5;
-  // Find the number of nodes on the outer boundary
-  // For sphere : find points at specified radius
-  int index;
-  double nodeDist2;
-  boundarySize = 0;
-  for (int i = 0; i < nnodes; ++i) {
-    index = i*ndim;
-    if (fabs(coordinates[index]-maxSize) < tol || fabs(coordinates[index]) < tol) {
-      boundarySize = boundarySize + 1;
-    } else {
-      if (fabs(coordinates[index+1]-maxSize) < tol || fabs(coordinates[index+1]) < tol) {
-        boundarySize = boundarySize + 1;
-      } else {
-        if (fabs(coordinates[index+2]-maxSize) < tol || fabs(coordinates[index+2]) < tol) {
-          boundarySize = boundarySize + 1;
-        }       
+  // Find count of nodes with specified partID
+  int rigidNodeCount = 0;
+  for (int i = 0; i < nelements; ++i) {
+    if (pid[i] == rigidPartID) {
+      rigidNodeCount = rigidNodeCount + (eptr[i+1]-eptr[i]);
+    }
+  }
+  // Allocate node storage
+  int *rigidNodeID = (int*)malloc(rigidNodeCount*sizeof(int));
+  if (rigidNodeID == NULL) {
+    printf("ERROR(%d) : Unable to alocate rigidNodeID\n", world_rank);
+    exit(0);
+  }
+  // Store all nodes to be made rigid
+  int nodePtr = 0;
+  for (int i = 0; i < nelements; ++i) {
+    if (pid[i] == rigidPartID) {
+      for (int j = eptr[i]; j < eptr[i+1]; ++j) {
+        rigidNodeID[nodePtr] = connectivity[j];
+        nodePtr = nodePtr + 1;
       }
     }
   }
-  if (boundarySize) {
-    boundaryID = (int*)malloc(boundarySize*sizeof(int));
-    if (boundaryID == NULL) {
-      printf("ERROR(%d) : Unable to alocate boundaryID\n", world_rank);
-      exit(0);
-    }
+  assert(nodePtr == rigidNodeCount);
+  // Sort and make unique
+  qsort(rigidNodeID, rigidNodeCount, sizeof(int), compare);
+  boundarySize = unique(rigidNodeID, rigidNodeCount);
+  printf("INFO(%d): %d nodes given rigid motion\n", world_rank, boundarySize);
+  boundaryID = (int*)malloc(boundarySize*sizeof(int));
+  if (boundaryID == NULL) {
+    printf("ERROR(%d) : Unable to alocate boundaryID\n", world_rank);
+    exit(0);
   }
-  int bcIndex = 0;
-  for (int i = 0; i < nnodes; ++i) {
-    index = i*ndim;
-    if (fabs(coordinates[index]-maxSize) < tol || fabs(coordinates[index]) < tol) {
-      boundaryID[bcIndex] = i;
-      bcIndex = bcIndex + 1;
-      boundary[i] = 1;
-    } else {
-      if (fabs(coordinates[index+1]-maxSize) < tol || fabs(coordinates[index+1]) < tol) {
-        boundaryID[bcIndex] = i;
-        bcIndex = bcIndex + 1;
-        boundary[i] = 1;
-      } else {
-        if (fabs(coordinates[index+2]-maxSize) < tol || fabs(coordinates[index+2]) < tol) {
-          boundaryID[bcIndex] = i;
-          bcIndex = bcIndex + 1;
-          boundary[i] = 1;
-        }       
-      }
-    }
+  for (int i = 0; i < boundarySize; ++i) {
+    int node = rigidNodeID[i];
+    boundaryID[i] = node;
+    boundary[node] = 1;
   }
-  assert(bcIndex == boundarySize);
+  free(rigidNodeID);
   // Compute the constants required for acceleration computations
   for (int i = 0; i < ndim; ++i) {
     aLin[i] = aMax[i]/peakTime;
@@ -445,6 +437,5 @@ void InitBoundaryCondition(double *aMax, double angMax) {
     fprintf(datFile, "# Time     AccX    AccY    AccZ    VelX    VelY    VelZ    LinDispX  LinDisp Y  LinDisp Z  AngAcc   AngVel   Angle \n");
     fclose(datFile);
   }
-
   return;
 }

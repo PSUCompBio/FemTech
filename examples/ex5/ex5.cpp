@@ -9,7 +9,7 @@ void InitCustomPlot();
 void InitBoundaryCondition(double *aMax, double angMax);
 void ApplyAccBoundaryConditions();
 
-/* Global Variables/Parameters  - could be moved to parameters.h file?  */
+/* Global Variables/Parameters */
 double Time;
 int nStep;
 int nSteps;
@@ -22,7 +22,6 @@ double FailureTimeStep = 1e-11;
 static const double radToDeg = 180.0/(atan(1.0)*4.0);
 
 /* Global variables used only in this file */
-const double sphereRadius = 0.08;
 int nodeIDtoPlot;
 bool rankForCustomPlot;
 /* Global variables for bc */
@@ -34,10 +33,12 @@ double peakTime, tMax;
 double thetaOld = 0.0;
 double linDisplOld[3];
 double angNormal[3];
+const int rigidPartID = 1; // part ID of elements to be made rigid
 
 int main(int argc, char **argv) {
-  double accMax[3] = {10*9.81, 0.0, 0.0};
-  double angAccMax = 1000.0;
+  double accMax[3] = {10.0*9.81, 0.0, 0.0};
+  // double angAccMax = 1000.0;
+  double angAccMax = 0.0;
   angNormal[0] = 0.0; angNormal[1] = 0.0; angNormal[2] = 1.0;
   peakTime = 0.020;
   tMax = 0.040;
@@ -327,9 +328,9 @@ void ApplyAccBoundaryConditions() {
 }
 
 void InitCustomPlot() {
-  double xPlot = sphereRadius;
-  double yPlot = 0.00;
-  double zPlot = 0.00;
+  double xPlot = 0.0;
+  double yPlot = 0.0;
+  double zPlot = 0.0;
   double tol = 1e-5;
   FILE *datFile;
   rankForCustomPlot = false;
@@ -349,6 +350,7 @@ void InitCustomPlot() {
       break;
     }
   }
+  // TODO : If multiple points have same point to plot use the lowest rank
   if (rankForCustomPlot) {
     datFile = fopen("plot.dat", "w");
     fprintf(datFile, "# Results for Node %d\n", nodeIDtoPlot);
@@ -378,39 +380,45 @@ void CustomPlot() {
 
 void InitBoundaryCondition(double *aMax, double angMax) {
   double tol = 1e-5;
-  // Find the number of nodes on the outer boundary
-  // For sphere : find points at specified radius
-  double sphereRad2 = sphereRadius*sphereRadius;
-  int index;
-  double nodeDist2;
-  boundarySize = 0;
-  for (int i = 0; i < nnodes; ++i) {
-    index = i*ndim;
-    nodeDist2 = coordinates[index]*coordinates[index]+coordinates[index+1]*\
-                coordinates[index+1]+coordinates[index+2]*coordinates[index+2];
-    if (fabs(nodeDist2-sphereRad2) < tol) {
-      boundarySize = boundarySize + 1;
+  // Find count of nodes with specified partID
+  int rigidNodeCount = 0;
+  for (int i = 0; i < nelements; ++i) {
+    if (pid[i] == rigidPartID) {
+      rigidNodeCount = rigidNodeCount + (eptr[i+1]-eptr[i]);
     }
   }
-  if (boundarySize) {
-    boundaryID = (int*)malloc(boundarySize*sizeof(int));
-    if (boundaryID == NULL) {
-      printf("ERROR(%d) : Unable to alocate boundaryID\n", world_rank);
-      exit(0);
+  // Allocate node storage
+  int *rigidNodeID = (int*)malloc(rigidNodeCount*sizeof(int));
+  if (rigidNodeID == NULL) {
+    printf("ERROR(%d) : Unable to alocate rigidNodeID\n", world_rank);
+    exit(0);
+  }
+  // Store all nodes to be made rigid
+  int nodePtr = 0;
+  for (int i = 0; i < nelements; ++i) {
+    if (pid[i] == rigidPartID) {
+      for (int j = eptr[i]; j < eptr[i+1]; ++j) {
+        rigidNodeID[nodePtr] = connectivity[j];
+        nodePtr = nodePtr + 1;
+      }
     }
   }
-  int bcIndex = 0;
-  for (int i = 0; i < nnodes; ++i) {
-    index = i*ndim;
-    nodeDist2 = coordinates[index]*coordinates[index]+coordinates[index+1]*\
-                coordinates[index+1]+coordinates[index+2]*coordinates[index+2];
-    if (fabs(nodeDist2-sphereRad2) < tol) {
-      boundaryID[bcIndex] = i;
-      bcIndex = bcIndex + 1;
-      boundary[i] = 1;
-    }
+  assert(nodePtr == rigidNodeCount);
+  // Sort and make unique
+  qsort(rigidNodeID, rigidNodeCount, sizeof(int), compare);
+  boundarySize = unique(rigidNodeID, rigidNodeCount);
+  printf("INFO(%d): %d nodes given rigid motion\n", world_rank, boundarySize);
+  boundaryID = (int*)malloc(boundarySize*sizeof(int));
+  if (boundaryID == NULL) {
+    printf("ERROR(%d) : Unable to alocate boundaryID\n", world_rank);
+    exit(0);
   }
-  assert(bcIndex == boundarySize);
+  for (int i = 0; i < boundarySize; ++i) {
+    int node = rigidNodeID[i];
+    boundaryID[i] = node;
+    boundary[node] = 1;
+  }
+  free(rigidNodeID);
   // Compute the constants required for acceleration computations
   for (int i = 0; i < ndim; ++i) {
     aLin[i] = aMax[i]/peakTime;

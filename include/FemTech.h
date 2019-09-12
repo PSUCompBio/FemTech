@@ -11,7 +11,7 @@
 #include <iomanip>
 #include <cstring>
 #include <cstdlib>
-#include <math.h>
+// #include <math.h>
 #include <limits.h>
 
 //#include <thread>
