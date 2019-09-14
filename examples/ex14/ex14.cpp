@@ -36,9 +36,9 @@ double angNormal[3];
 const int rigidPartID = 1; // part ID of elements to be made rigid
 
 int main(int argc, char **argv) {
-  double accMax[3] = {100.0*9.81, 0.0, 0.0};
-  // double angAccMax = 1000.0;
-  double angAccMax = 0.0;
+  double accMax[3] = {32.0*9.81, 0.0, 0.0};
+  double angAccMax = 3043.0;
+  // double angAccMax = 0.0;
   angNormal[0] = 0.0; angNormal[1] = 0.0; angNormal[2] = 1.0;
   peakTime = 0.020;
   tMax = 0.040;

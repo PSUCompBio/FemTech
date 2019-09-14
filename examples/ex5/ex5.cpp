@@ -33,10 +33,10 @@ double peakTime, tMax;
 double thetaOld = 0.0;
 double linDisplOld[3];
 double angNormal[3];
-const int rigidPartID = 1; // part ID of elements to be made rigid
+const int rigidPartID = 0; // part ID of elements to be made rigid
 
 int main(int argc, char **argv) {
-  double accMax[3] = {10.0*9.81, 0.0, 0.0};
+  double accMax[3] = {32.0*9.81, 0.0, 0.0};
   // double angAccMax = 1000.0;
   double angAccMax = 0.0;
   angNormal[0] = 0.0; angNormal[1] = 0.0; angNormal[2] = 1.0;
