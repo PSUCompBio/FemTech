@@ -33,12 +33,12 @@ double peakTime, tMax;
 double thetaOld = 0.0;
 double linDisplOld[3];
 double angNormal[3];
-const int rigidPartID = 1; // part ID of elements to be made rigid
+const int rigidPartID = 0; // part ID of elements to be made rigid
 
 int main(int argc, char **argv) {
-  double accMax[3] = {32.0*9.81, 0.0, 0.0};
-  double angAccMax = 3043.0;
-  // double angAccMax = 0.0;
+  double accMax[3] = {5.0*9.81, 0.0, 0.0};
+  // double angAccMax = 3043.0;
+  double angAccMax = 0.0;
   angNormal[0] = 0.0; angNormal[1] = 0.0; angNormal[2] = 1.0;
   peakTime = 0.020;
   tMax = 0.040;
@@ -328,9 +328,7 @@ void ApplyAccBoundaryConditions() {
 }
 
 void InitCustomPlot() {
-  double xPlot = 0.0;
-  double yPlot = 0.0;
-  double zPlot = 0.0;
+  int idToPlot = 366;
   double tol = 1e-5;
   FILE *datFile;
   rankForCustomPlot = false;
@@ -338,18 +336,22 @@ void InitCustomPlot() {
   const int x = 0;
   const int y = 1;
   const int z = 2;
-
-  for (int i = 0; i < nnodes; ++i) {
-    index = i*ndim;
-    if (fabs(coordinates[index + x] - xPlot) < tol &&
-        fabs(coordinates[index + y] - yPlot) < tol &&
-        fabs(coordinates[index + z] - zPlot) < tol) {
-      nodeIDtoPlot = i;
-      rankForCustomPlot = true;
-      printf("INFO(%d) : nodeID for plot : %d\n", world_rank, nodeIDtoPlot);
-      break;
+  for (int i = 0; i < nelements && (!rankForCustomPlot); ++i) {
+    if (pid[i] == rigidPartID) {
+      continue;
+    }
+    for (int j = eptr[i]; j < eptr[i+1]; ++j) {
+      index = connectivity[j];
+      if (index == idToPlot) {
+        nodeIDtoPlot = idToPlot;
+        rankForCustomPlot = true;
+        break;
+      }
     }
   }
+  printf("INFO(%d) : nodeID for plot : %d\n", world_rank, nodeIDtoPlot);
+  printf("Node co-ordinates : %15.9e %15.9e %15.9e\n", coordinates[nodeIDtoPlot*ndim],
+      coordinates[nodeIDtoPlot*ndim+1], coordinates[nodeIDtoPlot*ndim+2]);
   // TODO : If multiple points have same point to plot use the lowest rank
   if (rankForCustomPlot) {
     datFile = fopen("plot.dat", "w");
@@ -369,7 +371,7 @@ void CustomPlot() {
 
     FILE *datFile;
     datFile = fopen("plot.dat", "a");
-    fprintf(datFile, "%11.3e %11.3e  %11.3e  %11.3e\n", Time,
+    fprintf(datFile, "%15.9e %15.9e  %15.9e  %15.9e\n", Time,
             displacements[index + x], displacements[index + y],
             displacements[index + z]);
 
@@ -417,6 +419,7 @@ void InitBoundaryCondition(double *aMax, double angMax) {
     int node = rigidNodeID[i];
     boundaryID[i] = node;
     boundary[node] = 1;
+    printf("%d : %15.9e\n", node, sqrt(pow(coordinates[node*ndim],2)+pow(coordinates[node*ndim+1],2)+pow(coordinates[node*ndim+2],2)));
   }
   free(rigidNodeID);
   // Compute the constants required for acceleration computations
