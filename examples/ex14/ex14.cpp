@@ -36,9 +36,10 @@ double angNormal[3];
 const int rigidPartID = 0; // part ID of elements to be made rigid
 
 int main(int argc, char **argv) {
-  double accMax[3] = {5.0*9.81, 0.0, 0.0};
-  // double angAccMax = 3043.0;
-  double angAccMax = 0.0;
+  // double accMax[3] = {5.0*9.81, 0.0, 0.0};
+  // double angAccMax = 0.0;
+  double accMax[3] = {0.0*9.81, 0.0, 0.0};
+  double angAccMax = 1500.0;
   angNormal[0] = 0.0; angNormal[1] = 0.0; angNormal[2] = 1.0;
   peakTime = 0.020;
   tMax = 0.040;
@@ -286,11 +287,13 @@ void ApplyAccBoundaryConditions() {
   double dTheta = angDispl-thetaOld;
   thetaOld = angDispl;
   GetBodyCenterofMass(cm);
+  // cm[0] = 0.0; cm[1] = 0.0; cm[2] = 0.0;
+  // printf("CM %15.9e, %15.9e, %15.9e\n", cm[0], cm[1], cm[2]);
+  // printf("Disp %15.9e, %15.9e, %15.9e\n", displacements[6+0], displacements[6+1], displacements[6+2]);
   get3dRotationMatrix(angNormal, dTheta, rotMat);
   for (int j = 0; j < ndim; ++j) {
     omega[j] = angVel*angNormal[j];
     alpha[j] = angAcc*angNormal[j];
-    rotation[j] = 0.0;
   }
 
   // printf("Displacements of rigid nodes : %12.8f\n", Time);
@@ -298,6 +301,9 @@ void ApplyAccBoundaryConditions() {
     int index = boundaryID[i]*ndim;
     for (int j = 0; j < ndim; ++j) {
       position[j] = coordinates[index+j]+displacements[index+j]-cm[j];
+    }
+    for (int j = 0; j < ndim; ++j) {
+      rotation[j] = 0.0;
     }
     for (int j = 0; j < ndim; ++j) {
       for (int k = 0; k < ndim; ++k) {
@@ -355,8 +361,8 @@ void InitCustomPlot() {
     }
   }
   printf("INFO(%d) : nodeID for plot : %d\n", world_rank, nodeIDtoPlot);
-  printf("Node co-ordinates : %15.9e %15.9e %15.9e\n", coordinates[nodeIDtoPlot*ndim],
-      coordinates[nodeIDtoPlot*ndim+1], coordinates[nodeIDtoPlot*ndim+2]);
+  // printf("Node co-ordinates : %15.9e %15.9e %15.9e\n", coordinates[nodeIDtoPlot*ndim],
+      // coordinates[nodeIDtoPlot*ndim+1], coordinates[nodeIDtoPlot*ndim+2]);
   // TODO : If multiple points have same point to plot use the lowest rank
   if (rankForCustomPlot) {
     datFile = fopen("plot.dat", "w");
@@ -427,7 +433,6 @@ void InitBoundaryCondition(double *aMax, double angMax) {
     boundary[index] = 1;
     boundary[index+1] = 1;
     boundary[index+2] = 1;
-    printf("%d : %15.9e\n", node, sqrt(pow(coordinates[node*ndim],2)+pow(coordinates[node*ndim+1],2)+pow(coordinates[node*ndim+2],2)));
   }
   free(rigidNodeID);
   // Compute the constants required for acceleration computations
