@@ -293,6 +293,7 @@ void ApplyAccBoundaryConditions() {
     rotation[j] = 0.0;
   }
 
+  // printf("Displacements of rigid nodes : %12.8f\n", Time);
   for (int i = 0; i < boundarySize; i++) {
     int index = boundaryID[i]*ndim;
     for (int j = 0; j < ndim; ++j) {
@@ -308,12 +309,16 @@ void ApplyAccBoundaryConditions() {
     crossProduct(omega, linVel, accCorioli);
     crossProduct(omega, velRotation, centrifugal);
     crossProduct(alpha, position, accRotation);
+    // printf("Node %d : ", boundaryID[i]);
     for (int j = 0; j < ndim; ++j) {
       displacements[index+j] += (linDispl[j]-linDisplOld[j])+rotation[j];
+      // printf("%15.9e %15.9e %15.9e ", linDispl[j], linDisplOld[j], rotation[j]);
+      // printf("%15.9e %15.9e ", linDispl[j]- linDisplOld[j]+rotation[j], displacements[index+j]);
       velocities[index+j] = linVel[j]+velRotation[j];
       // For energy computations
       accelerations[index+j] = linAcc[j]+2.0*accCorioli[j]+accRotation[j]+centrifugal[j];
     }
+    // printf("\n");
   }
   if (world_rank == 0) {
     FILE *datFile;
@@ -417,8 +422,11 @@ void InitBoundaryCondition(double *aMax, double angMax) {
   }
   for (int i = 0; i < boundarySize; ++i) {
     int node = rigidNodeID[i];
+    int index = node*ndim;
     boundaryID[i] = node;
-    boundary[node] = 1;
+    boundary[index] = 1;
+    boundary[index+1] = 1;
+    boundary[index+2] = 1;
     printf("%d : %15.9e\n", node, sqrt(pow(coordinates[node*ndim],2)+pow(coordinates[node*ndim+1],2)+pow(coordinates[node*ndim+2],2)));
   }
   free(rigidNodeID);
