@@ -37,8 +37,7 @@ const int rigidPartID = 0; // part ID of elements to be made rigid
 
 int main(int argc, char **argv) {
   double accMax[3] = {32.0*9.81, 0.0, 0.0};
-  // double angAccMax = 1000.0;
-  double angAccMax = 0.0;
+  double angAccMax = 3042.0;
   angNormal[0] = 0.0; angNormal[1] = 0.0; angNormal[2] = 1.0;
   peakTime = 0.020;
   tMax = 0.040;
@@ -290,13 +289,15 @@ void ApplyAccBoundaryConditions() {
   for (int j = 0; j < ndim; ++j) {
     omega[j] = angVel*angNormal[j];
     alpha[j] = angAcc*angNormal[j];
-    rotation[j] = 0.0;
   }
 
   for (int i = 0; i < boundarySize; i++) {
     int index = boundaryID[i]*ndim;
     for (int j = 0; j < ndim; ++j) {
       position[j] = coordinates[index+j]+displacements[index+j]-cm[j];
+    }
+    for (int j = 0; j < ndim; ++j) {
+      rotation[j] = 0.0;
     }
     for (int j = 0; j < ndim; ++j) {
       for (int k = 0; k < ndim; ++k) {
@@ -329,8 +330,8 @@ void ApplyAccBoundaryConditions() {
 
 void InitCustomPlot() {
   double xPlot = 0.0;
-  double yPlot = 0.0;
-  double zPlot = 0.0;
+  double yPlot = -0.366716;
+  double zPlot = -0.018784;
   double tol = 1e-5;
   FILE *datFile;
   rankForCustomPlot = false;
@@ -415,8 +416,11 @@ void InitBoundaryCondition(double *aMax, double angMax) {
   }
   for (int i = 0; i < boundarySize; ++i) {
     int node = rigidNodeID[i];
+    int index = node*ndim;
     boundaryID[i] = node;
-    boundary[node] = 1;
+    boundary[index] = 1;
+    boundary[index+1] = 1;
+    boundary[index+2] = 1;
   }
   free(rigidNodeID);
   // Compute the constants required for acceleration computations

@@ -36,10 +36,8 @@ double angNormal[3];
 const int rigidPartID = 0; // part ID of elements to be made rigid
 
 int main(int argc, char **argv) {
-  // double accMax[3] = {5.0*9.81, 0.0, 0.0};
-  // double angAccMax = 0.0;
-  double accMax[3] = {0.0*9.81, 0.0, 0.0};
-  double angAccMax = 1500.0;
+  double accMax[3] = {5.0*9.81, 0.0, 0.0};
+  double angAccMax = 1000.0;
   angNormal[0] = 0.0; angNormal[1] = 0.0; angNormal[2] = 1.0;
   peakTime = 0.020;
   tMax = 0.040;
@@ -287,16 +285,12 @@ void ApplyAccBoundaryConditions() {
   double dTheta = angDispl-thetaOld;
   thetaOld = angDispl;
   GetBodyCenterofMass(cm);
-  // cm[0] = 0.0; cm[1] = 0.0; cm[2] = 0.0;
-  // printf("CM %15.9e, %15.9e, %15.9e\n", cm[0], cm[1], cm[2]);
-  // printf("Disp %15.9e, %15.9e, %15.9e\n", displacements[6+0], displacements[6+1], displacements[6+2]);
   get3dRotationMatrix(angNormal, dTheta, rotMat);
   for (int j = 0; j < ndim; ++j) {
     omega[j] = angVel*angNormal[j];
     alpha[j] = angAcc*angNormal[j];
   }
 
-  // printf("Displacements of rigid nodes : %12.8f\n", Time);
   for (int i = 0; i < boundarySize; i++) {
     int index = boundaryID[i]*ndim;
     for (int j = 0; j < ndim; ++j) {
@@ -315,16 +309,12 @@ void ApplyAccBoundaryConditions() {
     crossProduct(omega, linVel, accCorioli);
     crossProduct(omega, velRotation, centrifugal);
     crossProduct(alpha, position, accRotation);
-    // printf("Node %d : ", boundaryID[i]);
     for (int j = 0; j < ndim; ++j) {
       displacements[index+j] += (linDispl[j]-linDisplOld[j])+rotation[j];
-      // printf("%15.9e %15.9e %15.9e ", linDispl[j], linDisplOld[j], rotation[j]);
-      // printf("%15.9e %15.9e ", linDispl[j]- linDisplOld[j]+rotation[j], displacements[index+j]);
       velocities[index+j] = linVel[j]+velRotation[j];
       // For energy computations
       accelerations[index+j] = linAcc[j]+2.0*accCorioli[j]+accRotation[j]+centrifugal[j];
     }
-    // printf("\n");
   }
   if (world_rank == 0) {
     FILE *datFile;
@@ -361,8 +351,6 @@ void InitCustomPlot() {
     }
   }
   printf("INFO(%d) : nodeID for plot : %d\n", world_rank, nodeIDtoPlot);
-  // printf("Node co-ordinates : %15.9e %15.9e %15.9e\n", coordinates[nodeIDtoPlot*ndim],
-      // coordinates[nodeIDtoPlot*ndim+1], coordinates[nodeIDtoPlot*ndim+2]);
   // TODO : If multiple points have same point to plot use the lowest rank
   if (rankForCustomPlot) {
     datFile = fopen("plot.dat", "w");

@@ -13,7 +13,8 @@ double StableTimeStep() {
 	for(int i=0;i<nelements;i++){
     isNotRigid = false;
     for (int j = eptr[i]; j < eptr[i+1]; ++j) {
-      if (!boundary[connectivity[j]]) {
+      int index = connectivity[j]*ndim;
+      if (!(boundary[index]&boundary[index+1]&boundary[index+2])) {
         isNotRigid = true;
         break;
       }
