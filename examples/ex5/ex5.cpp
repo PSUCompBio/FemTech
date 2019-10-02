@@ -107,6 +107,8 @@ int main(int argc, char **argv) {
   }
 
   /* Step-4: Time loop starts....*/
+  double max = -1;
+  int maxI = 0;
   while (Time < tMax) {
     double t_n = Time;
     double t_np1 = Time + dt;
@@ -175,7 +177,11 @@ int main(int argc, char **argv) {
               Favg[i * ndim * ndim + k] / GaussPoints[i];
         } // dividing by number of gauss points to get average deformation
           // gradient
-        CalculateStrain(i);
+        double current = CalculateStrain(i);
+        if (max < current) {
+          max = current;
+          maxI = i;
+        }
       } // calculating avergae strain for every element
       printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter,
              world_rank);
@@ -203,6 +209,16 @@ int main(int argc, char **argv) {
     // Write out the last time step
     CustomPlot();
   } // end explcit while loop
+
+  // Write the maximum strain to file
+  FILE *maxStrainFile;
+  maxStrainFile = fopen("maxstrain.dat", "w+");
+  fprintf(maxStrainFile, "%8.4f %8.4f %8.4f",
+				coordinates[ndim*connectivity[maxI] + 0],
+				coordinates[ndim*connectivity[maxI] + 1],
+				coordinates[ndim*connectivity[maxI] + 2]);
+  fclose(maxStrainFile);
+  
 #ifdef DEBUG
   if (debug) {
     printf("DEBUG : Printing Displacement Solution\n");
