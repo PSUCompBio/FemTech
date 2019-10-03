@@ -11,7 +11,6 @@ void CustomPlot();
 void InitCustomPlot();
 void InitBoundaryCondition(double *aMax, double angMax);
 void ApplyAccBoundaryConditions();
-Json::Value getConfig(const char* inputFile);
 
 /* Global Variables/Parameters */
 double Time;
@@ -462,23 +461,4 @@ void InitBoundaryCondition(double *aMax, double angMax) {
     fclose(datFile);
   }
   return;
-}
-
-// TODO : Move to io folder
-Json::Value getConfig(const char* inputFile) {
-  Json::Value root;
-  std::ifstream ifs;
-  ifs.open(inputFile);
-  if (!ifs.is_open()) {
-    printf("ERROR: Failed to open configuration file\n");
-    exit(1);
-  }
-
-  Json::CharReaderBuilder builder;
-  JSONCPP_STRING errs;
-  if (!parseFromStream(builder, ifs, &root, &errs)) {
-    printf("ERROR : %s\n", errs.c_str());
-    exit(1);
-  }
-  return root["simulation"];
 }

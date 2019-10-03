@@ -2,26 +2,14 @@
 #define FEMTECH_H
 
 #include <stdio.h>
-#include <cmath>
-#include <vector>
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <string>
-#include <iomanip>
-#include <cstring>
-#include <cstdlib>
-// #include <math.h>
+#include <math.h>
 #include <limits.h>
-
-//#include <thread>
-//#include <mutex>
-//#include <cmath>
 
 #include "GlobalVariables.h"
 
 #include "mpi.h"
 #include "parmetis.h"
+#include "json/json.h"
 
 //-------------------------------------------------------------------------------------------
 #define MAX_FILE_LINE 260
@@ -111,4 +99,7 @@ double volumeTetrahedron(double *coordinates);
 
 int compare(const void *a, const void *b);
 int unique(int *arr, int n);
+
+/* JSON input */
+Json::Value getConfig(const char* inputFile);
 #endif

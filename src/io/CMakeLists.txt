@@ -7,6 +7,7 @@ Set(io_src
     input/ReadLsDyna.cpp
     input/ReadAbaqus.cpp
 		input/ReadMaterials.cpp
+    input/ReadJSON.cpp
     )
 
 add_library(io OBJECT ${io_src})
