@@ -237,7 +237,7 @@ int main(int argc, char **argv) {
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {
-    WritePVD(argv[1], nStep, Time);
+    WritePVD(meshFile.c_str(), nStep, Time);
   }
   FreeArrays();
   // Free local boundary related arrays
@@ -378,7 +378,7 @@ void InitCustomPlot() {
   int state = 0;
   int cumState = 0;
 
-  for (int i = 0; i < nnodes && (!rankForCustomPlot); ++i) {
+  for (int i = 0; i < nnodes; ++i) {
     if (fabs(coordinates[ndim * i + x] - xPlot) < tol &&
         fabs(coordinates[ndim * i + y] - yPlot) < tol &&
         fabs(coordinates[ndim * i + z] - zPlot) < tol) {

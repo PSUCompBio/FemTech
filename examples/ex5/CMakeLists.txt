@@ -1,10 +1,11 @@
 SET(ex5_src ex5.cpp)
 
 ADD_EXECUTABLE(ex5 ${ex5_src})
+ADD_DEPENDENCIES(ex5 JsonCpp)
 
 if(ENABLE_MPI)
   LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/third-party/parmetis-4.0.3/libparmetis)
-  TARGET_LINK_LIBRARIES(ex5 FemTech parmetis  ${lapackblas_libraries})
+  TARGET_LINK_LIBRARIES(ex5 FemTech parmetis  ${lapackblas_libraries} jsoncpp)
 else()
   LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
   TARGET_LINK_LIBRARIES(ex5 FemTech)
@@ -12,6 +13,7 @@ endif(ENABLE_MPI)
 
 file(COPY brain.inp DESTINATION .)
 file(COPY materials.dat DESTINATION .)
+file(COPY input.json DESTINATION .)
 file(INSTALL gnuplot.script DESTINATION .)
 file(INSTALL gnuplotEnergy.script DESTINATION .)
 file(INSTALL README.md DESTINATION .)
