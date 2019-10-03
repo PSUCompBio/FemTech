@@ -15,6 +15,7 @@ file(COPY sphereinsphere.inp DESTINATION .)
 file(COPY sphere-in-sphere-hex.inp DESTINATION .)
 file(COPY spherefromansys.inp DESTINATION .)
 file(COPY materials.dat DESTINATION .)
+file(COPY input.json DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
 
