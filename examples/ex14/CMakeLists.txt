@@ -1,16 +1,18 @@
 SET(ex14_src ex14.cpp)
 
 ADD_EXECUTABLE(ex14 ${ex14_src})
+ADD_DEPENDENCIES(ex14 JsonCpp)
 
 if(ENABLE_MPI)
   LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/third-party/parmetis-4.0.3/libparmetis)
-  TARGET_LINK_LIBRARIES(ex14 FemTech parmetis ${lapackblas_libraries})
+  TARGET_LINK_LIBRARIES(ex14 FemTech parmetis ${lapackblas_libraries} jsoncpp)
 else()
   LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
   TARGET_LINK_LIBRARIES(ex14 FemTech)
 endif(ENABLE_MPI)
 
 file(COPY sphereinsphere.inp DESTINATION .)
+file(COPY sphere-in-sphere-hex.inp DESTINATION .)
 file(COPY spherefromansys.inp DESTINATION .)
 file(COPY materials.dat DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)

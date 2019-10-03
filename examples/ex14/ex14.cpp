@@ -1,5 +1,8 @@
 #include "FemTech.h"
 #include "blas.h"
+#include "gitbranch.h"
+
+#include "json/json.h"
 
 #include <assert.h>
 
@@ -8,6 +11,7 @@ void CustomPlot();
 void InitCustomPlot();
 void InitBoundaryCondition(double *aMax, double angMax);
 void ApplyAccBoundaryConditions();
+Json::Value getConfig(const char* inputFile);
 
 /* Global Variables/Parameters */
 double Time;
@@ -36,11 +40,6 @@ double angNormal[3];
 const int rigidPartID = 2; // part ID of elements to be made rigid
 
 int main(int argc, char **argv) {
-  double accMax[3] = {0.0*9.81, 0.0, 0.0};
-  double angAccMax = 8000.0;
-  angNormal[0] = 0.0; angNormal[1] = 0.0; angNormal[2] = 1.0;
-  peakTime = 0.020;
-  tMax = 0.040;
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
   // Get the number of processes
@@ -48,7 +47,25 @@ int main(int argc, char **argv) {
   // Get the rank of the process
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-  if (ReadInputFile(argv[1])) {
+  Json::Value simulationJson = getConfig(argv[1]);
+  std::string meshFile = simulationJson["mesh"] .asString();
+  double accMax[3];
+  accMax[0] = simulationJson["linear-acceleration"][0].asDouble();
+  accMax[1] = simulationJson["linear-acceleration"][1].asDouble();
+  accMax[2] = simulationJson["linear-acceleration"][2].asDouble();
+
+  double angAccMax = simulationJson["angular-acceleration"].asDouble();
+  angNormal[0] = 0.0; angNormal[1] = 0.0; angNormal[2] = 1.0;
+  peakTime = 0.020;
+  tMax = 0.040;
+  if (world_rank == 0) {
+    printf("INFO : Git commit : %s of branch %s\n", GIT_COMMIT_HASH, GIT_BRANCH);
+    printf("INFO : Linear Acceleration : (%7.3e, %7.3e, %7.3e)\n", accMax[0], accMax[1], accMax[2]);
+    printf("INFO : Angular Acceleration : %7.3e\n", angAccMax);
+    printf("INFO : Reading Mesh File : %s\n", meshFile.c_str());
+  }
+
+  if (ReadInputFile(meshFile.c_str())) {
     PartitionMesh();
   }
 
@@ -445,4 +462,23 @@ void InitBoundaryCondition(double *aMax, double angMax) {
     fclose(datFile);
   }
   return;
+}
+
+// TODO : Move to io folder
+Json::Value getConfig(const char* inputFile) {
+  Json::Value root;
+  std::ifstream ifs;
+  ifs.open(inputFile);
+  if (!ifs.is_open()) {
+    printf("ERROR: Failed to open configuration file\n");
+    exit(1);
+  }
+
+  Json::CharReaderBuilder builder;
+  JSONCPP_STRING errs;
+  if (!parseFromStream(builder, ifs, &root, &errs)) {
+    printf("ERROR : %s\n", errs.c_str());
+    exit(1);
+  }
+  return root["simulation"];
 }
