@@ -36,8 +36,8 @@ double angNormal[3];
 const int rigidPartID = 0; // part ID of elements to be made rigid
 
 int main(int argc, char **argv) {
-  double accMax[3] = {32.0*9.81, 0.0, 0.0};
-  double angAccMax = 3042.0;
+  double accMax[3] = {80.0*9.81, 0.0, 0.0};
+  double angAccMax = 8000.0;
   angNormal[0] = 0.0; angNormal[1] = 0.0; angNormal[2] = 1.0;
   peakTime = 0.020;
   tMax = 0.040;
@@ -351,6 +351,11 @@ void InitCustomPlot() {
       break;
     }
   }
+  nodeIDtoPlot = 1820;
+  if(world_rank == 0)
+    rankForCustomPlot = true;
+  else
+    rankForCustomPlot = false;
   // TODO : If multiple points have same point to plot use the lowest rank
   if (rankForCustomPlot) {
     datFile = fopen("plot.dat", "w");
@@ -370,9 +375,11 @@ void CustomPlot() {
 
     FILE *datFile;
     datFile = fopen("plot.dat", "a");
-    fprintf(datFile, "%11.3e %11.3e  %11.3e  %11.3e\n", Time,
+    fprintf(datFile, "%11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e\n", Time,
             displacements[index + x], displacements[index + y],
-            displacements[index + z]);
+            displacements[index + z],
+            accelerations[index + x], accelerations[index + y],
+            accelerations[index + z]);
 
     fclose(datFile);
   }

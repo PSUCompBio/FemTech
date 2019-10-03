@@ -33,11 +33,11 @@ double peakTime, tMax;
 double thetaOld = 0.0;
 double linDisplOld[3];
 double angNormal[3];
-const int rigidPartID = 0; // part ID of elements to be made rigid
+const int rigidPartID = 2; // part ID of elements to be made rigid
 
 int main(int argc, char **argv) {
-  double accMax[3] = {5.0*9.81, 0.0, 0.0};
-  double angAccMax = 1000.0;
+  double accMax[3] = {0.0*9.81, 0.0, 0.0};
+  double angAccMax = 8000.0;
   angNormal[0] = 0.0; angNormal[1] = 0.0; angNormal[2] = 1.0;
   peakTime = 0.020;
   tMax = 0.040;
@@ -329,28 +329,31 @@ void ApplyAccBoundaryConditions() {
 }
 
 void InitCustomPlot() {
-  int idToPlot = 366;
+  double xPlot = 2.087348700e-02;
+  double yPlot = 2.087348700e-02;
+  double zPlot = 2.175215120e-02;
   double tol = 1e-5;
+
+  int idToPlot;
   FILE *datFile;
   rankForCustomPlot = false;
   int index;
   const int x = 0;
   const int y = 1;
   const int z = 2;
-  for (int i = 0; i < nelements && (!rankForCustomPlot); ++i) {
-    if (pid[i] == rigidPartID) {
-      continue;
-    }
-    for (int j = eptr[i]; j < eptr[i+1]; ++j) {
-      index = connectivity[j];
-      if (index == idToPlot) {
-        nodeIDtoPlot = idToPlot;
-        rankForCustomPlot = true;
-        break;
-      }
+  
+  for (int i = 0; i < nnodes && (!rankForCustomPlot); ++i) {
+    if (fabs(coordinates[ndim * i + x] - xPlot) < tol &&
+        fabs(coordinates[ndim * i + y] - yPlot) < tol &&
+        fabs(coordinates[ndim * i + z] - zPlot) < tol) {
+      nodeIDtoPlot = i;
+      rankForCustomPlot = true;
+      break;
     }
   }
-  printf("INFO(%d) : nodeID for plot : %d\n", world_rank, nodeIDtoPlot);
+  printf("INFO(%d) : nodeID for plot : %d (%15.9e, %15.9e, %15.9e)\n", \
+      world_rank, nodeIDtoPlot, coordinates[ndim * nodeIDtoPlot + x], \
+      coordinates[ndim * nodeIDtoPlot + y], coordinates[ndim * nodeIDtoPlot + z]);
   // TODO : If multiple points have same point to plot use the lowest rank
   if (rankForCustomPlot) {
     datFile = fopen("plot.dat", "w");

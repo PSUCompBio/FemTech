@@ -39,7 +39,7 @@ void CheckEnergy(double time) {
         WKE += mass[indexJ]*velocities[indexJ]*velocities[indexJ];
         if (boundary[indexJ]) {
           // Fext = Fint + m*Acceleration
-          double reaction = fi_prev[indexJ] + fi[indexJ] + mass[indexJ]*(accelerations[i]+accelerations_prev[i]);
+          double reaction = fi_prev[indexJ] + fi[indexJ] + mass[indexJ]*(accelerations[indexJ]+accelerations_prev[indexJ]);
 
 			    sum_Wext_n += delta_d*reaction;
         }
