@@ -375,6 +375,8 @@ void InitCustomPlot() {
   const int x = 0;
   const int y = 1;
   const int z = 2;
+  int state = 0;
+  int cumState = 0;
 
   for (int i = 0; i < nnodes && (!rankForCustomPlot); ++i) {
     if (fabs(coordinates[ndim * i + x] - xPlot) < tol &&
@@ -382,15 +384,21 @@ void InitCustomPlot() {
         fabs(coordinates[ndim * i + z] - zPlot) < tol) {
       nodeIDtoPlot = i;
       rankForCustomPlot = true;
+      state = 1;
       break;
     }
   }
-  printf("INFO(%d) : nodeID for plot : %d (%15.9e, %15.9e, %15.9e)\n",
-         world_rank, nodeIDtoPlot, coordinates[ndim * nodeIDtoPlot + x],
-         coordinates[ndim * nodeIDtoPlot + y],
-         coordinates[ndim * nodeIDtoPlot + z]);
-  // TODO : If multiple points have same point to plot use the lowest rank
+  // If multiple procs have same node use the lowest rank
+  MPI_Scan(&state, &cumState, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   if (rankForCustomPlot) {
+    if (cumState > 1) {
+      rankForCustomPlot = false;
+      return;
+    }
+    printf("INFO(%d) : nodeID for plot : %d (%15.9e, %15.9e, %15.9e)\n",
+          world_rank, nodeIDtoPlot, coordinates[ndim * nodeIDtoPlot + x],
+          coordinates[ndim * nodeIDtoPlot + y],
+          coordinates[ndim * nodeIDtoPlot + z]);
     datFile = fopen("plot.dat", "w");
     fprintf(datFile, "# Results for Node %d\n", nodeIDtoPlot);
     fprintf(datFile, "# Time  DispX    DispY   DispZ\n");
