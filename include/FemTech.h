@@ -10,7 +10,6 @@
 
 #include "mpi.h"
 #include "parmetis.h"
-#include "json/json.h"
 
 //-------------------------------------------------------------------------------------------
 #define MAX_FILE_LINE 260
@@ -101,6 +100,4 @@ double volumeTetrahedron(double *coordinates);
 int compare(const void *a, const void *b);
 int unique(int *arr, int n);
 
-/* JSON input */
-Json::Value getConfig(const char* inputFile);
 #endif

@@ -11,3 +11,4 @@ Set(io_src
     )
 
 add_library(io OBJECT ${io_src})
+add_dependencies(io JsonCpp)

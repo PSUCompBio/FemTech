@@ -1,8 +1,7 @@
 #include "FemTech.h"
 #include "blas.h"
 #include "gitbranch.h"
-
-#include "json/json.h"
+#include "jsonfuncs.h"
 
 #include <assert.h>
 
