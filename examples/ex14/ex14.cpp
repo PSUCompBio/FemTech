@@ -39,12 +39,7 @@ double angNormal[3];
 const int rigidPartID = 2; // part ID of elements to be made rigid
 
 int main(int argc, char **argv) {
-  // Initialize the MPI environment
-  MPI_Init(NULL, NULL);
-  // Get the number of processes
-  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  // Get the rank of the process
-  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+  InitFemTech();
 
   Json::Value simulationJson = getConfig(argv[1]);
   std::string meshFile = simulationJson["mesh"].asString();
@@ -59,14 +54,13 @@ int main(int argc, char **argv) {
   angNormal[2] = 1.0;
   peakTime = 0.020;
   tMax = 0.040;
-  if (world_rank == 0) {
-    printf("INFO : Git commit : %s of branch %s\n", GIT_COMMIT_HASH,
+
+  FILE_LOG_MASTER(INFO, "Git commit : %s of branch %s", GIT_COMMIT_HASH,
            GIT_BRANCH);
-    printf("INFO : Linear Acceleration : (%7.3e, %7.3e, %7.3e)\n", accMax[0],
+  FILE_LOG_MASTER(INFO, "Linear Acceleration : (%7.3e, %7.3e, %7.3e)", accMax[0],
            accMax[1], accMax[2]);
-    printf("INFO : Angular Acceleration : %7.3e\n", angAccMax);
-    printf("INFO : Reading Mesh File : %s\n", meshFile.c_str());
-  }
+  FILE_LOG_MASTER(INFO, "Angular Acceleration : %7.3e", angAccMax);
+  FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
 
   if (ReadInputFile(meshFile.c_str())) {
     PartitionMesh();
@@ -112,28 +106,21 @@ int main(int argc, char **argv) {
   nSteps = (int)(tMax / dt);
   int nsteps_plot = (int)(nSteps / nPlotSteps);
 
-  if (world_rank == 0) {
-    printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
+  FILE_LOG_MASTER(INFO, "inital dt = %3.3e, nSteps = %d, nsteps_plot = %d", dt, nSteps,
            nsteps_plot);
-  }
 
   time_step_counter = time_step_counter + 1;
   double t_n = 0.0;
 
-  if (world_rank == 0) {
-    printf(
-        "------------------------------- Loop ----------------------------\n");
-    printf("Time : %f, tmax : %f\n", Time, tMax);
-  }
+  FILE_LOG_MASTER(INFO, "------------------------------- Loop ----------------------------");
+  FILE_LOG_MASTER(INFO, "Time : %15.6e, tmax : %15.6e", Time, tMax);
 
   /* Step-4: Time loop starts....*/
   while (Time < tMax) {
     double t_n = Time;
     double t_np1 = Time + dt;
     Time = t_np1; /*Update the time by adding full time step */
-    if (world_rank == 0) {
-      printf("Time : %15.6e, dt=%15.6e, tmax : %15.6e\n", Time, dt, tMax);
-    }
+    FILE_LOG_MASTER(INFO, "Time : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt, tMax);
     double dt_nphalf = dt;                 // equ 6.2.1
     double t_nphalf = 0.5 * (t_np1 + t_n); // equ 6.2.1
 
@@ -181,8 +168,6 @@ int main(int argc, char **argv) {
 
     if (time_step_counter % nsteps_plot == 0) {
       plot_counter = plot_counter + 1;
-      // printf("Plot %d/%d: dt=%3.2e s, Time=%3.2e s, Tmax=%3.2e s on rank :
-      // %d\n", 	plot_counter,nPlotSteps,dt,Time,tMax, world_rank);
       for (int i = 0; i < nelements; i++) {
         for (int l = 0; l < ndim * ndim; l++) {
           Favg[i * ndim * ndim + l] = 0.0;
@@ -197,8 +182,7 @@ int main(int argc, char **argv) {
           // gradient
         CalculateStrain(i);
       } // calculating avergae strain for every element
-      printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter,
-             world_rank);
+      FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
       WriteVTU(meshFile.c_str(), plot_counter, Time);
       CustomPlot();
 
@@ -239,12 +223,11 @@ int main(int argc, char **argv) {
   if (world_rank == 0) {
     WritePVD(meshFile.c_str(), nStep, Time);
   }
-  FreeArrays();
   // Free local boundary related arrays
   if (boundaryID) {
     free(boundaryID);
   }
-  MPI_Finalize();
+  FinalizeFemTech();
   return 0;
 }
 
@@ -395,8 +378,8 @@ void InitCustomPlot() {
       rankForCustomPlot = false;
       return;
     }
-    printf("INFO(%d) : nodeID for plot : %d (%15.9e, %15.9e, %15.9e)\n",
-          world_rank, nodeIDtoPlot, coordinates[ndim * nodeIDtoPlot + x],
+    FILE_LOG_SINGLE(INFO, "nodeID for plot : %d (%15.9e, %15.9e, %15.9e)",
+          nodeIDtoPlot, coordinates[ndim * nodeIDtoPlot + x],
           coordinates[ndim * nodeIDtoPlot + y],
           coordinates[ndim * nodeIDtoPlot + z]);
     datFile = fopen("plot.dat", "w");
@@ -437,7 +420,7 @@ void InitBoundaryCondition(double *aMax, double angMax) {
   // Allocate node storage
   int *rigidNodeID = (int *)malloc(rigidNodeCount * sizeof(int));
   if (rigidNodeID == NULL) {
-    printf("ERROR(%d) : Unable to alocate rigidNodeID\n", world_rank);
+    FILE_LOG_SINGLE(ERROR, "Unable to alocate rigidNodeID");
     exit(0);
   }
   // Store all nodes to be made rigid
@@ -454,10 +437,10 @@ void InitBoundaryCondition(double *aMax, double angMax) {
   // Sort and make unique
   qsort(rigidNodeID, rigidNodeCount, sizeof(int), compare);
   boundarySize = unique(rigidNodeID, rigidNodeCount);
-  printf("INFO(%d): %d nodes given rigid motion\n", world_rank, boundarySize);
+  FILE_LOG(INFO, "%d nodes given rigid motion", boundarySize);
   boundaryID = (int *)malloc(boundarySize * sizeof(int));
   if (boundaryID == NULL) {
-    printf("ERROR(%d) : Unable to alocate boundaryID\n", world_rank);
+    FILE_LOG_SINGLE(ERROR, "Unable to alocate boundaryID");
     exit(0);
   }
   for (int i = 0; i < boundarySize; ++i) {

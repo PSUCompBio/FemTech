@@ -8,6 +8,8 @@ Set(io_src
     input/ReadAbaqus.cpp
 		input/ReadMaterials.cpp
     input/ReadJSON.cpp
+    InitFinalizeFemTech.cpp
+    parallel_log.cpp
     )
 
 add_library(io OBJECT ${io_src})

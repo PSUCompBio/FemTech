@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "GlobalVariables.h"
+#include "parallel_log.h"
 
 #include "mpi.h"
 #include "parmetis.h"
@@ -103,4 +104,8 @@ int unique(int *arr, int n);
 
 /* JSON input */
 Json::Value getConfig(const char* inputFile);
+
+/*Init and finalize femtech */
+void InitFemTech();
+void FinalizeFemTech();
 #endif
