@@ -3,11 +3,14 @@
 
 #include <assert.h>
 
-/*Delare Functions*/
+/*Declare Functions*/
 void CustomPlot();
 void InitCustomPlot();
 void InitBoundaryCondition(double *aMax, double angMax);
 void ApplyAccBoundaryConditions();
+double CalculateMaxStrain(int e);
+void WriteMaxStrainCoordinates(int maxI);
+double CenterCoordinate(int i, int coor);
 
 /* Global Variables/Parameters */
 double Time;
@@ -177,7 +180,8 @@ int main(int argc, char **argv) {
               Favg[i * ndim * ndim + k] / GaussPoints[i];
         } // dividing by number of gauss points to get average deformation
           // gradient
-        double current = CalculateStrain(i);
+        CalculateStrain(i);
+        double current = CalculateMaxStrain(i);
         if (max < current) {
           max = current;
           maxI = i;
@@ -210,14 +214,7 @@ int main(int argc, char **argv) {
     CustomPlot();
   } // end explcit while loop
 
-  // Write the maximum strain to file
-  FILE *maxStrainFile;
-  maxStrainFile = fopen("maxstrain.dat", "w+");
-  fprintf(maxStrainFile, "%8.4f %8.4f %8.4f",
-				coordinates[ndim*connectivity[maxI] + 0],
-				coordinates[ndim*connectivity[maxI] + 1],
-				coordinates[ndim*connectivity[maxI] + 2]);
-  fclose(maxStrainFile);
+ WriteMaxStrainCoordinates(maxI);
   
 #ifdef DEBUG
   if (debug) {
@@ -460,3 +457,39 @@ void InitBoundaryCondition(double *aMax, double angMax) {
 
   return;
 }
+
+double CalculateMaxStrain(int e) {
+  double max = -1;
+  for(int i = 0; i < ndim*ndim; i++){
+    double abs = fabs(Eavg[e*ndim*ndim + i]);
+    if (max < abs) {
+      max = abs;
+    }
+  }
+  return max;
+}
+
+void WriteMaxStrainCoordinates(int maxI) {
+
+  double coor0 = CenterCoordinate(maxI,0);
+  double coor1 = CenterCoordinate(maxI,1);
+  double coor2 = CenterCoordinate(maxI,2);
+
+ // Write the maximum strain to file
+  FILE *maxStrainFile;
+  maxStrainFile = fopen("maxstrain.dat", "w+");
+  fprintf(maxStrainFile, "%8.4f %8.4f %8.4f",
+				coor0,
+				coor1,
+				coor2);
+  fclose(maxStrainFile);
+}
+
+double CenterCoordinate(int i, int coor) {
+  double res = 0;
+  for (int k = 0; k < 8; ++k) {
+    res += coordinates[ndim*connectivity[i + k] + coor];
+  }
+  res /= 8;
+  return res;
+} 
