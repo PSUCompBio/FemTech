@@ -12,8 +12,7 @@ int *fptr; //pointer for incrementing through deformation gradient, F, detF, Inv
 int *nShapeFunctions;
 double *F; // deformation gradient array, F
 double *Favg; // avg deformation gradient array
-double *detF; // inverse of deformation gradient array
-double *invF; // inverse of deformation gradient array
+double *detF; // det of deformation gradient array
 double *b; // left Cauchy Green tensor
 double *E; //Green Lagrange strain tensor
 double *pk2; // PK2 Stress
@@ -196,7 +195,6 @@ void ShapeFunctions() {
   F = (double *)calloc(F_counter, sizeof(double));
   Favg = (double *)calloc(Favg_counter, sizeof(double));
   detF = (double *)calloc(detF_counter, sizeof(double));
-	invF = (double *)calloc(F_counter, sizeof(double));
 	b = (double *)calloc(F_counter, sizeof(double));
 	E = (double *)calloc(F_counter, sizeof(double));
 	internals = (double *)calloc(internals_counter, sizeof(double));

@@ -27,7 +27,7 @@ bool ReadAbaqus(const char *FileName);
 bool ReadInputFile(const char *FileName) {
     // Checking MPI variables validity
     if (world_size < 1 || world_rank < 0 || world_rank >= world_size) {
-        printf("\nERROR( proc %d ): 'world_size' and/or 'world_rank' variable is not valid.\n", world_rank);
+        FILE_LOG(ERROR, "'World_size' and/or 'world_rank' variable is not valid");
         return false;
     }
 

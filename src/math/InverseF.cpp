@@ -2,32 +2,17 @@
 #include "blas.h"
 
 void InverseF(int e, int gp, double* fInv) {
-	//good example of how to reference F
 #ifdef DEBUG
 	if (debug && 1==0) {
-			printf("shp array e.%d with %d Gauss points, each with %d shp functions \n", e, GaussPoints[e], nShapeFunctions[e]);
-			//printf("int.%d:\n", j);
+			FILE_LOG_SINGLE(DEBUGLOG, "Shp array e.%d with %d Gauss points, each with %d shp functions", e, GaussPoints[e], nShapeFunctions[e]);
 			if(1==1){
 				for (int k = 0; k < nShapeFunctions[e]; k++) {
-					//printf("%8.5f ", shp[gptr[e] + j * GaussPoints[e] + k]);
-					printf(" shp: %4.4f dshp: %8.4f %8.4f %8.4f\n",
+          FILE_LOG_SINGLE(DEBUGLOG, " shp: %4.4f dshp: %8.4f %8.4f %8.4f",
 							shp[gptr[e]   + gp * GaussPoints[e] + k],
 							dshp[dsptr[e] + gp * GaussPoints[e] * ndim + k * ndim + 0],
 							dshp[dsptr[e] + gp * GaussPoints[e] * ndim + k * ndim + 1],
 							dshp[dsptr[e] + gp * GaussPoints[e] * ndim + k * ndim + 2]);
 				}
-			}
-			//printf("\n");
-			if(1==0){
-				printf("Inverse of Deformation Gradient, F for Gauss Point %d\n",gp);
-				for(int i=0;i<ndim;i++){
-						for(int j=0;j<ndim;j++){
-							int index = fptr[e] + ndim*ndim*gp + ndim*i+j;
-							printf(" invF[%d]:%3.3e   ",index,invF[index]);
-						}
-						printf("\n");
-				}
-				printf("\n");
 			}
 	}
 #endif //DEBUG

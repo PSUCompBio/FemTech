@@ -8,7 +8,7 @@ void ReadMaterials() {
     exit(0);
   } 
   int partID;
-  printf("DEBUG(%d) : Number of parts = %d\n", world_rank, nPIDglobal);
+  FILE_LOG(INFO, "Number of parts = %d", nPIDglobal);
   bool *checkFullRead = (bool*)malloc(nPIDglobal*sizeof(bool));
   if (checkFullRead == NULL) {
     printf("ERROR(%d) : Error allocating checkFullRead\n");

@@ -46,7 +46,6 @@ void FreeArrays() {
 	free1DArray(materialID);
 	free1DArray(properties);
 	free1DArray(detF);
-	free1DArray(invF);
 	free1DArray(b);
 	free1DArray(E);
 	free1DArray(Eavg);

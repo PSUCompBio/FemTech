@@ -244,8 +244,6 @@ bool PartitionMesh() {
     nodeRecvCum[0] = 0;
     for (int i = 0; i < world_size; ++i) {
       if (elementReceivePattern[i] && i != world_rank) {
-        // printf("DEBUG : recv pattern on %d of %d is %d\n", world_rank, i,
-        // elementRedistributePattern[i]);
         recvCount += 1;
       }
       elementRecvCum[i + 1] = elementRecvCum[i] + elementReceivePattern[i];
@@ -534,9 +532,9 @@ bool PartitionMesh() {
     // Reorder local connectivity
     updateConnectivityGlobalToLocal();
 
-    printf("INFO(%d) : Number of nodes : %d\n",world_rank, nnodes);
+    FILE_LOG(INFO, "Number of nodes : %d", nnodes);
     const int nDOF = nnodes*ndim;
-    printf("INFO(%d) : Number of DOFs : %d\n",world_rank, nDOF);
+    FILE_LOG(INFO, "Number of DOFs : %d", nDOF);
 #ifdef DEBUG
     if (debug && 1 == 0) {
       printf("DEBUG(%d) : Node list to share in local node ID\n", world_rank);

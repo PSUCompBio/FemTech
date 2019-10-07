@@ -65,7 +65,6 @@ extern double *accelerations_prev; /*displacements for previous step - used in e
 extern double *F; /* deformation graident tensor array */
 extern double *Favg; /*deformation gradient average*/
 extern double *detF; /*determinate of F for all gauss points */
-extern double *invF; /*Inverse of F for all gauss points */
 extern double *b; /*Left Cauchy  Greeen tensor */
 extern double *E; /*Green Lagrange Strain Tensor for each Gauss point */
 extern double *pk2; /*PK2 Stress */

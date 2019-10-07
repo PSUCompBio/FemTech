@@ -14,7 +14,7 @@ char s2[256];
 va_list arg;
 
 const char* levelToString(enum logLevel level) {
-	static const char* const buffer[] = {"ERROR  ", "WARNING", "INFO   ", "DEBUG  "};
+	static const char* const buffer[] = {"ERROR  ", "WARNING", "INFO   ", "DEBUG  ", "DEBUG  "};
   return buffer[level];
 }
 
@@ -41,7 +41,7 @@ void finaliseLog() {
 }
 
 void fileLog(enum logLevel level, const char* fmt, ...) {
-  sprintf(s1, "%s(%d): %s\n", levelToString(level), world_rank, fmt);
+  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
   va_start(arg, fmt);
   vsprintf(s2, s1, arg);
   va_end(arg);
@@ -50,7 +50,7 @@ void fileLog(enum logLevel level, const char* fmt, ...) {
 
 void fileLogMaster(enum logLevel level, const char* fmt, ...) {
   if (world_rank == 0) {
-    sprintf(s1, "%s(%d): %s\n", levelToString(level), world_rank, fmt);
+    sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
     va_start(arg, fmt);
     vsprintf(s2, s1, arg);
     va_end(arg);
@@ -59,24 +59,93 @@ void fileLogMaster(enum logLevel level, const char* fmt, ...) {
 }
 
 void fileLogSingle(enum logLevel level, const char* fmt, ...) {
-  sprintf(s1, "%s(%d): %s\n", levelToString(level), world_rank, fmt);
+  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
   va_start(arg, fmt);
   vsprintf(s2, s1, arg);
   va_end(arg);
   MPI_File_write_shared(logFilePtr, s2, strlen(s2), MPI_CHAR, MPI_STATUS_IGNORE);
 }
-// void fileLogMatrix(enum logLevel level, const double* mat, const int n, \
-//     const int m, const char* txt) {
-//   int world_rank = 1;
-//   fprintf(fptr, "%s (%d) : %s\n", levelToString(level), world_rank, txt);
-//   for (int i = 0; i < n; ++i) {
-//     for (int j = 0; j < m; ++j) {
-//       fprintf(fptr, "%12.8e  ", mat[i+j*n]);
-//     }
-//     fprintf(fptr, "\n");
-//   }
-// }
-//
+
+void fileLogMatrix(enum logLevel level, const double* mat, const int n, \
+    const int m, const char* fmt, ...) {
+  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  va_start(arg, fmt);
+  vsprintf(s2, s1, arg);
+  va_end(arg);
+  int txtSize = strlen(s2)+(17*m+1)*n+5;
+  char *sMat = (char*)malloc(txtSize*sizeof(char));
+  int len = 0;
+  len = sprintf(sMat, "%s", s2);
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < m; ++j) {
+      len += sprintf(sMat+len, "%15.6E  ", mat[i+j*n]);
+    }
+    len += sprintf(sMat+len, "\n");
+  }
+  MPI_File_write_ordered(logFilePtr, sMat, strlen(sMat), MPI_CHAR, MPI_STATUS_IGNORE);
+  free(sMat);
+}
+
+void fileLogMatrixRM(enum logLevel level, const double* mat, const int n, \
+    const int m, const char* fmt, ...) {
+  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  va_start(arg, fmt);
+  vsprintf(s2, s1, arg);
+  va_end(arg);
+  int txtSize = strlen(s2)+(17*m+1)*n+5;
+  char *sMat = (char*)malloc(txtSize*sizeof(char));
+  int len = 0;
+  len = sprintf(sMat, "%s", s2);
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < m; ++j) {
+      len += sprintf(sMat+len, "%15.6E  ", mat[j+i*m]);
+    }
+    len += sprintf(sMat+len, "\n");
+  }
+  MPI_File_write_ordered(logFilePtr, sMat, strlen(sMat), MPI_CHAR, MPI_STATUS_IGNORE);
+  free(sMat);
+}
+
+void fileLogMatrixSingle(enum logLevel level, const double* mat, const int n, \
+    const int m, const char* fmt, ...) {
+  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  va_start(arg, fmt);
+  vsprintf(s2, s1, arg);
+  va_end(arg);
+  int txtSize = strlen(s2)+(17*m+1)*n+5;
+  char *sMat = (char*)malloc(txtSize*sizeof(char));
+  int len = 0;
+  len = sprintf(sMat, "%s", s2);
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < m; ++j) {
+      len += sprintf(sMat+len, "%15.6E  ", mat[i+j*n]);
+    }
+    len += sprintf(sMat+len, "\n");
+  }
+  MPI_File_write_shared(logFilePtr, sMat, strlen(sMat), MPI_CHAR, MPI_STATUS_IGNORE);
+  free(sMat);
+}
+
+void fileLogMatrixRMSingle(enum logLevel level, const double* mat, const int n, \
+    const int m, const char* fmt, ...) {
+  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  va_start(arg, fmt);
+  vsprintf(s2, s1, arg);
+  va_end(arg);
+  int txtSize = strlen(s2)+(17*m+1)*n+5;
+  char *sMat = (char*)malloc(txtSize*sizeof(char));
+  int len = 0;
+  len = sprintf(sMat, "%s", s2);
+  for (int i = 0; i < n; ++i) {
+    for (int j = 0; j < m; ++j) {
+      len += sprintf(sMat+len, "%15.6E  ", mat[j+i*m]);
+    }
+    len += sprintf(sMat+len, "\n");
+  }
+  MPI_File_write_shared(logFilePtr, sMat, strlen(sMat), MPI_CHAR, MPI_STATUS_IGNORE);
+  free(sMat);
+}
+
 // void fileLogArray(enum logLevel level, const double* arr, const int n, \
 //     const char* txt) {
 //   int world_rank = 1;
@@ -85,46 +154,3 @@ void fileLogSingle(enum logLevel level, const char* fmt, ...) {
 //     fprintf(fptr, "%12.8e\n", arr[i]);
 //   }
 // }
-//
-// void fileLogArrayPartial(enum logLevel level, const double* arr, const int nS, \
-//     const int nE, const char* txt) {
-//   int world_rank = 1;
-//   fprintf(fptr, "%s (%d) : %s\n", levelToString(level), world_rank, txt);
-//   for (int i = nS; i < nE; ++i) {
-//     fprintf(fptr, "%12.8e\n", arr[i]);
-//   }
-// }
-//
-// void fileLogMatrixPartial(enum logLevel level, const double* mat, const int n, \
-//     const int nS, const int nE, const int mS, const int mE, const char* txt) {
-//   int world_rank = 1;
-//   fprintf(fptr, "%s (%d) : %s\n", levelToString(level), world_rank, txt);
-//   for (int i = nS; i < nE; ++i) {
-//     for (int j = mS; j < mE; ++j) {
-//       fprintf(fptr, "%12.8e  ", mat[i+j*n]);
-//     }
-//     fprintf(fptr, "\n");
-//   }
-// }
-
-
-// #define FILE_LOG(level, ...) \
-//     if (level > FILELOG_MAX_LEVEL) ;\
-//     else fileLog(level, __VA_ARGS__);
-//
-// #define FILE_LOGMatrix(level, mat, n, m, txt) \
-//     if (level > FILELOG_MAX_LEVEL) ;\
-//     else fileLogMatrix(level, mat, n, m, txt);
-//
-// #define FILE_LOGMatrixPartial(level, mat, n, nS, nE, mS, mE, txt) \
-//     if (level > FILELOG_MAX_LEVEL) ;\
-//     else fileLogMatrixPartial(level, mat, n, nS, nE, mS, mE, txt);
-//
-// #define FILE_LOGArray(level, arr, n, txt) \
-//     if (level > FILELOG_MAX_LEVEL) ;\
-//     else fileLogArray(level, arr, n, txt);
-//
-// #define FILE_LOGArrayPartial(level, arr, nS, nE, txt) \
-//     if (level > FILELOG_MAX_LEVEL) ;\
-//     else fileLogArrayPartial(level, arr, nS, nE, txt);
-//

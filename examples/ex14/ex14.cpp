@@ -186,17 +186,7 @@ int main(int argc, char **argv) {
       WriteVTU(meshFile.c_str(), plot_counter, Time);
       CustomPlot();
 
-#ifdef DEBUG
-      if (debug) {
-        printf("DEBUG : Printing Displacement Solution\n");
-        for (int i = 0; i < nnodes; ++i) {
-          for (int j = 0; j < ndim; ++j) {
-            printf("%15.6E", displacements[i * ndim + j]);
-          }
-          printf("\n");
-        }
-      }
-#endif // DEBUG
+      FILE_LOGMatrixRM(DEBUGLOG, displacements, nnodes, ndim, "Displacement Solution");
     }
     time_step_counter = time_step_counter + 1;
     dt = ExplicitTimeStepReduction * StableTimeStep();
@@ -207,17 +197,7 @@ int main(int argc, char **argv) {
     // Write out the last time step
     CustomPlot();
   } // end explcit while loop
-#ifdef DEBUG
-  if (debug) {
-    printf("DEBUG : Printing Displacement Solution\n");
-    for (int i = 0; i < nnodes; ++i) {
-      for (int j = 0; j < ndim; ++j) {
-        printf("%15.6E", displacements[i * ndim + j]);
-      }
-      printf("\n");
-    }
-  }
-#endif // DEBUG
+  FILE_LOGMatrixRM(DEBUGLOG, displacements, nnodes, ndim, "Final Displacement Solution");
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {

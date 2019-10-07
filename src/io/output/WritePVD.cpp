@@ -5,7 +5,6 @@ static void strip_ext(char *);
 // Write the pvtu file if you are rank zero and code in parallel
 void WritePVD(const char* FileName, int step,double time){
 	static const int ARR_SIZE = 1000;
-	//printf("\nRank 0 Writing PVTU file\n");
 	FILE *fp;
 	int i,j;
 	char s[ARR_SIZE];
