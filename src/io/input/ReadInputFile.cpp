@@ -27,13 +27,13 @@ bool ReadAbaqus(const char *FileName);
 bool ReadInputFile(const char *FileName) {
     // Checking MPI variables validity
     if (world_size < 1 || world_rank < 0 || world_rank >= world_size) {
-        FILE_LOG(ERROR, "'World_size' and/or 'world_rank' variable is not valid");
+        FILE_LOG_SINGLE(ERROR, "'World_size' and/or 'world_rank' variable is not valid");
         return false;
     }
 
     // Checking file name validity
     if (FileName == NULL || strlen(FileName) == 0) {
-        printf("\nERROR( proc %d ): Input file name is empty.\n", world_rank);
+        FILE_LOG_SINGLE(ERROR, "Input file name is empty");
         return false;
     }
     
@@ -53,7 +53,7 @@ bool ReadInputFile(const char *FileName) {
         returnValue = ReadAbaqus(FileName);
     }
     else {
-        printf("\nERROR( proc %d ): Input file type is unknown.\n", world_rank);
+        FILE_LOG_SINGLE(ERROR, "Input file type is unknown");
     }
     if (returnValue) {
       // Change pid from 1 based number to zero based numbering
@@ -66,13 +66,10 @@ bool ReadInputFile(const char *FileName) {
       int globalPIDmax = sortedPID[nPID-1]+1;
       MPI_Allreduce(MPI_IN_PLACE, &globalPIDmax, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
       nPIDglobal = globalPIDmax;
-#ifdef DEBUG
-      printf("DEBUG : Number of local pid : %d, global : %d \n", nPID, nPIDglobal);
-      for (int i = 0; i < nPID; ++i) {
-        printf("DEBUG : %d\t", sortedPID[i]);
-      }
-      printf("\n");
-#endif //DEBUG
+
+      FILE_LOGArrayInt(DEBUGLOGIGNORE, sortedPID, nPID, \
+          "Number of local pid : %d, global : %d", nPID, nPIDglobal);
+
       free(sortedPID);
       assert(nPID <= nPIDglobal);
       assert(nPIDglobal > 0);

@@ -1,23 +1,14 @@
 #include "FemTech.h"
 
 void StressUpdate(int e, int gp){
-#ifdef DEBUG
-	if(debug){
-  	printf("---- Calling Stress Update %d, %d ---\n", e, gp);
-	}
-#endif //DEBUG
+  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "---- Calling Stress Update %d, %d ---", e, gp);
 	//Compressible Neohookean
 	if(materialID[pid[e]]==1){
 		CompressibleNeoHookean(e, gp);
 	}
 	// St. Venant-Kirchhoff
 	if(materialID[pid[e]]==2){
-#ifdef DEBUG
-		if(debug){
-    	printf("---- Calling Material Model St. Venant %d, %d ---\n", e, gp);
-    	printf("---- ----\n");
-		}
-#endif //DEBUG
+    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "---- Calling Material Model St. Venant %d, %d ---", e, gp);
 		StVenantKirchhoff(e, gp);
 	}
   // Linear Elastic

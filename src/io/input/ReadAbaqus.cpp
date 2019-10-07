@@ -25,7 +25,7 @@ bool ReadAbaqus(const char *FileName) {
     // Checking if mesh file can be opened or not
     FILE *File;
     if ((File = fopen(FileName, "rb")) == NULL) {
-        printf("\nERROR( proc %d ): Cannot open input file.\n", world_rank);
+        FILE_LOG_SINGLE(ERROR, "Cannot open input file");
         return false;
     }
     
@@ -61,7 +61,7 @@ bool ReadAbaqus(const char *FileName) {
                 LastValidElemDataLinePos = ftell(File);
             }
             if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
-                printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
+                FILE_LOG_SINGLE(ERROR, "'fseek()' call for LastValidElemDataLinePos failed");
             }
         }
         
@@ -76,13 +76,13 @@ bool ReadAbaqus(const char *FileName) {
     if (nallelements == 0 || NodesSectionPos == -1 || (fseeked = fseek(File, ElementsSectionPos, SEEK_SET)) != 0) {
         fclose(File);
         if (nallelements == 0) {
-            printf("\nERROR( proc %d ): No element found. This means input file is empty or contains invalid data.\n", world_rank);
+            FILE_LOG_SINGLE(ERROR, "No element found. This means input file is empty or contains invalid data");
         }
         if (NodesSectionPos == -1) {
-            printf("\nERROR( proc %d ): Node section not found. This means input file is empty or contains invalid data.\n", world_rank);
+            FILE_LOG_SINGLE(ERROR, "Node section not found. This means input file is empty or contains invalid data");
         }
         if (fseeked != 0) {
-            printf("\nERROR( proc %d ): 'fseek()' call for ElementsSectionPos failed.\n", world_rank);
+            FILE_LOG_SINGLE(ERROR, "'fseek()' call for ElementsSectionPos failed");
         }
         return false;
     }
@@ -145,7 +145,7 @@ bool ReadAbaqus(const char *FileName) {
             }
             
             if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
-                printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
+                FILE_LOG_SINGLE(ERROR, "'fseek()' call for LastValidElemDataLinePos failed");
             }
         }
     }
@@ -158,10 +158,10 @@ bool ReadAbaqus(const char *FileName) {
         Free2DimArray((void **)ElSetNames, nelements);
         Free2DimArray((void **)UniqueElSetNames, ElSetsCount);
         if (ConnectivitySize != eptr[nelements]) {
-            printf("\nERROR( proc %d ): Size of 'eind' array is not vald.\n", world_rank);
+            FILE_LOG_SINGLE(ERROR, "Size of 'eind' array is not valid");
         }
         else {
-            printf("\nERROR( proc %d ): 'fseek()' call for ElementsSectionPos failed.\n", world_rank);
+            FILE_LOG_SINGLE(ERROR, "'fseek()' call for ElementsSectionPos failed");
         }
         return false;
     }
@@ -202,7 +202,7 @@ bool ReadAbaqus(const char *FileName) {
             }
             
             if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
-                printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
+                FILE_LOG_SINGLE(ERROR, "'fseek()' call for LastValidElemDataLinePos failed");
             }
         }
     }
@@ -211,7 +211,7 @@ bool ReadAbaqus(const char *FileName) {
     if (fseek(File, NodesSectionPos, SEEK_SET) != 0) {
         fclose(File);
         FreeArrays();
-        printf("\nERROR( proc %d ): 'fseek()' call for NodesSectionPos failed.\n", world_rank);
+        FILE_LOG_SINGLE(ERROR, "'fseek()' call for NodesSectionPos failed");
         return false;
     }
        
@@ -262,8 +262,8 @@ bool ReadAbaqus(const char *FileName) {
     // Checking if "coordinates" array is OK
     if (nnodes != ConnectivitySize) {
         FreeArrays();
-        printf("\nERROR( proc %d ): Failed to initialize 'coordinates' array.\n", world_rank);
-        printf("\nnnodes = %d, ConnectivitySize = %d, ndim = %d\n", nnodes, ConnectivitySize, ndim);
+        FILE_LOG_SINGLE(ERROR, "Failed to initialize 'coordinates' array");
+        FILE_LOG_SINGLE(ERROR, "nnodes = %d, ConnectivitySize = %d, ndim = %d", nnodes, ConnectivitySize, ndim);
     }
     
     fclose(File);

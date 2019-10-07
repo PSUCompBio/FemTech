@@ -61,14 +61,10 @@ void CheckEnergy(double time) {
     Wint_n += Wint_n_total;
     Wext_n += Wext_n_total;
     double total = fabs(WKE_Total+Wint_n-Wext_n);
-#ifdef DEBUG
-	if(debug){
-  	printf("Internal Work : %15.9e\n", Wint_n);
-  	printf("External Work : %15.9e\n", Wext_n);
-    printf("Kinetic Energy : %15.9e\n", WKE_Total);
-    printf("Total Energy : %15.9e\n", total);
-}
-#endif //DEBUG
+  	FILE_LOG_SINGLE(DEBUGLOG, "Internal Work : %15.9e", Wint_n);
+  	FILE_LOG_SINGLE(DEBUGLOG, "External Work : %15.9e", Wext_n);
+    FILE_LOG_SINGLE(DEBUGLOG, "Kinetic Energy : %15.9e", WKE_Total);
+    FILE_LOG_SINGLE(DEBUGLOG, "Total Energy : %15.9e", total);
 
     double max = fabs(Wint_n);
     if (max < fabs(Wext_n)) {
@@ -84,5 +80,4 @@ void CheckEnergy(double time) {
     fprintf(energyFile, "%12.6e %12.6e  %12.6e  %12.6e %12.6e\n", time,
             Wint_n, Wext_n, WKE_Total, total);
   }
-  // Wint_n = WKE;
 }

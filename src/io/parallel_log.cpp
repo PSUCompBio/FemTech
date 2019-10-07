@@ -72,7 +72,7 @@ void fileLogMatrix(enum logLevel level, const double* mat, const int n, \
   va_start(arg, fmt);
   vsprintf(s2, s1, arg);
   va_end(arg);
-  int txtSize = strlen(s2)+(17*m+1)*n+5;
+  int txtSize = strlen(s2)+(17*m+1)*n+10;
   char *sMat = (char*)malloc(txtSize*sizeof(char));
   int len = 0;
   len = sprintf(sMat, "%s", s2);
@@ -92,7 +92,7 @@ void fileLogMatrixRM(enum logLevel level, const double* mat, const int n, \
   va_start(arg, fmt);
   vsprintf(s2, s1, arg);
   va_end(arg);
-  int txtSize = strlen(s2)+(17*m+1)*n+5;
+  int txtSize = strlen(s2)+(17*m+1)*n+10;
   char *sMat = (char*)malloc(txtSize*sizeof(char));
   int len = 0;
   len = sprintf(sMat, "%s", s2);
@@ -112,7 +112,7 @@ void fileLogMatrixSingle(enum logLevel level, const double* mat, const int n, \
   va_start(arg, fmt);
   vsprintf(s2, s1, arg);
   va_end(arg);
-  int txtSize = strlen(s2)+(17*m+1)*n+5;
+  int txtSize = strlen(s2)+(17*m+1)*n+10;
   char *sMat = (char*)malloc(txtSize*sizeof(char));
   int len = 0;
   len = sprintf(sMat, "%s", s2);
@@ -132,7 +132,7 @@ void fileLogMatrixRMSingle(enum logLevel level, const double* mat, const int n, 
   va_start(arg, fmt);
   vsprintf(s2, s1, arg);
   va_end(arg);
-  int txtSize = strlen(s2)+(17*m+1)*n+5;
+  int txtSize = strlen(s2)+(17*m+1)*n+10;
   char *sMat = (char*)malloc(txtSize*sizeof(char));
   int len = 0;
   len = sprintf(sMat, "%s", s2);
@@ -146,11 +146,114 @@ void fileLogMatrixRMSingle(enum logLevel level, const double* mat, const int n, 
   free(sMat);
 }
 
-// void fileLogArray(enum logLevel level, const double* arr, const int n, \
-//     const char* txt) {
-//   int world_rank = 1;
-//   fprintf(fptr, "%s (%d) : %s\n", levelToString(level), world_rank, txt);
-//   for (int i = 0; i < n; ++i) {
-//     fprintf(fptr, "%12.8e\n", arr[i]);
-//   }
-// }
+void fileLogArray(enum logLevel level, const double* arr, const int n, \
+    const char* fmt, ...) {
+  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  va_start(arg, fmt);
+  vsprintf(s2, s1, arg);
+  va_end(arg);
+  int txtSize = strlen(s2)+(17*n+1)+10;
+  char *sMat = (char*)malloc(txtSize*sizeof(char));
+  int len = 0;
+  len = sprintf(sMat, "%s", s2);
+  for (int i = 0; i < n; ++i) {
+    len += sprintf(sMat+len, "%15.6E  ", arr[i]);
+  }
+  len += sprintf(sMat+len, "\n");
+  MPI_File_write_ordered(logFilePtr, sMat, strlen(sMat), MPI_CHAR, MPI_STATUS_IGNORE);
+  free(sMat);
+}
+
+void fileLogArrayMaster(enum logLevel level, const double* arr, const int n, \
+    const char* fmt, ...) {
+  if (world_rank == 0) {
+    sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+    va_start(arg, fmt);
+    vsprintf(s2, s1, arg);
+    va_end(arg);
+    int txtSize = strlen(s2)+(17*n+1)+10;
+    char *sMat = (char*)malloc(txtSize*sizeof(char));
+    int len = 0;
+    len = sprintf(sMat, "%s", s2);
+    for (int i = 0; i < n; ++i) {
+      len += sprintf(sMat+len, "%15.6E  ", arr[i]);
+    }
+    len += sprintf(sMat+len, "\n");
+    MPI_File_write_shared(logFilePtr, sMat, strlen(sMat), MPI_CHAR, MPI_STATUS_IGNORE);
+    free(sMat);
+  }
+}
+
+void fileLogArraySingle(enum logLevel level, const double* arr, const int n, \
+    const char* fmt, ...) {
+  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  va_start(arg, fmt);
+  vsprintf(s2, s1, arg);
+  va_end(arg);
+  int txtSize = strlen(s2)+(17*n+1)+10;
+  char *sMat = (char*)malloc(txtSize*sizeof(char));
+  int len = 0;
+  len = sprintf(sMat, "%s", s2);
+  for (int i = 0; i < n; ++i) {
+    len += sprintf(sMat+len, "%15.6E  ", arr[i]);
+  }
+  len += sprintf(sMat+len, "\n");
+  MPI_File_write_shared(logFilePtr, sMat, strlen(sMat), MPI_CHAR, MPI_STATUS_IGNORE);
+  free(sMat);
+}
+
+void fileLogArrayInt(enum logLevel level, const int* arr, const int n, \
+    const char* fmt, ...) {
+  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  va_start(arg, fmt);
+  vsprintf(s2, s1, arg);
+  va_end(arg);
+  int txtSize = strlen(s2)+(13*n+1)+10;
+  char *sMat = (char*)malloc(txtSize*sizeof(char));
+  int len = 0;
+  len = sprintf(sMat, "%s", s2);
+  for (int i = 0; i < n; ++i) {
+    len += sprintf(sMat+len, "%10d  ", arr[i]);
+  }
+  len += sprintf(sMat+len, "\n");
+  MPI_File_write_ordered(logFilePtr, sMat, strlen(sMat), MPI_CHAR, MPI_STATUS_IGNORE);
+  free(sMat);
+}
+
+void fileLogArrayIntMaster(enum logLevel level, const int* arr, const int n, \
+    const char* fmt, ...) {
+  if (world_rank == 0) {
+    sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+    va_start(arg, fmt);
+    vsprintf(s2, s1, arg);
+    va_end(arg);
+    int txtSize = strlen(s2)+(13*n+1)+10;
+    char *sMat = (char*)malloc(txtSize*sizeof(char));
+    int len = 0;
+    len = sprintf(sMat, "%s", s2);
+    for (int i = 0; i < n; ++i) {
+      len += sprintf(sMat+len, "%10d  ", arr[i]);
+    }
+    len += sprintf(sMat+len, "\n");
+    MPI_File_write_shared(logFilePtr, sMat, strlen(sMat), MPI_CHAR, MPI_STATUS_IGNORE);
+    free(sMat);
+  }
+}
+
+void fileLogArrayIntSingle(enum logLevel level, const int* arr, const int n, \
+    const char* fmt, ...) {
+  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  va_start(arg, fmt);
+  vsprintf(s2, s1, arg);
+  va_end(arg);
+  int txtSize = strlen(s2)+(13*n+1)+10;
+  char *sMat = (char*)malloc(txtSize*sizeof(char));
+  int len = 0;
+  len = sprintf(sMat, "%s", s2);
+  for (int i = 0; i < n; ++i) {
+    len += sprintf(sMat+len, "%10d  ", arr[i]);
+  }
+  len += sprintf(sMat+len, "\n");
+  MPI_File_write_shared(logFilePtr, sMat, strlen(sMat), MPI_CHAR, MPI_STATUS_IGNORE);
+  free(sMat);
+}
