@@ -5,7 +5,7 @@
   },
   "simulation": {
     "mesh" : "brain.inp",
-    "linear-acceleration" : [784.8, 0.0, 0.0],
+    "linear-acceleration" : [80.0, 0.0, 0.0],
     "angular-acceleration" : 8000.0,
     "impact-point" : "front-low"
   }
