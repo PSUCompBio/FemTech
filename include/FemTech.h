@@ -45,7 +45,7 @@ void Assembly(char *operation);
 void StiffnessElementMatrix(double* Ke, int e);
 void MassElementMatrix(double* Me, int e);
 void WriteVTU(const char* FileName, int step, double time);
-void WritePVD(const char* FileName, int step, double time);
+void WritePVD(const char* FileName, int step, double *stepTime);
 void FreeArrays();
 void ReadMaterialProperties();
 void ApplySteadyBoundaryConditions(void);

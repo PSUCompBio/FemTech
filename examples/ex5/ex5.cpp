@@ -14,6 +14,7 @@ double CenterCoordinate(int i, int coor);
 
 /* Global Variables/Parameters */
 double Time;
+double *stepTime = (double *)calloc(1000,sizeof(double));
 int nStep;
 int nSteps;
 int nPlotSteps = 50;
@@ -106,7 +107,7 @@ int main(int argc, char **argv) {
   if (world_rank == 0) {
     printf(
         "------------------------------- Loop ----------------------------\n");
-    printf("Time : %f, tmax : %f\n", Time, tMax);
+   printf("Time : %f, tmax : %f\n", Time, tMax);
   }
 
   /* Step-4: Time loop starts....*/
@@ -190,6 +191,8 @@ int main(int argc, char **argv) {
       printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter,
              world_rank);
       WriteVTU(argv[1], plot_counter, Time);
+      stepTime[nStep] = Time;
+      WritePVD(argv[1], nStep, stepTime);
       CustomPlot();
 
 #ifdef DEBUG
@@ -230,7 +233,7 @@ int main(int argc, char **argv) {
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {
-    WritePVD(argv[1], nStep, Time);
+    WritePVD(argv[1], nStep, stepTime);
   }
   FreeArrays();
   // Free local boundary related arrays
