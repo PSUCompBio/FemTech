@@ -1,8 +1,7 @@
 #include "FemTech.h"
 #include "blas.h"
 #include "gitbranch.h"
-
-#include "json/json.h"
+#include "jsonfuncs.h"
 
 #include <assert.h>
 
@@ -45,13 +44,14 @@ int main(int argc, char **argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   // Get the rank of the process
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+  static const double gC = 9.81;
 
   Json::Value simulationJson = getConfig(argv[1]);
   std::string meshFile = simulationJson["mesh"].asString();
   double accMax[3];
-  accMax[0] = simulationJson["linear-acceleration"][0].asDouble();
-  accMax[1] = simulationJson["linear-acceleration"][1].asDouble();
-  accMax[2] = simulationJson["linear-acceleration"][2].asDouble();
+  accMax[0] = gC*simulationJson["linear-acceleration"][0].asDouble();
+  accMax[1] = gC*simulationJson["linear-acceleration"][1].asDouble();
+  accMax[2] = gC*simulationJson["linear-acceleration"][2].asDouble();
 
   double angAccMax = simulationJson["angular-acceleration"].asDouble();
   angNormal[0] = 0.0;
