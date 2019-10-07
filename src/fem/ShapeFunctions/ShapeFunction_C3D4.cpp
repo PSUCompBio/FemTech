@@ -83,14 +83,6 @@ void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ){
     dshp[baseIndex+2] = c3;
   }
 	//for debugging can be removed...
-#ifdef DEBUG
-	if (debug && 1==0) {
-    printf("DEBUG J Inv\n");
-		printf("%8.4e %8.4e %8.4e\n", J_Inv[0], J_Inv[3], J_Inv[6]);
-		printf("%8.4e %8.4e %8.4e\n", J_Inv[1], J_Inv[4], J_Inv[7]);
-		printf("%8.4e %8.4e %8.4e\n", J_Inv[2], J_Inv[5], J_Inv[8]);
-		printf("\n");
-	}
-#endif //DEBUG
-   return;
+  FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, J_Inv, ndim, ndim, "J Inv in e = %d, gp = %d", e, gp);
+  return;
 }

@@ -12,11 +12,11 @@
 void GetForce() {
 
 	if(ndim == 1){
-		printf("GetForce function not yet implemented for 1D. Bye.\n");
+		FILE_LOG_SINGLE(ERROR, "GetForce function not yet implemented for 1D");
 		exit(0);
 	}
 	else if (ndim == 2){
-		printf("GetForce function not yet implemented for 2D. Bye.\n");
+		FILE_LOG_SINGLE(ERROR, "GetForce function not yet implemented for 2D");
 		exit(0);
 	}
 	else if (ndim ==3){

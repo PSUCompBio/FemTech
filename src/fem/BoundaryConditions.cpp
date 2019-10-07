@@ -12,7 +12,6 @@ void ApplySteadyBoundaryConditions(void) {
       nSpecifiedDispBC += 1;
     }
   }
-  printf("Debug : %d\n", nSpecifiedDispBC);
   // Eliminate columns
   if (nSpecifiedDispBC == 0) {
    return;
@@ -89,32 +88,11 @@ void ApplySteadyBoundaryConditions(void) {
   memcpy(&(rhs[modifiedMatSize]), rhsAux, sizeof(double)*nSpecifiedDispBC);
   free(rhsAux);
 
-#ifdef DEBUG
-  if (debug) {
-    printf("DEBUG : Printing Full Stiffness Matrix\n");
-    for (int j = 0; j < modifiedMatSize; ++j) {
-      for (int k = 0; k < modifiedMatSize; ++k) {
-        printf("%12.4f", stiffness[j+k*modifiedMatSize]);
-      }
-      printf("\n");
-    }
-    printf("DEBUG : Printing Auxillary Stiffness Matrix\n");
-    int offset = matSize*modifiedMatSize;
-    int i = 0;
-    for (int j = 0; j < nSpecifiedDispBC; ++j) {
-      for (int k = 0; k < modifiedMatSize; ++k) {
-        printf("%12.4f", stiffness[offset+j+k*nSpecifiedDispBC]);
-      }
-      printf("\n");
-    }
-    printf("DEBUG : Printing RHS\n");
-    for (int j = 0; j < modifiedMatSize; ++j) {
-      printf("%12.4f\n", rhs[j]);
-    }
-    printf("DEBUG : Printing Auxillary RHS\n");
-    for (int j = modifiedMatSize; j < matSize; ++j) {
-      printf("%12.4f\n", rhs[j]);
-    }
-  }
-#endif //DEBUG
+  FILE_LOGMatrix_SINGLE(DEBUGLOG, stiffness, modifiedMatSize, modifiedMatSize, \
+      "Printing Full Stiffness Matrix");
+  int offset = matSize*modifiedMatSize;
+  FILE_LOGMatrix_SINGLE(DEBUGLOG, stiffness+offset, nSpecifiedDispBC, modifiedMatSize, \
+      "Printing Auxillary Stiffness Matrix");
+  FILE_LOGArraySingle(DEBUGLOG, rhs, modifiedMatSize, "Printing RHS");
+  FILE_LOGArraySingle(DEBUGLOG, rhs+modifiedMatSize, nSpecifiedDispBC, "Printing Aux RHS");
 }

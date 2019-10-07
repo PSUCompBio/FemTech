@@ -74,10 +74,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 		printf("\n");
 	}
 #endif //DEBUG
-
-
 	// Compute jacobian transformation
-
 	// If this gets called everytime function is called,
 	// I don't like it.
 	// The redeclaration needs to find memory and will cut down

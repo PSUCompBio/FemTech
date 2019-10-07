@@ -17,20 +17,12 @@ double CalculateCharacteristicLength_C3D4(int e) {
         &(elementCoordinates[index[4*i+1]*ndim]), \
         &(elementCoordinates[index[4*i+2]*ndim]), \
         &(elementCoordinates[index[4*i+3]*ndim])); 
-#ifdef DEBUG
-    if (debug) {
-      printf("Element %d, altitude %d : %12.6f\n", e, i, minAlt);
-    }
-#endif //DEBUG
+    FILE_LOG_SINGLE(DEBUGLOG, "Element %d, altitude %d : %12.6f", e, i, minAlt);
     if (minAlt < altitudeMin) {
       altitudeMin = minAlt;
     }
   }
-#ifdef DEBUG
-  if (debug) {
-    printf("Element %d, min altitude : %12.6f\n", e, altitudeMin);
-  }
-#endif //DEBUG
+  FILE_LOG_SINGLE(DEBUGLOG, "Element %d, min altitude : %12.6f\n", e, altitudeMin);
   return altitudeMin;
 }
 

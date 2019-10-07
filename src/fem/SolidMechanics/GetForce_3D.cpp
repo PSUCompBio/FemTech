@@ -98,13 +98,6 @@ void updateInternalForceNeighbour(void) {
   }
   free(requestListSend);
   free(requestListRecv);
-#ifdef DEBUG
-  if (debug && 1 == 0) {
-    const int nDOF = nnodes * ndim;
-    printf("Lumped Internal Force After Exchange\n");
-    for (int j = 0; j < nDOF; ++j) {
-      printf("%d  %12.6f\n", j, fi[j]);
-    }
-  }
-#endif //DEBUG
+
+  FILE_LOGArray(DEBUGLOGIGNORE, fi, nnodes*ndim, "Lumped Internal Force After Exchange");
 }

@@ -8,7 +8,7 @@ double CalculateCharacteristicLength(int e) {
     if (strcmp(ElementType[e], "C3D4") == 0) {
       cl = CalculateCharacteristicLength_C3D4(e);
     } else {
-      printf("ERROR : Unknown Element Type Encountered\n");
+      FILE_LOG_SINGLE(ERROR, "Unknown Element Type Encountered");
       cl = 1.0;
     }
   }

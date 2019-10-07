@@ -27,17 +27,8 @@ void Assembly(char *operation) {
       }
       free(Me);
     }
-#ifdef DEBUG
-    if (debug && 1==0) {
-      printf("DEBUG : Printing Full Mass Matrix\n");
-      for (int j = 0; j < massSize; ++j) {
-        for (int k = 0; k < massSize; ++k) {
-          printf("%.4f\t", mass[j+k*massSize]);
-        }
-        printf("\n");
-      }
-    }
-#endif //DEBUG
+    FILE_LOGMatrix_SINGLE(DEBUGLOG, mass, massSize, massSize, \
+        "Printing Full Mass Matrix");
 	} else {
 	  if (strcmp("stiffness", operation) == 0) {
       // Create global stiffness matrix
@@ -65,17 +56,8 @@ void Assembly(char *operation) {
         }
         free(Ke);
       }
-#ifdef DEBUG
-      if (debug && 1==0) {
-        printf("DEBUG : Printing Full Stiffness Matrix\n");
-        for (int j = 0; j < kSize; ++j) {
-          for (int k = 0; k < kSize; ++k) {
-            printf("%12.4f", stiffness[j+k*kSize]);
-          }
-          printf("\n");
-        }
-      }
-#endif //DEBUG
+      FILE_LOGMatrix_SINGLE(DEBUGLOG, stiffness, kSize, kSize, \
+          "Printing Full Stiffness Matrix");
     }
   }
 	return;

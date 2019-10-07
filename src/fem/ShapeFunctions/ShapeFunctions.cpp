@@ -172,16 +172,14 @@ void ShapeFunctions() {
 
   // for debugging purposes
 #ifdef DEBUG
-  if (debug && 1==0) {
-    for (int i = 0; i < nelements; i++) {
-      printf("(e.%d) - eptr:[%d->%d] - gptr:[%d->%d] -  dsptr:[%d->%d] - fptr:[%d->%d] - pk2ptr:[%d->%d] \n",
- 				i, eptr[i], eptr[i + 1], gptr[i], gptr[i + 1], dsptr[i], dsptr[i + 1],
-				fptr[i],fptr[i + 1],pk2ptr[i],pk2ptr[i+1]);
-    }
-    printf("size of shp array = %d \n", counter);
-    printf("size of derivatives of shp functions array, dshp = %d \n", dshp_counter);
-		printf("size of deformation gradient array, F = %d \n", F_counter);
+  for (int i = 0; i < nelements; i++) {
+    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "(e.%d) - eptr:[%d->%d] - gptr:[%d->%d] -  dsptr:[%d->%d] - fptr:[%d->%d] - pk2ptr:[%d->%d]",
+      i, eptr[i], eptr[i + 1], gptr[i], gptr[i + 1], dsptr[i], dsptr[i + 1],
+      fptr[i],fptr[i + 1],pk2ptr[i],pk2ptr[i+1]);
   }
+  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "size of shp array = %d", counter);
+  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "size of derivatives of shp functions array, dshp = %d", dshp_counter);
+  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "size of deformation gradient array, F = %d", F_counter);
 #endif //DEBUG
 
   /*set size of shp array  - this holds shp functions for all elements */
@@ -202,7 +200,6 @@ void ShapeFunctions() {
 	  	the PK2 stress is symmetric */
 	pk2 = (double *)calloc(pk2_counter, sizeof(double));
 
-  /* for debugging */
 #ifdef DEBUG
   if (debug && 1==0) {
     for (int i = 0; i < nelements; i++) {

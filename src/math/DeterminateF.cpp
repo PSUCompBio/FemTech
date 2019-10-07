@@ -1,7 +1,7 @@
 #include "FemTech.h"
 #include "blas.h"
 
-void DeterminateF(int e, int gp){
+void DeterminateF(int e, int gp) {
 #ifdef DEBUG
 	if (debug && 1==0) {
 			FILE_LOG_SINGLE(DEBUGLOG, "shp array e.%d with %d Gauss points, each with %d shp functions", e, GaussPoints[e], nShapeFunctions[e]);
@@ -14,21 +14,10 @@ void DeterminateF(int e, int gp){
 							dshp[dsptr[e] + gp * GaussPoints[e] * ndim + k * ndim + 2]);
 				}
 			}
-			if(1==0){
-				FILE_LOG_SINGLE(DEBUGLOG, "Deformation Gradient, F for Gauss Point %d", gp);
-				for(int i=0;i<ndim;i++){
-						for(int j=0;j<ndim;j++){
-							int index = fptr[e] + ndim*ndim*gp + ndim*i+j;
-							printf(" F[%d]:%3.3e   ",index,F[index]);
-						}
-						printf("\n");
-				}
-				printf("\n");
-			}
-			int index2 = gpPtr[e]+gp;
-			printf("detF[%d]\n",index2);
 	}
 #endif //DEBUG
+  FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, &F[fptr[e] + ndim*ndim*gp], ndim, \
+      ndim, "Deformation Gradient, F for Gauss Point %d", gp);
 
   int index2 = gpPtr[e]+gp;
 
