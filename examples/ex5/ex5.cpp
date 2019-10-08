@@ -60,6 +60,8 @@ int main(int argc, char **argv) {
   angNormal[0] = 0.0;
   angNormal[1] = 0.0;
   angNormal[2] = 1.0;
+  peakTime = simulationJson["time-peak-acceleration"].asDouble();
+  tMax = simulationJson["maximum-time"].asDouble();
   peakTime = 0.020;
   tMax = 0.040;
   if (world_rank == 0) {

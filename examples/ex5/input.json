@@ -7,6 +7,8 @@
     "mesh" : "brain.inp",
     "linear-acceleration" : [80.0, 0.0, 0.0],
     "angular-acceleration" : 8000.0,
+    "time-peak-acceleration" : 0.02,
+    "maximum-time" : 0.04,
     "impact-point" : "front-low"
   }
 }
