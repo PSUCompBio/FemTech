@@ -2,21 +2,9 @@
 #define FEMTECH_H
 
 #include <stdio.h>
-#include <cmath>
-#include <vector>
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <string>
-#include <iomanip>
-#include <cstring>
-#include <cstdlib>
-// #include <math.h>
+#include <math.h>
 #include <limits.h>
-
-//#include <thread>
-//#include <mutex>
-//#include <cmath>
+#include <string.h>
 
 #include "GlobalVariables.h"
 
@@ -111,4 +99,5 @@ double volumeTetrahedron(double *coordinates);
 
 int compare(const void *a, const void *b);
 int unique(int *arr, int n);
+
 #endif

@@ -71,6 +71,44 @@ if(ENABLE_MPI)
 	include_directories(third-party/parmetis-4.0.3/metis/include)
 endif(ENABLE_MPI)
 
+#Get git related parameters
+execute_process(
+  COMMAND git rev-parse --abbrev-ref HEAD
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_BRANCH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+execute_process(
+  COMMAND git log -1 --format=%h
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_COMMIT_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+message(STATUS "Git current branch: ${GIT_BRANCH}")
+message(STATUS "Git commit hash: ${GIT_COMMIT_HASH}")
+
+message(STATUS "Generating gitbranch.h")
+configure_file(
+  ${CMAKE_SOURCE_DIR}/include/gitbranch.h.in
+  ${CMAKE_BINARY_DIR}/generated/gitbranch.h
+)
+include_directories(${CMAKE_BINARY_DIR}/generated)
+
+#Add external packages and headers
+add_subdirectory(third-party)
+
+#Add JsonCPP Include and Link Directories
+ExternalProject_Get_Property(JsonCpp source_dir)
+message(STATUS "JSON Cpp Src : ${source_dir}")
+include_directories(${source_dir}/include)
+
+ExternalProject_Get_Property(JsonCpp binary_dir)
+message(STATUS "JSON Cpp Lib : ${binary_dir}")
+link_directories(${binary_dir}/src/lib_json)
+
+
 
 #============================================================================
 # BLAS/Lapack

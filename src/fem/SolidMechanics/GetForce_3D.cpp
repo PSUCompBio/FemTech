@@ -16,6 +16,7 @@ void GetForce_3D() {
   for (int i = 0; i < nelements; i++) {
     int nNodes = nShapeFunctions[i];
     // number of shape functions * ndim
+    // TODO : nShapeFunctions not always equal to nNodes
     double *fintLocal = (double*)calloc(nNodes*ndim, sizeof(double));
 		// force calculaton for hexes, tets and quads
 		for(int j=0; j<GaussPoints[i]; j++) {

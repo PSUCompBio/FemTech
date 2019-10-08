@@ -11,7 +11,7 @@ void CustomPlot(double Time);
 double Time;
 int nStep;
 int nSteps;
-int nPlotSteps = 100;
+int nPlotSteps = 50;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
@@ -73,8 +73,8 @@ int main(int argc, char **argv) {
     // Dynamic Explcit solution using....
 
     double dt = 0.0;
-    double tMax = 1.0; // max simulation time in seconds
-    double dMax = 0.007; // max displacment in meters
+    double tMax = 0.1; // max simulation time in seconds
+    double dMax = 0.0005; // max displacment in meters
 
     double Time = 0.0;
     int time_step_counter = 0;
@@ -310,7 +310,7 @@ void CustomPlot(double Time) {
     datFile = fopen("plot.dat", "w");
     fprintf(datFile, "# Results for Node ?\n");
     fprintf(datFile, "# Time  DispX    DispY   DispZ\n");
-    fprintf(datFile, "%11.3e %11.3e  %11.3e  %11.3e\n", 0.0, 0.0, 0.0, 0.0);
+    fprintf(datFile, "%11.5e %11.5e  %11.5e  %11.5e\n", 0.0, 0.0, 0.0, 0.0);
 
   } else {
     datFile = fopen("plot.dat", "a");
@@ -319,7 +319,7 @@ void CustomPlot(double Time) {
           fabs(coordinates[ndim * i + y] - 0.005) < tol &&
           fabs(coordinates[ndim * i + z] - 0.005) < tol) {
 
-        fprintf(datFile, "%11.3e %11.3e  %11.3e  %11.3e\n", Time,
+        fprintf(datFile, "%11.5e %11.5e  %11.5e  %11.5e\n", Time,
                 displacements[ndim * i + x], displacements[ndim * i + y],
                 displacements[ndim * i + z]);
       }
