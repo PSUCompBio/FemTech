@@ -18,8 +18,9 @@ void CalculateStrain(int e){
   int New = ndim*ndim;
   daxpy_(&New, &alpha, I, &oneI, Cavg, &oneI); // Cavg = Cavg - I (this is an intermediate step to calculate strains, has no physical meaning)
   for(int i = 0; i < ndim*ndim; i++){
-     Eavg[e*ndim*ndim + i] = 0.5*(Cavg[i]); // Eavg = 0.5 * (Cavg - I)
-     }
+    Eavg[e*ndim*ndim + i] = 0.5*(Cavg[i]); // Eavg = 0.5 * (Cavg - I)
+  }
+
   free(Cavg);
   free(I);
 }
