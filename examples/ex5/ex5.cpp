@@ -16,10 +16,10 @@ double CenterCoordinate(int i, int coor);
 
 /* Global Variables/Parameters */
 double Time;
-double *stepTime = (double *)calloc(1000,sizeof(double));
 int nStep;
 int nSteps;
 int nPlotSteps = 50;
+double *stepTime = (double *)calloc(nPlotSteps,sizeof(double));
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
@@ -211,8 +211,10 @@ int main(int argc, char **argv) {
       printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter,
              world_rank);
       WriteVTU(meshFile.c_str(), plot_counter, Time);
-      stepTime[nStep] = Time;
-      WritePVD(meshFile.c_str(), nStep, stepTime);
+      if (nStep < nPlotSteps) {
+        stepTime[nStep] = Time;
+        WritePVD(meshFile.c_str(), nStep, Time);
+      }
       CustomPlot();
 
 #ifdef DEBUG
@@ -253,7 +255,7 @@ int main(int argc, char **argv) {
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {
-    WritePVD(meshFile.c_str(), nStep, stepTime);
+    WritePVD(meshFile.c_str(), nStep, time);
   }
   FreeArrays();
   // Free local boundary related arrays
