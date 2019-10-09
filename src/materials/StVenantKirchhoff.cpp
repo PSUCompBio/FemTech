@@ -74,7 +74,7 @@ void StVenantKirchhoff(int e, int gp) {
     // in voigt notation, sigma12
     pk2[pk2ptr[e] + 6 * gp + 5] = S[3];
 #ifdef DEBUG
-		if(debug){
+		if(debug && 1==0){
 	    printf("---- Calculate Stress ---\n");
 	    printf("Element : %d, GP : %d\n", e, gp);
 	    for (int k = 0; k < 6; ++k) {

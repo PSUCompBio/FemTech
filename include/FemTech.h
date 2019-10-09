@@ -53,7 +53,8 @@ void CalculateAccelerations();
 
 void CalculateFR();
 
-void CalculateStrain(int e);
+void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
+    double *currentStrainMin);
 void CalculateDeformationGradient(int e, int gp);
 void SumOfDeformationGradient(int e, int gp);
 void StrainDisplacementMatrix(int e, int gp, int nI, double *B);

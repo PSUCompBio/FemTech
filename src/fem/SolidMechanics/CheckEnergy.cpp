@@ -62,7 +62,7 @@ void CheckEnergy(double time) {
     Wext_n += Wext_n_total;
     double total = fabs(WKE_Total+Wint_n-Wext_n);
 #ifdef DEBUG
-	if(debug){
+	if(debug && 1 == 0){
   	printf("Internal Work : %15.9e\n", Wint_n);
   	printf("External Work : %15.9e\n", Wext_n);
     printf("Kinetic Energy : %15.9e\n", WKE_Total);

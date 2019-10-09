@@ -101,11 +101,9 @@ add_subdirectory(third-party)
 
 #Add JsonCPP Include and Link Directories
 ExternalProject_Get_Property(JsonCpp source_dir)
-message(STATUS "JSON Cpp Src : ${source_dir}")
 include_directories(${source_dir}/include)
 
 ExternalProject_Get_Property(JsonCpp binary_dir)
-message(STATUS "JSON Cpp Lib : ${binary_dir}")
 link_directories(${binary_dir}/src/lib_json)
 
 

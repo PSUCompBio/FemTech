@@ -3,7 +3,7 @@
 static void strip_ext(char *);
 
 void WriteVTU(const char* FileName, int step,double time){
-    static const int ARR_SIZE = 1000;
+  static const int ARR_SIZE = 1000;
 
 	FILE *fp;
 	int i,j;
@@ -14,8 +14,7 @@ void WriteVTU(const char* FileName, int step,double time){
 	char outfileP[ARR_SIZE] = {0};
   char outfileP2[ARR_SIZE] = {0};
 
-	if (strlen(FileName) < ARR_SIZE)
-	{
+	if (strlen(FileName) < ARR_SIZE) {
 	    strcpy(outfile, FileName);
 	}
 	strip_ext(outfile);
