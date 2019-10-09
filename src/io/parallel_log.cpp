@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
 
 #include "mpi.h"
 
