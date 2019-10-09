@@ -164,10 +164,10 @@ void WriteVTU(const char* FileName, int step,double time){
 
   fprintf(fp,"\t\t\t\t<DataArray type=\"Float64\" Name=\"AvgStrain\" "
                   "NumberOfComponents=\"%d\" ComponentName0=\"E11\" "
-                  "ComponentName1=\"E12\" ComponentName2=\"E13\" "
-                  "ComponentName3=\"E12\" ComponentName4=\"E13\" "
-                  "ComponentName5=\"E12\" ComponentName6=\"E13\" "
-                  "ComponentName7=\"E12\" ComponentName8=\"E33\" "
+                  "ComponentName1=\"E21\" ComponentName2=\"E31\" "
+                  "ComponentName3=\"E12\" ComponentName4=\"E22\" "
+                  "ComponentName5=\"E32\" ComponentName6=\"E13\" "
+                  "ComponentName7=\"E23\" ComponentName8=\"E33\" "
                   "format=\"ascii\">\n",ndim*ndim);
   for(i=0;i<nelements;i++){
       fprintf(fp,"\t\t\t\t\t");
@@ -231,10 +231,10 @@ void WriteVTU(const char* FileName, int step,double time){
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"PartID\"/>\n");
     fprintf(fp,"\t\t\t<PDataArray type=\"Float64\" Name=\"AvgStrain\" "
                     "NumberOfComponents=\"%d\" ComponentName0=\"E11\" "
-                    "ComponentName1=\"E12\" ComponentName2=\"E13\" "
-                    "ComponentName3=\"E12\" ComponentName4=\"E13\" "
-                    "ComponentName5=\"E12\" ComponentName6=\"E13\" "
-                    "ComponentName7=\"E12\" ComponentName8=\"E33\" "
+                    "ComponentName1=\"E21\" ComponentName2=\"E31\" "
+                    "ComponentName3=\"E12\" ComponentName4=\"E22\" "
+                    "ComponentName5=\"E32\" ComponentName6=\"E13\" "
+                    "ComponentName7=\"E23\" ComponentName8=\"E33\" "
                     "format=\"ascii\"/>\n",ndim*ndim);
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"ProcID\"/>\n");
     fprintf(fp,"\t\t</PCellData>\n");
