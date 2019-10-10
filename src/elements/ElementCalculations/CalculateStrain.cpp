@@ -64,3 +64,25 @@ void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
     *currentStrainMin = 0.0;
   }
 }
+
+void CalculateStrain() {
+  const int matSize = ndim*ndim;
+  for (int i = 0; i < matSize*nelements; ++i) {
+    Eavg[i] = 0.0;
+  }
+  for (int elm = 0; elm < nelements; ++elm) {
+    double *E = &Eavg[elm*matSize];
+    const int countGP = GaussPoints[elm];
+    double preFactor = 0.5/((double)countGP);
+    for(int gp = 0; gp < countGP; ++gp) {
+      int index = fptr[elm] + matSize * gp;
+      double *F_element_gp = &(F[index]);
+      // Compute Green-Lagrange Tensor: E= (1/2)*(F^T*F - I)
+      dgemm_(chy, chn, &ndim, &ndim, &ndim, &preFactor, F_element_gp, &ndim,
+            F_element_gp, &ndim, &one, E, &ndim);
+    }
+    E[0] -= 0.5;
+    E[4] -= 0.5;
+    E[8] -= 0.5;
+  }
+}
