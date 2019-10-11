@@ -1,0 +1,14 @@
+dist: trusty
+sudo: required
+env:
+  - export DISPLAY=:99.0
+language:
+  - cpp
+compiler:
+  - gcc
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - cmake
