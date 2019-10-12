@@ -23,12 +23,12 @@ before_script:
   # Run your build commands next
   - mkdir build
   - cd build/
-  - cmake .. -DEXAMPLES=ON -DEXAMPLE5=ON 
+  - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON 
 script:
   - make -j 4 
   # test example 9
   cd examples/ex9;
-  mpirun -n 2 ex9 1-elt-cube.k
+  mpirun -n 1 ex9 1-elt-cube.k
   
   
 
