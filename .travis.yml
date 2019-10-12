@@ -27,9 +27,10 @@ before_script:
   - cd build/
   - cmake ..   -DCXX_COMPILER=mpicxx -DC_COMPILER=mpicc-DEXAMPLES=ON -DEXAMPLE9=ON 
 script:
+  - pwd
   - make -j 4 
   # test example 9
-  - cd examples/ex9;
+  - cd examples/ex9/
   - mpirun -n 1 ./ex9 1-elt-cube.k
   
   
