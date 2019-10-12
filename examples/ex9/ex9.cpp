@@ -2,7 +2,6 @@
 #include "blas.h"
 
 #include <assert.h>
-#include <fenv.h>
 
 
 /*Delare Functions*/
@@ -22,7 +21,6 @@ double FailureTimeStep = 1e-11;
 
 int main(int argc, char **argv) {
 
-  feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
   // Get the number of processes
