@@ -13,8 +13,6 @@ addons:
     packages:
       - cmake
 before_install:
-  # stuff needed for qt5 which is for GUI  
-  - sudo apt-add-repository -y ppa:beineri/opt-qt551-trusty
   # test/start GUI
   - sh -e /etc/init.d/xvfb start
   # Check versions of gcc, g++ and cmake
@@ -25,8 +23,12 @@ before_script:
   # Run your build commands next
   - mkdir build
   - cd build/
-  - cmake ../ 
+  - cmake .. -DEXAMPLES=ON -DEXAMPLE5=ON 
 script:
   - make -j 4 
-  # test example 1 
+  # test example 9
+  cd examples/ex9;
+  mpirun -n 2 ex9 1-elt-cube.k
+  
+  
 
