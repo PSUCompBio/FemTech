@@ -2,6 +2,8 @@
 #include "blas.h"
 
 #include <assert.h>
+#include <fenv.h>
+
 
 /*Delare Functions*/
 void ApplyBoundaryConditions(double Time, double dMax, double tMax);
@@ -20,6 +22,7 @@ double FailureTimeStep = 1e-11;
 
 int main(int argc, char **argv) {
 
+  feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
   // Get the number of processes
@@ -101,6 +104,10 @@ int main(int argc, char **argv) {
 
     nSteps = (int)(tMax / dt);
     int nsteps_plot = (int)(nSteps / nPlotSteps);
+    if (nsteps_plot == 0) {
+      nsteps_plot = nSteps;
+      nSteps = 1;
+    }
 
     if (world_rank == 0) {
       printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
