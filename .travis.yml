@@ -2,6 +2,8 @@ dist: trusty
 sudo: required
 env:
   - export DISPLAY=:99.0
+  - CXX_COMPILER=mpicxx
+  - C_COMPILER=mpicc
 language:
   - cpp
 compiler:
@@ -10,6 +12,8 @@ addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
+      - libblas-dev 
+      - liblapack-dev
     packages:
       - cmake
 before_install:
@@ -18,7 +22,7 @@ before_install:
   # Check versions of gcc, g++ and cmake
   - gcc -v && g++ -v && cmake --version
 install:
-  - sudo apt-get install -y openmpi-bin openmpi-common libopenmpi-dev libblas-dev liblapack-dev
+  - sudo apt-get install -y openmpi-bin openmpi-common libopenmpi-dev 
 before_script:
   # Run your build commands next
   - mkdir build
