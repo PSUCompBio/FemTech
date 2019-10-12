@@ -1,56 +1,77 @@
 #include "FemTech.h"
 #include "blas.h"
+#include "gitbranch.h"
+#include "jsonfuncs.h"
 
 #include <assert.h>
 
-/*Delare Functions*/
+/*Declare Functions*/
 void CustomPlot();
 void InitCustomPlot();
 void InitBoundaryCondition(double *aMax, double angMax);
 void ApplyAccBoundaryConditions();
+void WriteMaxStrainFile(double maxStrain, double maxX, double maxY, \
+    double maxZ, double maxT, double minStrain, double minX, double minY, \
+    double minZ, double minT);
 
-/* Global Variables/Parameters  - could be moved to parameters.h file?  */
+/* Global Variables/Parameters */
 double Time;
 int nStep;
 int nSteps;
-int nPlotSteps = 1000;
+int nPlotSteps = 50;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
-static const double radToDeg = 180.0/(atan(1.0)*4.0);
+static const double radToDeg = 180.0 / (atan(1.0) * 4.0);
 
 /* Global variables used only in this file */
-const double sphereRadius = 0.08;
 int nodeIDtoPlot;
 bool rankForCustomPlot;
 /* Global variables for bc */
-int* boundaryID = NULL;
+int *boundaryID = NULL;
 int boundarySize;
 double aLin[3], bLin[3];
 double aAng, bAng;
-double peakTime, maxTime;
+double peakTime, tMax;
 double thetaOld = 0.0;
 double linDisplOld[3];
 double angNormal[3];
-double dtMax;
+const int rigidPartID = 2; // part ID of elements to be made rigid
 
 int main(int argc, char **argv) {
-  double accMax[3] = {5*9.81, 0.0, 0.0};
-  double angAccMax = 200.0;
-  angNormal[0] = 0.0; angNormal[1] = 0.0; angNormal[2] = 1.0;
-  peakTime = 0.001;
-  maxTime = 0.005;
-  dtMax = peakTime/100;
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
   // Get the number of processes
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   // Get the rank of the process
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+  static const double gC = 9.81;
 
-  if (ReadInputFile(argv[1])) {
+  Json::Value simulationJson = getConfig(argv[1]);
+  std::string meshFile = simulationJson["mesh"].asString();
+  double accMax[3];
+  accMax[0] = gC*simulationJson["linear-acceleration"][0].asDouble();
+  accMax[1] = gC*simulationJson["linear-acceleration"][1].asDouble();
+  accMax[2] = gC*simulationJson["linear-acceleration"][2].asDouble();
+
+  double angAccMax = simulationJson["angular-acceleration"].asDouble();
+  angNormal[0] = 0.0;
+  angNormal[1] = 0.0;
+  angNormal[2] = 1.0;
+  peakTime = 0.020;
+  tMax = 0.040;
+  if (world_rank == 0) {
+    printf("INFO : Git commit : %s of branch %s\n", GIT_COMMIT_HASH,
+           GIT_BRANCH);
+    printf("INFO : Linear Acceleration : (%7.3e, %7.3e, %7.3e)\n", accMax[0],
+           accMax[1], accMax[2]);
+    printf("INFO : Angular Acceleration : %7.3e\n", angAccMax);
+    printf("INFO : Reading Mesh File : %s\n", meshFile.c_str());
+  }
+
+  if (ReadInputFile(meshFile.c_str())) {
     PartitionMesh();
   }
 
@@ -62,12 +83,11 @@ int main(int argc, char **argv) {
   /* Write inital, undeformed configuration*/
   Time = 0.0;
   nStep = 0;
-  WriteVTU(argv[1], nStep, Time);
+  WriteVTU(meshFile.c_str(), nStep, Time);
   CustomPlot();
 
   // Dynamic Explcit solution using....
-  double dt = dtMax;
-  double tMax = 0.01;   // max simulation time in seconds
+  double dt = 0.0;
 
   int time_step_counter = 0;
   int plot_counter = 0;
@@ -108,6 +128,15 @@ int main(int argc, char **argv) {
         "------------------------------- Loop ----------------------------\n");
     printf("Time : %f, tmax : %f\n", Time, tMax);
   }
+
+  /* Variables to compute maximim and minimum strain */
+  double maxStrain = 0.0, minStrain = 0.0;
+  int maxElem = 0, minElem = 0;
+  double maxT = 0.0, minT = 0.0;
+  struct {
+    double value;
+    int   rank;
+  } parStructMax, parStructMin; 
 
   /* Step-4: Time loop starts....*/
   while (Time < tMax) {
@@ -164,25 +193,42 @@ int main(int argc, char **argv) {
 
     if (time_step_counter % nsteps_plot == 0) {
       plot_counter = plot_counter + 1;
-      // printf("Plot %d/%d: dt=%3.2e s, Time=%3.2e s, Tmax=%3.2e s on rank :
-      // %d\n", 	plot_counter,nPlotSteps,dt,Time,tMax, world_rank);
+      double currentStrainMaxElem, currentStrainMinElem;
+      double currentStrainMax = 0.0, currentStrainMin = 0.0;
       for (int i = 0; i < nelements; i++) {
-        for (int l = 0; l < ndim * ndim; l++) {
-          Favg[i * ndim * ndim + l] = 0.0;
-        } // initializing avg def gradient to zero for each time step
-        for (int j = 0; j < GaussPoints[i]; j++) {
-          SumOfDeformationGradient(i, j);
-        } // calculating sum of deformation gradient for all gauss points
-        for (int k = 0; k < ndim * ndim; k++) {
-          Favg[i * ndim * ndim + k] =
-              Favg[i * ndim * ndim + k] / GaussPoints[i];
-        } // dividing by number of gauss points to get average deformation
-          // gradient
-        CalculateStrain(i);
-      } // calculating avergae strain for every element
+        CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, &currentStrainMinElem);
+        if (currentStrainMax < currentStrainMaxElem) {
+          currentStrainMax = currentStrainMaxElem;
+          maxElem = i;
+        }
+        if (currentStrainMin > currentStrainMinElem) {
+          currentStrainMin = currentStrainMinElem;
+          minElem = i;
+        }
+      } // calculating max and minimum strain over local elements
+      // Updating max and min time
+      if (currentStrainMax > maxStrain) {
+        maxT = Time;
+        maxStrain = currentStrainMax;
+      }
+      if (currentStrainMin < minStrain) {
+        minT = Time;
+        minStrain = currentStrainMin;
+      }
+      // Find the gloabl min and max strain
+      parStructMax.value = maxStrain;
+      parStructMax.rank = world_rank;
+      MPI_Allreduce(MPI_IN_PLACE, &parStructMax, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
+      maxStrain = parStructMax.value;
+
+      parStructMin.value = minStrain;
+      parStructMin.rank = world_rank;
+      MPI_Allreduce(MPI_IN_PLACE, &parStructMin, 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
+      minStrain = parStructMin.value;
+
       printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter,
              world_rank);
-      WriteVTU(argv[1], plot_counter, Time);
+      WriteVTU(meshFile.c_str(), plot_counter, Time);
       CustomPlot();
 
 #ifdef DEBUG
@@ -219,8 +265,51 @@ int main(int argc, char **argv) {
 #endif // DEBUG
 
   /* Below are things to do at end of program */
+  // Copy max and min strain 
+  if (parStructMin.rank == world_rank) {
+    double minLocationAndTime[4];
+    for (int i = 0; i < 4; ++i) {
+      minLocationAndTime[i] = 0.0;
+    }
+    // Compute element coordinates 
+    int nP = eptr[minElem+1]-eptr[minElem];
+    for (int i = eptr[minElem]; i < eptr[minElem+1]; ++i) {
+      minLocationAndTime[0] += coordinates[connectivity[i]*ndim];
+      minLocationAndTime[1] += coordinates[connectivity[i]*ndim+1];
+      minLocationAndTime[2] += coordinates[connectivity[i]*ndim+2];
+    }
+    for (int i = 0; i < ndim; ++i) {
+      minLocationAndTime[i] = minLocationAndTime[i]/((double)nP);
+    }
+    minLocationAndTime[3] = minT;
+    MPI_Send(minLocationAndTime, 4, MPI_DOUBLE, 0, 7297, MPI_COMM_WORLD);
+  }
+  if (parStructMax.rank == world_rank) {
+    double maxLocationAndTime[4];
+    for (int i = 0; i < 4; ++i) {
+      maxLocationAndTime[i] = 0.0;
+    }
+    // Compute element coordinates 
+    int nP = eptr[maxElem+1]-eptr[maxElem];
+    for (int i = eptr[maxElem]; i < eptr[maxElem+1]; ++i) {
+      maxLocationAndTime[0] += coordinates[connectivity[i]*ndim];
+      maxLocationAndTime[1] += coordinates[connectivity[i]*ndim+1];
+      maxLocationAndTime[2] += coordinates[connectivity[i]*ndim+2];
+    }
+    for (int i = 0; i < ndim; ++i) {
+      maxLocationAndTime[i] = maxLocationAndTime[i]/((double)nP);
+    }
+    maxLocationAndTime[3] = maxT;
+    MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7298, MPI_COMM_WORLD);
+  }
   if (world_rank == 0) {
-    WritePVD(argv[1], nStep, Time);
+    double minRecv[4];
+    double maxRecv[4];
+    MPI_Recv(minRecv, 4, MPI_DOUBLE, parStructMin.rank, 7297, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(maxRecv, 4, MPI_DOUBLE, parStructMax.rank, 7298, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    WritePVD(meshFile.c_str(), nStep, Time);
+    WriteMaxStrainFile(maxStrain, maxRecv[0], maxRecv[1], maxRecv[2], \
+        maxRecv[3], minStrain, minRecv[0], minRecv[1], minRecv[2], minRecv[3]);
   }
   FreeArrays();
   // Free local boundary related arrays
@@ -245,64 +334,74 @@ void ApplyAccBoundaryConditions() {
   // Compute angular accelerations, angular velocities and angles
   if (Time < peakTime) {
     for (int i = 0; i < ndim; ++i) {
-      linAcc[i] = aLin[i]*Time;
-      linVel[i] = 0.5*aLin[i]*Time*Time;
-      linDispl[i] = aLin[i]*Time*Time*Time/6.0;
+      linAcc[i] = aLin[i] * Time;
+      linVel[i] = 0.5 * aLin[i] * Time * Time;
+      linDispl[i] = aLin[i] * Time * Time * Time / 6.0;
     }
 
-    angAcc = aAng*Time;
-    angVel = 0.5*aAng*Time*Time;
-    angDispl = aAng*Time*Time*Time/6.0;
+    angAcc = aAng * Time;
+    angVel = 0.5 * aAng * Time * Time;
+    angDispl = aAng * Time * Time * Time / 6.0;
   } else {
-    if (Time < maxTime) {
+    if (Time < tMax) {
       for (int i = 0; i < ndim; ++i) {
-        linAcc[i] = (aLin[i]+bLin[i])*peakTime-bLin[i]*Time;
-        linVel[i] = (aLin[i]+bLin[i])*(peakTime*Time-0.5*peakTime*peakTime)-\
-                    0.5*bLin[i]*Time*Time;
-        linDispl[i] = 0.5*(aLin[i]+bLin[i])*peakTime*(peakTime*peakTime/3.0-\
-            peakTime*Time+Time*Time)-bLin[i]*Time*Time*Time/6.0;
+        linAcc[i] = (aLin[i] + bLin[i]) * peakTime - bLin[i] * Time;
+        linVel[i] = (aLin[i] + bLin[i]) *
+                        (peakTime * Time - 0.5 * peakTime * peakTime) -
+                    0.5 * bLin[i] * Time * Time;
+        linDispl[i] =
+            0.5 * (aLin[i] + bLin[i]) * peakTime *
+                (peakTime * peakTime / 3.0 - peakTime * Time + Time * Time) -
+            bLin[i] * Time * Time * Time / 6.0;
       }
 
-      angAcc = (aAng+bAng)*peakTime-bAng*Time;
-      angVel = (aAng+bAng)*(peakTime*Time-0.5*peakTime*peakTime)-\
-                  0.5*bAng*Time*Time;
-      angDispl = 0.5*(aAng+bAng)*peakTime*(peakTime*peakTime/3.0-\
-          peakTime*Time+Time*Time)-bAng*Time*Time*Time/6.0;
+      angAcc = (aAng + bAng) * peakTime - bAng * Time;
+      angVel = (aAng + bAng) * (peakTime * Time - 0.5 * peakTime * peakTime) -
+               0.5 * bAng * Time * Time;
+      angDispl =
+          0.5 * (aAng + bAng) * peakTime *
+              (peakTime * peakTime / 3.0 - peakTime * Time + Time * Time) -
+          bAng * Time * Time * Time / 6.0;
     } else {
       for (int i = 0; i < ndim; ++i) {
         linAcc[i] = 0.0;
-        linVel[i] = (aLin[i]+bLin[i])*(peakTime*maxTime-0.5*peakTime*peakTime)-\
-                    0.5*bLin[i]*maxTime*maxTime;
-        linDispl[i] = 0.5*(aLin[i]+bLin[i])*peakTime*(peakTime*peakTime/3.0-\
-            peakTime*maxTime+maxTime*maxTime)-bLin[i]*maxTime*maxTime*maxTime/6.0+\
-                      linVel[i]*(Time-maxTime);
+        linVel[i] = (aLin[i] + bLin[i]) *
+                        (peakTime * tMax - 0.5 * peakTime * peakTime) -
+                    0.5 * bLin[i] * tMax * tMax;
+        linDispl[i] =
+            0.5 * (aLin[i] + bLin[i]) * peakTime *
+                (peakTime * peakTime / 3.0 - peakTime * tMax + tMax * tMax) -
+            bLin[i] * tMax * tMax * tMax / 6.0 + linVel[i] * (Time - tMax);
       }
       angAcc = 0.0;
-      angVel = (aAng+bAng)*(peakTime*maxTime-0.5*peakTime*peakTime)-\
-                  0.5*bAng*maxTime*maxTime;
-      angDispl = 0.5*(aAng+bAng)*peakTime*(peakTime*peakTime/3.0-\
-          peakTime*maxTime+maxTime*maxTime)-bAng*maxTime*maxTime*maxTime/6.0+\
-                    angVel*(Time-maxTime);
+      angVel = (aAng + bAng) * (peakTime * tMax - 0.5 * peakTime * peakTime) -
+               0.5 * bAng * tMax * tMax;
+      angDispl =
+          0.5 * (aAng + bAng) * peakTime *
+              (peakTime * peakTime / 3.0 - peakTime * tMax + tMax * tMax) -
+          bAng * tMax * tMax * tMax / 6.0 + angVel * (Time - tMax);
     }
   }
-  double dTheta = angDispl-thetaOld;
+  double dTheta = angDispl - thetaOld;
   thetaOld = angDispl;
   GetBodyCenterofMass(cm);
   get3dRotationMatrix(angNormal, dTheta, rotMat);
   for (int j = 0; j < ndim; ++j) {
-    omega[j] = angVel*angNormal[j];
-    alpha[j] = angAcc*angNormal[j];
-    rotation[j] = 0.0;
+    omega[j] = angVel * angNormal[j];
+    alpha[j] = angAcc * angNormal[j];
   }
 
   for (int i = 0; i < boundarySize; i++) {
-    int index = boundaryID[i]*ndim;
+    int index = boundaryID[i] * ndim;
     for (int j = 0; j < ndim; ++j) {
-      position[j] = coordinates[index+j]+displacements[index+j]-cm[j];
+      position[j] = coordinates[index + j] + displacements[index + j] - cm[j];
+    }
+    for (int j = 0; j < ndim; ++j) {
+      rotation[j] = 0.0;
     }
     for (int j = 0; j < ndim; ++j) {
       for (int k = 0; k < ndim; ++k) {
-        rotation[j] += rotMat[j][k]*position[k];
+        rotation[j] += rotMat[j][k] * position[k];
       }
       rotation[j] -= position[j];
     }
@@ -311,16 +410,22 @@ void ApplyAccBoundaryConditions() {
     crossProduct(omega, velRotation, centrifugal);
     crossProduct(alpha, position, accRotation);
     for (int j = 0; j < ndim; ++j) {
-      displacements[index+j] += (linDispl[j]-linDisplOld[j])+rotation[j];
-      velocities[index+j] = linVel[j]+velRotation[j];
+      displacements[index + j] += (linDispl[j] - linDisplOld[j]) + rotation[j];
+      velocities[index + j] = linVel[j] + velRotation[j];
       // For energy computations
-      accelerations[index+j] = linAcc[j]+2.0*accCorioli[j]+accRotation[j]+centrifugal[j];
+      accelerations[index + j] =
+          linAcc[j] + 2.0 * accCorioli[j] + accRotation[j] + centrifugal[j];
     }
   }
   if (world_rank == 0) {
     FILE *datFile;
     datFile = fopen("motion.dat", "a");
-    fprintf(datFile, "%11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e\n", Time, linAcc[0], linAcc[1], linAcc[2], linVel[0], linVel[1], linVel[2], linDispl[0], linDispl[1], linDispl[2], angAcc, angVel, angDispl*radToDeg);
+    fprintf(datFile,
+            "%11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  "
+            "%11.3e  %11.3e  %11.3e  %11.3e  %11.3e\n",
+            Time, linAcc[0], linAcc[1], linAcc[2], linVel[0], linVel[1],
+            linVel[2], linDispl[0], linDispl[1], linDispl[2], angAcc, angVel,
+            angDispl * radToDeg);
     fclose(datFile);
   }
   for (int j = 0; j < ndim; ++j) {
@@ -330,29 +435,42 @@ void ApplyAccBoundaryConditions() {
 }
 
 void InitCustomPlot() {
-  double xPlot = sphereRadius;
-  double yPlot = 0.00;
-  double zPlot = 0.00;
+  double xPlot = 2.087348700e-02;
+  double yPlot = 2.087348700e-02;
+  double zPlot = 2.175215120e-02;
   double tol = 1e-5;
+
+  int idToPlot;
   FILE *datFile;
   rankForCustomPlot = false;
   int index;
   const int x = 0;
   const int y = 1;
   const int z = 2;
+  int state = 0;
+  int cumState = 0;
 
   for (int i = 0; i < nnodes; ++i) {
-    index = i*ndim;
-    if (fabs(coordinates[index + x] - xPlot) < tol &&
-        fabs(coordinates[index + y] - yPlot) < tol &&
-        fabs(coordinates[index + z] - zPlot) < tol) {
+    if (fabs(coordinates[ndim * i + x] - xPlot) < tol &&
+        fabs(coordinates[ndim * i + y] - yPlot) < tol &&
+        fabs(coordinates[ndim * i + z] - zPlot) < tol) {
       nodeIDtoPlot = i;
       rankForCustomPlot = true;
-      printf("INFO(%d) : nodeID for plot : %d\n", world_rank, nodeIDtoPlot);
+      state = 1;
       break;
     }
   }
+  // If multiple procs have same node use the lowest rank
+  MPI_Scan(&state, &cumState, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
   if (rankForCustomPlot) {
+    if (cumState > 1) {
+      rankForCustomPlot = false;
+      return;
+    }
+    printf("INFO(%d) : nodeID for plot : %d (%15.9e, %15.9e, %15.9e)\n",
+          world_rank, nodeIDtoPlot, coordinates[ndim * nodeIDtoPlot + x],
+          coordinates[ndim * nodeIDtoPlot + y],
+          coordinates[ndim * nodeIDtoPlot + z]);
     datFile = fopen("plot.dat", "w");
     fprintf(datFile, "# Results for Node %d\n", nodeIDtoPlot);
     fprintf(datFile, "# Time  DispX    DispY   DispZ\n");
@@ -366,11 +484,11 @@ void CustomPlot() {
     const int x = 0;
     const int y = 1;
     const int z = 2;
-    const int index = nodeIDtoPlot*ndim;
+    const int index = nodeIDtoPlot * ndim;
 
     FILE *datFile;
     datFile = fopen("plot.dat", "a");
-    fprintf(datFile, "%11.3e %11.3e  %11.3e  %11.3e\n", Time,
+    fprintf(datFile, "%15.9e %15.9e  %15.9e  %15.9e\n", Time,
             displacements[index + x], displacements[index + y],
             displacements[index + z]);
 
@@ -381,46 +499,55 @@ void CustomPlot() {
 
 void InitBoundaryCondition(double *aMax, double angMax) {
   double tol = 1e-5;
-  // Find the number of nodes on the outer boundary
-  // For sphere : find points at specified radius
-  double sphereRad2 = sphereRadius*sphereRadius;
-  int index;
-  double nodeDist2;
-  boundarySize = 0;
-  for (int i = 0; i < nnodes; ++i) {
-    index = i*ndim;
-    nodeDist2 = coordinates[index]*coordinates[index]+coordinates[index+1]*\
-                coordinates[index+1]+coordinates[index+2]*coordinates[index+2];
-    if (fabs(nodeDist2-sphereRad2) < tol) {
-      boundarySize = boundarySize + 1;
+  // Find count of nodes with specified partID
+  int rigidNodeCount = 0;
+  for (int i = 0; i < nelements; ++i) {
+    if (pid[i] == rigidPartID) {
+      rigidNodeCount = rigidNodeCount + (eptr[i + 1] - eptr[i]);
     }
   }
-  if (boundarySize) {
-    boundaryID = (int*)malloc(boundarySize*sizeof(int));
-    if (boundaryID == NULL) {
-      printf("ERROR(%d) : Unable to alocate boundaryID\n", world_rank);
-      exit(0);
+  // Allocate node storage
+  int *rigidNodeID = (int *)malloc(rigidNodeCount * sizeof(int));
+  if (rigidNodeID == NULL) {
+    printf("ERROR(%d) : Unable to alocate rigidNodeID\n", world_rank);
+    exit(0);
+  }
+  // Store all nodes to be made rigid
+  int nodePtr = 0;
+  for (int i = 0; i < nelements; ++i) {
+    if (pid[i] == rigidPartID) {
+      for (int j = eptr[i]; j < eptr[i + 1]; ++j) {
+        rigidNodeID[nodePtr] = connectivity[j];
+        nodePtr = nodePtr + 1;
+      }
     }
   }
-  int bcIndex = 0;
-  for (int i = 0; i < nnodes; ++i) {
-    index = i*ndim;
-    nodeDist2 = coordinates[index]*coordinates[index]+coordinates[index+1]*\
-                coordinates[index+1]+coordinates[index+2]*coordinates[index+2];
-    if (fabs(nodeDist2-sphereRad2) < tol) {
-      boundaryID[bcIndex] = i;
-      bcIndex = bcIndex + 1;
-      boundary[i] = 1;
-    }
+  assert(nodePtr == rigidNodeCount);
+  // Sort and make unique
+  qsort(rigidNodeID, rigidNodeCount, sizeof(int), compare);
+  boundarySize = unique(rigidNodeID, rigidNodeCount);
+  printf("INFO(%d): %d nodes given rigid motion\n", world_rank, boundarySize);
+  boundaryID = (int *)malloc(boundarySize * sizeof(int));
+  if (boundaryID == NULL) {
+    printf("ERROR(%d) : Unable to alocate boundaryID\n", world_rank);
+    exit(0);
   }
-  assert(bcIndex == boundarySize);
+  for (int i = 0; i < boundarySize; ++i) {
+    int node = rigidNodeID[i];
+    int index = node * ndim;
+    boundaryID[i] = node;
+    boundary[index] = 1;
+    boundary[index + 1] = 1;
+    boundary[index + 2] = 1;
+  }
+  free(rigidNodeID);
   // Compute the constants required for acceleration computations
   for (int i = 0; i < ndim; ++i) {
-    aLin[i] = aMax[i]/peakTime;
-    bLin[i] = aMax[i]/(maxTime-peakTime);
+    aLin[i] = aMax[i] / peakTime;
+    bLin[i] = aMax[i] / (tMax - peakTime);
   }
-  aAng = angMax/peakTime;
-  bAng = angMax/(maxTime-peakTime);
+  aAng = angMax / peakTime;
+  bAng = angMax / (tMax - peakTime);
   for (int i = 0; i < 3; ++i) {
     linDisplOld[i] = 0.0;
   }
@@ -429,9 +556,24 @@ void InitBoundaryCondition(double *aMax, double angMax) {
   if (world_rank == 0) {
     datFile = fopen("motion.dat", "w");
     fprintf(datFile, "# Motion Results\n");
-    fprintf(datFile, "# Time     AccX    AccY    AccZ    VelX    VelY    VelZ    LinDispX  LinDisp Y  LinDisp Z  AngAcc   AngVel   Angle \n");
+    fprintf(datFile,
+            "# Time     AccX    AccY    AccZ    VelX    VelY    VelZ    "
+            "LinDispX  LinDisp Y  LinDisp Z  AngAcc   AngVel   Angle \n");
     fclose(datFile);
   }
-
   return;
+}
+
+void WriteMaxStrainFile(double maxStrain, double maxX, double maxY, \
+    double maxZ, double maxT, double minStrain, double minX, double minY, \
+    double minZ, double minT) {
+  // Write the maximum strain to file
+  FILE *maxStrainFile;
+  maxStrainFile = fopen("maxstrain.dat", "w");
+  fprintf(maxStrainFile, "# Maximum and Minimum Principal Strain Results\n");
+  fprintf(maxStrainFile, "# MaxStrain  MaxX  MaxY MaxZ  MaxT  MinStrain  MinX  MinY MinZ  MinT\n");
+  fprintf(maxStrainFile,
+          "%11.6e  %11.6e  %11.6e  %11.6e  %11.6e  %11.6e  %11.6e  %11.6e  "
+          "%11.6e  %11.6e\n", maxStrain, maxX, maxY, maxZ, maxT, minStrain, minX, minY, minZ, minT);
+  fclose(maxStrainFile);
 }

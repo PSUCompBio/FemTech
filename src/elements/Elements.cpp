@@ -15,7 +15,7 @@ void GetBodyCenterofMass(double *cm) {
     rho = properties[MAXMATPARAMS * pide + 0];
     mass = volume*rho;
     for (int j = 0; j < ndim; ++j) {
-      cm[j] += mass*rho*cmLocal[j];
+      cm[j] += mass*cmLocal[j];
     }
     totalMass += mass;
   }

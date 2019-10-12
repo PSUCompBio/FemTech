@@ -1,0 +1,34 @@
+dist: trusty
+sudo: required
+env:
+  - export DISPLAY=:99.0
+language:
+  - cpp
+compiler:
+  - gcc
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - cmake
+before_install:
+  # test/start GUI
+  - sh -e /etc/init.d/xvfb start
+  # Check versions of gcc, g++ and cmake
+  - gcc -v && g++ -v && cmake --version
+install:
+  - sudo apt-get install -y openmpi-bin openmpi-common libopenmpi-dev libblas-dev liblapack-dev
+before_script:
+  # Run your build commands next
+  - mkdir build
+  - cd build/
+  - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON 
+script:
+  - make -j 4 
+  # test example 9
+  - cd examples/ex9;
+  - mpirun -n 1 ex9 1-elt-cube.k
+  
+  
+

@@ -34,14 +34,9 @@ void StVenantKirchhoff(int e, int gp) {
   }
   if (ndim == 3) {
     int index = fptr[e] + ndim * ndim * gp;
-    int index2 = detFptr[e] + gp;
     int pide = pid[e];
-    double mu =
-        properties[MAXMATPARAMS * pide + 1]; // in future will be equal to
-                                          // component from  properties array
-    double lambda =
-        properties[MAXMATPARAMS * pide + 2]; // in future will be equal to
-                                          // component from  properties array
+    double mu = properties[MAXMATPARAMS * pide + 1];    
+    double lambda = properties[MAXMATPARAMS * pide + 2];
 
     // Compute Green-Lagrange Tensor: E= (1/2)*(F^T*F - I)
     double matSize = ndim * ndim;
@@ -79,7 +74,7 @@ void StVenantKirchhoff(int e, int gp) {
     // in voigt notation, sigma12
     pk2[pk2ptr[e] + 6 * gp + 5] = S[3];
 #ifdef DEBUG
-		if(debug){
+		if(debug && 1==0){
 	    printf("---- Calculate Stress ---\n");
 	    printf("Element : %d, GP : %d\n", e, gp);
 	    for (int k = 0; k < 6; ++k) {

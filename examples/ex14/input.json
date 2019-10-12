@@ -1,0 +1,12 @@
+{
+  "player": {
+    "name" : "harry",
+    "position" : "OL"
+  },
+  "simulation": {
+    "mesh" : "sphere-in-sphere-hex.inp",
+    "linear-acceleration" : [80.0, 0.0, 0.0],
+    "angular-acceleration" : 8000.0,
+    "impact-point" : "front-low"
+  }
+}

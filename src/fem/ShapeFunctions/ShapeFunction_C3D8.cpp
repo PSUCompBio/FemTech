@@ -113,7 +113,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
   double c1, c2, c3;
   int baseIndex;
 #ifdef DEBUG
-	if(debug){
+	if(debug && 1==0){
 	  printf("---- Shape Function C3D8 ----\n");
 	  printf("Determinant of Jacobian : %12.6e\n", det);
 	  printf("Derivatives eid : %d, gpid : %d, chi : %12.6f, eta : %12.6f, iota : %12.6f\n", e, gp, chi, eta, iota);
@@ -125,7 +125,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
     c2 = dshp[baseIndex]*J_Inv[1]+dshp[baseIndex+1]*J_Inv[4]+dshp[baseIndex+2]*J_Inv[7];
     c3 = dshp[baseIndex]*J_Inv[2]+dshp[baseIndex+1]*J_Inv[5]+dshp[baseIndex+2]*J_Inv[8];
 #ifdef DEBUG
-    if(debug){
+    if(debug && 1==0){
 			printf("Shape fn        : %d, %12.6f, %12.6f, %12.6f\n", i, dshp[baseIndex], dshp[baseIndex+1], dshp[baseIndex+2]);
 		}
 #endif //DEBUG
@@ -133,14 +133,14 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
     dshp[baseIndex+1] = c2;
     dshp[baseIndex+2] = c3;
 #ifdef DEBUG
-    if(debug){
+    if(debug && 1==0){
 			printf("Shape fn Global : %d, %12.6f, %12.6f, %12.6f\n", i, dshp[baseIndex], dshp[baseIndex+1], dshp[baseIndex+2]);
 		}
 #endif //DEBUG
  }
 	//for debugging can be removed...
 #ifdef DEBUG
-	if(debug){
+	if(debug && 1==0){
 	  printf("---- XS Matrix ----\n");
 		if (debug && 1==1) {
 			printf("%8.4e %8.4e %8.4e\n", xs[0], xs[3], xs[6]);
