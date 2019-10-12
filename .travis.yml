@@ -2,8 +2,6 @@ dist: trusty
 sudo: required
 env:
   - export DISPLAY=:99.0
-  - CXX_COMPILER=mpicxx
-  - C_COMPILER=mpicc
 language:
   - cpp
 compiler:
@@ -27,7 +25,7 @@ before_script:
   # Run your build commands next
   - mkdir build
   - cd build/
-  - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON 
+  - cmake ..   -DCXX_COMPILER=mpicxx -DC_COMPILER=mpicc-DEXAMPLES=ON -DEXAMPLE9=ON 
 script:
   - make -j 4 
   # test example 9
