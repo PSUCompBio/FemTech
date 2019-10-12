@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
     double dMax = 0.1; // max displacment in meters
     double tMax = 1.0;
     ShapeFunctions();
-    ReadMaterialProperties();
+    CreateLinearElasticityCMatrix();
     ApplyBoundaryConditions(Time, dMax, tMax);
     Assembly((char *)"stiffness");
     ApplySteadyBoundaryConditions();
@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
     double tMax = 1.0;
     double dMax = 0.1; // max displacment in meters
     ShapeFunctions();
-    ReadMaterialProperties();
+    CreateLinearElasticityCMatrix();
     Time = 1.0;
     ApplyBoundaryConditions(Time, dMax, tMax);
     Assembly((char *)"stiffness");
@@ -85,7 +85,6 @@ int main(int argc, char **argv) {
     // double gamma = 0.5;
 
     ShapeFunctions();
-    ReadMaterialProperties();
     /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
     AssembleLumpedMass();
 
@@ -172,25 +171,7 @@ int main(int argc, char **argv) {
 
       if (time_step_counter % nsteps_plot == 0) {
         plot_counter = plot_counter + 1;
-        // printf("Plot %d/%d: dt=%3.2e s, Time=%3.2e s, Tmax=%3.2e s on rank : %d\n",
-				// 	plot_counter,nPlotSteps,dt,Time,tMax, world_rank);
-        for (int i = 0; i < nelements; i++) {
-          for (int l = 0; l < ndim * ndim; l++) {
-            Favg[i * ndim * ndim + l] = 0.0;
-          } // initializing avg def gradient to zero for each time step
-          for (int j = 0; j < GaussPoints[i]; j++) {
-            SumOfDeformationGradient(i, j);
-          } // calculating sum of deformation gradient for all gauss points
-          for (int k = 0; k < ndim * ndim; k++) {
-            Favg[i * ndim * ndim + k] =
-                Favg[i * ndim * ndim + k] / GaussPoints[i];
-          } // dividing by number of gauss points to get average deformation
-            // gradient
-          CalculateStrain(i);
-        } // calculating avergae strain for every element
-        //printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter, world_rank);
-      //  WriteVTU(argv[1], plot_counter, Time);
-        //CustomPlot(Time);
+        CalculateStrain();
 
 #ifdef DEBUG
         if (debug) {

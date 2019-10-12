@@ -51,7 +51,8 @@ int main(int argc, char **argv) {
   // double gamma = 0.5;
 
   ShapeFunctions();
-  ReadMaterialProperties();
+  CreateLinearElasticityCMatrix();
+  
   /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
   Assembly((char *)"mass"); // Add Direct-lumped as an option
   LumpMassMatrix();

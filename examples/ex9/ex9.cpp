@@ -11,7 +11,7 @@ void CustomPlot(double Time);
 double Time;
 int nStep;
 int nSteps;
-int nPlotSteps = 100;
+int nPlotSteps = 50;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
@@ -73,8 +73,8 @@ int main(int argc, char **argv) {
     // Dynamic Explcit solution using....
 
     double dt = 0.0;
-    double tMax = 1.0; // max simulation time in seconds
-    double dMax = 0.007; // max displacment in meters
+    double tMax = 0.1; // max simulation time in seconds
+    double dMax = 0.0005; // max displacment in meters
 
     double Time = 0.0;
     int time_step_counter = 0;
@@ -171,22 +171,7 @@ int main(int argc, char **argv) {
 
       if (time_step_counter % nsteps_plot == 0) {
         plot_counter = plot_counter + 1;
-        // printf("Plot %d/%d: dt=%3.2e s, Time=%3.2e s, Tmax=%3.2e s on rank : %d\n",
-				// 	plot_counter,nPlotSteps,dt,Time,tMax, world_rank);
-        for (int i = 0; i < nelements; i++) {
-          for (int l = 0; l < ndim * ndim; l++) {
-            Favg[i * ndim * ndim + l] = 0.0;
-          } // initializing avg def gradient to zero for each time step
-          for (int j = 0; j < GaussPoints[i]; j++) {
-            SumOfDeformationGradient(i, j);
-          } // calculating sum of deformation gradient for all gauss points
-          for (int k = 0; k < ndim * ndim; k++) {
-            Favg[i * ndim * ndim + k] =
-                Favg[i * ndim * ndim + k] / GaussPoints[i];
-          } // dividing by number of gauss points to get average deformation
-            // gradient
-          CalculateStrain(i);
-        } // calculating avergae strain for every element
+        CalculateStrain();
         printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter, world_rank);
         WriteVTU(argv[1], plot_counter, Time);
         CustomPlot(Time);
@@ -310,7 +295,7 @@ void CustomPlot(double Time) {
     datFile = fopen("plot.dat", "w");
     fprintf(datFile, "# Results for Node ?\n");
     fprintf(datFile, "# Time  DispX    DispY   DispZ\n");
-    fprintf(datFile, "%11.3e %11.3e  %11.3e  %11.3e\n", 0.0, 0.0, 0.0, 0.0);
+    fprintf(datFile, "%11.5e %11.5e  %11.5e  %11.5e\n", 0.0, 0.0, 0.0, 0.0);
 
   } else {
     datFile = fopen("plot.dat", "a");
@@ -319,7 +304,7 @@ void CustomPlot(double Time) {
           fabs(coordinates[ndim * i + y] - 0.005) < tol &&
           fabs(coordinates[ndim * i + z] - 0.005) < tol) {
 
-        fprintf(datFile, "%11.3e %11.3e  %11.3e  %11.3e\n", Time,
+        fprintf(datFile, "%11.5e %11.5e  %11.5e  %11.5e\n", Time,
                 displacements[ndim * i + x], displacements[ndim * i + y],
                 displacements[ndim * i + z]);
       }

@@ -171,7 +171,7 @@ bool ReadAbaqus(const char *FileName) {
     for (int i = 0; i < UniqueElSetsCount; i++) {
         for (int j = 0; j < nelements; j++) {
             if (strcmp(UniqueElSetNames[i], ElSetNames[j]) == 0) {
-                pid[j] = i + 1;
+                pid[j] = i;
             }
         }
     }

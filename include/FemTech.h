@@ -2,21 +2,10 @@
 #define FEMTECH_H
 
 #include <stdio.h>
-#include <cmath>
-#include <vector>
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <string>
-#include <iomanip>
-#include <cstring>
-#include <cstdlib>
+#include <stdlib.h>
 #include <math.h>
 #include <limits.h>
-
-//#include <thread>
-//#include <mutex>
-//#include <cmath>
+#include <string.h>
 
 #include "GlobalVariables.h"
 
@@ -47,7 +36,6 @@ void MassElementMatrix(double* Me, int e);
 void WriteVTU(const char* FileName, int step, double time);
 void WritePVD(const char* FileName, int step, double time);
 void FreeArrays();
-void ReadMaterialProperties();
 void ApplySteadyBoundaryConditions(void);
 void SolveSteadyImplicit(void);
 void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double dt, \
@@ -65,14 +53,16 @@ void CalculateAccelerations();
 
 void CalculateFR();
 
-void CalculateStrain(int e);
+void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
+    double *currentStrainMin);
+void CalculateStrain();
 void CalculateDeformationGradient(int e, int gp);
 void SumOfDeformationGradient(int e, int gp);
 void StrainDisplacementMatrix(int e, int gp, int nI, double *B);
 void CompressibleNeoHookean(int e, int gp);
 void StressUpdate(int e, int gp);
 void DeterminateF(int e, int gp);
-void InverseF(int e, int gp);
+void InverseF(int e, int gp, double *fInv);
 void InternalForceUpdate(int e, int gp, double *force);
 void TrussStressForceUpdate(int e, int gp, double *force);
 void ReadMaterials();
@@ -111,4 +101,5 @@ double volumeTetrahedron(double *coordinates);
 
 int compare(const void *a, const void *b);
 int unique(int *arr, int n);
+
 #endif
