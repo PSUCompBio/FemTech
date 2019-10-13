@@ -31,11 +31,15 @@ before_script:
   # Run your build commands next
   - mkdir build
   - cd build/
-  - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON 
+  - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON -DEXAMPLE4=ON -DEXAMPLE10=ON 
 script:
   - pwd
   - make -j 4 
   # test example 9
   - cd ./examples/ex9/
   - mpirun -n 1 ex9 1-elt-cube.k
+  - cd ../ex4
+  - mpirun -n 2 ex4 3part-cubes.inp
+  - cd ../ex10
+  - mpirun -n 1 ex10 1-elt-tet.k
 
