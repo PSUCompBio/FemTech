@@ -10,6 +10,8 @@ addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
+      - libblas-dev 
+      - liblapack-dev
     packages:
       - cmake
 before_install:
@@ -20,18 +22,20 @@ before_install:
 install:
   - sudo apt-get install -y openmpi-bin openmpi-common libopenmpi-dev libblas-dev liblapack-dev
 # safelist
-branches:
-  only:
-  - master
-  - develop
-  - travis-ci-testing
+#branches:
+#  only:
+#  - master
+#  - develop
+#  - travis-ci-testing
 before_script:
   # Run your build commands next
   - mkdir build
   - cd build/
-  - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON 
+  - cmake ..   -DCXX_COMPILER=mpicxx -DC_COMPILER=mpicc-DEXAMPLES=ON -DEXAMPLE9=ON 
 script:
+  - pwd
   - make -j 4 
   # test example 9
   - cd examples/ex9;
   - mpirun -n 1 ex9 1-elt-cube.k
+
