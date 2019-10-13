@@ -1,4 +1,4 @@
-dist: trusty
+dist: bionic
 sudo: required
 env:
   - export DISPLAY=:99.0
@@ -16,23 +16,26 @@ addons:
       - cmake
 before_install:
   # test/start GUI
-  - sh -e /etc/init.d/xvfb start
+  # - sh -e /etc/init.d/xvfb start
   # Check versions of gcc, g++ and cmake
   - gcc -v && g++ -v && cmake --version
 install:
-  - sudo apt-get install -y openmpi-bin openmpi-common libopenmpi-dev 
+  - sudo apt-get install -y openmpi-bin openmpi-common libopenmpi-dev libblas-dev liblapack-dev
+# safelist
+#branches:
+#  only:
+#  - master
+#  - develop
+#  - travis-ci-testing
 before_script:
   # Run your build commands next
   - mkdir build
   - cd build/
-  - cmake ..   -DCXX_COMPILER=mpicxx -DC_COMPILER=mpicc-DEXAMPLES=ON -DEXAMPLE9=ON 
+  - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON 
 script:
   - pwd
   - make -j 4 
   # test example 9
-  - pwd
   - cd ./examples/ex9/
-  - mpirun -n 1 ./ex9 1-elt-cube.k
-  
-  
+  - mpirun -n 1 ex9 1-elt-cube.k
 
