@@ -37,9 +37,9 @@ script:
   - make -j 4 
   # test example 9
   - cd ./examples/ex9/
-  - mpirun -n 1 ex9 1-elt-cube.k
+  - mpirun -n 1 --mca btl_base_warn_component_unused 0 ex9 1-elt-cube.k
   - cd ../ex4
-  - mpirun -n 2 ex4 3part-cubes.inp
+  - mpirun -n 2 --mca btl_base_warn_component_unused 0 ex4 3part-cubes.inp
   - cd ../ex10
-  - mpirun -n 1 ex10 1-elt-tet.k
+  - mpirun -n 1 --mca btl_base_warn_component_unused 0 ex10 1-elt-tet.k
 
