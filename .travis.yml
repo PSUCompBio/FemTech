@@ -31,7 +31,7 @@ before_script:
   # Run your build commands next
   - mkdir build
   - cd build/
-  - cmake ..   -DCXX_COMPILER=mpicxx -DC_COMPILER=mpicc-DEXAMPLES=ON -DEXAMPLE9=ON 
+  - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON 
 script:
   - pwd
   - make -j 4 
