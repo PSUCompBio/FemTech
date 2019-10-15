@@ -255,7 +255,7 @@ int main(int argc, char **argv) {
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {
-    WritePVD(meshFile.c_str(), nStep, time);
+    WritePVD(meshFile.c_str(), nStep, Time);
   }
   FreeArrays();
   // Free local boundary related arrays
