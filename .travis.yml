@@ -10,17 +10,20 @@ addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
-      - libblas-dev 
-      - liblapack-dev
     packages:
       - cmake
+      - libblas-dev 
+      - liblapack-dev
+      - openmpi-bin 
+      - openmpi-common 
+      - libopenmpi-dev
 before_install:
   # test/start GUI
   # - sh -e /etc/init.d/xvfb start
   # Check versions of gcc, g++ and cmake
   - gcc -v && g++ -v && cmake --version
-install:
-  - sudo apt-get install -y openmpi-bin openmpi-common libopenmpi-dev libblas-dev liblapack-dev
+# install:
+#   - sudo apt-get install -y openmpi-bin openmpi-common libopenmpi-dev libblas-dev liblapack-dev
 # safelist
 #branches:
 #  only:
@@ -42,4 +45,3 @@ script:
   - mpirun -n 2 --mca btl_base_warn_component_unused 0 ex1 mixed-hex-tet.k
   - cd ../ex10
   - mpirun -n 1 --mca btl_base_warn_component_unused 0 ex10 1-elt-tet.k
-

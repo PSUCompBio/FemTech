@@ -48,10 +48,9 @@ int main(int argc, char **argv){
 	printf("\n");
 #endif
 
+  AllocateArrays();
   WriteVTU(argv[1], 0, 0.0);  
-
   ShapeFunctions();
-
   FreeArrays();
   MPI_Finalize();
   return 0;

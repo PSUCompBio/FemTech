@@ -12,7 +12,6 @@ void ApplySteadyBoundaryConditions(void) {
       nSpecifiedDispBC += 1;
     }
   }
-  printf("Debug : %d\n", nSpecifiedDispBC);
   // Eliminate columns
   if (nSpecifiedDispBC == 0) {
    return;
