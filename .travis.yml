@@ -31,6 +31,7 @@ script:
   # test example 9
   - cd ./examples/ex9/
   - mpirun -n 1 --mca btl_base_warn_component_unused 0 ex9 1-elt-cube.k
+  - python compareResults.py
   # test example 1
   - cd ../ex1
   - mpirun -n 2 --mca btl_base_warn_component_unused 0 ex1 mixed-hex-tet.k
