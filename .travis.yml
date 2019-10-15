@@ -1,15 +1,12 @@
 dist: bionic
-sudo: required
-env:
-  - export DISPLAY=:99.0
+# env:
+#   - export DISPLAY=:99.0
 language:
   - cpp
 compiler:
   - gcc
 addons:
   apt:
-    sources:
-      - ubuntu-toolchain-r-test
     packages:
       - cmake
       - libblas-dev 
@@ -22,14 +19,7 @@ before_install:
   # - sh -e /etc/init.d/xvfb start
   # Check versions of gcc, g++ and cmake
   - gcc -v && g++ -v && cmake --version
-# install:
-#   - sudo apt-get install -y openmpi-bin openmpi-common libopenmpi-dev libblas-dev liblapack-dev
-# safelist
-#branches:
-#  only:
-#  - master
-#  - develop
-#  - travis-ci-testing
+  - python --version
 before_script:
   # Run your build commands next
   - mkdir build
@@ -41,7 +31,9 @@ script:
   # test example 9
   - cd ./examples/ex9/
   - mpirun -n 1 --mca btl_base_warn_component_unused 0 ex9 1-elt-cube.k
+  # test example 1
   - cd ../ex1
   - mpirun -n 2 --mca btl_base_warn_component_unused 0 ex1 mixed-hex-tet.k
+  # test example 10
   - cd ../ex10
   - mpirun -n 1 --mca btl_base_warn_component_unused 0 ex10 1-elt-tet.k
