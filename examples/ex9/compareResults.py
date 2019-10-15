@@ -22,7 +22,7 @@ dX = np.abs((xF-xA)*100.0/xA);
 
 if (dT < 1.0):
     dMax = dX.max()
-    if (dMax > 3.0):
+    if (dMax > 5.0):
         raise sys.exit(1)
 else:
     raise sys.exit(1)
