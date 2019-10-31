@@ -73,8 +73,8 @@ int main(int argc, char **argv) {
     // Dynamic Explcit solution using....
 
     double dt = 0.0;
-    double tMax = 0.1; // max simulation time in seconds
-    double dMax = 0.0005; // max displacment in meters
+    double tMax = 1.00; // max simulation time in seconds
+    double dMax = 0.007; // max displacment in meters
 
     double Time = 0.0;
     int time_step_counter = 0;
