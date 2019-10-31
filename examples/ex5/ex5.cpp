@@ -19,6 +19,7 @@ double Time;
 int nStep;
 int nSteps;
 int nPlotSteps = 50;
+double *stepTime = (double *)calloc(nPlotSteps,sizeof(double));
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
@@ -128,7 +129,7 @@ int main(int argc, char **argv) {
   if (world_rank == 0) {
     printf(
         "------------------------------- Loop ----------------------------\n");
-    printf("Time : %f, tmax : %f\n", Time, tMax);
+   printf("Time : %f, tmax : %f\n", Time, tMax);
   }
 
   /* Variables to compute maximim and minimum strain */
@@ -232,6 +233,10 @@ int main(int argc, char **argv) {
       printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter,
              world_rank);
       WriteVTU(meshFile.c_str(), plot_counter, Time);
+      if (nStep < nPlotSteps) {
+        stepTime[nStep] = Time;
+        WritePVD(meshFile.c_str(), nStep, Time);
+      }
       CustomPlot();
 
 #ifdef DEBUG
