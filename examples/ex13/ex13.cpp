@@ -119,9 +119,10 @@ exit(0);
     }
 
     /** Step - 11 Checking* Energy Balance */
-    // CheckEnergy();
+    int writeFlag = time_step_counter%nsteps_plot;
+    CheckEnergy(Time, writeFlag);
 
-    if (time_step_counter % nsteps_plot == 0) {
+    if (writeFlag == 0) {
       plot_counter = plot_counter + 1;
       printf("------Plot %d: WriteVTU\n", plot_counter);
       WriteVTU(argv[1], plot_counter, Time);

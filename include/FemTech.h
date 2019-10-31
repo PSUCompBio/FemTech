@@ -77,7 +77,7 @@ double dotProduct3D(double *a, double *b);
 void rotate3d(double *n, double theta, double *xin);
 void get3dRotationMatrix(double *n, double theta, double mat[3][3]);
 
-void CheckEnergy(double time);
+void CheckEnergy(double time, int writeFlag);
 
 /* Functions to calculate characteristic lengths */
 double CalculateCharacteristicLength(int e);

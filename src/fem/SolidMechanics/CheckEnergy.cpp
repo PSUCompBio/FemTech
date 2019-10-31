@@ -1,6 +1,6 @@
 #include "FemTech.h"
 
-void CheckEnergy(double time) {
+void CheckEnergy(double time, int writeFlag) {
   static double Wint_n = 0.0;
   static double Wext_n = 0.0;
 
@@ -62,7 +62,7 @@ void CheckEnergy(double time) {
     Wext_n += Wext_n_total;
     double total = fabs(WKE_Total+Wint_n-Wext_n);
 #ifdef DEBUG
-	if(debug){
+	if(debug) {
   	printf("Internal Work : %15.9e\n", Wint_n);
   	printf("External Work : %15.9e\n", Wext_n);
     printf("Kinetic Energy : %15.9e\n", WKE_Total);
@@ -81,8 +81,10 @@ void CheckEnergy(double time) {
     if (total > epsilon*max) {
       printf("\nERROR - Energy Violation:  Total = %15.9e, Max = %15.9e, Error\% : %10.2f \n", total, max, total*100.0/max);
     }
-    fprintf(energyFile, "%12.6e %12.6e  %12.6e  %12.6e %12.6e\n", time,
-            Wint_n, Wext_n, WKE_Total, total);
+    if (writeFlag == 0) {
+      fprintf(energyFile, "%12.6e %12.6e  %12.6e  %12.6e %12.6e\n", time,
+              Wint_n, Wext_n, WKE_Total, total);
+    }
   }
   // Wint_n = WKE;
 }

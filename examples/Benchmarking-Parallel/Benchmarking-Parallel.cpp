@@ -168,9 +168,10 @@ int main(int argc, char **argv) {
       }
 
       /** Step - 11 Checking* Energy Balance */
-      CheckEnergy(Time);
+      int writeFlag = time_step_counter%nsteps_plot;
+      CheckEnergy(Time, writeFlag);
 
-      if (time_step_counter % nsteps_plot == 0) {
+      if (writeFlag == 0) {
         plot_counter = plot_counter + 1;
         // printf("Plot %d/%d: dt=%3.2e s, Time=%3.2e s, Tmax=%3.2e s on rank : %d\n",
 				// 	plot_counter,nPlotSteps,dt,Time,tMax, world_rank);
