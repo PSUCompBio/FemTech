@@ -2,7 +2,7 @@
 
 void StressUpdate(int e, int gp){
 #ifdef DEBUG
-	if(debug){
+	if(debug && 1==0){
   	printf("---- Calling Stress Update %d, %d ---\n", e, gp);
 	}
 #endif //DEBUG
@@ -13,7 +13,7 @@ void StressUpdate(int e, int gp){
 	// St. Venant-Kirchhoff
 	if(materialID[pid[e]]==2){
 #ifdef DEBUG
-		if(debug){
+		if(debug && 1==0){
     	printf("---- Calling Material Model St. Venant %d, %d ---\n", e, gp);
     	printf("---- ----\n");
 		}

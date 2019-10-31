@@ -5,11 +5,14 @@
 
 #include <assert.h>
 
-/*Delare Functions*/
+/*Declare Functions*/
 void CustomPlot();
 void InitCustomPlot();
 void InitBoundaryCondition(double *aMax, double angMax);
 void ApplyAccBoundaryConditions();
+void WriteMaxStrainFile(double maxStrain, double maxX, double maxY, \
+    double maxZ, double maxT, double minStrain, double minX, double minY, \
+    double minZ, double minT);
 
 /* Global Variables/Parameters */
 double Time;
@@ -126,6 +129,15 @@ int main(int argc, char **argv) {
     printf("Time : %f, tmax : %f\n", Time, tMax);
   }
 
+  /* Variables to compute maximim and minimum strain */
+  double maxStrain = 0.0, minStrain = 0.0;
+  int maxElem = 0, minElem = 0;
+  double maxT = 0.0, minT = 0.0;
+  struct {
+    double value;
+    int   rank;
+  } parStructMax, parStructMin; 
+
   /* Step-4: Time loop starts....*/
   while (Time < tMax) {
     double t_n = Time;
@@ -182,22 +194,39 @@ int main(int argc, char **argv) {
 
     if (writeFlag == 0) {
       plot_counter = plot_counter + 1;
-      // printf("Plot %d/%d: dt=%3.2e s, Time=%3.2e s, Tmax=%3.2e s on rank :
-      // %d\n", 	plot_counter,nPlotSteps,dt,Time,tMax, world_rank);
+      double currentStrainMaxElem, currentStrainMinElem;
+      double currentStrainMax = 0.0, currentStrainMin = 0.0;
       for (int i = 0; i < nelements; i++) {
-        for (int l = 0; l < ndim * ndim; l++) {
-          Favg[i * ndim * ndim + l] = 0.0;
-        } // initializing avg def gradient to zero for each time step
-        for (int j = 0; j < GaussPoints[i]; j++) {
-          SumOfDeformationGradient(i, j);
-        } // calculating sum of deformation gradient for all gauss points
-        for (int k = 0; k < ndim * ndim; k++) {
-          Favg[i * ndim * ndim + k] =
-              Favg[i * ndim * ndim + k] / GaussPoints[i];
-        } // dividing by number of gauss points to get average deformation
-          // gradient
-        CalculateStrain(i);
-      } // calculating avergae strain for every element
+        CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, &currentStrainMinElem);
+        if (currentStrainMax < currentStrainMaxElem) {
+          currentStrainMax = currentStrainMaxElem;
+          maxElem = i;
+        }
+        if (currentStrainMin > currentStrainMinElem) {
+          currentStrainMin = currentStrainMinElem;
+          minElem = i;
+        }
+      } // calculating max and minimum strain over local elements
+      // Updating max and min time
+      if (currentStrainMax > maxStrain) {
+        maxT = Time;
+        maxStrain = currentStrainMax;
+      }
+      if (currentStrainMin < minStrain) {
+        minT = Time;
+        minStrain = currentStrainMin;
+      }
+      // Find the gloabl min and max strain
+      parStructMax.value = maxStrain;
+      parStructMax.rank = world_rank;
+      MPI_Allreduce(MPI_IN_PLACE, &parStructMax, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
+      maxStrain = parStructMax.value;
+
+      parStructMin.value = minStrain;
+      parStructMin.rank = world_rank;
+      MPI_Allreduce(MPI_IN_PLACE, &parStructMin, 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
+      minStrain = parStructMin.value;
+
       printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter,
              world_rank);
       WriteVTU(meshFile.c_str(), plot_counter, Time);
@@ -237,8 +266,51 @@ int main(int argc, char **argv) {
 #endif // DEBUG
 
   /* Below are things to do at end of program */
+  // Copy max and min strain 
+  if (parStructMin.rank == world_rank) {
+    double minLocationAndTime[4];
+    for (int i = 0; i < 4; ++i) {
+      minLocationAndTime[i] = 0.0;
+    }
+    // Compute element coordinates 
+    int nP = eptr[minElem+1]-eptr[minElem];
+    for (int i = eptr[minElem]; i < eptr[minElem+1]; ++i) {
+      minLocationAndTime[0] += coordinates[connectivity[i]*ndim];
+      minLocationAndTime[1] += coordinates[connectivity[i]*ndim+1];
+      minLocationAndTime[2] += coordinates[connectivity[i]*ndim+2];
+    }
+    for (int i = 0; i < ndim; ++i) {
+      minLocationAndTime[i] = minLocationAndTime[i]/((double)nP);
+    }
+    minLocationAndTime[3] = minT;
+    MPI_Send(minLocationAndTime, 4, MPI_DOUBLE, 0, 7297, MPI_COMM_WORLD);
+  }
+  if (parStructMax.rank == world_rank) {
+    double maxLocationAndTime[4];
+    for (int i = 0; i < 4; ++i) {
+      maxLocationAndTime[i] = 0.0;
+    }
+    // Compute element coordinates 
+    int nP = eptr[maxElem+1]-eptr[maxElem];
+    for (int i = eptr[maxElem]; i < eptr[maxElem+1]; ++i) {
+      maxLocationAndTime[0] += coordinates[connectivity[i]*ndim];
+      maxLocationAndTime[1] += coordinates[connectivity[i]*ndim+1];
+      maxLocationAndTime[2] += coordinates[connectivity[i]*ndim+2];
+    }
+    for (int i = 0; i < ndim; ++i) {
+      maxLocationAndTime[i] = maxLocationAndTime[i]/((double)nP);
+    }
+    maxLocationAndTime[3] = maxT;
+    MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7298, MPI_COMM_WORLD);
+  }
   if (world_rank == 0) {
+    double minRecv[4];
+    double maxRecv[4];
+    MPI_Recv(minRecv, 4, MPI_DOUBLE, parStructMin.rank, 7297, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(maxRecv, 4, MPI_DOUBLE, parStructMax.rank, 7298, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     WritePVD(meshFile.c_str(), nStep, Time);
+    WriteMaxStrainFile(maxStrain, maxRecv[0], maxRecv[1], maxRecv[2], \
+        maxRecv[3], minStrain, minRecv[0], minRecv[1], minRecv[2], minRecv[3]);
   }
   FreeArrays();
   // Free local boundary related arrays
@@ -491,4 +563,18 @@ void InitBoundaryCondition(double *aMax, double angMax) {
     fclose(datFile);
   }
   return;
+}
+
+void WriteMaxStrainFile(double maxStrain, double maxX, double maxY, \
+    double maxZ, double maxT, double minStrain, double minX, double minY, \
+    double minZ, double minT) {
+  // Write the maximum strain to file
+  FILE *maxStrainFile;
+  maxStrainFile = fopen("maxstrain.dat", "w");
+  fprintf(maxStrainFile, "# Maximum and Minimum Principal Strain Results\n");
+  fprintf(maxStrainFile, "# MaxStrain  MaxX  MaxY MaxZ  MaxT  MinStrain  MinX  MinY MinZ  MinT\n");
+  fprintf(maxStrainFile,
+          "%11.6e  %11.6e  %11.6e  %11.6e  %11.6e  %11.6e  %11.6e  %11.6e  "
+          "%11.6e  %11.6e\n", maxStrain, maxX, maxY, maxZ, maxT, minStrain, minX, minY, minZ, minT);
+  fclose(maxStrainFile);
 }
