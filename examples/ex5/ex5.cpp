@@ -19,7 +19,7 @@ double Time;
 int nStep;
 int nSteps;
 int nPlotSteps = 50;
-double *stepTime = (double *)calloc(nPlotSteps,sizeof(double));
+double *stepTime;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
@@ -83,6 +83,7 @@ int main(int argc, char **argv) {
   InitCustomPlot();
   InitBoundaryCondition(accMax, angAccMax);
 
+  stepTime = (double*)malloc(nPlotSteps*sizeof(double));
   /* Write inital, undeformed configuration*/
   Time = 0.0;
   nStep = 0;
@@ -129,7 +130,7 @@ int main(int argc, char **argv) {
   if (world_rank == 0) {
     printf(
         "------------------------------- Loop ----------------------------\n");
-   printf("Time : %f, tmax : %f\n", Time, tMax);
+    printf("Time : %f, tmax : %f\n", Time, tMax);
   }
 
   /* Variables to compute maximim and minimum strain */
@@ -320,9 +321,12 @@ int main(int argc, char **argv) {
         maxRecv[3], minStrain, minRecv[0], minRecv[1], minRecv[2], minRecv[3]);
   }
   FreeArrays();
-  // Free local boundary related arrays
+  // Free local boundary and plot related arrays
   if (boundaryID) {
     free(boundaryID);
+  }
+  if (stepTime) {
+    free(stepTime);
   }
   MPI_Finalize();
   return 0;
