@@ -9,9 +9,7 @@ void CustomPlot(double Time);
 
 /* Global Variables/Parameters  - could be moved to parameters.h file?  */
 double Time;
-int nStep;
 int nSteps;
-int nPlotSteps = 100;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
 
@@ -28,6 +26,7 @@ int main(int argc, char **argv) {
   // Get the rank of the process
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
+  nPlotSteps = 100;
   if (ReadInputFile(argv[1])) {
     PartitionMesh();
   }
@@ -37,8 +36,9 @@ int main(int argc, char **argv) {
 
   /* Write inital, undeformed configuration*/
   Time = 0.0;
-  nStep = 0;
-  WriteVTU(argv[1], nStep, Time);
+  int plot_counter = 0;
+  WriteVTU(argv[1], plot_counter, Time);
+  stepTime[plot_counter] = Time;
   CustomPlot(Time);
 
   // Dynamic Explcit solution using....
@@ -48,7 +48,6 @@ int main(int argc, char **argv) {
   double dMax = 0.001;  // max displacment in meters
   double Time = 0.0;
   int time_step_counter = 0;
-  int plot_counter = 0;
 
   ShapeFunctions();
   /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
@@ -136,7 +135,6 @@ int main(int argc, char **argv) {
     time_step_counter = time_step_counter + 1;
     dt = ExplicitTimeStepReduction * StableTimeStep();
   } // end explcit while loop
-  nStep = plot_counter;
 #ifdef DEBUG
   if (debug) {
     printf("DEBUG : Printing Displacement Solution\n");
@@ -151,7 +149,7 @@ int main(int argc, char **argv) {
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {
-    WritePVD(argv[1], nStep, Time);
+    WritePVD(argv[1], plot_counter, Time);
   }
   FreeArrays();
   MPI_Finalize();

@@ -6,9 +6,7 @@ void ApplyBoundaryConditions(double Time,double dMax, double tMax);
 
 /* Global Variables/Parameters  - could be moved to parameters.h file?  */
 double Time;
-int nStep;
 int nSteps;
-int nPlotSteps = 10;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
@@ -23,6 +21,7 @@ int main(int argc, char **argv){
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   // Get the rank of the process
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+  nPlotSteps = 10;
 
   if (ReadInputFile(argv[1])) {
     PartitionMesh();
@@ -63,8 +62,8 @@ int main(int argc, char **argv){
 
   /* Write inital, undeformed configuration*/
 	Time = 0.0;
-	nStep = 0;
-  WriteVTU(argv[1], nStep, Time);
+  int plot_counter = 0;
+  WriteVTU(argv[1], plot_counter, Time);
 
   if (ImplicitStatic) {
     // Static solution
@@ -77,9 +76,8 @@ int main(int argc, char **argv){
     ApplySteadyBoundaryConditions();
     SolveSteadyImplicit();
     Time = tMax;
-    nStep = 1;
     /* Write final, deformed configuration*/
-    WriteVTU(argv[1], nStep, Time);
+    WriteVTU(argv[1], 1, Time);
   }
 	else if (ImplicitDynamic) {
     // Dynamic Implicit solution using Newmark's scheme for time integration
@@ -103,7 +101,6 @@ int main(int argc, char **argv){
     double dMax = 0.1; // max displacment in meters
 		double Time=0.0;
 		int time_step_counter = 0;
-		int plot_counter = 0;
 		/** Central Difference Method - Beta and Gamma */
 		double beta = 0;
 		double gamma = 0.5;
@@ -193,7 +190,7 @@ int main(int argc, char **argv){
 
 	/* Below are things to do at end of program */
 	if(world_rank == 0){
-		WritePVD(argv[1], nStep, Time);
+		WritePVD(argv[1], plot_counter, Time);
 	}
   FreeArrays();
   MPI_Finalize();

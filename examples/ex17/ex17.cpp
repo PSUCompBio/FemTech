@@ -9,9 +9,7 @@ void CustomPlot(double Time);
 
 /* Global Variables/Parameters  - could be moved to parameters.h file?  */
 double Time;
-int nStep;
 int nSteps;
-int nPlotSteps = 10;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
 
@@ -38,9 +36,9 @@ int main(int argc, char **argv) {
 
   /* Write inital, undeformed configuration*/
   Time = 0.0;
-  nStep = 0;
-  WriteVTU(argv[1], nStep, Time);
-exit(0);
+  int plot_counter = 0;
+  WriteVTU(argv[1], plot_counter, Time);
+  exit(0);
   CustomPlot(Time);
 
   // Dynamic Explcit solution using....
@@ -49,7 +47,6 @@ exit(0);
   double dMax = 0.001;  // max displacment in meters
   double Time = 0.0;
   int time_step_counter = 0;
-  int plot_counter = 0;
 
   ShapeFunctions();
   CreateLinearElasticityCMatrix();
@@ -148,7 +145,6 @@ exit(0);
     time_step_counter = time_step_counter + 1;
     // dt = ExplicitTimeStepReduction * StableTimeStep();
   } // end explcit while loop
-  nStep = plot_counter;
   if (debug) {
     printf("DEBUG : Printing Displacement Solution\n");
     for (int i = 0; i < nnodes; ++i) {
@@ -161,7 +157,7 @@ exit(0);
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {
-    WritePVD(argv[1], nStep, Time);
+    WritePVD(argv[1], plot_counter, Time);
   }
   FreeArrays();
   MPI_Finalize();

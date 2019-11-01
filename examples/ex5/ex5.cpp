@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
   // Get the rank of the process
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
   static const double gC = 9.81;
-  nPlotSteps = 5000;
+  nPlotSteps = 50;
 
   Json::Value simulationJson = getConfig(argv[1]);
   std::string meshFile = simulationJson["mesh"].asString();
@@ -61,8 +61,6 @@ int main(int argc, char **argv) {
   angNormal[2] = 1.0;
   peakTime = simulationJson["time-peak-acceleration"].asDouble();
   tMax = simulationJson["maximum-time"].asDouble();
-  peakTime = 0.020;
-  tMax = 0.040;
   if (world_rank == 0) {
     printf("INFO : Git commit : %s of branch %s\n", GIT_COMMIT_HASH,
            GIT_BRANCH);
@@ -317,7 +315,7 @@ int main(int argc, char **argv) {
         maxRecv[3], minStrain, minRecv[0], minRecv[1], minRecv[2], minRecv[3]);
   }
   FreeArrays();
-  // Free local boundary and plot related arrays
+  // Free local boundary related arrays
   if (boundaryID) {
     free(boundaryID);
   }

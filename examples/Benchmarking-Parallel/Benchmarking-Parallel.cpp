@@ -9,9 +9,7 @@ void CustomPlot(double Time);
 
 /* Global Variables/Parameters  - could be moved to parameters.h file?  */
 double Time;
-int nStep;
 int nSteps;
-int nPlotSteps = 100;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
@@ -36,8 +34,8 @@ int main(int argc, char **argv) {
 
   /* Write inital, undeformed configuration*/
   Time = 0.0;
-  nStep = 0;
-//  WriteVTU(argv[1], nStep, Time);
+  int plot_counter = 0;
+  // WriteVTU(argv[1], plot_counter, Time);
   //CustomPlot(Time);
 
   if (ImplicitStatic) {
@@ -51,9 +49,8 @@ int main(int argc, char **argv) {
     ApplySteadyBoundaryConditions();
     SolveSteadyImplicit();
     Time = tMax;
-    nStep = 1;
     /* Write final, deformed configuration*/
-    //WriteVTU(argv[1], nStep, Time);
+    // WriteVTU(argv[1], 1, Time);
   } else if (ImplicitDynamic) {
     // Dynamic Implicit solution using Newmark's scheme for time integration
     double dt = 0.1;
@@ -78,7 +75,6 @@ int main(int argc, char **argv) {
 
     double Time = 0.0;
     int time_step_counter = 0;
-    int plot_counter = 0;
     const int nDOF = nnodes * ndim;
     /** Central Difference Method - Beta and Gamma */
     // double beta = 0;
@@ -194,7 +190,6 @@ int main(int argc, char **argv) {
   if (world_rank == 0){
   printf("%11.3e %11.3e  %11.3e  %11.3e\n", Time, displacements[0], displacements[1], displacements[2]);
 }
-    nStep = plot_counter;
     // Write out the last time step
     //CustomPlot(Time);
   } // end if ExplicitDynamic
@@ -211,9 +206,9 @@ int main(int argc, char **argv) {
 #endif // DEBUG
 
   /* Below are things to do at end of program */
-/*  if (world_rank == 0) {
-    WritePVD(argv[1], nStep, Time);
-  }*/
+  // if (world_rank == 0) {
+  //   WritePVD(argv[1], plot_counter, Time);
+  // }
   FreeArrays();
   MPI_Finalize();
   return 0;
