@@ -82,7 +82,7 @@ static int debug = 1; /* Setting it to 1 has no effect when compiled in non-debu
 // Initial configuration nStep = 0 and time = 0
 // For steady, solution is stored at nStep = 1 and time = 1
 // For unsteady nStep and time are set by solver
-extern int nStep;
+extern int nPlotSteps;
 extern double Time;
 extern double *stepTime;
 

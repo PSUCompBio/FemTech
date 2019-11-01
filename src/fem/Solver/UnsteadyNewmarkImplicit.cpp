@@ -49,7 +49,6 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double dt, \
   for (int n = 1; n < nMax+1; ++n) {
     Time = n*dt;
     printf("\nTime : %.4f\n", Time);
-    nStep = n;
     // Compute the RHS for the current time step
     memcpy(accelerationsOld, accelerations, nDOF*sizeof(double));
     memcpy(displacementsOld, displacements, nDOF*sizeof(double));

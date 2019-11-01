@@ -16,10 +16,7 @@ void WriteMaxStrainFile(double maxStrain, double maxX, double maxY, \
 
 /* Global Variables/Parameters */
 double Time;
-int nStep;
 int nSteps;
-int nPlotSteps = 50;
-double *stepTime;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
@@ -49,6 +46,7 @@ int main(int argc, char **argv) {
   // Get the rank of the process
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
   static const double gC = 9.81;
+  nPlotSteps = 5000;
 
   Json::Value simulationJson = getConfig(argv[1]);
   std::string meshFile = simulationJson["mesh"].asString();
@@ -83,18 +81,17 @@ int main(int argc, char **argv) {
   InitCustomPlot();
   InitBoundaryCondition(accMax, angAccMax);
 
-  stepTime = (double*)malloc(nPlotSteps*sizeof(double));
   /* Write inital, undeformed configuration*/
   Time = 0.0;
-  nStep = 0;
-  WriteVTU(meshFile.c_str(), nStep, Time);
+  int plot_counter = 0;
+  WriteVTU(meshFile.c_str(), plot_counter, Time);
+  stepTime[plot_counter] = Time;
   CustomPlot();
 
   // Dynamic Explcit solution using....
   double dt = 0.0;
 
   int time_step_counter = 0;
-  int plot_counter = 0;
   const int nDOF = nnodes * ndim;
   /** Central Difference Method - Beta and Gamma */
   // double beta = 0;
@@ -234,9 +231,9 @@ int main(int argc, char **argv) {
       printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter,
              world_rank);
       WriteVTU(meshFile.c_str(), plot_counter, Time);
-      if (nStep < nPlotSteps) {
-        stepTime[nStep] = Time;
-        WritePVD(meshFile.c_str(), nStep, Time);
+      if (plot_counter <= nPlotSteps) {
+        stepTime[plot_counter] = Time;
+        WritePVD(meshFile.c_str(), plot_counter, Time);
       }
       CustomPlot();
 
@@ -257,7 +254,6 @@ int main(int argc, char **argv) {
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);
 
-    nStep = plot_counter;
     // Write out the last time step
     CustomPlot();
   } // end explcit while loop
@@ -316,7 +312,7 @@ int main(int argc, char **argv) {
     double maxRecv[4];
     MPI_Recv(minRecv, 4, MPI_DOUBLE, parStructMin.rank, 7297, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Recv(maxRecv, 4, MPI_DOUBLE, parStructMax.rank, 7298, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    WritePVD(meshFile.c_str(), nStep, Time);
+    WritePVD(meshFile.c_str(), plot_counter, Time);
     WriteMaxStrainFile(maxStrain, maxRecv[0], maxRecv[1], maxRecv[2], \
         maxRecv[3], minStrain, minRecv[0], minRecv[1], minRecv[2], minRecv[3]);
   }
@@ -324,9 +320,6 @@ int main(int argc, char **argv) {
   // Free local boundary and plot related arrays
   if (boundaryID) {
     free(boundaryID);
-  }
-  if (stepTime) {
-    free(stepTime);
   }
   MPI_Finalize();
   return 0;

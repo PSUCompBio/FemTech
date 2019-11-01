@@ -58,6 +58,7 @@ void FreeArrays() {
   free1DArray(sendNeighbourCountCum);
   free1DArray(sendNodeIndex);
   free1DArray(sendNodeDisplacement);
+  free1DArray(stepTime);
 
   if (ElementType != NULL){
     for (int i = 0; i < nelements; i++){

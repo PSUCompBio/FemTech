@@ -3,7 +3,7 @@
 static void strip_ext(char *);
 
 // Write the pvtu file if you are rank zero and code in parallel
-void WritePVD(const char* FileName, int step, double time){
+void WritePVD(const char* FileName, int step, double time) {
 	static const int ARR_SIZE = 1000;
 	//printf("\nRank 0 Writing PVTU file\n");
 	FILE *fp;
@@ -29,7 +29,6 @@ void WritePVD(const char* FileName, int step, double time){
 	fprintf(fp,"<VTKFile type=\"Collection\" version=\"0.1\" byte_order=\"LittleEndian\" compressor=\"vtkZLibDataCompressor\" >\n");
 	fprintf(fp,"\t<Collection>\n");
 	for(j = 0; j < step+1; j++){
-		//fprintf(fp,"\t\t<Piece Source=\"%s.vtu.%.4d.%.4d\"/>\n", outfileP2,j,i);
 		fprintf(fp,"\t\t<DataSet timestep=\"%f\" file=\"results/%s.%.04d.pvtu\" />\n",stepTime[j],outfileP2,j);
 	}
 	fprintf(fp,"\t</Collection>\n");
