@@ -19,3 +19,5 @@ lib
 .cproject
 .project
 project.vcxproj.user.in
+CMakeCache.txt
+CMakeFiles

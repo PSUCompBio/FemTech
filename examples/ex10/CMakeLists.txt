@@ -10,7 +10,8 @@ else()
   TARGET_LINK_LIBRARIES(ex10 FemTech)
 endif(ENABLE_MPI)
 
-file(COPY 1-elt-tet.k DESTINATION .)
+file(INSTALL 1-elt-tet.k DESTINATION .)
+file(INSTALL materials.dat DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
 

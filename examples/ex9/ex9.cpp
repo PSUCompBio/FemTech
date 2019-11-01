@@ -3,6 +3,7 @@
 
 #include <assert.h>
 
+
 /*Delare Functions*/
 void ApplyBoundaryConditions(double Time, double dMax, double tMax);
 void CustomPlot(double Time);

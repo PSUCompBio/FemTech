@@ -12,6 +12,7 @@ endif(ENABLE_MPI)
 
 file(INSTALL 1-elt-cube.k DESTINATION .)
 file(INSTALL materials.dat DESTINATION .)
+file(INSTALL compareResults.py DESTINATION .)
 file(INSTALL gnuplot.script DESTINATION .)
 file(INSTALL gnuplotEnergy.script DESTINATION .)
 file(INSTALL README.md DESTINATION .)
