@@ -23,6 +23,7 @@ bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
 static const double radToDeg = 180.0 / (atan(1.0) * 4.0);
+int nPlotSteps = 50;
 
 /* Global variables used only in this file */
 int nodeIDtoPlot;
@@ -46,7 +47,6 @@ int main(int argc, char **argv) {
   // Get the rank of the process
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
   static const double gC = 9.81;
-  nPlotSteps = 50;
 
   Json::Value simulationJson = getConfig(argv[1]);
   std::string meshFile = simulationJson["mesh"].asString();
@@ -229,7 +229,7 @@ int main(int argc, char **argv) {
       printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter,
              world_rank);
       WriteVTU(meshFile.c_str(), plot_counter, Time);
-      if (plot_counter <= nPlotSteps) {
+      if (plot_counter < MAXPLOTSTEPS) {
         stepTime[plot_counter] = Time;
         WritePVD(meshFile.c_str(), plot_counter, Time);
       }
@@ -310,7 +310,7 @@ int main(int argc, char **argv) {
     double maxRecv[4];
     MPI_Recv(minRecv, 4, MPI_DOUBLE, parStructMin.rank, 7297, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Recv(maxRecv, 4, MPI_DOUBLE, parStructMax.rank, 7298, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    if (plot_counter <= nPlotSteps) {
+    if (plot_counter < MAXPLOTSTEPS) {
       stepTime[plot_counter] = Time;
       WritePVD(meshFile.c_str(), plot_counter, Time);
     }

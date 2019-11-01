@@ -20,7 +20,6 @@ double *f_damp_curr;
 double *displacements_prev;
 double *accelerations_prev;
 double *stepTime;
-int nPlotSteps = 0;
 
 int *boundary;
 FILE *energyFile;
@@ -135,7 +134,8 @@ void AllocateArrays() {
     energyFile = fopen("energy.dat", "w");
     fprintf(energyFile, "# Energy for FEM\n");
     fprintf(energyFile, "# Time  Winternal   Wexternal   WKE   total\n");
-    stepTime = (double*)malloc((nPlotSteps+1)*sizeof(double));
+
+    stepTime = (double*)malloc((MAXPLOTSTEPS)*sizeof(double));
     if (!stepTime) {
       printf("ERROR : Error in allocating stepTime array\n");
       exit(12);

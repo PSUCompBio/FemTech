@@ -12,6 +12,7 @@ bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
+int nPlotSteps = 1;
 
 int main(int argc, char **argv) {
 
@@ -21,7 +22,6 @@ int main(int argc, char **argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   // Get the rank of the process
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-  nPlotSteps = 1;
 
   if (ReadInputFile(argv[1])) {
     PartitionMesh();

@@ -9,6 +9,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax);
 void CustomPlot(double Time);
 
 /* Global Variables/Parameters  - could be moved to parameters.h file?  */
+int nPlotSteps = 50;
 double Time;
 int nSteps;
 bool ImplicitStatic = false;
@@ -25,7 +26,6 @@ int main(int argc, char **argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   // Get the rank of the process
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-  nPlotSteps = 50;
 
   if (ReadInputFile(argv[1])) {
     PartitionMesh();
@@ -174,7 +174,7 @@ int main(int argc, char **argv) {
         CalculateStrain();
         printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter, world_rank);
         WriteVTU(argv[1], plot_counter, Time);
-        if (plot_counter <= nPlotSteps) {
+        if (plot_counter < MAXPLOTSTEPS) {
           stepTime[plot_counter] = Time;
           WritePVD(argv[1], plot_counter, Time);
         }
@@ -215,7 +215,7 @@ int main(int argc, char **argv) {
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {
-    if (plot_counter <= nPlotSteps) {
+    if (plot_counter < MAXPLOTSTEPS) {
       stepTime[plot_counter] = Time;
       WritePVD(argv[1], plot_counter, Time);
     }

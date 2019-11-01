@@ -1,3 +1,6 @@
+static int MAXMATPARAMS = 10; /* maximum number of material parameters stored for each element */
+static int MAXINTERNALVARS = 5; /* max internal variables per gauss point */
+static int MAXPLOTSTEPS = 1000; /* maximum plot output steps */
 
 const double huge = 1e20;
 
@@ -70,10 +73,8 @@ extern double *Eavg; /*Green Lagrange Strain Tensor Averaged */
 
 extern int *materialID; /* material id for each element */
 extern double *properties; /* holds material parameters for each element */
-static int MAXMATPARAMS = 10; /* maximum number of material parameters stored for each element */
 
 extern double *internals; /* internal variables, typically used for damage or plasticity varialbes*/
-static int MAXINTERNALVARS = 5; /* max internal variables per gauss point */
 extern int *InternalsPtr; /* pointer for iterating through internals array */
 
 static int debug = 1; /* Setting it to 1 has no effect when compiled in non-debug mode */
@@ -82,7 +83,6 @@ static int debug = 1; /* Setting it to 1 has no effect when compiled in non-debu
 // Initial configuration nStep = 0 and time = 0
 // For steady, solution is stored at nStep = 1 and time = 1
 // For unsteady nStep and time are set by solver
-extern int nPlotSteps;
 extern double Time;
 extern double *stepTime;
 
