@@ -5,8 +5,8 @@
 
 
 /*Delare Functions*/
-void ApplyBoundaryConditions(double Time, double dMax, double tMax);
-void CustomPlot(double Time);
+void ApplyBoundaryConditions(double dMax, double tMax);
+void CustomPlot();
 
 /* Global Variables/Parameters  - could be moved to parameters.h file?  */
 double Time;
@@ -37,9 +37,9 @@ int main(int argc, char **argv) {
   /* Write inital, undeformed configuration*/
   Time = 0.0;
   int plot_counter = 0;
-  WriteVTU(argv[1], plot_counter, Time);
+  WriteVTU(argv[1], plot_counter);
   stepTime[plot_counter] = Time;
-  CustomPlot(Time);
+  CustomPlot();
 
   if (ImplicitStatic) {
     // Static solution
@@ -47,13 +47,13 @@ int main(int argc, char **argv) {
     double tMax = 1.0;
     ShapeFunctions();
     CreateLinearElasticityCMatrix();
-    ApplyBoundaryConditions(Time, dMax, tMax);
+    ApplyBoundaryConditions(dMax, tMax);
     Assembly((char *)"stiffness");
     ApplySteadyBoundaryConditions();
     SolveSteadyImplicit();
     Time = tMax;
     /* Write final, deformed configuration*/
-    WriteVTU(argv[1], 1, Time);
+    WriteVTU(argv[1], 1);
   } else if (ImplicitDynamic) {
     // Dynamic Implicit solution using Newmark's scheme for time integration
     double dt = 0.1;
@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
     ShapeFunctions();
     CreateLinearElasticityCMatrix();
     Time = 1.0;
-    ApplyBoundaryConditions(Time, dMax, tMax);
+    ApplyBoundaryConditions(dMax, tMax);
     Assembly((char *)"stiffness");
     Assembly((char *)"mass");
     /* beta and gamma of Newmark's scheme */
@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
     double tMax = 1.00; // max simulation time in seconds
     double dMax = 0.007; // max displacment in meters
 
-    double Time = 0.0;
+    Time = 0.0;
     int time_step_counter = 0;
     const int nDOF = nnodes * ndim;
     /** Central Difference Method - Beta and Gamma */
@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
     AssembleLumpedMass();
 
     // Used if initial velocity and acceleration BC is to be set.
-    ApplyBoundaryConditions(Time, dMax, tMax);
+    ApplyBoundaryConditions(dMax, tMax);
     /* Step-2: getforce step from Belytschko */
     GetForce(); // Calculating the force term.
 
@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
 
     /* Step-4: Time loop starts....*/
     while (Time < tMax) {
-      double t_n = Time;
+      t_n = Time;
       double t_np1 = Time + dt;
       Time = t_np1; /*Update the time by adding full time step */
       if (world_rank == 0) {
@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
         }
       }
       /* Step 6 Enforce displacement boundary Conditions */
-      ApplyBoundaryConditions(Time, dMax, tMax);
+      ApplyBoundaryConditions(dMax, tMax);
 
       /* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
       GetForce(); // Calculating the force term.
@@ -173,12 +173,13 @@ int main(int argc, char **argv) {
         plot_counter = plot_counter + 1;
         CalculateStrain();
         printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter, world_rank);
-        WriteVTU(argv[1], plot_counter, Time);
+        WriteVTU(argv[1], plot_counter);
         if (plot_counter < MAXPLOTSTEPS) {
+          printf("------ %d: WritePVD by rank : %d at Time : %f\n", plot_counter, world_rank, Time);
           stepTime[plot_counter] = Time;
-          WritePVD(argv[1], plot_counter, Time);
+          WritePVD(argv[1], plot_counter);
         }
-        CustomPlot(Time);
+        CustomPlot();
 
 #ifdef DEBUG
         if (debug) {
@@ -199,7 +200,7 @@ int main(int argc, char **argv) {
     } // end explcit while loop
 
     // Write out the last time step
-    CustomPlot(Time);
+    CustomPlot();
   } // end if ExplicitDynamic
 #ifdef DEBUG
   if (debug) {
@@ -214,18 +215,18 @@ int main(int argc, char **argv) {
 #endif // DEBUG
 
   /* Below are things to do at end of program */
-  if (world_rank == 0) {
-    if (plot_counter < MAXPLOTSTEPS) {
-      stepTime[plot_counter] = Time;
-      WritePVD(argv[1], plot_counter, Time);
-    }
-  }
+  // if (world_rank == 0) {
+  //   if (plot_counter < MAXPLOTSTEPS) {
+  //     stepTime[plot_counter] = Time;
+  //     WritePVD(argv[1], plot_counter);
+  //   }
+  // }
   FreeArrays();
   MPI_Finalize();
   return 0;
 }
 
-void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
+void ApplyBoundaryConditions(double dMax, double tMax) {
   double tol = 1e-5;
   int count = 0;
   double AppliedDisp;
@@ -290,7 +291,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
   return;
 }
 
-void CustomPlot(double Time) {
+void CustomPlot() {
   double tol = 1e-5;
   FILE *datFile;
   int x = 0;
@@ -306,8 +307,8 @@ void CustomPlot(double Time) {
   } else {
     datFile = fopen("plot.dat", "a");
     for (int i = 0; i < nnodes; i++) {
-      if (fabs(coordinates[ndim * i + x] - 0.0) < tol &&
-          fabs(coordinates[ndim * i + y] - 0.005) < tol &&
+      if (fabs(coordinates[ndim * i + x] - 0.005) < tol &&
+          fabs(coordinates[ndim * i + y] - 0.0) < tol &&
           fabs(coordinates[ndim * i + z] - 0.0) < tol) {
 
         fprintf(datFile, "%11.5e %11.5e  %11.5e  %11.5e\n", Time,

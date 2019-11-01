@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
   /* Write inital, undeformed configuration*/
   Time = 0.0;
   int plot_counter = 0;
-  WriteVTU(meshFile.c_str(), plot_counter, Time);
+  WriteVTU(meshFile.c_str(), plot_counter);
   stepTime[plot_counter] = Time;
   CustomPlot();
 
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
 
   /* Step-4: Time loop starts....*/
   while (Time < tMax) {
-    double t_n = Time;
+    t_n = Time;
     double t_np1 = Time + dt;
     Time = t_np1; /*Update the time by adding full time step */
     double dt_nphalf = dt;                 // equ 6.2.1
@@ -228,10 +228,10 @@ int main(int argc, char **argv) {
 
       printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter,
              world_rank);
-      WriteVTU(meshFile.c_str(), plot_counter, Time);
+      WriteVTU(meshFile.c_str(), plot_counter);
       if (plot_counter < MAXPLOTSTEPS) {
         stepTime[plot_counter] = Time;
-        WritePVD(meshFile.c_str(), plot_counter, Time);
+        WritePVD(meshFile.c_str(), plot_counter);
       }
       CustomPlot();
 
@@ -310,10 +310,10 @@ int main(int argc, char **argv) {
     double maxRecv[4];
     MPI_Recv(minRecv, 4, MPI_DOUBLE, parStructMin.rank, 7297, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Recv(maxRecv, 4, MPI_DOUBLE, parStructMax.rank, 7298, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    if (plot_counter < MAXPLOTSTEPS) {
-      stepTime[plot_counter] = Time;
-      WritePVD(meshFile.c_str(), plot_counter, Time);
-    }
+    // if (plot_counter < MAXPLOTSTEPS) {
+    //   stepTime[plot_counter] = Time;
+    //   WritePVD(meshFile.c_str(), plot_counter, Time);
+    // }
     WriteMaxStrainFile(maxStrain, maxRecv[0], maxRecv[1], maxRecv[2], \
         maxRecv[3], minStrain, minRecv[0], minRecv[1], minRecv[2], minRecv[3]);
   }

@@ -1,9 +1,6 @@
 #include "FemTech.h"
 #include "blas.h"
 
-// double *rhs;
-// int nSpecifiedDispBC;
-
 void ModifyMassAndStiffnessMatrix();
 void ComputeUnsteadyRHS(const int n, const int nMax, double* displacementFinal, \
     const double a, const double b, const double c);
@@ -40,7 +37,6 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double dt, \
   // LU decompose modified stiffness matrix
   int *pivot = (int*)malloc(matSize*sizeof(int));
   int info;
-  int oneI = 1;
   dgetrf_(&matSize, &matSize, stiffness, &matSize, pivot, &info); 
   if (info) {
     printf("LU Decomposition failed with info code %d\n", info);
@@ -83,7 +79,7 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double dt, \
     }
 #endif //DEBUG
     // Write the solution to file
-    WriteVTU(name, n, Time);
+    WriteVTU(name, n);
   }
   // Free all dynamically allocated ememory
   free(displacementFinal);

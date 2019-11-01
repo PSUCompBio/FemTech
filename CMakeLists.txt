@@ -71,6 +71,9 @@ if(ENABLE_MPI)
 	include_directories(third-party/parmetis-4.0.3/metis/include)
 endif(ENABLE_MPI)
 
+#Compiler and Linker parameters common to all compilers
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wshadow")
+
 #Get git related parameters
 execute_process(
   COMMAND git rev-parse --abbrev-ref HEAD

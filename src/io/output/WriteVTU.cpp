@@ -2,7 +2,7 @@
 
 static void strip_ext(char *);
 
-void WriteVTU(const char* FileName, int step,double time){
+void WriteVTU(const char* FileName, int step) {
   static const int ARR_SIZE = 1000;
 
 	FILE *fp;
@@ -238,7 +238,7 @@ void WriteVTU(const char* FileName, int step,double time){
                     "format=\"ascii\"/>\n",ndim*ndim);
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"ProcID\"/>\n");
     fprintf(fp,"\t\t</PCellData>\n");
-    for (int i = 0; i < world_size; ++i) {
+    for (i = 0; i < world_size; ++i) {
       fprintf(fp,"\t\t<Piece Source=\"vtu/%s.vtu.%04d.%.4d\"/>\n", outfileP2,step, i);
     }
     fprintf(fp,"\t</PUnstructuredGrid>\n");

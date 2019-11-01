@@ -48,7 +48,7 @@ int main(int argc, char **argv){
 	printf("\n");
 #endif
 
-  WriteVTU(argv[1], 0, 0.0);  
+  WriteVTU(argv[1], 0);  
   //ShapeFunctions();
 
   FreeArrays();

@@ -30,8 +30,8 @@ void LinearElastic(int e, int gp) {
     const double trEps = F_element_gp[0]+F_element_gp[4]+F_element_gp[8]-3.0;
     for (int i = 0; i < ndim; ++i) {
       for (int j = 0; j < ndim; ++j) {
-        const int index = j + i*ndim;
-        eps[index] = (F_element_gp[index]+F_element_gp[i+j*ndim]);
+        const int indexL = j + i*ndim;
+        eps[indexL] = (F_element_gp[indexL]+F_element_gp[i+j*ndim]);
       }
     }
     eps[0] -= 2.0;

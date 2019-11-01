@@ -7,8 +7,8 @@ double CalculateCharacteristicLength_C3D4(int e) {
   double elementCoordinates[12];
   for (int i = eptr[e], j = 0; i < eptr[e+1]; ++i, ++j) {
     for (int k = 0; k < 3; ++k) {
-      int index = ndim*connectivity[i]+k;
-      elementCoordinates[j*ndim+k] = coordinates[index]+displacements[index];
+      int indexL = ndim*connectivity[i]+k;
+      elementCoordinates[j*ndim+k] = coordinates[indexL]+displacements[indexL];
     }
   }
   double altitudeMin = 1e6, minAlt;

@@ -7,17 +7,17 @@ void GetBodyCenterofMass(double *cm) {
   }
   double totalMass = 0.0;
   double cmLocal[3];
-  double volume, rho, mass;
+  double volume, rho, massElem;
   int pide;
 	for(int i = 0; i < nelements; ++i) {
     volume = CalculateCentroidAndVolume(i, cmLocal);
     pide = pid[i];
     rho = properties[MAXMATPARAMS * pide + 0];
-    mass = volume*rho;
+    massElem = volume*rho;
     for (int j = 0; j < ndim; ++j) {
-      cm[j] += mass*cmLocal[j];
+      cm[j] += massElem*cmLocal[j];
     }
-    totalMass += mass;
+    totalMass += massElem;
   }
   MPI_Allreduce(MPI_IN_PLACE, &totalMass, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   for (int j = 0; j < ndim; ++j) {

@@ -2,7 +2,7 @@
 #include "blas.h"
 
 /*Delare Functions*/
-void ApplyBoundaryConditions(double Time, double dMax, double tMax);
+void ApplyBoundaryConditions(double dMax, double tMax);
 
 /* Global Variables/Parameters  - could be moved to parameters.h file?  */
 double Time;
@@ -33,14 +33,13 @@ int main(int argc, char **argv) {
   /* Write inital, undeformed configuration*/
   Time = 0.0;
   int plot_counter = 0;
-  WriteVTU(argv[1], plot_counter, Time);
-printf("going to exit - rk\n");
-exit(0);
+  WriteVTU(argv[1], plot_counter);
+  printf("going to exit - rk\n");
+  exit(0);
   // Dynamic Explcit solution using....
   double dt;
   double tMax = 1; // max simulation time in seconds
   double dMax = 0.5;  // max displacment in meters
-  double Time = 0.0;
   int time_step_counter = 0;
   /** Central Difference Method - Beta and Gamma */
   // double beta = 0;
@@ -79,7 +78,7 @@ exit(0);
     // varibles t_np1 = t_n+1
     // dt_nphalf = deltat_n+1/2
 
-    double t_n = Time;
+    t_n = Time;
     double t_np1 = Time + dt;
     Time = t_np1; /*Update the time by adding full time step */
     double dt_nphalf = dt;        // equ 6.2.1
@@ -101,7 +100,7 @@ exit(0);
       // accelerations[i]);
     }
     /* Step 6 Enfotce velocity boundary Conditions */
-    ApplyBoundaryConditions(Time, dMax, tMax);
+    ApplyBoundaryConditions(dMax, tMax);
 
     /* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
     GetForce(); // Calculating the force term.
@@ -123,7 +122,7 @@ exit(0);
     if (writeFlag == 0) {
       plot_counter = plot_counter + 1;
       printf("------Plot %d: WriteVTU\n", plot_counter);
-      WriteVTU(argv[1], plot_counter, Time);
+      WriteVTU(argv[1], plot_counter);
       if (debug) {
         printf("DEBUG : Printing Displacement Solution\n");
         for (int i = 0; i < nnodes; ++i) {
@@ -153,14 +152,14 @@ exit(0);
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {
-    WritePVD(argv[1], plot_counter, Time);
+    WritePVD(argv[1], plot_counter);
   }
   FreeArrays();
   MPI_Finalize();
   return 0;
 }
 
-void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
+void ApplyBoundaryConditions(double dMax, double tMax) {
   int count = 0;
   double k;
 	double tol = 1e-5;

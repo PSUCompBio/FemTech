@@ -17,18 +17,18 @@ double CalculateCentroidAndVolume_C3D8(int e, double *cm) {
   }
   qsort(localSorted, 8, sizeof(int), compare);
   for (int i = 0; i < 8; ++i) {
-    int index = localIndex[i];
+    int indexL = localIndex[i];
     int j = 0;
-    while(localSorted[j] != index) {
+    while(localSorted[j] != indexL) {
       j = j + 1;
     }
     localIndex[i] = j;
   }
   for (int i = eptr[e], j = 0; i < eptr[e+1]; ++i, ++j) {
-    int index = ndim*connectivity[i];
+    int index0 = ndim*connectivity[i];
     int index1 = ndim*localIndex[j];
     for (int k = 0; k < ndim; ++k) {
-      coord[index1+k] = coordinates[index+k]+displacements[index+k];
+      coord[index1+k] = coordinates[index0+k]+displacements[index0+k];
     }
   }
   for (int i = 0; i < 6; ++i) {

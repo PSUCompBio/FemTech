@@ -23,7 +23,7 @@ bool PartitionMesh() {
   options[2] = 15; // seed for random number generator
 
   // Number of partitions (one for each process)
-  idx_t nparts = world_size; // number of parts equals number of processes
+  idx_t npartis = world_size; // number of parts equals number of processes
 
   // Strange weight arrays needed by ParMETIS
   idx_t ncon = 1; // number of balance constraints
@@ -38,10 +38,10 @@ bool PartitionMesh() {
            "parmetis)\n");
     ncommonnodes = 8;
   }
-  const int tpwgts_size = ncon * nparts;
+  const int tpwgts_size = ncon * npartis;
   real_t *tpwgts = (real_t *)malloc(tpwgts_size * sizeof(real_t));
   for (int i = 0; i < tpwgts_size; i++) {
-    tpwgts[i] = (real_t)1.0 / (real_t)nparts;
+    tpwgts[i] = (real_t)1.0 / (real_t)npartis;
   }
 
   real_t *ubvec = (real_t *)malloc(ncon * sizeof(real_t));
@@ -69,7 +69,7 @@ bool PartitionMesh() {
   MPI_Comm_dup(MPI_COMM_WORLD, &comm);
   const int Result = ParMETIS_V3_PartMeshKway(
       elmdist, eptr, connectivity, elmwgt, &wgtflag, &numflag, &ncon,
-      &ncommonnodes, &nparts, tpwgts, ubvec, options, &edgecut, part, &comm);
+      &ncommonnodes, &npartis, tpwgts, ubvec, options, &edgecut, part, &comm);
 
   // Output of ParMETIS_V3_PartMeshKway call will be used here
   if (Result == METIS_OK) {

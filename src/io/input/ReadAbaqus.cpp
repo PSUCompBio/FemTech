@@ -168,10 +168,10 @@ bool ReadAbaqus(const char *FileName) {
 
     // Creating and initializing "pid" array
     pid = (int *)calloc(nelements, sizeof(int));
-    for (int i = 0; i < UniqueElSetsCount; i++) {
-        for (int j = 0; j < nelements; j++) {
-            if (strcmp(UniqueElSetNames[i], ElSetNames[j]) == 0) {
-                pid[j] = i;
+    for (int i1 = 0; i1 < UniqueElSetsCount; i1++) {
+        for (int j1 = 0; j1 < nelements; j1++) {
+            if (strcmp(UniqueElSetNames[i1], ElSetNames[j1]) == 0) {
+                pid[j1] = i1;
             }
         }
     }
@@ -248,11 +248,11 @@ bool ReadAbaqus(const char *FileName) {
     }
     nnodes = 0;
     coordinates = (double *)malloc(ConnectivitySize * csize);
-    for (int i = 0; i < ConnectivitySize; i++) {
-        const int *p = (const int *)bsearch(&connectivity[i], UniqueConnectivity, UniqueConnectivitySize, sizeof(int), compare);
+    for (int i1 = 0; i1 < ConnectivitySize; i1++) {
+        const int *p = (const int *)bsearch(&connectivity[i1], UniqueConnectivity, UniqueConnectivitySize, sizeof(int), compare);
         if (p != NULL) {
             const int I = p - UniqueConnectivity;
-            memcpy(&coordinates[i * ndim], &UniqueConnCoordinates[I * ndim], csize);
+            memcpy(&coordinates[i1 * ndim], &UniqueConnCoordinates[I * ndim], csize);
             nnodes = nnodes + 1;
         }
     }
@@ -279,8 +279,8 @@ static char **LineToTokens(const char *Line, int *Size) {
         StrToken[0] = 0;
         Count = 0;
         for (int i = 0; i < strlen(Line); i++) {
-            const char C = Line[i];
-            if (C == ' ' || C == '\t' || C == '\r' || C == '\n') {
+            const char Ch = Line[i];
+            if (Ch == ' ' || Ch == '\t' || Ch == '\r' || Ch == '\n') {
                 if (strlen(StrToken) != 0) {
                     if (Result != NULL) {
                         Result[Count] = (char *)malloc((strlen(StrToken) + 1) * sizeof(char));
@@ -290,7 +290,7 @@ static char **LineToTokens(const char *Line, int *Size) {
                     Count++;
                 }
             }
-            else if ((C >= 'a' && C <= 'z') || (C >= 'A' && C <= 'Z') || (C >= '0' && C <= '9') || C == '_' || C == '-') {
+            else if ((Ch >= 'a' && Ch <= 'z') || (Ch >= 'A' && Ch <= 'Z') || (Ch >= '0' && Ch <= '9') || Ch == '_' || Ch == '-') {
                 strncat(StrToken, &Line[i], 1);
                 if (i == (strlen(Line) - 1)) {
                     if (Result != NULL) {

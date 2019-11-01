@@ -189,8 +189,8 @@ bool ReadLsDyna(const char *FileName) {
     connectivity = (int *)calloc(ConnectivitySize, sizeof(int));
     pid = (int *)calloc(nelements, sizeof(int));
     ElementType = (char **)calloc(nelements, sizeof(char *));
-    for (int i = 0; i < nelements; i++) {
-        ElementType[i] = (char *)calloc(MAX_ELEMENT_TYPE_SIZE, sizeof(char));
+    for (int i1 = 0; i1 < nelements; i1++) {
+        ElementType[i1] = (char *)calloc(MAX_ELEMENT_TYPE_SIZE, sizeof(char));
     }
     i = 0;
     int ci = 0, pi = 0;
@@ -230,8 +230,8 @@ bool ReadLsDyna(const char *FileName) {
                     
                     pi = pi + 1;
 
-                    for (int j = 0; j < nn; j++) {
-                        connectivity[ci] = Nodes[j] - 1;
+                    for (int j1 = 0; j1 < nn; j1++) {
+                        connectivity[ci] = Nodes[j1] - 1;
                         ci = ci + 1;
                     }
                 }
@@ -288,11 +288,11 @@ bool ReadLsDyna(const char *FileName) {
     }
     nnodes = 0;
     coordinates = (double *)malloc(ConnectivitySize * csize);
-    for (int i = 0; i < ConnectivitySize; i++) {
-        const int *p = (const int *)bsearch(&connectivity[i], UniqueConnectivity, UniqueConnectivitySize, sizeof(int), compare);
+    for (int i1 = 0; i1 < ConnectivitySize; i1++) {
+        const int *p = (const int *)bsearch(&connectivity[i1], UniqueConnectivity, UniqueConnectivitySize, sizeof(int), compare);
         if (p != NULL) {
             const int I = p - UniqueConnectivity;
-            memcpy(&coordinates[i * ndim], &UniqueConnCoordinates[I * ndim], csize);
+            memcpy(&coordinates[i1 * ndim], &UniqueConnCoordinates[I * ndim], csize);
             nnodes = nnodes + 1;
         }
     }

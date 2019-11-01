@@ -4,8 +4,8 @@
 #include <assert.h>
 
 /*Delare Functions*/
-void ApplyBoundaryConditions(double Time, double dMax, double tMax);
-void CustomPlot(double Time);
+void ApplyBoundaryConditions(double dMax, double tMax);
+void CustomPlot();
 
 /* Global Variables/Parameters  - could be moved to parameters.h file?  */
 double Time;
@@ -37,16 +37,15 @@ int main(int argc, char **argv) {
   /* Write inital, undeformed configuration*/
   Time = 0.0;
   int plot_counter = 0;
-  WriteVTU(argv[1], plot_counter, Time);
+  WriteVTU(argv[1], plot_counter);
   stepTime[plot_counter] = Time;
-  CustomPlot(Time);
+  CustomPlot();
 
   // Dynamic Explcit solution using....
   double dt = 2.5e-06;
   double tMax = 1.0; // max simulation time in seconds
 
   double dMax = 0.001;  // max displacment in meters
-  double Time = 0.0;
   int time_step_counter = 0;
 
   ShapeFunctions();
@@ -76,7 +75,7 @@ int main(int argc, char **argv) {
   printf("------------------------------- Loop ----------------------------\n");
   printf("Time : %10.5E, tmax : %10.5E\n", Time, tMax);
   while (Time < tMax) {
-    double t_n = Time;
+    t_n = Time;
     double t_np1 = Time + dt;
     Time = t_np1; /*Update the time by adding full time step */
     printf("Time : %10.5E, tmax : %10.5E\n", Time, tMax);
@@ -95,7 +94,7 @@ int main(int argc, char **argv) {
       displacements[i] = displacements[i] + dt_nphalf * velocities_half[i];
     }
     /* Step 6 Enforce displacement boundary Conditions */
-    ApplyBoundaryConditions(Time, dMax, tMax);
+    ApplyBoundaryConditions(dMax, tMax);
 
     /* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
     GetForce(); // Calculating the force term.
@@ -117,8 +116,8 @@ int main(int argc, char **argv) {
     if (writeFlag == 0) {
       plot_counter = plot_counter + 1;
       printf("------Plot %d: WriteVTU\n", plot_counter);
-      WriteVTU(argv[1], plot_counter, Time);
-      CustomPlot(Time);
+      WriteVTU(argv[1], plot_counter);
+      CustomPlot();
 
 #ifdef DEBUG
       if (debug) {
@@ -149,14 +148,14 @@ int main(int argc, char **argv) {
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {
-    WritePVD(argv[1], plot_counter, Time);
+    WritePVD(argv[1], plot_counter);
   }
   FreeArrays();
   MPI_Finalize();
   return 0;
 }
 
-void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
+void ApplyBoundaryConditions(double dMax, double tMax) {
   double tol = 1e-5;
   int count = 0;
 
@@ -200,7 +199,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
   return;
 }
 
-void CustomPlot(double Time) {
+void CustomPlot() {
   double tol = 1e-5;
   FILE *datFile;
   int x = 0;
