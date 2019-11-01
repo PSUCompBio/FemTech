@@ -37,6 +37,7 @@ int main(int argc, char **argv) {
   Time = 0.0;
   int plot_counter = 0;
   WriteVTU(argv[1], plot_counter, Time);
+  stepTime[plot_counter] = Time;
   CustomPlot(Time);
 
   if (ImplicitStatic) {
@@ -172,6 +173,10 @@ int main(int argc, char **argv) {
         CalculateStrain();
         printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter, world_rank);
         WriteVTU(argv[1], plot_counter, Time);
+        if (plot_counter <= nPlotSteps) {
+          stepTime[plot_counter] = Time;
+          WritePVD(argv[1], plot_counter, Time);
+        }
         CustomPlot(Time);
 
 #ifdef DEBUG
@@ -209,7 +214,10 @@ int main(int argc, char **argv) {
 
   /* Below are things to do at end of program */
   if (world_rank == 0) {
-    WritePVD(argv[1], plot_counter, Time);
+    if (plot_counter <= nPlotSteps) {
+      stepTime[plot_counter] = Time;
+      WritePVD(argv[1], plot_counter, Time);
+    }
   }
   FreeArrays();
   MPI_Finalize();

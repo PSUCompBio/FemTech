@@ -310,7 +310,10 @@ int main(int argc, char **argv) {
     double maxRecv[4];
     MPI_Recv(minRecv, 4, MPI_DOUBLE, parStructMin.rank, 7297, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Recv(maxRecv, 4, MPI_DOUBLE, parStructMax.rank, 7298, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    WritePVD(meshFile.c_str(), plot_counter, Time);
+    if (plot_counter <= nPlotSteps) {
+      stepTime[plot_counter] = Time;
+      WritePVD(meshFile.c_str(), plot_counter, Time);
+    }
     WriteMaxStrainFile(maxStrain, maxRecv[0], maxRecv[1], maxRecv[2], \
         maxRecv[3], minStrain, minRecv[0], minRecv[1], minRecv[2], minRecv[3]);
   }
