@@ -63,7 +63,7 @@ void MassElementMatrix(double *Me, int e) {
     printf("DEBUG : Printing Me (Mass Matrix) for Element %d\n", e);
     for (int j = 0; j < bColSize; ++j) {
       for (int k = 0; k < bColSize; ++k) {
-        printf("%.4f\t", Me[j+k*bColSize]);
+        printf("%.9e\t", Me[j+k*bColSize]);
       }
       printf("\n");
     }
