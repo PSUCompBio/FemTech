@@ -9,6 +9,7 @@
 void CustomPlot();
 void InitCustomPlot();
 void InitBoundaryCondition(double *aMax, double angMax);
+void updateBoundaryNeighbour(void);
 void ApplyAccBoundaryConditions();
 void WriteMaxStrainFile(double maxStrain, double maxX, double maxY, \
     double maxZ, double maxT, double minStrain, double minX, double minY, \
@@ -546,6 +547,8 @@ void InitBoundaryCondition(double *aMax, double angMax) {
     boundary[index + 1] = 1;
     boundary[index + 2] = 1;
   }
+  updateBoundaryNeighbour();
+
   free(rigidNodeID);
   // Compute the constants required for acceleration computations
   for (int i = 0; i < ndim; ++i) {
@@ -582,4 +585,65 @@ void WriteMaxStrainFile(double maxStrain, double maxX, double maxY, \
           "%11.6e  %11.6e  %11.6e  %11.6e  %11.6e  %11.6e  %11.6e  %11.6e  "
           "%11.6e  %11.6e\n", maxStrain, maxX, maxY, maxZ, maxT, minStrain, minX, minY, minZ, minT);
   fclose(maxStrainFile);
+}
+
+void updateBoundaryNeighbour(void) {
+  int* sendNodeBoundary;
+  int* recvNodeBoundary;
+  int totalNodeToSend = sendNeighbourCountCum[sendProcessCount];
+  recvNodeBoundary = (int*)malloc(ndim*totalNodeToSend * sizeof(int));
+  sendNodeBoundary = (int*)malloc(ndim*totalNodeToSend * sizeof(int));
+  // Update array to send 
+  for (int i = 0; i < totalNodeToSend; ++i) {
+    int nodeIndex = ndim*sendNodeIndex[i];
+    sendNodeBoundary[ndim*i] = boundary[nodeIndex];
+    sendNodeBoundary[ndim*i+1] = boundary[nodeIndex+1];
+    sendNodeBoundary[ndim*i+2] = boundary[nodeIndex+2];
+  }
+  // Create send requests
+  int boundaryTag = 2798;
+  MPI_Request *requestListSend =
+        (MPI_Request *)malloc(sizeof(MPI_Request) * sendProcessCount);
+  for (int i = 0; i < sendProcessCount; ++i) {
+    int process = sendProcessID[i];
+    int location = sendNeighbourCountCum[i]*ndim;
+    int size = ndim*sendNeighbourCount[i];
+    MPI_Isend(&(sendNodeBoundary[location]), size, MPI_INT, process, \
+        boundaryTag, MPI_COMM_WORLD, &(requestListSend[i]));
+  }
+  // Create recv requests
+  MPI_Request *requestListRecv =
+        (MPI_Request *)malloc(sizeof(MPI_Request) * sendProcessCount);
+  for (int i = 0; i < sendProcessCount; ++i) {
+    int process = sendProcessID[i];
+    int location = sendNeighbourCountCum[i]*ndim;
+    int size = ndim*sendNeighbourCount[i];
+    MPI_Irecv(&(recvNodeBoundary[location]), size, MPI_INT, process, \
+        boundaryTag, MPI_COMM_WORLD, &(requestListRecv[i]));
+  }
+  // Wait for completion of all requests
+  MPI_Status status;
+  for (int i = 0; i < sendProcessCount; ++i) {
+    MPI_Wait(&(requestListSend[i]), &status);
+  }
+  for (int i = 0; i < sendProcessCount; ++i) {
+    MPI_Wait(&(requestListRecv[i]), &status);
+  }
+  // Update Mass values
+  for (int i = 0; i < totalNodeToSend; ++i) {
+    int nodeIndex = ndim*sendNodeIndex[i];
+    if (recvNodeBoundary[ndim*i]) {
+      boundary[nodeIndex] = 1;
+    }
+    if (recvNodeBoundary[ndim*i+1]) {
+      boundary[nodeIndex+1] = 1;
+    }
+    if (recvNodeBoundary[ndim*i+2]) {
+      boundary[nodeIndex+2] = 1;
+    }
+  }
+  free(requestListSend);
+  free(requestListRecv);
+  free(recvNodeBoundary);
+  free(sendNodeBoundary);
 }
