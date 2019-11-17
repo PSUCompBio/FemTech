@@ -15,8 +15,7 @@ animationScene1 = GetAnimationScene()
 timeKeeper1 = GetTimeKeeper()
 
 # create a new 'PVD Reader'
-coarse_brainpvd = PVDReader(FileName="""C:\\Users\\rhk12\\Documents\\GitHub\
-sfcareer\\sim1\\coarse_brain.pvd""")
+coarse_brainpvd = PVDReader(FileName="coarse_brain.pvd")
 coarse_brainpvd.CellArrays = ['PartID', 'AvgStrain', 'ProcID']
 coarse_brainpvd.PointArrays = ['Displacements', 'Accelerations', 'Boundary']
 
@@ -158,7 +157,7 @@ renderView1.CameraViewUp = [0.5635994966584945, -0.820879116725902, 0.0922663703
 renderView1.CameraParallelScale = 0.1210494059939952
 
 # save animation
-SaveAnimation('C:\Users\rhk12\Documents\GitHub\nsfcareer\sim1\sim1.avi', renderView1, ImageResolution=[1084, 856],
+SaveAnimation('sim1.avi', renderView1, ImageResolution=[1084, 856],
     FrameRate=20,
     FrameWindow=[0, 50])
 
