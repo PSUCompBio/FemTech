@@ -16,7 +16,6 @@ void WriteMaxStrainFile(double maxStrain, double maxX, double maxY, \
     double minZ, double minT);
 
 /* Global Variables/Parameters */
-int nPlotSteps = 50;
 double Time;
 int nSteps;
 bool ImplicitStatic = false;
@@ -25,6 +24,7 @@ bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
 static const double radToDeg = 180.0 / (atan(1.0) * 4.0);
+int nPlotSteps = 50;
 
 /* Global variables used only in this file */
 int nodeIDtoPlot;
@@ -533,23 +533,37 @@ void InitBoundaryCondition(double *aMax, double angMax) {
   // Sort and make unique
   qsort(rigidNodeID, rigidNodeCount, sizeof(int), compare);
   boundarySize = unique(rigidNodeID, rigidNodeCount);
+  for (int i = 0; i < boundarySize; ++i) {
+    int index = rigidNodeID[i] * ndim;
+    boundary[index] = 1;
+    boundary[index + 1] = 1;
+    boundary[index + 2] = 1;
+  }
+  updateBoundaryNeighbour();
+  free(rigidNodeID);
+  boundarySize = 0;
+  for (int i = 0; i < nnodes*ndim; i += 3) {
+    if (boundary[i]) {
+      boundarySize = boundarySize + 1;
+    }
+  }
+
   printf("INFO(%d): %d nodes given rigid motion\n", world_rank, boundarySize);
   boundaryID = (int *)malloc(boundarySize * sizeof(int));
   if (boundaryID == NULL) {
     printf("ERROR(%d) : Unable to alocate boundaryID\n", world_rank);
     exit(0);
   }
-  for (int i = 0; i < boundarySize; ++i) {
-    int node = rigidNodeID[i];
-    int index = node * ndim;
-    boundaryID[i] = node;
-    boundary[index] = 1;
-    boundary[index + 1] = 1;
-    boundary[index + 2] = 1;
-  }
-  updateBoundaryNeighbour();
 
-  free(rigidNodeID);
+  int idIndex = 0;
+  for (int i = 0; i < nnodes; ++i) {
+    int index = i * ndim;
+    if (boundary[index]) {
+      boundaryID[idIndex] = i;
+      idIndex = idIndex + 1;
+    }
+  }
+  assert(idIndex == boundarySize);
   // Compute the constants required for acceleration computations
   for (int i = 0; i < ndim; ++i) {
     aLin[i] = aMax[i] / peakTime;

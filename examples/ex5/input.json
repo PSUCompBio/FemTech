@@ -4,7 +4,7 @@
     "position" : "OL"
   },
   "simulation": {
-    "mesh" : "brain.inp",
+    "mesh" : "coarse_brain.inp",
     "linear-acceleration" : [80.0, 0.0, 0.0],
     "angular-acceleration" : 8000.0,
     "time-peak-acceleration" : 0.02,
