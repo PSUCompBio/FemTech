@@ -59,15 +59,18 @@ void CalculateStrain();
 void CalculateDeformationGradient(int e, int gp);
 void SumOfDeformationGradient(int e, int gp);
 void StrainDisplacementMatrix(int e, int gp, int nI, double *B);
-void CompressibleNeoHookean(int e, int gp);
 void StressUpdate(int e, int gp);
 void DeterminateF(int e, int gp);
 void InverseF(int e, int gp, double *fInv);
 void InternalForceUpdate(int e, int gp, double *force);
 void TrussStressForceUpdate(int e, int gp, double *force);
 void ReadMaterials();
+
+// Material Models
 void StVenantKirchhoff(int e, int gp);
+void CompressibleNeoHookean(int e, int gp);
 void LinearElastic(int e, int gp);
+void HGOIsotropic(int e, int gp);
 
 void inverse3x3Matrix(double* mat, double* invMat, double* det);
 //void MultiplyMatrices(double* a, double* b, int sizeM, double* result);

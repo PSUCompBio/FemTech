@@ -1,4 +1,5 @@
-static int MAXMATPARAMS = 10; /* maximum number of material parameters stored for each element */
+/* Currently HGO Isotropic model uses 5 properties */
+static int MAXMATPARAMS = 5; /* maximum number of material parameters stored for each element */
 static int MAXINTERNALVARS = 5; /* max internal variables per gauss point */
 static int MAXPLOTSTEPS = 1000; /* maximum plot output steps */
 

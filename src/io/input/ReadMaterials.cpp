@@ -28,10 +28,10 @@ void ReadMaterials() {
       // properties[2] = lambda
       fscanf(File, "%lf %lf %lf", &properties[index + 0],
               &properties[index + 1], &properties[index + 2]);
-      // printf("element %d Compressible NeoHookean properties (rho, mu, "
+      // printf("Part %d Compressible NeoHookean properties (rho, mu, "
       //        "lambda) = %3.3f %3.3f %3.3f\n",
-              // elementID, properties[index + 0], properties[index + 1],
-              // properties[index + 2]);
+      //         partID, properties[index + 0], properties[index + 1],
+      //         properties[index + 2]);
     } else if (materialID[partID] == 2) { // St. Venant
       // properties[0] = density
       // properties[1] = mu
@@ -52,6 +52,18 @@ void ReadMaterials() {
       //        "%3.3f %3.3f %3.3f\n",
               // elementID, properties[index + 0], properties[index + 1],
               // properties[index + 2]);
+    } else if (materialID[partID] == 4) { // HGO Isotropic model
+      // properties[0] = density
+      // properties[1] = mu
+      // properties[2] = lambda
+      // properties[4] = k1
+      // properties[5] = k2
+      fscanf(File, "%lf %lf %lf %lf %lf", &properties[index + 0],
+              &properties[index + 1], &properties[index + 2], &properties[index + 3], &properties[index + 4]);
+      // printf("Part %d HGO properties (rho, mu, lambda, k1, k2) = "
+      //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
+      //         partID, properties[index + 0], properties[index + 1],
+      //         properties[index + 2], properties[index + 3], properties[index + 4]);
     } else {
       printf("ERROR : Material ID for Part %d NOT FOUND!\n", partID);
       exit(0);
