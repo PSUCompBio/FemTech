@@ -27,7 +27,7 @@ void HGOIsotropic(int e, int gp) {
   // Pointer to start of deformation gradient matrix for given element number
   // and Gauss point
   const int index = fptr[e] + ndim * ndim * gp;
-  const double J = detF[detFptr[e] + gp];
+  double J = detF[detFptr[e] + gp];
   // Get material property ID to read material properties
   const int pideIndex = pid[e]*MAXMATPARAMS;
   // Get location of array with material properties of the element
@@ -69,24 +69,42 @@ void HGOIsotropic(int e, int gp) {
   Bmat[4] = Bmat[4] - traceBby3;
   Bmat[8] = Bmat[8] - traceBby3;
   for (int i = 0; i < matSize; ++i) {
-    Bmat[i] = Bmat[i]*Jm23;
+    Bmat[i] = Bmat[i]*Jm23*totalPrefactor;
   }
+  // Bmat now stores \sigma_d
+  // Storing sigma to Bmat
+  Bmat[0] += hydroDiag;
+  Bmat[4] += hydroDiag;
+  Bmat[8] += hydroDiag;
+
+  // Compute pk2 : S = J F^{-1} \sigma  F^{-T}
+  double *fInv = (double *)malloc(matSize * sizeof(double));
+  double *STemp = (double *)malloc(matSize * sizeof(double));
+  double *S = (double *)malloc(matSize * sizeof(double));
+  InverseF(e, gp, fInv);
+  // Compute F^{-1}*\sigma
+  dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim,
+           Bmat, &ndim, &zero, STemp, &ndim);
+  // Compute J F^{-1}*\sigma F^{-T}
+  dgemm_(chn, chy, &ndim, &ndim, &ndim, &J, STemp, &ndim,
+           fInv, &ndim, &zero, S, &ndim);
 
   // Get location of array to store PK2 values
   double * pk2Local = &(pk2[pk2ptr[e]+6*gp]);
-
+	// 6 values saved per gauss point for 3d
 	// in voigt notation, sigma11
-	pk2Local[0] = hydroDiag + fiberPrefactor*Bmat[0];
-	// in voigt notation, sigma22
-	pk2Local[1] = hydroDiag + fiberPrefactor*Bmat[4];
-	// in voigt notation, sigma33
-	pk2Local[2] = hydroDiag + fiberPrefactor*Bmat[8];
-	// in voigt notation, sigma23
-	pk2Local[3] = fiberPrefactor*Bmat[7];
-	// in voigt notation, sigma13
-	pk2Local[4] = fiberPrefactor*Bmat[6];
-	// in voigt notation, sigma12
-	pk2Local[5] = fiberPrefactor*Bmat[3];
+  pk2Local[0] = S[0];
+  // in voigt notation, sigma22
+  pk2Local[1] = S[4];
+  // in voigt notation, sigma33
+  pk2Local[2] = S[8];
+  // in voigt notation, sigma23
+  pk2Local[3] = S[7];
+  // in voigt notation, sigma13
+  pk2Local[4] = S[6];
+  // in voigt notation, sigma12
+  pk2Local[5] = S[3];
+
 #ifdef DEBUG
   if(debug && 0){
     printf("Element ID = %d, gp = %d\n", e, gp);
@@ -98,4 +116,7 @@ void HGOIsotropic(int e, int gp) {
 #endif //DEBUG
   // TODO(Anil) : Move allocation and free to code initial setup
   free(Bmat);
+  free(STemp);
+  free(fInv);
+  free(S);
 }
