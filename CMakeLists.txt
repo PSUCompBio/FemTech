@@ -23,6 +23,8 @@ message(STATUS "Configuring application: ${PROJECT_NAME}")
 message(STATUS "Install Directory : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Current built type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Current build type flags: ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}")
+# Set additional compiler flags
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=native")
 
 # set install rules (windows only)
 if(WIN32)
