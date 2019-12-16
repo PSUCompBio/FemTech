@@ -18,6 +18,8 @@ double *f_damp_curr;
 double *displacements_prev;
 double *accelerations_prev;
 double *stepTime;
+// Used to compute stress by files in materials folder
+double *mat1, *mat2, *mat3, *mat4;
 
 int *boundary;
 FILE *energyFile;
@@ -126,6 +128,26 @@ void AllocateArrays() {
     if (!stepTime) {
       printf("ERROR : Error in allocating stepTime array\n");
       exit(12);
+    }
+    // Allocations for material temporary computation
+    // By default initialize mat1 and mat2
+    // If HGO or Linear Elastic material model present, allocate mat3 and mat4
+    int matCount = 2;
+    for (int i = 0; i < nPIDglobal; ++i) {
+      if (materialID[i] == 3) {
+        matCount = 4;
+      } else {
+        if (materialID[i] == 4) {
+          matCount = 4;
+        }
+      }
+    }
+    const int matSize = ndim*ndim;
+    mat1 = (double*)malloc(matSize*sizeof(double));
+    mat2 = (double*)malloc(matSize*sizeof(double));
+    if (matCount == 4) {
+      mat3 = (double*)malloc(matSize*sizeof(double));
+      mat4 = (double*)malloc(matSize*sizeof(double));
     }
   }
 	return;

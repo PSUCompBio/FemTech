@@ -47,7 +47,7 @@ void HGOIsotropic(int e, int gp) {
   const double hydroDiag = 0.5*K*(J*J-1.0)/J; 
   // Compute the left elastic Cauchy-Green tensor B = F*F^T
   double matSize = ndim * ndim;
-  double *Bmat = (double *)malloc(matSize * sizeof(double));
+  double *Bmat = mat1;
   dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
         F_element_gp, &ndim, &zero, Bmat, &ndim);
   // Compute trace of B
@@ -78,9 +78,9 @@ void HGOIsotropic(int e, int gp) {
   Bmat[8] += hydroDiag;
 
   // Compute pk2 : S = J F^{-1} \sigma  F^{-T}
-  double *fInv = (double *)malloc(matSize * sizeof(double));
-  double *STemp = (double *)malloc(matSize * sizeof(double));
-  double *S = (double *)malloc(matSize * sizeof(double));
+  double *fInv = mat2;
+  double *STemp = mat3;
+  double *S = mat4;
   InverseF(e, gp, fInv);
   // Compute F^{-1}*\sigma
   dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim,
@@ -114,9 +114,4 @@ void HGOIsotropic(int e, int gp) {
     }
   }
 #endif //DEBUG
-  // TODO(Anil) : Move allocation and free to code initial setup
-  free(Bmat);
-  free(STemp);
-  free(fInv);
-  free(S);
 }

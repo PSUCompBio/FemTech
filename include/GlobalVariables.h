@@ -99,3 +99,12 @@ extern double *recvNodeDisplacement;
 
 // File to write energy
 extern FILE *energyFile;
+
+// Variables to be allocated based on material models used
+extern double* mat1;
+extern double* mat2;
+extern double* mat3;
+extern double* mat4;
+// Internal Force Update
+extern double *fintGQ;
+extern double *B;

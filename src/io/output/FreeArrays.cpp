@@ -60,6 +60,15 @@ void FreeArrays() {
   free1DArray(sendNodeDisplacement);
   free1DArray(stepTime);
 
+  // Temporary arrays used in materials folder
+  free1DArray(mat1);
+  free1DArray(mat2);
+  free1DArray(mat3);
+  free1DArray(mat4);
+  // InternalForceUpdate
+  free1DArray(fintGQ);
+  free1DArray(B);
+
   if (ElementType != NULL){
     for (int i = 0; i < nelements; i++){
         free(ElementType[i]);

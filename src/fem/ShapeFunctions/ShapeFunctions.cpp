@@ -1,6 +1,8 @@
 #include "FemTech.h"
 #include "blas.h"
 
+void AllocateArraysAfterPartioning(void);
+
 /* Global Variables */
 int *gptr;
 // TODO(anil) dsptr[i] = ndim*gptr[i] always. Could be eliminated.
@@ -258,5 +260,23 @@ void ShapeFunctions() {
     }
   }
 #endif //DEBUG
+
+  // Allocate arrays after shape functions are formed
+  AllocateArraysAfterPartioning();
   return;
+}
+
+void AllocateArraysAfterPartioning(void) {
+  int cSize = 6;
+  int nNodesMax = 0, nNodes;
+  for (int i = 0; i < nelements; ++i) {
+    nNodes = nShapeFunctions[i];
+    if (nNodes > nNodesMax) {
+      nNodesMax = nNodes;
+    }
+  }
+  int bColSize = nNodesMax*ndim;
+  int Bsize = bColSize*cSize;
+  fintGQ = (double*)malloc(bColSize*sizeof(double));
+  B = (double*)malloc(Bsize*sizeof(double));
 }

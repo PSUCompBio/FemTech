@@ -40,7 +40,7 @@ void StVenantKirchhoff(int e, int gp) {
 
     // Compute Green-Lagrange Tensor: E= (1/2)*(F^T*F - I)
     double matSize = ndim * ndim;
-    double *E = (double *)malloc(matSize * sizeof(double));
+    double *E = mat1;
     double *F_element_gp = &(F[index]);
     double half = 0.5;
     dgemm_(chy, chn, &ndim, &ndim, &ndim, &half, F_element_gp, &ndim,
@@ -52,7 +52,7 @@ void StVenantKirchhoff(int e, int gp) {
     // Compute 2nd Piola-Kirchhoff Stress
     // S = lambda*tr(E)*I+2*mu*E
     double traceE = E[0] + E[4] + E[8];
-    double *S = (double *)malloc(matSize * sizeof(double));
+    double *S = mat2;
     for (int i = 0; i < matSize; ++i) {
       S[i] = 2.0 * mu * E[i];
     }
@@ -117,8 +117,6 @@ void StVenantKirchhoff(int e, int gp) {
       }
     }
 #endif //DEBUG
-    free(E);
-    free(S);
   } // if ndim == 3
   return;
 }
