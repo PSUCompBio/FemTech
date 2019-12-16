@@ -9,17 +9,17 @@ void StressUpdate(int e, int gp){
 	}
 #endif //DEBUG
   switch (materialID[pid[e]]) {
-	           //Compressible Neohookean
-    case 1 : CompressibleNeoHookean(e, gp);
+    case 1 : //Compressible Neohookean
+             CompressibleNeoHookean(e, gp);
              break;
-	           // St. Venant-Kirchhoff
-    case 2 : StVenantKirchhoff(e, gp);
+    case 2 : // St. Venant-Kirchhoff
+             StVenantKirchhoff(e, gp);
              break;
-             // Linear Elastic
-    case 3 : LinearElastic(e, gp);
+    case 3 : // Linear Elastic
+             LinearElastic(e, gp);
              break;
-             // HGO with isotropic fiber distribution
-    case 4 : HGOIsotropic(e, gp);
+    case 4 : // HGO with isotropic fiber distribution
+             HGOIsotropic(e, gp);
              break;
     default : printf("Unknown material type\n");
               exit(EXIT_FAILURE);

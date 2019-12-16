@@ -1,6 +1,7 @@
 #include "FemTech.h"
 
 #include <assert.h>
+#include <stdlib.h>
 
 // Variables to keep store the communication patterns between processes
 int sendProcessCount;
@@ -14,7 +15,7 @@ double *recvNodeDisplacement;
 void updateConnectivityGlobalToLocal(void);
 void createNodalCommunicationPattern(void);
 
-bool PartitionMesh() {
+void PartitionMesh() {
 
   // Options for ParMETIS
   idx_t options[3];
@@ -554,12 +555,12 @@ bool PartitionMesh() {
   } else {
     printf("\nERROR( proc %d ): ParMETIS returned error code %d\n", world_rank,
            Result);
+    exit(EXIT_FAILURE);
   }
   free(ubvec);
   free(tpwgts);
   free(elmdist);
   free(part);
-  return Result == METIS_OK;
 }
 //-------------------------------------------------------------------------------------------
 int compare(const void *a, const void *b) { return (*(int *)a - *(int *)b); }

@@ -71,12 +71,13 @@ int main(int argc, char **argv) {
     printf("INFO : Reading Mesh File : %s\n", meshFile.c_str());
   }
 
-  if (ReadInputFile(meshFile.c_str())) {
-    PartitionMesh();
-  }
+  ReadInputFile(meshFile.c_str());
+  // Read material properties before mesh partition to estimate material type kernel compute intensity
+  ReadMaterials();
+
+  PartitionMesh();
 
   AllocateArrays();
-  ReadMaterials();
   InitCustomPlot();
   InitBoundaryCondition(accMax, angAccMax);
 

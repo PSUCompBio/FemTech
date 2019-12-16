@@ -19,8 +19,8 @@
 int LineToArray(const bool IntOrFloat, const bool CheckLastVal, \
     const int ColumnToStart, const int ColumnCount, const char *ConstLine, \
     const char *Delim = " \t", void **Array = NULL);
-bool ReadInputFile(const char *FileName);
-bool PartitionMesh();
+void ReadInputFile(const char *FileName);
+void PartitionMesh();
 void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWeights);
 void ShapeFunctions();
 void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ);

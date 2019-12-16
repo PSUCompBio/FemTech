@@ -1,8 +1,6 @@
 #include "FemTech.h"
 
 double *displacements;
-int *materialID;
-double *properties;
 double *velocities;
 double *velocities_half;
 double *accelerations;
@@ -32,17 +30,6 @@ void AllocateArrays() {
     printf("ERROR : Error in allocating displacements array\n");
     exit(12);
   }
-	materialID=(int*)calloc(nPIDglobal,sizeof(int));
-  if (!materialID) {
-    printf("ERROR : Error in allocating materialID array\n");
-    exit(12);
-  }
-	properties=(double*)calloc(nPIDglobal*MAXMATPARAMS,sizeof(double));
-  if (!properties) {
-    printf("ERROR : Error in allocating properties array\n");
-    exit(12);
-  }
-
 	//Allocate and initialize global boundary conditions
 	boundary=(int*)calloc(nDOF, sizeof(int));
   if (!boundary) {

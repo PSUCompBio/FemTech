@@ -26,12 +26,12 @@ int main(int argc, char **argv) {
   // Get the rank of the process
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-  if (ReadInputFile(argv[1])) {
-    PartitionMesh();
-  }
+  ReadInputFile(argv[1]);
+  ReadMaterials();
+
+  PartitionMesh();
 
   AllocateArrays();
-  ReadMaterials();
 
   /* Write inital, undeformed configuration*/
   Time = 0.0;

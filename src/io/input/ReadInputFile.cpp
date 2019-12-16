@@ -1,5 +1,7 @@
 #include "FemTech.h"
+
 #include <assert.h>
+#include <stdlib.h> // For exit on failure
 
 /* Global Variables */
 int nparts=0;
@@ -23,17 +25,17 @@ int StrCmpCI(const char *str1, const char *str2);
 bool ReadLsDyna(const char *FileName);
 bool ReadAbaqus(const char *FileName);
 //-------------------------------------------------------------------------------------------
-bool ReadInputFile(const char *FileName) {
+void ReadInputFile(const char *FileName) {
     // Checking MPI variables validity
     if (world_size < 1 || world_rank < 0 || world_rank >= world_size) {
         printf("\nERROR( proc %d ): 'world_size' and/or 'world_rank' variable is not valid.\n", world_rank);
-        return false;
+        exit(EXIT_FAILURE);
     }
 
     // Checking file name validity
     if (FileName == NULL || strlen(FileName) == 0) {
         printf("\nERROR( proc %d ): Input file name is empty.\n", world_rank);
-        return false;
+        exit(EXIT_FAILURE);
     }
     
     // Checking file extension and calling corresponding reader
@@ -75,8 +77,10 @@ bool ReadInputFile(const char *FileName) {
       free(sortedPID);
       assert(nPID <= nPIDglobal);
       assert(nPIDglobal > 0);
+    } else {
+      printf("\nERROR (proc %d): Input mesh file read failed.\n", world_rank);
+      exit(EXIT_FAILURE);
     }
-    return returnValue;
 }
 //-------------------------------------------------------------------------------------------
 /*
