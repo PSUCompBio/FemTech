@@ -61,7 +61,7 @@ void HGOIsotropic(int e, int gp) {
   if (E_alpha > 0.0) {
     fiberPrefactor = 2.0*k1*exp(k2*E_alpha*E_alpha)*E_alpha*kappa;
   }
-  const double totalPrefactor = (mu + fiberPrefactor)/J;
+  const double totalPrefactor = Jm23*(mu + fiberPrefactor)/J;
   // Compute deviatoric part of isochoric left elastic Cauchy-Green tensor
   // \overline{B}^d_{ij} = J^{-2/3}(B_{ij}-B_{kk} \delta_{ij}/3)
   const double traceBby3 = traceB/3.0;
@@ -69,7 +69,7 @@ void HGOIsotropic(int e, int gp) {
   Bmat[4] = Bmat[4] - traceBby3;
   Bmat[8] = Bmat[8] - traceBby3;
   for (int i = 0; i < matSize; ++i) {
-    Bmat[i] = Bmat[i]*Jm23*totalPrefactor;
+    Bmat[i] = Bmat[i]*totalPrefactor;
   }
   // Bmat now stores \sigma_d
   // Storing sigma to Bmat
