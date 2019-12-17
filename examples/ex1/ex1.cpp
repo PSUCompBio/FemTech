@@ -13,6 +13,7 @@ int main(int argc, char **argv){
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 	
 	ReadInputFile(argv[1]);
+  ReadMaterials();
 	PartitionMesh();
 
 #if 0
