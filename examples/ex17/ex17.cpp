@@ -8,7 +8,7 @@ void ApplyBoundaryConditions(double dMax, double tMax);
 void CustomPlot();
 
 /* Global Variables/Parameters  - could be moved to parameters.h file?  */
-double Time;
+double Time, dt;
 int nSteps;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
   CustomPlot();
 
   // Dynamic Explcit solution using....
-  double dt = 2.5e-06;
+  dt = 2.5e-06;
   double tMax = 1; // max simulation time in seconds
   double dMax = 0.001;  // max displacment in meters
   int time_step_counter = 0;
@@ -54,10 +54,10 @@ int main(int argc, char **argv) {
   // Include effect of elements on other processors
   updateMassMatrixNeighbour();
 
-  /* Step-2: getforce step from Belytschko */
-  GetForce(); // Calculating the force term.
   /* obtain dt, according to Belytschko dt is calculated at end of getForce */
   dt = ExplicitTimeStepReduction * StableTimeStep();
+  /* Step-2: getforce step from Belytschko */
+  GetForce(); // Calculating the force term.
 
   /* Step-3: Calculate accelerations */
   CalculateAccelerations();

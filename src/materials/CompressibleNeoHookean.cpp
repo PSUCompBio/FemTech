@@ -77,8 +77,8 @@ void CompressibleNeoHookean(int e, int gp){
 #ifdef DEBUG
 		if(debug && 0){
 			for(int i=0;i<6;i++){
-				int index = pk2ptr[e]+6*gp+i;
-				printf("PK2[%d] = %3.3e\n",index,pk2[index]);
+				int indexD = pk2ptr[e]+6*gp+i;
+				printf("PK2[%d] = %3.3e\n",index,pk2[indexD]);
 			}
 		}
 #endif //DEBUG

@@ -12,9 +12,6 @@ int *sendNodeIndex;
 double *sendNodeDisplacement;
 double *recvNodeDisplacement;
 
-double *fintGQ;
-double *B;
-
 void updateConnectivityGlobalToLocal(void);
 void createNodalCommunicationPattern(void);
 

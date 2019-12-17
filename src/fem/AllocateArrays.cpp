@@ -134,13 +134,10 @@ void AllocateArrays() {
     // If HGO or Linear Elastic material model present, allocate mat3 and mat4
     int matCount = 2;
     for (int i = 0; i < nPIDglobal; ++i) {
-      if (materialID[i] == 3) {
+      if (materialID[i] == 3 || materialID[i] == 4 || materialID[i] == 5) {
         matCount = 4;
-      } else {
-        if (materialID[i] == 4) {
-          matCount = 4;
-        }
-      }
+        break;
+      }    
     }
     const int matSize = ndim*ndim;
     mat1 = (double*)malloc(matSize*sizeof(double));

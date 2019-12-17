@@ -5,7 +5,7 @@
 void ApplyBoundaryConditions(double dMax, double tMax);
 
 /* Global Variables/Parameters  - could be moved to parameters.h file?  */
-double Time;
+double Time, dt;
 int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
@@ -36,7 +36,6 @@ int main(int argc, char **argv) {
   printf("going to exit - rk\n");
   exit(0);
   // Dynamic Explcit solution using....
-  double dt;
   double tMax = 1; // max simulation time in seconds
   double dMax = 0.5;  // max displacment in meters
   int time_step_counter = 0;
@@ -50,10 +49,10 @@ int main(int argc, char **argv) {
   Assembly((char *)"mass"); // Add Direct-lumped as an option
   LumpMassMatrix();
 
-  /* Step-2: getforce step from Belytschko */
-  GetForce(); // Calculating the force term.
   /* obtain dt, according to Belytschko dt is calculated at end of getForce */
   dt = ExplicitTimeStepReduction * StableTimeStep();
+  /* Step-2: getforce step from Belytschko */
+  GetForce(); // Calculating the force term.
   tMax = 2*dt;
 
   /* Step-3: Calculate accelerations */

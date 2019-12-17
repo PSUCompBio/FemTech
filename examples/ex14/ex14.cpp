@@ -16,7 +16,7 @@ void WriteMaxStrainFile(double maxStrain, double maxX, double maxY, \
     double minZ, double minT);
 
 /* Global Variables/Parameters */
-double Time;
+double Time, dt;
 int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
   CustomPlot();
 
   // Dynamic Explcit solution using....
-  double dt = 0.0;
+  dt = 0.0;
 
   int time_step_counter = 0;
   const int nDOF = nnodes * ndim;
@@ -103,11 +103,11 @@ int main(int argc, char **argv) {
   // Used if initial velocity and acceleration BC is to be set.
 
   ApplyAccBoundaryConditions();
-  /* Step-2: getforce step from Belytschko */
-  GetForce(); // Calculating the force term.
 
   /* Obtain dt, according to Belytschko dt is calculated at end of getForce */
   dt = ExplicitTimeStepReduction * StableTimeStep();
+  /* Step-2: getforce step from Belytschko */
+  GetForce(); // Calculating the force term.
 
   /* Step-3: Calculate accelerations */
   CalculateAccelerations();

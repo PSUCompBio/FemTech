@@ -112,8 +112,8 @@ void StVenantKirchhoff(int e, int gp) {
       }
       printf("\n");
       for (int i = 0; i < 6; i++) {
-        int index = pk2ptr[e] + 6 * gp + i;
-        printf("cauchy[%d] = %3.3e\n", index, pk2[index]);
+        int indexD = pk2ptr[e] + 6 * gp + i;
+        printf("cauchy[%d] = %3.3e\n", indexD, pk2[indexD]);
       }
     }
 #endif //DEBUG

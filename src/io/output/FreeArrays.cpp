@@ -68,6 +68,10 @@ void FreeArrays() {
   // InternalForceUpdate
   free1DArray(fintGQ);
   free1DArray(B);
+  // Viscoelastic materials
+  free1DArray(Hn_1);
+  free1DArray(Hn_2);
+  free1DArray(S0n);
 
   if (ElementType != NULL){
     for (int i = 0; i < nelements; i++){

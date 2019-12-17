@@ -1,5 +1,6 @@
-/* Currently HGO Isotropic model uses 5 properties */
-static int MAXMATPARAMS = 5; /* maximum number of material parameters stored for each element */
+/* Currently HGO Isotropic model uses 5 properties + 4 properties for
+ * viscoelastic properties*/
+static int MAXMATPARAMS = 9; /* maximum number of material parameters stored for each element */
 static int MAXINTERNALVARS = 5; /* max internal variables per gauss point */
 static int MAXPLOTSTEPS = 1000; /* maximum plot output steps */
 
@@ -85,6 +86,7 @@ static int debug = 1; /* Setting it to 1 has no effect when compiled in non-debu
 // For steady, solution is stored at nStep = 1 and time = 1
 // For unsteady nStep and time are set by solver
 extern double Time;
+extern double dt;
 extern double *stepTime;
 
 // Variables to keep store the communication patterns between processes
@@ -108,3 +110,6 @@ extern double* mat4;
 // Internal Force Update
 extern double *fintGQ;
 extern double *B;
+// Variables to store stress history in viscoelastic materials
+extern double *Hn_1, *Hn_2;
+extern double* S0n;

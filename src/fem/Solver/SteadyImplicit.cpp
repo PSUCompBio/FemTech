@@ -24,8 +24,8 @@ void SolveSteadyImplicit(void) {
   if (debug && 1==0) {
     printf("DEBUG : Printing Displacement Solution\n");
     for (int i = 0; i < nnodes; ++i) {
-      for (int j = 0; j < ndim; ++j) {
-        printf("%12.4f", displacements[i*ndim+j]);
+      for (int k = 0; k < ndim; ++k) {
+        printf("%12.4f", displacements[i*ndim+k]);
       }
       printf("\n");
     }

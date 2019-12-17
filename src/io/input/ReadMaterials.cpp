@@ -31,7 +31,6 @@ void ReadMaterials() {
     exit(12);
   }
 
-
   for (int i = 0; i < nPIDglobal; i++) {
     fscanf(File, "%d", &partID);
     fscanf(File, "%d", &materialID[partID]);
@@ -74,8 +73,8 @@ void ReadMaterials() {
               // properties[0] = density
               // properties[1] = mu
               // properties[2] = lambda
-              // properties[4] = k1
-              // properties[5] = k2
+              // properties[3] = k1
+              // properties[4] = k2
               fscanf(File, "%lf %lf %lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2], 
                       &properties[index + 3], &properties[index + 4]);
@@ -83,6 +82,28 @@ void ReadMaterials() {
               //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
               //         partID, properties[index + 0], properties[index + 1],
               //         properties[index + 2], properties[index + 3], properties[index + 4]);
+              break;
+      case 5 :// HGO with isotropic fiber distribution with 2 term Prony series for viscoelastic properties
+              // properties[0] = density
+              // properties[1] = mu
+              // properties[2] = lambda
+              // properties[3] = k1
+              // properties[4] = k2
+              // properties[5] = g1
+              // properties[6] = t1
+              // properties[7] = g2
+              // properties[8] = t2
+              fscanf(File, "%lf %lf %lf %lf %lf %lf %lf %lf %lf", &properties[index + 0],
+                      &properties[index + 1], &properties[index + 2], 
+                      &properties[index + 3], &properties[index + 4],
+                      &properties[index + 5], &properties[index + 6],
+                      &properties[index + 7], &properties[index + 8]);
+              // printf("Part %d HGO properties (rho, mu, lambda, k1, k2) = "
+              //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
+              //         partID, properties[index + 0], properties[index + 1],
+              //         properties[index + 2], properties[index + 3], properties[index + 4],
+              //         properties[index + 5], properties[index + 6], properties[index + 7],
+              //         properties[index + 8]);
               break;
       default :printf("ERROR : Material ID for Part %d NOT FOUND!\n", partID);
                 exit(EXIT_FAILURE);

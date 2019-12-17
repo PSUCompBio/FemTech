@@ -9,7 +9,7 @@ void ApplyBoundaryConditions(double dMax, double tMax);
 void CustomPlot();
 
 /* Global Variables/Parameters  - could be moved to parameters.h file?  */
-double Time;
+double Time, dt;
 int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     WriteVTU(argv[1], 1);
   } else if (ImplicitDynamic) {
     // Dynamic Implicit solution using Newmark's scheme for time integration
-    double dt = 0.1;
+    dt = 0.1;
     double tMax = 1.0;
     double dMax = 0.1; // max displacment in meters
     ShapeFunctions();
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
   } else if (ExplicitDynamic) {
     // Dynamic Explcit solution using....
 
-    double dt = 0.0;
+    dt = 0.0;
     double tMax = 1.00; // max simulation time in seconds
     double dMax = 0.007; // max displacment in meters
 
@@ -89,11 +89,11 @@ int main(int argc, char **argv) {
 
     // Used if initial velocity and acceleration BC is to be set.
     ApplyBoundaryConditions(dMax, tMax);
-    /* Step-2: getforce step from Belytschko */
-    GetForce(); // Calculating the force term.
 
     /* Obtain dt, according to Belytschko dt is calculated at end of getForce */
     dt = ExplicitTimeStepReduction * StableTimeStep();
+    /* Step-2: getforce step from Belytschko */
+    GetForce(); // Calculating the force term.
 
     /* Step-3: Calculate accelerations */
     CalculateAccelerations();

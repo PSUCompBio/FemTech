@@ -25,6 +25,10 @@ int *gpPtr;
 double *detJacobian;
 double *gaussWeights;
 
+double *fintGQ;
+double *B;
+double *Hn_1, *Hn_2, *S0n; 
+
 void ShapeFunctions() {
   // Global Array - keeps track of how many gauss points there are
   // per element.
@@ -262,11 +266,6 @@ void ShapeFunctions() {
 #endif //DEBUG
 
   // Allocate arrays after shape functions are formed
-  AllocateArraysAfterPartioning();
-  return;
-}
-
-void AllocateArraysAfterPartioning(void) {
   int cSize = 6;
   int nNodesMax = 0, nNodes;
   for (int i = 0; i < nelements; ++i) {
@@ -279,4 +278,16 @@ void AllocateArraysAfterPartioning(void) {
   int Bsize = bColSize*cSize;
   fintGQ = (double*)malloc(bColSize*sizeof(double));
   B = (double*)malloc(Bsize*sizeof(double));
+  // Allocate arrays specific to viscoelastic material
+  // Check if viscoelastic material is used 
+  for (int i = 0; i < nPIDglobal; ++i) {
+    if (materialID[i] == 5) {
+      // Allocated and set to zero for first time step
+      Hn_1 = (double *)calloc(F_counter, sizeof(double));
+      Hn_2 = (double *)calloc(F_counter, sizeof(double));
+      S0n = (double *)calloc(F_counter, sizeof(double));
+      break;
+    }
+  }
+  return;
 }

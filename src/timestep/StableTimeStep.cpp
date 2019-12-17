@@ -4,7 +4,7 @@
 /** For all elements -- this function calculates the minimum critical timestep */
 double StableTimeStep() {
 
-	double dt;
+	double dtElem;
 	double dtMin = huge;
   bool isNotRigid;
   // int minElementID;
@@ -20,9 +20,9 @@ double StableTimeStep() {
       }
     }
     if (isNotRigid) {
-      dt = CalculateTimeStep(i);
-      if (dt < dtMin){
-        dtMin = dt;
+      dtElem = CalculateTimeStep(i);
+      if (dtElem < dtMin){
+        dtMin = dtElem;
         // minElementID = i;
       }
     } 
@@ -30,7 +30,7 @@ double StableTimeStep() {
     //   elemSkipped = elemSkipped + 1;
     // }
 	}
-  // printf("INFO(%d): Minimum dt from element %d\n", world_rank, minElementID);
+  // printf("INFO(%d): Minimum dtElem from element %d\n", world_rank, minElementID);
   // printf("INFO(%d): Elements skipped %d\n", world_rank, elemSkipped);
   MPI_Allreduce(MPI_IN_PLACE, &dtMin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 

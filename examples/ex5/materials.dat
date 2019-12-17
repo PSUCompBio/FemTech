@@ -7,7 +7,7 @@
 6 1 1200 1.5e6 5.0e8
 7 1 1200 1.5e6 5.0e8
 8 1 1200 1.5e6 5.0e8
-9 4 1200 315.75 1999999789.5 3013.3 0.00001
+9 5 1200 2673.23 2.189982178466e8 25459 0 0.6521 0.0129 0.0067 0.0747
 
 
 # form of file
@@ -18,3 +18,5 @@
 # mat ID 2 - St. Venant props            : density mu lambda
 # mat ID 3 - Linear Elasticity           : density mu lambda
 # mat ID 4 - HGO Isotropic               : density mu lambda k1 k2
+# mat ID 5 - HGO Isotropic + Viscoelasticity  : density mu_0 lambda k1 k2 g1 t1 g2 t2 
+# g1 t1 and g2 t2 are pairs of 2 term Prony series

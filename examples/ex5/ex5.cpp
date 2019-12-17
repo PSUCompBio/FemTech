@@ -4,6 +4,7 @@
 #include "jsonfuncs.h"
 
 #include <assert.h>
+#include <fenv.h>
 
 /*Declare Functions*/
 void CustomPlot();
@@ -16,7 +17,7 @@ void WriteMaxStrainFile(double maxStrain, double maxX, double maxY, \
     double minZ, double minT);
 
 /* Global Variables/Parameters */
-double Time;
+double Time, dt;
 int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
@@ -41,6 +42,7 @@ double angNormal[3];
 const int rigidPartID = 0; // part ID of elements to be made rigid
 
 int main(int argc, char **argv) {
+  feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
   // Get the number of processes
@@ -89,7 +91,7 @@ int main(int argc, char **argv) {
   CustomPlot();
 
   // Dynamic Explcit solution using....
-  double dt = 0.0;
+  dt = 0.0;
 
   int time_step_counter = 0;
   const int nDOF = nnodes * ndim;
@@ -104,11 +106,13 @@ int main(int argc, char **argv) {
   // Used if initial velocity and acceleration BC is to be set.
 
   ApplyAccBoundaryConditions();
-  /* Step-2: getforce step from Belytschko */
-  GetForce(); // Calculating the force term.
 
   /* Obtain dt, according to Belytschko dt is calculated at end of getForce */
   dt = ExplicitTimeStepReduction * StableTimeStep();
+  /* Step-2: getforce step from Belytschko */
+  // In GetForce for viscoelastic material dt is required, hence we compute dt
+  // prior to getforce to avoid special treatment of getforce at Time = 0
+  GetForce(); // Calculating the force term.
 
   /* Step-3: Calculate accelerations */
   CalculateAccelerations();
