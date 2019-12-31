@@ -2,13 +2,14 @@
 #include "blas.h"
 #include "gitbranch.h"
 #include "jsonfuncs.h"
+#include "utilities.h"
 
 #include <assert.h>
 
 /*Declare Functions*/
 void CustomPlot();
 void InitCustomPlot();
-void InitBoundaryCondition(double *aMax, double angMax);
+void InitBoundaryCondition(const Json::Value& jsonInput);
 void updateBoundaryNeighbour(void);
 void ApplyAccBoundaryConditions();
 void WriteMaxStrainFile(double maxStrain, double maxX, double maxY, \
@@ -32,13 +33,18 @@ bool rankForCustomPlot;
 /* Global variables for bc */
 int *boundaryID = NULL;
 int boundarySize;
-double aLin[3], bLin[3];
-double aAng, bAng;
 double peakTime, tMax;
 double thetaOld = 0.0;
 double linDisplOld[3];
-double angNormal[3];
 const int rigidPartID = 0; // part ID of elements to be made rigid
+
+/* Variables used to store acceleration values */
+int linAccXSize, linAccYSize, linAccZSize;
+int angAccXSize, angAccYSize, angAccZSize;
+double *linAccXt, *linAccYt, *linAccZt;
+double *linAccXv, *linAccYv, *linAccZv;
+double *angAccXt, *angAccYt, *angAccZt;
+double *angAccXv, *angAccYv, *angAccZv;
 
 int main(int argc, char **argv) {
   // Initialize the MPI environment
@@ -47,27 +53,16 @@ int main(int argc, char **argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   // Get the rank of the process
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-  static const double gC = 9.81;
 
+  // Read the input file
   Json::Value simulationJson = getConfig(argv[1]);
   std::string meshFile = simulationJson["mesh"].asString();
-  double accMax[3];
-  accMax[0] = gC*simulationJson["linear-acceleration"][0].asDouble();
-  accMax[1] = gC*simulationJson["linear-acceleration"][1].asDouble();
-  accMax[2] = gC*simulationJson["linear-acceleration"][2].asDouble();
 
-  double angAccMax = simulationJson["angular-acceleration"].asDouble();
-  angNormal[0] = 0.0;
-  angNormal[1] = 0.0;
-  angNormal[2] = 1.0;
   peakTime = simulationJson["time-peak-acceleration"].asDouble();
   tMax = simulationJson["maximum-time"].asDouble();
   if (world_rank == 0) {
     printf("INFO : Git commit : %s of branch %s\n", GIT_COMMIT_HASH,
            GIT_BRANCH);
-    printf("INFO : Linear Acceleration : (%7.3e, %7.3e, %7.3e)\n", accMax[0],
-           accMax[1], accMax[2]);
-    printf("INFO : Angular Acceleration : %7.3e\n", angAccMax);
     printf("INFO : Reading Mesh File : %s\n", meshFile.c_str());
   }
 
@@ -79,7 +74,7 @@ int main(int argc, char **argv) {
 
   AllocateArrays();
   InitCustomPlot();
-  InitBoundaryCondition(accMax, angAccMax);
+  InitBoundaryCondition(simulationJson);
 
   /* Write inital, undeformed configuration*/
   Time = 0.0;
@@ -322,10 +317,20 @@ int main(int argc, char **argv) {
         maxRecv[3], minStrain, minRecv[0], minRecv[1], minRecv[2], minRecv[3]);
   }
   FreeArrays();
-  // Free local boundary related arrays
-  if (boundaryID) {
-    free(boundaryID);
-  }
+  // Free local boundary condition related arrays
+  free1DArray(boundaryID);
+  free1DArray(linAccXt);
+  free1DArray(linAccYt);
+  free1DArray(linAccZt);
+  free1DArray(linAccXv);
+  free1DArray(linAccYv);
+  free1DArray(linAccZv);
+  free1DArray(angAccXt);
+  free1DArray(angAccYt);
+  free1DArray(angAccZt);
+  free1DArray(angAccXv);
+  free1DArray(angAccYv);
+  free1DArray(angAccZv);
   MPI_Finalize();
   return 0;
 }
@@ -507,7 +512,85 @@ void CustomPlot() {
   return;
 }
 
-void InitBoundaryCondition(double *aMax, double angMax) {
+void InitBoundaryCondition(const Json::Value& jsonInput) {
+  // Read input JSON for acceleration values
+  // Read linear acceleration and angular acceleration time traces
+  linAccXSize = jsonInput["linear-acceleration"]["xt"].size();
+  int tempSize = jsonInput["linear-acceleration"]["xv"].size();
+  assert(tempSize == linAccXSize);
+  linAccXt = (double*)malloc(sizeof(double)*linAccXSize);
+  linAccXv = (double*)malloc(sizeof(double)*linAccXSize);
+  linAccYSize = jsonInput["linear-acceleration"]["yt"].size();
+  tempSize = jsonInput["linear-acceleration"]["yv"].size();
+  assert(tempSize == linAccYSize);
+  linAccYt = (double*)malloc(sizeof(double)*linAccYSize);
+  linAccYv = (double*)malloc(sizeof(double)*linAccYSize);
+  linAccZSize = jsonInput["linear-acceleration"]["zt"].size();
+  tempSize = jsonInput["linear-acceleration"]["zv"].size();
+  assert(tempSize == linAccYSize);
+  linAccZt = (double*)malloc(sizeof(double)*linAccZSize);
+  linAccZv = (double*)malloc(sizeof(double)*linAccZSize);
+  jsonToArray(linAccXt, jsonInput["linear-acceleration"]["xt"]);
+  jsonToArray(linAccXv, jsonInput["linear-acceleration"]["xv"]);
+  jsonToArray(linAccYt, jsonInput["linear-acceleration"]["yt"]);
+  jsonToArray(linAccYv, jsonInput["linear-acceleration"]["yv"]);
+  jsonToArray(linAccZt, jsonInput["linear-acceleration"]["zt"]);
+  jsonToArray(linAccZv, jsonInput["linear-acceleration"]["zv"]);
+
+  angAccXSize = jsonInput["angular-acceleration"]["xt"].size();
+  tempSize = jsonInput["angular-acceleration"]["xv"].size();
+  assert(tempSize == angAccXSize);
+  angAccXt = (double*)malloc(sizeof(double)*angAccXSize);
+  angAccXv = (double*)malloc(sizeof(double)*angAccXSize);
+  angAccYSize = jsonInput["angular-acceleration"]["yt"].size();
+  tempSize = jsonInput["angular-acceleration"]["yv"].size();
+  assert(tempSize == angAccYSize);
+  angAccYt = (double*)malloc(sizeof(double)*angAccYSize);
+  angAccYv = (double*)malloc(sizeof(double)*angAccYSize);
+  angAccZSize = jsonInput["angular-acceleration"]["zt"].size();
+  tempSize = jsonInput["angular-acceleration"]["zv"].size();
+  assert(tempSize == angAccZSize);
+  angAccZt = (double*)malloc(sizeof(double)*angAccZSize);
+  angAccZv = (double*)malloc(sizeof(double)*angAccZSize);
+  jsonToArray(angAccXt, jsonInput["angular-acceleration"]["xt"]);
+  jsonToArray(angAccXv, jsonInput["angular-acceleration"]["xv"]);
+  jsonToArray(angAccYt, jsonInput["angular-acceleration"]["yt"]);
+  jsonToArray(angAccYv, jsonInput["angular-acceleration"]["yv"]);
+  jsonToArray(angAccZt, jsonInput["angular-acceleration"]["zt"]);
+  jsonToArray(angAccZv, jsonInput["angular-acceleration"]["zv"]);
+  printf("Size of Xt = %d, lastValue = %f, %f\n", linAccXSize, linAccXt[linAccXSize-1], linAccXv[linAccXSize-1]);
+  printf("Size of Yt = %d\n", linAccYSize);
+  printf("Size of Zt = %d\n", linAccZSize);
+  printf("Size of Xt = %d\n", angAccXSize);
+  printf("Size of Yt = %d\n", angAccYSize);
+  printf("Size of Zt = %d\n", angAccZSize);
+  exit(0);
+
+  static const double gC = 9.81;
+  // Convert linear accelerations from g force to m/s^2
+  // Convert time from milli-seconds to seconds
+  for (int i = 0; i < linAccXSize; ++i) {
+    linAccXv[i] = gC*linAccXv[i];
+    linAccXt[i] = 0.001*linAccXt[i];
+  }
+  for (int i = 0; i < linAccYSize; ++i) {
+    linAccYv[i] = gC*linAccYv[i];
+    linAccYt[i] = 0.001*linAccYt[i];
+  }
+  for (int i = 0; i < linAccZSize; ++i) {
+    linAccZv[i] = gC*linAccZv[i];
+    linAccZt[i] = 0.001*linAccZt[i];
+  }
+  for (int i = 0; i < angAccXSize; ++i) {
+    angAccXt[i] = 0.001*angAccXt[i];
+  }
+  for (int i = 0; i < angAccYSize; ++i) {
+    angAccYt[i] = 0.001*angAccYt[i];
+  }
+  for (int i = 0; i < angAccZSize; ++i) {
+    angAccZt[i] = 0.001*angAccZt[i];
+  }
+
   double tol = 1e-5;
   // Find count of nodes with specified partID
   int rigidNodeCount = 0;
@@ -567,16 +650,6 @@ void InitBoundaryCondition(double *aMax, double angMax) {
     }
   }
   assert(idIndex == boundarySize);
-  // Compute the constants required for acceleration computations
-  for (int i = 0; i < ndim; ++i) {
-    aLin[i] = aMax[i] / peakTime;
-    bLin[i] = aMax[i] / (tMax - peakTime);
-  }
-  aAng = angMax / peakTime;
-  bAng = angMax / (tMax - peakTime);
-  for (int i = 0; i < 3; ++i) {
-    linDisplOld[i] = 0.0;
-  }
 
   FILE *datFile;
   if (world_rank == 0) {

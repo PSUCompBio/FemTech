@@ -1,11 +1,5 @@
 #include "FemTech.h"
-
-void free1DArray(void *array) {
-  if(array) {
-    free(array);
-    array = NULL;
-  }
-}
+#include "utilities.h"
 
 void FreeArrays() {
   free1DArray(coordinates);
