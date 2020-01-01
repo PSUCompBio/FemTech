@@ -100,8 +100,8 @@ void PartitionMesh() {
       elementSendCum[i + 1] = elementSendCum[i] + elementRedistributePattern[i];
       nodeSendCum[i + 1] = nodeSendCum[i] + nodeRedistributePattern[i];
     }
-    // Multiply by 5 as we are sending 5 seperate lists for each process
-    sendCount *= 5;
+    // Multiply by 6 as we are sending 6 seperate lists for each process
+    sendCount *= 6;
     int nnodes_process = nodeSendCum[world_size];
     // Verify that all elements are included for distribution
     assert(nelements == elementSendCum[world_size]);
@@ -153,6 +153,7 @@ void PartitionMesh() {
         (double *)malloc(nnodes_process * sizeof(double) * ndim);
     int *eptrPacked = (int *)malloc(nelements * sizeof(int));
     int *pidPacked = (int *)malloc(nelements * sizeof(int));
+    int *eidPacked = (int *)malloc(nelements * sizeof(int));
     char *ElementTypePacked =
         (char *)malloc(nelements * MAX_ELEMENT_TYPE_SIZE * sizeof(char *));
 
@@ -178,6 +179,7 @@ void PartitionMesh() {
       eptrPacked[elementLocToCopy] = count;
       // Copy pid to send
       pidPacked[elementLocToCopy] = pid[i];
+      eidPacked[elementLocToCopy] = global_eid[i];
       // Copy element type
       memcpy(&(ElementTypePacked[elementLocToCopy * MAX_ELEMENT_TYPE_SIZE]),
              ElementType[i], sizeof(char) * MAX_ELEMENT_TYPE_SIZE);
@@ -204,6 +206,7 @@ void PartitionMesh() {
     int eptrTag = 7134;
     int pidTag = 7135;
     int eTypeTag = 7136;
+    int eidTag = 7137;
 
     for (int i = 0; i < world_size; ++i) {
       // Check if there are elements to send
@@ -232,7 +235,9 @@ void PartitionMesh() {
       MPI_Isend(&(ElementTypePacked[startElemLocation * MAX_ELEMENT_TYPE_SIZE]),
                 sizeElem * MAX_ELEMENT_TYPE_SIZE, MPI_CHAR, i, eTypeTag,
                 MPI_COMM_WORLD, &(requestListSend[requestIndex + 4]));
-      requestIndex = requestIndex + 5;
+      MPI_Isend(&(eidPacked[startElemLocation]), sizeElem, MPI_INT, i, eidTag,
+                MPI_COMM_WORLD, &(requestListSend[requestIndex + 5]));
+      requestIndex = requestIndex + 6;
     }
     // Verify that number of requests send matches the required
     assert(requestIndex == sendCount);
@@ -253,7 +258,7 @@ void PartitionMesh() {
       nodeRecvCum[i + 1] = nodeRecvCum[i] + nodeReceivePattern[i];
     }
     // Multiply recvCount by number of messages to recv per process
-    recvCount *= 5;
+    recvCount *= 6;
     int nnodesRecv = nodeRecvCum[world_size];
     int nelementsRecv = elementRecvCum[world_size];
 
@@ -264,6 +269,7 @@ void PartitionMesh() {
     int *eptrRecv = (int *)malloc((nelementsRecv + 1) * sizeof(int));
     eptrRecv[0] = 0;
     int *pidRecv = (int *)malloc(nelementsRecv * sizeof(int));
+    int *eidRecv = (int *)malloc(nelementsRecv * sizeof(int));
     char *ElementTypeRecv =
         (char *)malloc(nelementsRecv * MAX_ELEMENT_TYPE_SIZE * sizeof(char));
 
@@ -296,6 +302,8 @@ void PartitionMesh() {
         memcpy(&(ElementTypeRecv[startElemLocation * MAX_ELEMENT_TYPE_SIZE]),
                &(ElementTypePacked[startLocSendElem * MAX_ELEMENT_TYPE_SIZE]),
                sizeof(char) * sizeElem * MAX_ELEMENT_TYPE_SIZE);
+        memcpy(&(eidRecv[startElemLocation]), &(eidPacked[startLocSendElem]),
+               sizeof(int) * sizeElem);
         continue;
       }
       // Recv connectivity array from i
@@ -312,7 +320,9 @@ void PartitionMesh() {
       MPI_Irecv(&(ElementTypeRecv[startElemLocation * MAX_ELEMENT_TYPE_SIZE]),
                 sizeElem * MAX_ELEMENT_TYPE_SIZE, MPI_CHAR, i, eTypeTag,
                 MPI_COMM_WORLD, &(requestListRecv[requestIndex + 4]));
-      requestIndex = requestIndex + 5;
+      MPI_Irecv(&(eidRecv[startElemLocation]), sizeElem, MPI_INT, i, eidTag,
+                MPI_COMM_WORLD, &(requestListRecv[requestIndex + 5]));
+      requestIndex = requestIndex + 6;
     }
     // Verify that number of requests send matches the required
     assert(requestIndex == recvCount);
@@ -381,6 +391,20 @@ void PartitionMesh() {
       }
     }
     if (debug && 1 == 0) {
+      printf("EID Array : \n");
+      if (world_rank == 0) {
+        printf("Send Eid array from 0 to 1\n");
+        for (int i = 0; i < 10; ++i) {
+          printf("%d\t", eidPacked[elementSendCum[1] + i]);
+        }
+        printf("\n");
+        for (int i = 1; i < 11; ++i) {
+          printf("%d\t", eidPacked[elementSendCum[2] - i]);
+        }
+        printf("\n");
+      }
+    }
+    if (debug && 1 == 0) {
       printf("Element Type Array : \n");
       if (world_rank == 0) {
         printf("Send element type array from 0 to 1\n");
@@ -402,6 +426,7 @@ void PartitionMesh() {
     free(coordinatesPacked);
     free(eptrPacked);
     free(pidPacked);
+    free(eidPacked);
     free(ElementTypePacked);
     free(requestListSend);
 
@@ -474,6 +499,20 @@ void PartitionMesh() {
       }
     }
     if (debug && 1 == 0) {
+      printf("EID Array : \n");
+      if (world_rank == 1) {
+        printf("Recv Eid array from 1 to 0\n");
+        for (int i = 0; i < 10; ++i) {
+          printf("%d\t", eidRecv[elementRecvCum[0] + i]);
+        }
+        printf("\n");
+        for (int i = 1; i < 11; ++i) {
+          printf("%d\t", eidRecv[elementRecvCum[1] - i]);
+        }
+        printf("\n");
+      }
+    }
+    if (debug && 1 == 0) {
       printf("Element Type Array : \n");
       if (world_rank == 0) {
         printf("Recv element type array from 0 to 1\n");
@@ -505,6 +544,8 @@ void PartitionMesh() {
     coordinates = coordinatesRecv;
     free(pid);
     pid = pidRecv;
+    free(global_eid);
+    global_eid = eidRecv;
 
     // Find cumulative sum on eptr
     for (int i = 0; i < nelementsRecv; ++i) {

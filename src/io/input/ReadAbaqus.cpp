@@ -1,5 +1,7 @@
 #include "FemTech.h"
 
+#include <assert.h>
+
 #ifdef _WIN32
 #include <string.h>
 
@@ -178,20 +180,25 @@ bool ReadAbaqus(const char *FileName) {
     Free2DimArray((void **)ElSetNames, nelements);
     Free2DimArray((void **)UniqueElSetNames, ElSetsCount);
 
+    global_eid = (int *)malloc(nelements*sizeof(int));
+
     // Creating and initializing "connectivity" array for processor
     connectivity = (int *)calloc(ConnectivitySize, sizeof(int));
     i = 0, j = 0;
+    int eIndex = 0;
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (IsElementSection(Line, File)) {
             long LastValidElemDataLinePos = -1;
             while (fgets(Line, sizeof(Line), File) != NULL) {
                 int *Nodes;
-                const int n = LineToArray(true, false, 2, 0, Line, Delim, (void**)&Nodes);
+                const int n = LineToArray(true, false, 1, 0, Line, Delim, (void**)&Nodes);
                 if (n == 0) {
                     break;
                 }
                 if (i >= From && i <= To) {
-                    for (int k = 0; k < n; k++) {
+                  global_eid[eIndex] = Nodes[0];
+                  eIndex = eIndex + 1;
+                    for (int k = 1; k < n; k++) {
                         connectivity[j] = Nodes[k] - 1;
                         j = j + 1;
                     }
@@ -206,6 +213,10 @@ bool ReadAbaqus(const char *FileName) {
             }
         }
     }
+    assert(eIndex == nelements);
+    // for (int k = 0; k < 10; ++k) {
+    //   printf("Rank : %d, element global id : %d of From : %d and To : %d\n", world_rank, global_eid[k], From, To);
+    // }
     
     // Checking if we can go to nodes section of mesh file
     if (fseek(File, NodesSectionPos, SEEK_SET) != 0) {

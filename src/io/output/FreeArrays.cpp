@@ -11,6 +11,7 @@ void FreeArrays() {
   free1DArray(coordinates);
   free1DArray(connectivity);
   free1DArray(pid);
+  free1DArray(global_eid);
   free1DArray(eptr);
   free1DArray(shp);
   free1DArray(dshp);

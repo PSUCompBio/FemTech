@@ -13,7 +13,7 @@ double *coordinates;
 int *connectivity;
 int *eptr;
 int *pid;
-int *mid;
+int *global_eid;
 char **ElementType;
 int world_rank;
 int world_size;
