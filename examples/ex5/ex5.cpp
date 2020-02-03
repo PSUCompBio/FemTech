@@ -4,7 +4,6 @@
 #include "jsonfuncs.h"
 
 #include <assert.h>
-#include <fenv.h>
 
 /*Declare Functions*/
 void CustomPlot();
@@ -42,7 +41,6 @@ double angNormal[3];
 const int rigidPartID = 0; // part ID of elements to be made rigid
 
 int main(int argc, char **argv) {
-  feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
   // Get the number of processes
