@@ -36,6 +36,7 @@ void ReadMaterials() {
     fscanf(File, "%d", &materialID[partID]);
     int index = partID * MAXMATPARAMS;
     switch (materialID[partID]) {
+      case 0 : break;
       case 1 ://Compressible Neohookean
               // properties[0] = density
               // properties[1] = mu

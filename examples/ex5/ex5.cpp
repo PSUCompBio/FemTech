@@ -45,7 +45,6 @@ double peakTime, tMax;
 double thetaOld = 0.0;
 double linDisplOld[3];
 double angNormal[3];
-const int rigidPartID = 0; // part ID of elements to be made rigid
 /* Variables to compute maximim and minimum strain */
 double maxStrain = 0.0, minStrain = 0.0, maxShear = 0.0;
 int maxElem = 0, minElem = 0, shearElem = 0;
@@ -440,7 +439,7 @@ void InitBoundaryCondition(double *aMax, double angMax, int impactID) {
   // Find count of nodes with specified partID
   int rigidNodeCount = 0;
   for (int i = 0; i < nelements; ++i) {
-    if (pid[i] == rigidPartID) {
+    if (materialID[pid[i]] == 0) {
       rigidNodeCount = rigidNodeCount + (eptr[i + 1] - eptr[i]);
     }
   }
@@ -453,7 +452,7 @@ void InitBoundaryCondition(double *aMax, double angMax, int impactID) {
   // Store all nodes to be made rigid
   int nodePtr = 0;
   for (int i = 0; i < nelements; ++i) {
-    if (pid[i] == rigidPartID) {
+    if (materialID[pid[i]] == 0) {
       for (int j = eptr[i]; j < eptr[i + 1]; ++j) {
         rigidNodeID[nodePtr] = connectivity[j];
         nodePtr = nodePtr + 1;
