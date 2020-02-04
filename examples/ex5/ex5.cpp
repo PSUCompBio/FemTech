@@ -4,16 +4,20 @@
 #include "jsonfuncs.h"
 
 #include <assert.h>
+#include <map>
+#include <string>
+#include <math.h>
 
 /*Declare Functions*/
 void CustomPlot();
 void InitCustomPlot();
-void InitBoundaryCondition(double *aMax, double angMax);
+void InitBoundaryCondition(double *aMax, double angMax, int impactID);
 void updateBoundaryNeighbour(void);
 void ApplyAccBoundaryConditions();
 void WriteMaxStrainFile(double maxStrain, double maxX, double maxY, \
     double maxZ, double maxT, double minStrain, double minX, double minY, \
     double minZ, double minT);
+int getImpactID(std::string location);
 
 /* Global Variables/Parameters */
 double Time, dt;
@@ -57,11 +61,10 @@ int main(int argc, char **argv) {
   accMax[2] = gC*simulationJson["linear-acceleration"][2].asDouble();
 
   double angAccMax = simulationJson["angular-acceleration"].asDouble();
-  angNormal[0] = 0.0;
-  angNormal[1] = 0.0;
-  angNormal[2] = 1.0;
   peakTime = simulationJson["time-peak-acceleration"].asDouble();
   tMax = simulationJson["maximum-time"].asDouble();
+  int impactPointID = getImpactID(simulationJson["impact-point"].asString());
+
   if (world_rank == 0) {
     printf("INFO : Git commit : %s of branch %s\n", GIT_COMMIT_HASH,
            GIT_BRANCH);
@@ -79,7 +82,7 @@ int main(int argc, char **argv) {
 
   AllocateArrays();
   InitCustomPlot();
-  InitBoundaryCondition(accMax, angAccMax);
+  InitBoundaryCondition(accMax, angAccMax, impactPointID);
 
   /* Write inital, undeformed configuration*/
   Time = 0.0;
@@ -507,7 +510,7 @@ void CustomPlot() {
   return;
 }
 
-void InitBoundaryCondition(double *aMax, double angMax) {
+void InitBoundaryCondition(double *aMax, double angMax, int impactID) {
   double tol = 1e-5;
   // Find count of nodes with specified partID
   int rigidNodeCount = 0;
@@ -576,6 +579,39 @@ void InitBoundaryCondition(double *aMax, double angMax) {
   bAng = angMax / (tMax - peakTime);
   for (int i = 0; i < 3; ++i) {
     linDisplOld[i] = 0.0;
+  }
+
+  // Compute the axis of rotation based on center of mass and impact point
+  // printf("Location of impact : %d\n", impactID);
+  double cm[3], impactNodeCoord[3];
+  GetBodyCenterofMass(cm);
+  // Find if global node ID is present on the current process
+  int nodeStatus = coordinateFromGlobalID(globalNodeID, impactID, nnodes, \
+      impactNodeCoord);
+  // Find lowest rank process with node ID
+  int *nodeWithID = (int*)malloc(world_size*sizeof(int));
+  MPI_Allgather(&nodeStatus, 1, MPI_INT, nodeWithID, 1, MPI_INT, MPI_COMM_WORLD);
+  int nodeIDGlobal = -1;
+  for (int i = 0; i < world_size; ++i) {
+    if (nodeWithID[i]) {
+      nodeIDGlobal = i;
+      break;
+    }
+  }
+  // Recieve node co-ordinates
+  MPI_Bcast(impactNodeCoord, ndim, MPI_DOUBLE, nodeIDGlobal, MPI_COMM_WORLD);
+  // printf("Coordinates (%d) : %f, %f, %f\n", world_rank, impactNodeCoord[0], \
+  //     impactNodeCoord[1], impactNodeCoord[2]);
+  //Compute the axis of rotation
+  double norm = 0.0;
+  for (int i = 0; i < ndim; ++i) {
+    double ds = impactNodeCoord[i]-cm[i];
+    angNormal[i] = ds;
+    norm += ds*ds;
+  }
+  norm = sqrt(norm);
+  for (int i = 0; i < ndim; ++i) {
+    angNormal[i] /= norm;
   }
 
   FILE *datFile;
@@ -663,4 +699,12 @@ void updateBoundaryNeighbour(void) {
   free(requestListRecv);
   free(recvNodeBoundary);
   free(sendNodeBoundary);
+}
+
+int getImpactID(std::string location) {
+  const std::map<std::string, int> pointMap{ {"top-right", 5328}, \
+    {"top-left", 1749}, {"front-low", 2575}, {"front-high", 1967}, \
+    {"right-high", 5720}, {"bottom-front", 2575}, {"top-front", 1967}, \
+    {"top-rear", 1873}};
+  return pointMap.at(location);
 }

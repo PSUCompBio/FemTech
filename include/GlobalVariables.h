@@ -20,6 +20,7 @@ extern double FailureTimeStep;
 
 extern double *coordinates;
 extern int *connectivity;
+extern int *globalNodeID; /*Stores global node ID for computing axis of rotation */
 extern int *GaussPoints;	/*holds how many guass points per element*/
 extern int *gptr;			/*gauss point pointer - helps step through shp array*/
 extern int *dsptr;			/*deriviative of shp functions pointer array - helps step through dshp array*/

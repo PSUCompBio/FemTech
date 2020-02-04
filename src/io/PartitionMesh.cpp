@@ -12,6 +12,8 @@ int *sendNodeIndex;
 double *sendNodeDisplacement;
 double *recvNodeDisplacement;
 
+int *globalNodeID;
+
 void updateConnectivityGlobalToLocal(void);
 void createNodalCommunicationPattern(void);
 
@@ -581,6 +583,22 @@ int unique(int *arr, int n) {
   free(temp);
   return j;
 }
+int coordinateFromGlobalID(int *array, int nodeID, int size, double* coord) {
+  int *position = (int*)bsearch(&nodeID, array, size, sizeof(int), compare);
+  if (position) {
+    int location = position-array;
+    // printf("Value at position : %d or %d\n", *position, array[location]);
+    // printf("NodeID : %d (location = %d), found on rank %d\n", nodeID, location, world_rank);
+    location *= 3;
+    coord[0] = coordinates[location]; 
+    coord[1] = coordinates[location+1]; 
+    coord[2] = coordinates[location+2]; 
+    // printf("Coordinates : %f, %f, %f\n", coord[0], coord[1], coord[2]);
+    return 1;
+  } else {
+    return 0;
+  }
+}
 //-------------------------------------------------------------------------------------------
 void updateConnectivityGlobalToLocal(void) {
   int totalSize = eptr[nelements];
@@ -621,6 +639,11 @@ void updateConnectivityGlobalToLocal(void) {
       }
     }
     sendNodeIndex[i] = j;
+  }
+  // Copy sorted array to globalNodeID for pre and post processing
+  globalNodeID = (int*)malloc(nnodes*sizeof(int));
+  for (int i = 0; i < nnodes; ++i) {
+    globalNodeID[i] = sorted[i];
   }
   free(connectivity);
   connectivity = newConnectivity;

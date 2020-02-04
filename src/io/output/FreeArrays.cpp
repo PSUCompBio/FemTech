@@ -10,6 +10,7 @@ void free1DArray(void *array) {
 void FreeArrays() {
   free1DArray(coordinates);
   free1DArray(connectivity);
+  free1DArray(globalNodeID);
   free1DArray(pid);
   free1DArray(eptr);
   free1DArray(shp);
