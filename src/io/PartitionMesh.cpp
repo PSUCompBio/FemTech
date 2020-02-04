@@ -32,8 +32,16 @@ void PartitionMesh() {
   idx_t ncon = 1; // number of balance constraints
 
   // Prepare remaining arguments for ParMETIS
-  idx_t *elmwgt = NULL;
-  idx_t wgtflag = 0;      // we don't use weights
+  // idx_t *elmwgt = NULL;
+  idx_t *elmwgt = (idx_t*)malloc(nelements*sizeof(idx_t));
+  // Assign weights based on element type and material type
+  for (int i = 0; i < nelements; ++i) {
+    const unsigned int matID = materialID[pid[i]];
+    const int matW = materialWeight[matID];
+    const int elemW = elemWeight[elemID.at(ElementType[i])];
+    elmwgt[i] = matW*elemW;
+  }
+  idx_t wgtflag = 2;      // we don't use weights
   idx_t numflag = 0;      // we are using C-style arrays
   idx_t ncommonnodes = 2; // number of nodes elements must have in common
   if (nallelements == 2) {
@@ -604,6 +612,7 @@ void PartitionMesh() {
   free(tpwgts);
   free(elmdist);
   free(part);
+  free(elmwgt);
 }
 //-------------------------------------------------------------------------------------------
 int compare(const void *a, const void *b) { return (*(int *)a - *(int *)b); }
