@@ -105,5 +105,6 @@ double volumeTetrahedron(double *coordinates);
 
 int compare(const void *a, const void *b);
 int unique(int *arr, int n);
+int coordinateFromGlobalID(int *array, int nodeID, int size, double* coord);
 
 #endif

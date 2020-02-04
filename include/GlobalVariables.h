@@ -20,6 +20,7 @@ extern double FailureTimeStep;
 
 extern double *coordinates;
 extern int *connectivity;
+extern int *globalNodeID; /*Stores global node ID for computing axis of rotation */
 extern int *GaussPoints;	/*holds how many guass points per element*/
 extern int *gptr;			/*gauss point pointer - helps step through shp array*/
 extern int *dsptr;			/*deriviative of shp functions pointer array - helps step through dshp array*/
@@ -32,7 +33,7 @@ extern double *dshp;		/*derivatives of shape functions*/
 extern int *eptr;			/*number of nodes per element pointer*/
 extern int *detFptr; //pointer for iterating through detF array.
 extern int *pid;			/* part ID */
-extern int *mid;			/*material ID */
+extern int *global_eid; /* Variable to store global element id for post processing */
 extern double *mass;        /*mass matrix*/
 extern double *stiffness;        /*stiffness matrix*/
 extern double *rhs;              /*to store rhs matrix equation (implicit) */
