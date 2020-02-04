@@ -3,10 +3,14 @@
 #include "gitbranch.h"
 #include "jsonfuncs.h"
 
+#include "json/writer.h"
+
 #include <assert.h>
 #include <map>
 #include <string>
 #include <math.h>
+#include <fstream> // For JSON output
+#include <memory> // For JSON output unique pointer
 
 /*Declare Functions*/
 void CustomPlot();
@@ -14,10 +18,9 @@ void InitCustomPlot();
 void InitBoundaryCondition(double *aMax, double angMax, int impactID);
 void updateBoundaryNeighbour(void);
 void ApplyAccBoundaryConditions();
-void WriteMaxStrainFile(double maxStrain, double maxX, double maxY, \
-    double maxZ, double maxT, double minStrain, double minX, double minY, \
-    double minZ, double minT);
 int getImpactID(std::string location);
+void WriteOutputFile(void);
+void CalculateInjuryCriterions(void);
 
 /* Global Variables/Parameters */
 double Time, dt;
@@ -43,6 +46,14 @@ double thetaOld = 0.0;
 double linDisplOld[3];
 double angNormal[3];
 const int rigidPartID = 0; // part ID of elements to be made rigid
+/* Variables to compute maximim and minimum strain */
+double maxStrain = 0.0, minStrain = 0.0, maxShear = 0.0;
+int maxElem = 0, minElem = 0, shearElem = 0;
+double maxT = 0.0, minT = 0.0, maxShearT = 0.0;
+struct {
+  double value;
+  int   rank;
+} parStructMax, parStructMin, parStructSMax; 
 
 int main(int argc, char **argv) {
   // Initialize the MPI environment
@@ -120,6 +131,9 @@ int main(int argc, char **argv) {
 
   nSteps = (int)(tMax / dt);
   int nsteps_plot = (int)(nSteps / nPlotSteps);
+  if (nsteps_plot == 0) {
+    nsteps_plot = 1;
+  }
 
   if (world_rank == 0) {
     printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
@@ -134,15 +148,6 @@ int main(int argc, char **argv) {
         "------------------------------- Loop ----------------------------\n");
     printf("Time : %f, tmax : %f\n", Time, tMax);
   }
-
-  /* Variables to compute maximim and minimum strain */
-  double maxStrain = 0.0, minStrain = 0.0;
-  int maxElem = 0, minElem = 0;
-  double maxT = 0.0, minT = 0.0;
-  struct {
-    double value;
-    int   rank;
-  } parStructMax, parStructMin; 
 
   /* Step-4: Time loop starts....*/
   while (Time < tMax) {
@@ -200,38 +205,7 @@ int main(int argc, char **argv) {
         printf("Time : %15.6e, dt=%15.6e, tmax : %15.6e\n", Time, dt, tMax);
       }
       plot_counter = plot_counter + 1;
-      double currentStrainMaxElem, currentStrainMinElem;
-      double currentStrainMax = 0.0, currentStrainMin = 0.0;
-      for (int i = 0; i < nelements; i++) {
-        CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, &currentStrainMinElem);
-        if (currentStrainMax < currentStrainMaxElem) {
-          currentStrainMax = currentStrainMaxElem;
-          maxElem = i;
-        }
-        if (currentStrainMin > currentStrainMinElem) {
-          currentStrainMin = currentStrainMinElem;
-          minElem = i;
-        }
-      } // calculating max and minimum strain over local elements
-      // Updating max and min time
-      if (currentStrainMax > maxStrain) {
-        maxT = Time;
-        maxStrain = currentStrainMax;
-      }
-      if (currentStrainMin < minStrain) {
-        minT = Time;
-        minStrain = currentStrainMin;
-      }
-      // Find the gloabl min and max strain
-      parStructMax.value = maxStrain;
-      parStructMax.rank = world_rank;
-      MPI_Allreduce(MPI_IN_PLACE, &parStructMax, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
-      maxStrain = parStructMax.value;
-
-      parStructMin.value = minStrain;
-      parStructMin.rank = world_rank;
-      MPI_Allreduce(MPI_IN_PLACE, &parStructMin, 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
-      minStrain = parStructMin.value;
+      CalculateInjuryCriterions();
 
       printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter,
              world_rank);
@@ -274,56 +248,7 @@ int main(int argc, char **argv) {
   }
 #endif // DEBUG
 
-  /* Below are things to do at end of program */
-  // Copy max and min strain 
-  if (parStructMin.rank == world_rank) {
-    double minLocationAndTime[4];
-    for (int i = 0; i < 4; ++i) {
-      minLocationAndTime[i] = 0.0;
-    }
-    // Compute element coordinates 
-    int nP = eptr[minElem+1]-eptr[minElem];
-    for (int i = eptr[minElem]; i < eptr[minElem+1]; ++i) {
-      minLocationAndTime[0] += coordinates[connectivity[i]*ndim];
-      minLocationAndTime[1] += coordinates[connectivity[i]*ndim+1];
-      minLocationAndTime[2] += coordinates[connectivity[i]*ndim+2];
-    }
-    for (int i = 0; i < ndim; ++i) {
-      minLocationAndTime[i] = minLocationAndTime[i]/((double)nP);
-    }
-    minLocationAndTime[3] = minT;
-    MPI_Send(minLocationAndTime, 4, MPI_DOUBLE, 0, 7297, MPI_COMM_WORLD);
-  }
-  if (parStructMax.rank == world_rank) {
-    double maxLocationAndTime[4];
-    for (int i = 0; i < 4; ++i) {
-      maxLocationAndTime[i] = 0.0;
-    }
-    // Compute element coordinates 
-    int nP = eptr[maxElem+1]-eptr[maxElem];
-    for (int i = eptr[maxElem]; i < eptr[maxElem+1]; ++i) {
-      maxLocationAndTime[0] += coordinates[connectivity[i]*ndim];
-      maxLocationAndTime[1] += coordinates[connectivity[i]*ndim+1];
-      maxLocationAndTime[2] += coordinates[connectivity[i]*ndim+2];
-    }
-    for (int i = 0; i < ndim; ++i) {
-      maxLocationAndTime[i] = maxLocationAndTime[i]/((double)nP);
-    }
-    maxLocationAndTime[3] = maxT;
-    MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7298, MPI_COMM_WORLD);
-  }
-  if (world_rank == 0) {
-    double minRecv[4];
-    double maxRecv[4];
-    MPI_Recv(minRecv, 4, MPI_DOUBLE, parStructMin.rank, 7297, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    MPI_Recv(maxRecv, 4, MPI_DOUBLE, parStructMax.rank, 7298, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    // if (plot_counter < MAXPLOTSTEPS) {
-    //   stepTime[plot_counter] = Time;
-    //   WritePVD(meshFile.c_str(), plot_counter, Time);
-    // }
-    WriteMaxStrainFile(maxStrain, maxRecv[0], maxRecv[1], maxRecv[2], \
-        maxRecv[3], minStrain, minRecv[0], minRecv[1], minRecv[2], minRecv[3]);
-  }
+  WriteOutputFile();
   FreeArrays();
   // Free local boundary related arrays
   if (boundaryID) {
@@ -626,20 +551,6 @@ void InitBoundaryCondition(double *aMax, double angMax, int impactID) {
   return;
 }
 
-void WriteMaxStrainFile(double maxStrain, double maxX, double maxY, \
-    double maxZ, double maxT, double minStrain, double minX, double minY, \
-    double minZ, double minT) {
-  // Write the maximum strain to file
-  FILE *maxStrainFile;
-  maxStrainFile = fopen("maxstrain.dat", "w");
-  fprintf(maxStrainFile, "# Maximum and Minimum Principal Strain Results\n");
-  fprintf(maxStrainFile, "# MaxStrain  MaxX  MaxY MaxZ  MaxT  MinStrain  MinX  MinY MinZ  MinT\n");
-  fprintf(maxStrainFile,
-          "%11.6e  %11.6e  %11.6e  %11.6e  %11.6e  %11.6e  %11.6e  %11.6e  "
-          "%11.6e  %11.6e\n", maxStrain, maxX, maxY, maxZ, maxT, minStrain, minX, minY, minZ, minT);
-  fclose(maxStrainFile);
-}
-
 void updateBoundaryNeighbour(void) {
   int* sendNodeBoundary;
   int* recvNodeBoundary;
@@ -707,4 +618,163 @@ int getImpactID(std::string location) {
     {"right-high", 5720}, {"bottom-front", 2575}, {"top-front", 1967}, \
     {"top-rear", 1873}};
   return pointMap.at(location);
+}
+
+void WriteOutputFile(void) {
+  /* Calculate min and max strain location and send to master */
+  // Copy max and min strain 
+  if (parStructMin.rank == world_rank) {
+    double minLocationAndTime[4];
+    for (int i = 0; i < 4; ++i) {
+      minLocationAndTime[i] = 0.0;
+    }
+    // Compute element coordinates 
+    int nP = eptr[minElem+1]-eptr[minElem];
+    for (int i = eptr[minElem]; i < eptr[minElem+1]; ++i) {
+      minLocationAndTime[0] += coordinates[connectivity[i]*ndim];
+      minLocationAndTime[1] += coordinates[connectivity[i]*ndim+1];
+      minLocationAndTime[2] += coordinates[connectivity[i]*ndim+2];
+    }
+    for (int i = 0; i < ndim; ++i) {
+      minLocationAndTime[i] = minLocationAndTime[i]/((double)nP);
+    }
+    minLocationAndTime[3] = minT;
+    MPI_Send(minLocationAndTime, 4, MPI_DOUBLE, 0, 7297, MPI_COMM_WORLD);
+    MPI_Send(&global_eid[minElem], 1, MPI_INT, 0, 7297, MPI_COMM_WORLD);
+  }
+  if (parStructMax.rank == world_rank) {
+    double maxLocationAndTime[4];
+    for (int i = 0; i < 4; ++i) {
+      maxLocationAndTime[i] = 0.0;
+    }
+    // Compute element coordinates 
+    int nP = eptr[maxElem+1]-eptr[maxElem];
+    for (int i = eptr[maxElem]; i < eptr[maxElem+1]; ++i) {
+      maxLocationAndTime[0] += coordinates[connectivity[i]*ndim];
+      maxLocationAndTime[1] += coordinates[connectivity[i]*ndim+1];
+      maxLocationAndTime[2] += coordinates[connectivity[i]*ndim+2];
+    }
+    for (int i = 0; i < ndim; ++i) {
+      maxLocationAndTime[i] = maxLocationAndTime[i]/((double)nP);
+    }
+    maxLocationAndTime[3] = maxT;
+    MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7298, MPI_COMM_WORLD);
+    MPI_Send(&global_eid[maxElem], 1, MPI_INT, 0, 7298, MPI_COMM_WORLD);
+  }
+  if (parStructSMax.rank == world_rank) {
+    double maxLocationAndTime[4];
+    for (int i = 0; i < 4; ++i) {
+      maxLocationAndTime[i] = 0.0;
+    }
+    // Compute element coordinates 
+    int nP = eptr[shearElem+1]-eptr[shearElem];
+    for (int i = eptr[shearElem]; i < eptr[shearElem+1]; ++i) {
+      maxLocationAndTime[0] += coordinates[connectivity[i]*ndim];
+      maxLocationAndTime[1] += coordinates[connectivity[i]*ndim+1];
+      maxLocationAndTime[2] += coordinates[connectivity[i]*ndim+2];
+    }
+    for (int i = 0; i < ndim; ++i) {
+      maxLocationAndTime[i] = maxLocationAndTime[i]/((double)nP);
+    }
+    maxLocationAndTime[3] = maxShearT;
+    MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7299, MPI_COMM_WORLD);
+    MPI_Send(&global_eid[shearElem], 1, MPI_INT, 0, 7299, MPI_COMM_WORLD);
+  }
+  if (world_rank == 0) {
+    double minRecv[4];
+    double maxRecv[4];
+    double shearRecv[4];
+    int globalIDMax[3];
+    MPI_Recv(minRecv, 4, MPI_DOUBLE, parStructMin.rank, 7297, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(&globalIDMax[0], 1, MPI_INT, parStructMin.rank, 7297, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(maxRecv, 4, MPI_DOUBLE, parStructMax.rank, 7298, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(&globalIDMax[1], 1, MPI_INT, parStructMax.rank, 7298, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(shearRecv, 4, MPI_DOUBLE, parStructSMax.rank, 7299, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(&globalIDMax[2], 1, MPI_INT, parStructSMax.rank, 7299, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    Json::Value output;
+    Json::Value vec(Json::arrayValue);
+
+    vec.append(Json::Value(maxRecv[0]));
+    vec.append(Json::Value(maxRecv[1]));
+    vec.append(Json::Value(maxRecv[2]));
+    output["principal-max-strain"]["value"] = maxStrain;
+    output["principal-max-strain"]["location"] = vec;
+    output["principal-max-strain"]["time"] = maxRecv[3];
+    output["principal-max-strain"]["global-element-id"] = globalIDMax[1];
+
+    vec[0] = minRecv[0];
+    vec[1] = minRecv[1];
+    vec[2] = minRecv[2];
+    output["principal-min-strain"]["value"] = minStrain;
+    output["principal-min-strain"]["location"] = vec;
+    output["principal-min-strain"]["time"] = minRecv[3];
+    output["principal-min-strain"]["global-element-id"] = globalIDMax[0];
+
+    vec[0] = shearRecv[0];
+    vec[1] = shearRecv[1];
+    vec[2] = shearRecv[2];
+    output["maximum-shear-strain"]["value"] = maxShear;
+    output["maximum-shear-strain"]["location"] = vec;
+    output["maximum-shear-strain"]["time"] = shearRecv[3];
+    output["maximum-shear-strain"]["global-element-id"] = globalIDMax[2];
+
+    output["output-file"] = "coarse_brain.pvd";
+
+    Json::StreamWriterBuilder builder;
+    builder["commentStyle"] = "None";
+    builder["indentation"] = "  ";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+    std::ofstream oFile("output.json");
+    writer -> write(output, &oFile);
+  }
+}
+
+void CalculateInjuryCriterions(void) {
+  double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
+  double currentStrainMax = 0.0, currentStrainMin = 0.0, currentShearMax = 0.0;
+  for (int i = 0; i < nelements; i++) {
+    CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, &currentStrainMinElem);
+    currentShearMaxElem = currentStrainMaxElem-currentStrainMinElem;
+    if (currentStrainMax < currentStrainMaxElem) {
+      currentStrainMax = currentStrainMaxElem;
+      maxElem = i;
+    }
+    if (currentStrainMin > currentStrainMinElem) {
+      currentStrainMin = currentStrainMinElem;
+      minElem = i;
+    }
+    if (currentShearMax < currentShearMaxElem) {
+      currentShearMax = currentShearMaxElem;
+      shearElem = i;
+    }
+  } // calculating max and minimum strain over local elements
+  // Updating max and min time
+  if (currentStrainMax > maxStrain) {
+    maxT = Time;
+    maxStrain = currentStrainMax;
+  }
+  if (currentStrainMin < minStrain) {
+    minT = Time;
+    minStrain = currentStrainMin;
+  }
+  if (currentShearMax > maxShear) {
+    maxShearT = Time;
+    maxShear = currentShearMax;
+  }
+  // Find the gloabl min and max strain
+  parStructMax.value = maxStrain;
+  parStructMax.rank = world_rank;
+  MPI_Allreduce(MPI_IN_PLACE, &parStructMax, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
+  maxStrain = parStructMax.value;
+
+  parStructMin.value = minStrain;
+  parStructMin.rank = world_rank;
+  MPI_Allreduce(MPI_IN_PLACE, &parStructMin, 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
+  minStrain = parStructMin.value;
+
+  parStructSMax.value = maxShear;
+  parStructSMax.rank = world_rank;
+  MPI_Allreduce(MPI_IN_PLACE, &parStructSMax, 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
+  maxShear = parStructSMax.value;
 }
