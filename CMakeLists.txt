@@ -111,6 +111,10 @@ include_directories(${source_dir}/include)
 ExternalProject_Get_Property(JsonCpp binary_dir)
 link_directories(${binary_dir}/src/lib_json)
 
+#Add Boost Include Directories
+ExternalProject_Get_Property(Boost source_dir)
+include_directories(${source_dir})
+
 
 
 #============================================================================

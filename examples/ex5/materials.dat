@@ -1,5 +1,5 @@
-0 0 
-1 1 1000 1.5e6 5.0e8
+0 0 1200 
+1 1 1200 1.5e6 5.0e8
 2 1 1200 1.5e6 5.0e8
 3 1 1200 1.5e6 5.0e8
 4 1 1200 1.5e6 5.0e8
@@ -14,7 +14,7 @@
 # partID (starting at 0), material ID (goes with consitutive model), ...
 # n properties (reads MAXMATPARAMS defined in GlobalVariables.h)
 
-# mat ID 0 - Specified rigid-body motion
+# mat ID 0 - Specified rigid-body motion : density
 # mat ID 1 - CompressibleNeoHookean props: density mu lambda
 # mat ID 2 - St. Venant props            : density mu lambda
 # mat ID 3 - Linear Elasticity           : density mu lambda

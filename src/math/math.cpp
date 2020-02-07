@@ -90,3 +90,65 @@ void get3dRotationMatrix(double *n, double theta, double mat[3][3]) {
   mat[2][1] = n[2]*n[1]*mcth_m1+n[0]*sth;
   mat[2][2] = cth+n[2]*n[2]*mcth_m1;
 }
+
+// Linear interpolation of tabulated data
+double interpolateLinear(int n, double *x, double *y, double value) {
+  if (value < x[0]) {
+    printf("Error : value outside range\n");
+    return 0.0;
+  }
+  if (value > x[n-1]) {
+    return y[n-1];
+  }
+  if (value == x[0]) {
+    return y[0];
+  }
+  int index = 0;
+  for (int i = 1; i < n; ++i) {
+    if (value <= x[i]) {
+      index = i-1;
+      break;
+    }
+  }
+  const double yValue = y[index] + (y[index+1]-y[index])*(value-x[index])/(x[index+1]-x[index]);
+  return yValue;
+}
+
+// Functions for using quaternions
+void quaternionExp(double *q1, double *q2) {
+  double vMag = q1[1]*q1[1]+q1[2]*q1[2]+q1[3]*q1[3];
+  if (vMag == 0) {
+    q2[0] = 1.0; q2[1] = 0.0; q2[2] = 0.0; q2[3] = 0.0;
+  } else {
+    vMag = sqrt(vMag);
+    const double d1 = exp(q1[0]);
+    const double d2 = d1*sin(vMag)/vMag;
+    q2[0] = d1*cos(vMag); q2[1] = d2*q1[1]; q2[2] = d2*q1[2]; q2[3] = d2*q1[3];
+  }
+}
+
+void quaternionMultiply(double *q1, double *q2, double *qr) {
+  qr[0] = q1[0]*q2[0]-q1[1]*q2[1]-q1[2]*q2[2]-q1[3]*q2[3];
+  qr[1] = q1[0]*q2[1]+q1[1]*q2[0]+q1[2]*q2[3]-q1[3]*q2[2];
+  qr[2] = q1[0]*q2[2]-q1[1]*q2[3]+q1[2]*q2[0]+q1[3]*q2[1];
+  qr[3] = q1[0]*q2[3]+q1[1]*q2[2]-q1[2]*q2[1]+q1[3]*q2[0];
+}
+
+void quaternionInverse(double *q, double *qinv) {
+  double norm = q[0]*q[0]+q[1]*q[1]+q[2]*q[2]+q[3]*q[3];
+  qinv[0] = q[0]/norm; qinv[1] = -q[1]/norm; 
+  qinv[2] = -q[2]/norm; qinv[3] = -q[3]/norm;
+}
+
+void quaternionRotate(double *v, double *R, double* vp) {
+  double Rv[4], Rinv[4];
+  quaternionMultiply(R, v, Rv);
+  quaternionInverse(R, Rinv);
+  quaternionMultiply(Rv, Rinv, vp);
+}
+
+void quaternionRotate(double *v, double *R, double *Rinv, double* vp) {
+  double Rv[4];
+  quaternionMultiply(R, v, Rv);
+  quaternionMultiply(Rv, Rinv, vp);
+}

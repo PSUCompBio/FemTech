@@ -82,6 +82,12 @@ double norm3D(double *a);
 double dotProduct3D(double *a, double *b);
 void rotate3d(double *n, double theta, double *xin);
 void get3dRotationMatrix(double *n, double theta, double mat[3][3]);
+double interpolateLinear(int n, double *x, double *y, double value);
+void quaternionExp(double *q1, double *q2);
+void quaternionMultiply(double *q1, double *q2, double *qr);
+void quaternionInverse(double *q, double *qinv);
+void quaternionRotate(double *v, double *R, double* vp);
+void quaternionRotate(double *v, double *R, double *Rinv, double* vp);
 
 void CheckEnergy(double time, int writeFlag);
 

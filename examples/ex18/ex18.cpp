@@ -83,9 +83,6 @@ int main(int argc, char **argv) {
   stepTime[plot_counter] = Time;
   CustomPlot();
 
-  // Dynamic Explcit solution using....
-  dt = 0.0;
-
   int time_step_counter = 0;
   const int nDOF = nnodes * ndim;
   /** Central Difference Method - Beta and Gamma */
@@ -345,66 +342,9 @@ void ApplyAccBoundaryConditions() {
   double alpha[3], accCorioli[3], accRotation[3], centrifugal[3];
   double rotMat[3][3];
 
-  // Compute accelerations, velocities and displacements
-  // Compute angular accelerations, angular velocities and angles
-  if (Time < peakTime) {
-    for (int i = 0; i < ndim; ++i) {
-      linAcc[i] = aLin[i] * Time;
-      linVel[i] = 0.5 * aLin[i] * Time * Time;
-      linDispl[i] = aLin[i] * Time * Time * Time / 6.0;
-    }
-
-    angAcc = aAng * Time;
-    angVel = 0.5 * aAng * Time * Time;
-    angDispl = aAng * Time * Time * Time / 6.0;
-  } else {
-    if (Time < tMax) {
-      for (int i = 0; i < ndim; ++i) {
-        linAcc[i] = (aLin[i] + bLin[i]) * peakTime - bLin[i] * Time;
-        linVel[i] = (aLin[i] + bLin[i]) *
-                        (peakTime * Time - 0.5 * peakTime * peakTime) -
-                    0.5 * bLin[i] * Time * Time;
-        linDispl[i] =
-            0.5 * (aLin[i] + bLin[i]) * peakTime *
-                (peakTime * peakTime / 3.0 - peakTime * Time + Time * Time) -
-            bLin[i] * Time * Time * Time / 6.0;
-      }
-
-      angAcc = (aAng + bAng) * peakTime - bAng * Time;
-      angVel = (aAng + bAng) * (peakTime * Time - 0.5 * peakTime * peakTime) -
-               0.5 * bAng * Time * Time;
-      angDispl =
-          0.5 * (aAng + bAng) * peakTime *
-              (peakTime * peakTime / 3.0 - peakTime * Time + Time * Time) -
-          bAng * Time * Time * Time / 6.0;
-    } else {
-      for (int i = 0; i < ndim; ++i) {
-        linAcc[i] = 0.0;
-        linVel[i] = (aLin[i] + bLin[i]) *
-                        (peakTime * tMax - 0.5 * peakTime * peakTime) -
-                    0.5 * bLin[i] * tMax * tMax;
-        linDispl[i] =
-            0.5 * (aLin[i] + bLin[i]) * peakTime *
-                (peakTime * peakTime / 3.0 - peakTime * tMax + tMax * tMax) -
-            bLin[i] * tMax * tMax * tMax / 6.0 + linVel[i] * (Time - tMax);
-      }
-      angAcc = 0.0;
-      angVel = (aAng + bAng) * (peakTime * tMax - 0.5 * peakTime * peakTime) -
-               0.5 * bAng * tMax * tMax;
-      angDispl =
-          0.5 * (aAng + bAng) * peakTime *
-              (peakTime * peakTime / 3.0 - peakTime * tMax + tMax * tMax) -
-          bAng * tMax * tMax * tMax / 6.0 + angVel * (Time - tMax);
-    }
-  }
   double dTheta = angDispl - thetaOld;
   thetaOld = angDispl;
   GetBodyCenterofMass(cm);
-  get3dRotationMatrix(angNormal, dTheta, rotMat);
-  for (int j = 0; j < ndim; ++j) {
-    omega[j] = angVel * angNormal[j];
-    alpha[j] = angAcc * angNormal[j];
-  }
 
   for (int i = 0; i < boundarySize; i++) {
     int index = boundaryID[i] * ndim;
