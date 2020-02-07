@@ -38,7 +38,6 @@ double peakTime, tMax;
 double thetaOld = 0.0;
 double linDisplOld[3];
 double angNormal[3];
-const int rigidPartID = 2; // part ID of elements to be made rigid
 
 int main(int argc, char **argv) {
   // Initialize the MPI environment
@@ -509,7 +508,7 @@ void InitBoundaryCondition(double *aMax, double angMax) {
   // Find count of nodes with specified partID
   int rigidNodeCount = 0;
   for (int i = 0; i < nelements; ++i) {
-    if (pid[i] == rigidPartID) {
+    if (materialID[pid[i]] == 0) {
       rigidNodeCount = rigidNodeCount + (eptr[i + 1] - eptr[i]);
     }
   }
@@ -522,7 +521,7 @@ void InitBoundaryCondition(double *aMax, double angMax) {
   // Store all nodes to be made rigid
   int nodePtr = 0;
   for (int i = 0; i < nelements; ++i) {
-    if (pid[i] == rigidPartID) {
+    if (materialID[pid[i]] == 0) {
       for (int j = eptr[i]; j < eptr[i + 1]; ++j) {
         rigidNodeID[nodePtr] = connectivity[j];
         nodePtr = nodePtr + 1;

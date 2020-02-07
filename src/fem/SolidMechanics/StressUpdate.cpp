@@ -9,6 +9,8 @@ void StressUpdate(int e, int gp){
 	}
 #endif //DEBUG
   switch (materialID[pid[e]]) {
+    case 0 : // Rigid-body motion
+             break;
     case 1 : //Compressible Neohookean
              CompressibleNeoHookean(e, gp);
              break;

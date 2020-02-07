@@ -5,7 +5,7 @@ void ModifyMassAndStiffnessMatrix();
 void ComputeUnsteadyRHS(const int n, const int nMax, double* displacementFinal, \
     const double a, const double b, const double c);
 
-void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double dt, \
+void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double deltaT, \
     double timeFinal, char* name) {
   // Make a copy of displacements to convert it into unsteady load increasing
   // incrementally from 0 to timeFinal
@@ -17,14 +17,14 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double dt, \
   double *accelerationsOld = (double*)malloc(nDOF*sizeof(double));
   double *displacementsOld = (double*)malloc(nDOF*sizeof(double));
 
-  int nMax = (int)((timeFinal+1e-7)/dt);
+  int nMax = (int)((timeFinal+1e-7)/deltaT);
 
   // Precompute multipliers
-  const double a = 1.0/(beta*dt*dt);
-  const double b = 1.0/(beta*dt);
+  const double a = 1.0/(beta*deltaT*deltaT);
+  const double b = 1.0/(beta*deltaT);
   const double c = 0.5/beta-1.0;
-  const double d = dt*(1.0-gamma);
-  const double e = dt*gamma;
+  const double d = deltaT*(1.0-gamma);
+  const double e = deltaT*gamma;
   // Create the modified stiffness matrix
   for (int i = 0; i < nDOF*nDOF; ++i) {
     stiffness[i] += a*mass[i];
@@ -43,7 +43,7 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double dt, \
   }
 
   for (int n = 1; n < nMax+1; ++n) {
-    Time = n*dt;
+    Time = n*deltaT;
     printf("\nTime : %.4f\n", Time);
     // Compute the RHS for the current time step
     memcpy(accelerationsOld, accelerations, nDOF*sizeof(double));
