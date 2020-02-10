@@ -24,7 +24,6 @@ void InitCustomPlot();
 void InitBoundaryCondition(const Json::Value& jsonInput);
 void updateBoundaryNeighbour(void);
 void ApplyAccBoundaryConditions();
-int getImpactID(std::string location);
 void WriteOutputFile(void);
 void CalculateInjuryCriterions(void);
 
@@ -84,7 +83,6 @@ int main(int argc, char **argv) {
   Json::Value simulationJson = getConfig(argv[1]);
   std::string meshFile = simulationJson["mesh"].asString();
 
-  peakTime = simulationJson["time-peak-acceleration"].asDouble();
   tMax = simulationJson["maximum-time"].asDouble();
   if (world_rank == 0) {
     printf("INFO : Git commit : %s of branch %s\n", GIT_COMMIT_HASH,
@@ -369,75 +367,110 @@ void CustomPlot() {
 }
 
 void InitBoundaryCondition(const Json::Value& jsonInput) {
-  // Read input JSON for acceleration values
-  // Read linear acceleration and angular acceleration time traces
-  linAccXSize = jsonInput["linear-acceleration"]["xt"].size();
-  int tempSize = jsonInput["linear-acceleration"]["xv"].size();
-  assert(tempSize == linAccXSize);
-  linAccXt = (double*)malloc(sizeof(double)*linAccXSize);
-  linAccXv = (double*)malloc(sizeof(double)*linAccXSize);
-  linAccYSize = jsonInput["linear-acceleration"]["yt"].size();
-  tempSize = jsonInput["linear-acceleration"]["yv"].size();
-  assert(tempSize == linAccYSize);
-  linAccYt = (double*)malloc(sizeof(double)*linAccYSize);
-  linAccYv = (double*)malloc(sizeof(double)*linAccYSize);
-  linAccZSize = jsonInput["linear-acceleration"]["zt"].size();
-  tempSize = jsonInput["linear-acceleration"]["zv"].size();
-  assert(tempSize == linAccYSize);
-  linAccZt = (double*)malloc(sizeof(double)*linAccZSize);
-  linAccZv = (double*)malloc(sizeof(double)*linAccZSize);
-  jsonToArray(linAccXt, jsonInput["linear-acceleration"]["xt"]);
-  jsonToArray(linAccXv, jsonInput["linear-acceleration"]["xv"]);
-  jsonToArray(linAccYt, jsonInput["linear-acceleration"]["yt"]);
-  jsonToArray(linAccYv, jsonInput["linear-acceleration"]["yv"]);
-  jsonToArray(linAccZt, jsonInput["linear-acceleration"]["zt"]);
-  jsonToArray(linAccZv, jsonInput["linear-acceleration"]["zv"]);
-
-  angAccXSize = jsonInput["angular-acceleration"]["xt"].size();
-  tempSize = jsonInput["angular-acceleration"]["xv"].size();
-  assert(tempSize == angAccXSize);
-  angAccXt = (double*)malloc(sizeof(double)*angAccXSize);
-  angAccXv = (double*)malloc(sizeof(double)*angAccXSize);
-  angAccYSize = jsonInput["angular-acceleration"]["yt"].size();
-  tempSize = jsonInput["angular-acceleration"]["yv"].size();
-  assert(tempSize == angAccYSize);
-  angAccYt = (double*)malloc(sizeof(double)*angAccYSize);
-  angAccYv = (double*)malloc(sizeof(double)*angAccYSize);
-  angAccZSize = jsonInput["angular-acceleration"]["zt"].size();
-  tempSize = jsonInput["angular-acceleration"]["zv"].size();
-  assert(tempSize == angAccZSize);
-  angAccZt = (double*)malloc(sizeof(double)*angAccZSize);
-  angAccZv = (double*)malloc(sizeof(double)*angAccZSize);
-  jsonToArray(angAccXt, jsonInput["angular-acceleration"]["xt"]);
-  jsonToArray(angAccXv, jsonInput["angular-acceleration"]["xv"]);
-  jsonToArray(angAccYt, jsonInput["angular-acceleration"]["yt"]);
-  jsonToArray(angAccYv, jsonInput["angular-acceleration"]["yv"]);
-  jsonToArray(angAccZt, jsonInput["angular-acceleration"]["zt"]);
-  jsonToArray(angAccZv, jsonInput["angular-acceleration"]["zv"]);
-
   static const double gC = 9.81;
-  // Convert linear accelerations from g force to m/s^2
-  // Convert time from milli-seconds to seconds
-  for (int i = 0; i < linAccXSize; ++i) {
-    linAccXv[i] = gC*linAccXv[i];
-    linAccXt[i] = 0.001*linAccXt[i];
-  }
-  for (int i = 0; i < linAccYSize; ++i) {
-    linAccYv[i] = gC*linAccYv[i];
-    linAccYt[i] = 0.001*linAccYt[i];
-  }
-  for (int i = 0; i < linAccZSize; ++i) {
-    linAccZv[i] = gC*linAccZv[i];
-    linAccZt[i] = 0.001*linAccZt[i];
-  }
-  for (int i = 0; i < angAccXSize; ++i) {
-    angAccXt[i] = 0.001*angAccXt[i];
-  }
-  for (int i = 0; i < angAccYSize; ++i) {
-    angAccYt[i] = 0.001*angAccYt[i];
-  }
-  for (int i = 0; i < angAccZSize; ++i) {
-    angAccZt[i] = 0.001*angAccZt[i];
+  // Read input JSON for acceleration values
+  if (jsonInput["linear-acceleration"].isObject()) { // Use time traces from file
+    // Read linear acceleration and angular acceleration time traces
+    linAccXSize = jsonInput["linear-acceleration"]["xt"].size();
+    int tempSize = jsonInput["linear-acceleration"]["xv"].size();
+    assert(tempSize == linAccXSize);
+    linAccXt = (double*)malloc(sizeof(double)*linAccXSize);
+    linAccXv = (double*)malloc(sizeof(double)*linAccXSize);
+    linAccYSize = jsonInput["linear-acceleration"]["yt"].size();
+    tempSize = jsonInput["linear-acceleration"]["yv"].size();
+    assert(tempSize == linAccYSize);
+    linAccYt = (double*)malloc(sizeof(double)*linAccYSize);
+    linAccYv = (double*)malloc(sizeof(double)*linAccYSize);
+    linAccZSize = jsonInput["linear-acceleration"]["zt"].size();
+    tempSize = jsonInput["linear-acceleration"]["zv"].size();
+    assert(tempSize == linAccYSize);
+    linAccZt = (double*)malloc(sizeof(double)*linAccZSize);
+    linAccZv = (double*)malloc(sizeof(double)*linAccZSize);
+    jsonToArray(linAccXt, jsonInput["linear-acceleration"]["xt"]);
+    jsonToArray(linAccXv, jsonInput["linear-acceleration"]["xv"]);
+    jsonToArray(linAccYt, jsonInput["linear-acceleration"]["yt"]);
+    jsonToArray(linAccYv, jsonInput["linear-acceleration"]["yv"]);
+    jsonToArray(linAccZt, jsonInput["linear-acceleration"]["zt"]);
+    jsonToArray(linAccZv, jsonInput["linear-acceleration"]["zv"]);
+
+    angAccXSize = jsonInput["angular-acceleration"]["xt"].size();
+    tempSize = jsonInput["angular-acceleration"]["xv"].size();
+    assert(tempSize == angAccXSize);
+    angAccXt = (double*)malloc(sizeof(double)*angAccXSize);
+    angAccXv = (double*)malloc(sizeof(double)*angAccXSize);
+    angAccYSize = jsonInput["angular-acceleration"]["yt"].size();
+    tempSize = jsonInput["angular-acceleration"]["yv"].size();
+    assert(tempSize == angAccYSize);
+    angAccYt = (double*)malloc(sizeof(double)*angAccYSize);
+    angAccYv = (double*)malloc(sizeof(double)*angAccYSize);
+    angAccZSize = jsonInput["angular-acceleration"]["zt"].size();
+    tempSize = jsonInput["angular-acceleration"]["zv"].size();
+    assert(tempSize == angAccZSize);
+    angAccZt = (double*)malloc(sizeof(double)*angAccZSize);
+    angAccZv = (double*)malloc(sizeof(double)*angAccZSize);
+    jsonToArray(angAccXt, jsonInput["angular-acceleration"]["xt"]);
+    jsonToArray(angAccXv, jsonInput["angular-acceleration"]["xv"]);
+    jsonToArray(angAccYt, jsonInput["angular-acceleration"]["yt"]);
+    jsonToArray(angAccYv, jsonInput["angular-acceleration"]["yv"]);
+    jsonToArray(angAccZt, jsonInput["angular-acceleration"]["zt"]);
+    jsonToArray(angAccZv, jsonInput["angular-acceleration"]["zv"]);
+
+    // Convert linear accelerations from g force to m/s^2
+    // Convert time from milli-seconds to seconds
+    for (int i = 0; i < linAccXSize; ++i) {
+      linAccXv[i] = gC*linAccXv[i];
+      linAccXt[i] = 0.001*linAccXt[i];
+    }
+    for (int i = 0; i < linAccYSize; ++i) {
+      linAccYv[i] = gC*linAccYv[i];
+      linAccYt[i] = 0.001*linAccYt[i];
+    }
+    for (int i = 0; i < linAccZSize; ++i) {
+      linAccZv[i] = gC*linAccZv[i];
+      linAccZt[i] = 0.001*linAccZt[i];
+    }
+    for (int i = 0; i < angAccXSize; ++i) {
+      angAccXt[i] = 0.001*angAccXt[i];
+    }
+    for (int i = 0; i < angAccYSize; ++i) {
+      angAccYt[i] = 0.001*angAccYt[i];
+    }
+    for (int i = 0; i < angAccZSize; ++i) {
+      angAccZt[i] = 0.001*angAccZt[i];
+    }
+  } else { // Read maximum values from input file
+    double accMax[3];
+    accMax[0] = gC*jsonInput["linear-acceleration"][0].asDouble();
+    accMax[1] = gC*jsonInput["linear-acceleration"][1].asDouble();
+    accMax[2] = gC*jsonInput["linear-acceleration"][2].asDouble();
+    peakTime = jsonInput["time-peak-acceleration"].asDouble();
+    linAccXSize = 3; linAccYSize = 3; linAccZSize = 3;
+    linAccXt = (double*)calloc(linAccXSize, sizeof(double));
+    linAccXv = (double*)calloc(linAccXSize, sizeof(double));
+    linAccYt = (double*)calloc(linAccYSize, sizeof(double));
+    linAccYv = (double*)calloc(linAccYSize, sizeof(double));
+    linAccZt = (double*)calloc(linAccZSize, sizeof(double));
+    linAccZv = (double*)calloc(linAccZSize, sizeof(double));
+    linAccXt[1] = linAccYt[1] = linAccZt[1] = peakTime;
+    linAccXt[2] = linAccYt[2] = linAccZt[2] = tMax;
+    linAccXv[1] = accMax[0]; 
+    linAccYv[1] = accMax[1]; 
+    linAccZv[1] = accMax[2];
+    accMax[0] = jsonInput["angular-acceleration"][0].asDouble();
+    accMax[1] = jsonInput["angular-acceleration"][1].asDouble();
+    accMax[2] = jsonInput["angular-acceleration"][2].asDouble();
+    angAccXSize = 3; angAccYSize = 3; angAccZSize = 3;
+    angAccXt = (double*)calloc(angAccXSize, sizeof(double));
+    angAccXv = (double*)calloc(angAccXSize, sizeof(double));
+    angAccYt = (double*)calloc(angAccYSize, sizeof(double));
+    angAccYv = (double*)calloc(angAccYSize, sizeof(double));
+    angAccZt = (double*)calloc(angAccZSize, sizeof(double));
+    angAccZv = (double*)calloc(angAccZSize, sizeof(double));
+    angAccXt[1] = angAccYt[1] = angAccZt[1] = peakTime;
+    angAccXt[2] = angAccYt[2] = angAccZt[2] = tMax;
+    angAccXv[1] = accMax[0]; 
+    angAccYv[1] = accMax[1]; 
+    angAccZv[1] = accMax[2];
   }
 
   double tol = 1e-5;
@@ -451,7 +484,7 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
   // Allocate node storage
   int *rigidNodeID = (int *)malloc(rigidNodeCount * sizeof(int));
   if (rigidNodeID == NULL) {
-    printf("ERROR(%d) : Unable to alocate rigidNodeID\n", world_rank);
+    printf("ERROR(%d) : Unable to allocate rigidNodeID\n", world_rank);
     exit(0);
   }
   // Store all nodes to be made rigid
