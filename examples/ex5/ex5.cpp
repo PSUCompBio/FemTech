@@ -2,20 +2,26 @@
 #include "blas.h"
 #include "gitbranch.h"
 #include "jsonfuncs.h"
+#include "utilities.h"
 
 #include "json/writer.h"
 
-#include <assert.h>
 #include <map>
 #include <string>
-#include <math.h>
 #include <fstream> // For JSON output
 #include <memory> // For JSON output unique pointer
+#include <math.h>
+#include <assert.h>
+
+#include <boost/numeric/odeint.hpp>
+
+using namespace std;
+using namespace boost::numeric::odeint;
 
 /*Declare Functions*/
 void CustomPlot();
 void InitCustomPlot();
-void InitBoundaryCondition(double *aMax, double angMax, int impactID);
+void InitBoundaryCondition(const Json::Value& jsonInput);
 void updateBoundaryNeighbour(void);
 void ApplyAccBoundaryConditions();
 int getImpactID(std::string location);
@@ -30,7 +36,6 @@ bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
-static const double radToDeg = 180.0 / (atan(1.0) * 4.0);
 int nPlotSteps = 50;
 
 /* Global variables used only in this file */
@@ -39,12 +44,8 @@ bool rankForCustomPlot;
 /* Global variables for bc */
 int *boundaryID = NULL;
 int boundarySize;
-double aLin[3], bLin[3];
-double aAng, bAng;
 double peakTime, tMax;
-double thetaOld = 0.0;
-double linDisplOld[3];
-double angNormal[3];
+
 /* Variables to compute maximim and minimum strain */
 double maxStrain = 0.0, minStrain = 0.0, maxShear = 0.0;
 int maxElem = 0, minElem = 0, shearElem = 0;
@@ -54,6 +55,22 @@ struct {
   int   rank;
 } parStructMax, parStructMin, parStructSMax; 
 
+/* Variables used to store acceleration values */
+int linAccXSize, linAccYSize, linAccZSize;
+int angAccXSize, angAccYSize, angAccZSize;
+double *linAccXt, *linAccYt, *linAccZt;
+double *linAccXv, *linAccYv, *linAccZv;
+double *angAccXt, *angAccYt, *angAccZt;
+double *angAccXv, *angAccYv, *angAccZv;
+
+/* Varibles for Local integrator */
+const int nIntVar = 12;
+typedef boost::array<double, nIntVar> state_type;
+runge_kutta_dopri5<state_type> rk;
+void computeDerivatives(const state_type &y, state_type &ydot, const double t);
+state_type yInt, ydotInt;
+double cm[3];
+
 int main(int argc, char **argv) {
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
@@ -61,26 +78,15 @@ int main(int argc, char **argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
   // Get the rank of the process
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-  static const double gC = 9.81;
 
+  // Read the input file
   Json::Value simulationJson = getConfig(argv[1]);
   std::string meshFile = simulationJson["mesh"].asString();
-  double accMax[3];
-  accMax[0] = gC*simulationJson["linear-acceleration"][0].asDouble();
-  accMax[1] = gC*simulationJson["linear-acceleration"][1].asDouble();
-  accMax[2] = gC*simulationJson["linear-acceleration"][2].asDouble();
 
-  double angAccMax = simulationJson["angular-acceleration"].asDouble();
-  peakTime = simulationJson["time-peak-acceleration"].asDouble();
   tMax = simulationJson["maximum-time"].asDouble();
-  int impactPointID = getImpactID(simulationJson["impact-point"].asString());
-
   if (world_rank == 0) {
     printf("INFO : Git commit : %s of branch %s\n", GIT_COMMIT_HASH,
            GIT_BRANCH);
-    printf("INFO : Linear Acceleration : (%7.3e, %7.3e, %7.3e)\n", accMax[0],
-           accMax[1], accMax[2]);
-    printf("INFO : Angular Acceleration : %7.3e\n", angAccMax);
     printf("INFO : Reading Mesh File : %s\n", meshFile.c_str());
   }
 
@@ -92,7 +98,10 @@ int main(int argc, char **argv) {
 
   AllocateArrays();
   InitCustomPlot();
-  InitBoundaryCondition(accMax, angAccMax, impactPointID);
+
+  // Initial settings for BC evaluations
+  // Used if initial velocity and acceleration BC is to be set.
+  InitBoundaryCondition(simulationJson);
 
   /* Write inital, undeformed configuration*/
   Time = 0.0;
@@ -100,9 +109,6 @@ int main(int argc, char **argv) {
   WriteVTU(meshFile.c_str(), plot_counter);
   stepTime[plot_counter] = Time;
   CustomPlot();
-
-  // Dynamic Explcit solution using....
-  dt = 0.0;
 
   int time_step_counter = 0;
   const int nDOF = nnodes * ndim;
@@ -113,10 +119,6 @@ int main(int argc, char **argv) {
   ShapeFunctions();
   /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
   AssembleLumpedMass();
-
-  // Used if initial velocity and acceleration BC is to be set.
-
-  ApplyAccBoundaryConditions();
 
   /* Obtain dt, according to Belytschko dt is calculated at end of getForce */
   dt = ExplicitTimeStepReduction * StableTimeStep();
@@ -130,9 +132,6 @@ int main(int argc, char **argv) {
 
   nSteps = (int)(tMax / dt);
   int nsteps_plot = (int)(nSteps / nPlotSteps);
-  if (nsteps_plot == 0) {
-    nsteps_plot = 1;
-  }
 
   if (world_rank == 0) {
     printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
@@ -249,132 +248,64 @@ int main(int argc, char **argv) {
 
   WriteOutputFile();
   FreeArrays();
-  // Free local boundary related arrays
-  if (boundaryID) {
-    free(boundaryID);
-  }
+  // Free local boundary condition related arrays
+  free1DArray(boundaryID);
+  free1DArray(linAccXt);
+  free1DArray(linAccYt);
+  free1DArray(linAccZt);
+  free1DArray(linAccXv);
+  free1DArray(linAccYv);
+  free1DArray(linAccZv);
+  free1DArray(angAccXt);
+  free1DArray(angAccYt);
+  free1DArray(angAccZt);
+  free1DArray(angAccXv);
+  free1DArray(angAccYv);
+  free1DArray(angAccZv);
   MPI_Finalize();
   return 0;
 }
 
 void ApplyAccBoundaryConditions() {
-  double linAcc[3], angAcc;
-  double linVel[3], angVel;
-  double linDispl[3], angDispl;
-  double cm[3];
-  double position[3], rotation[3];
-  double velRotation[3], omega[3];
-  double alpha[3], accCorioli[3], accRotation[3], centrifugal[3];
-  double rotMat[3][3];
+  double r[4], R[4], Rinv[4], V[4], Vp[4]; //quaternions
+  double omegaR[3], omega[3], omegaOmegaR[3], omegaVel[3], vel[3]; //vectors
+  double alpha[3], alphaR[3], locV[3];
 
-  // Compute accelerations, velocities and displacements
-  // Compute angular accelerations, angular velocities and angles
-  if (Time < peakTime) {
-    for (int i = 0; i < ndim; ++i) {
-      linAcc[i] = aLin[i] * Time;
-      linVel[i] = 0.5 * aLin[i] * Time * Time;
-      linDispl[i] = aLin[i] * Time * Time * Time / 6.0;
-    }
-
-    angAcc = aAng * Time;
-    angVel = 0.5 * aAng * Time * Time;
-    angDispl = aAng * Time * Time * Time / 6.0;
-  } else {
-    if (Time < tMax) {
-      for (int i = 0; i < ndim; ++i) {
-        linAcc[i] = (aLin[i] + bLin[i]) * peakTime - bLin[i] * Time;
-        linVel[i] = (aLin[i] + bLin[i]) *
-                        (peakTime * Time - 0.5 * peakTime * peakTime) -
-                    0.5 * bLin[i] * Time * Time;
-        linDispl[i] =
-            0.5 * (aLin[i] + bLin[i]) * peakTime *
-                (peakTime * peakTime / 3.0 - peakTime * Time + Time * Time) -
-            bLin[i] * Time * Time * Time / 6.0;
-      }
-
-      angAcc = (aAng + bAng) * peakTime - bAng * Time;
-      angVel = (aAng + bAng) * (peakTime * Time - 0.5 * peakTime * peakTime) -
-               0.5 * bAng * Time * Time;
-      angDispl =
-          0.5 * (aAng + bAng) * peakTime *
-              (peakTime * peakTime / 3.0 - peakTime * Time + Time * Time) -
-          bAng * Time * Time * Time / 6.0;
-    } else {
-      for (int i = 0; i < ndim; ++i) {
-        linAcc[i] = 0.0;
-        linVel[i] = (aLin[i] + bLin[i]) *
-                        (peakTime * tMax - 0.5 * peakTime * peakTime) -
-                    0.5 * bLin[i] * tMax * tMax;
-        linDispl[i] =
-            0.5 * (aLin[i] + bLin[i]) * peakTime *
-                (peakTime * peakTime / 3.0 - peakTime * tMax + tMax * tMax) -
-            bLin[i] * tMax * tMax * tMax / 6.0 + linVel[i] * (Time - tMax);
-      }
-      angAcc = 0.0;
-      angVel = (aAng + bAng) * (peakTime * tMax - 0.5 * peakTime * peakTime) -
-               0.5 * bAng * tMax * tMax;
-      angDispl =
-          0.5 * (aAng + bAng) * peakTime *
-              (peakTime * peakTime / 3.0 - peakTime * tMax + tMax * tMax) -
-          bAng * tMax * tMax * tMax / 6.0 + angVel * (Time - tMax);
-    }
-  }
-  double dTheta = angDispl - thetaOld;
-  thetaOld = angDispl;
-  GetBodyCenterofMass(cm);
-  get3dRotationMatrix(angNormal, dTheta, rotMat);
-  for (int j = 0; j < ndim; ++j) {
-    omega[j] = angVel * angNormal[j];
-    alpha[j] = angAcc * angNormal[j];
-  }
+  rk.do_step(computeDerivatives, yInt, ydotInt, Time-dt, dt);
+  r[0] = 0.0; r[1] = yInt[3]; r[2] = yInt[4]; r[3] = yInt[5];
+  quaternionExp(r, R); // R = exp(r)
+  quaternionInverse(R, Rinv);
+  omega[0] = yInt[0]; omega[1] = yInt[1]; omega[2] = yInt[2];
+  alpha[0] = ydotInt[0]; alpha[1] = ydotInt[1]; alpha[2] = ydotInt[2];
+  vel[0] = yInt[6]; vel[1] = yInt[7]; vel[2] = yInt[8];
 
   for (int i = 0; i < boundarySize; i++) {
     int index = boundaryID[i] * ndim;
     for (int j = 0; j < ndim; ++j) {
-      position[j] = coordinates[index + j] + displacements[index + j] - cm[j];
+      locV[j] = coordinates[index + j] - cm[j];
     }
+    V[0] = 0.0; V[1] = locV[0]; V[2] = locV[1]; V[3] = locV[2];
+    quaternionRotate(V, R, Rinv, Vp); // Vp = RVR^{-1}
+    crossProduct(omega, &(Vp[1]), omegaR);
+    crossProduct(omega, omegaR, omegaOmegaR);
+    crossProduct(omega, vel, omegaVel);
+    crossProduct(alpha, &(Vp[1]), alphaR);
     for (int j = 0; j < ndim; ++j) {
-      rotation[j] = 0.0;
+      // Displacement
+      displacements[index+j] = Vp[j+1] - locV[j] + yInt[9+j];
+      // Velocity
+      velocities[index+j] = omegaR[j] + yInt[6+j];
+      // Acceleration
+      accelerations[index+j] = 2.0*omegaVel[j] + omegaOmegaR[j] + ydotInt[6+j] + alphaR[j];
     }
-    for (int j = 0; j < ndim; ++j) {
-      for (int k = 0; k < ndim; ++k) {
-        rotation[j] += rotMat[j][k] * position[k];
-      }
-      rotation[j] -= position[j];
-    }
-    crossProduct(omega, position, velRotation);
-    crossProduct(omega, linVel, accCorioli);
-    crossProduct(omega, velRotation, centrifugal);
-    crossProduct(alpha, position, accRotation);
-    for (int j = 0; j < ndim; ++j) {
-      displacements[index + j] += (linDispl[j] - linDisplOld[j]) + rotation[j];
-      velocities[index + j] = linVel[j] + velRotation[j];
-      // For energy computations
-      accelerations[index + j] =
-          linAcc[j] + 2.0 * accCorioli[j] + accRotation[j] + centrifugal[j];
-    }
-  }
-  if (world_rank == 0) {
-    FILE *datFile;
-    datFile = fopen("motion.dat", "a");
-    fprintf(datFile,
-            "%11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  %11.3e  "
-            "%11.3e  %11.3e  %11.3e  %11.3e  %11.3e\n",
-            Time, linAcc[0], linAcc[1], linAcc[2], linVel[0], linVel[1],
-            linVel[2], linDispl[0], linDispl[1], linDispl[2], angAcc, angVel,
-            angDispl * radToDeg);
-    fclose(datFile);
-  }
-  for (int j = 0; j < ndim; ++j) {
-    linDisplOld[j] = linDispl[j];
   }
   return;
 }
 
 void InitCustomPlot() {
-  double xPlot = 0.0;
-  double yPlot = -0.366716;
-  double zPlot = -0.018784;
+  double xPlot = 0.041547;
+  double yPlot = 0.066168;
+  double zPlot = 0.018190;
   double tol = 1e-5;
 
   int idToPlot;
@@ -434,7 +365,154 @@ void CustomPlot() {
   return;
 }
 
-void InitBoundaryCondition(double *aMax, double angMax, int impactID) {
+void InitBoundaryCondition(const Json::Value& jsonInput) {
+  static const double gC = 9.81;
+  GetBodyCenterofMass(cm);
+  // Read input JSON for acceleration values
+  if (jsonInput["linear-acceleration"].isObject()) { // Use time traces from file
+    // Read linear acceleration and angular acceleration time traces
+    linAccXSize = jsonInput["linear-acceleration"]["xt"].size();
+    int tempSize = jsonInput["linear-acceleration"]["xv"].size();
+    assert(tempSize == linAccXSize);
+    linAccXt = (double*)malloc(sizeof(double)*linAccXSize);
+    linAccXv = (double*)malloc(sizeof(double)*linAccXSize);
+    linAccYSize = jsonInput["linear-acceleration"]["yt"].size();
+    tempSize = jsonInput["linear-acceleration"]["yv"].size();
+    assert(tempSize == linAccYSize);
+    linAccYt = (double*)malloc(sizeof(double)*linAccYSize);
+    linAccYv = (double*)malloc(sizeof(double)*linAccYSize);
+    linAccZSize = jsonInput["linear-acceleration"]["zt"].size();
+    tempSize = jsonInput["linear-acceleration"]["zv"].size();
+    assert(tempSize == linAccYSize);
+    linAccZt = (double*)malloc(sizeof(double)*linAccZSize);
+    linAccZv = (double*)malloc(sizeof(double)*linAccZSize);
+    jsonToArray(linAccXt, jsonInput["linear-acceleration"]["xt"]);
+    jsonToArray(linAccXv, jsonInput["linear-acceleration"]["xv"]);
+    jsonToArray(linAccYt, jsonInput["linear-acceleration"]["yt"]);
+    jsonToArray(linAccYv, jsonInput["linear-acceleration"]["yv"]);
+    jsonToArray(linAccZt, jsonInput["linear-acceleration"]["zt"]);
+    jsonToArray(linAccZv, jsonInput["linear-acceleration"]["zv"]);
+
+    angAccXSize = jsonInput["angular-acceleration"]["xt"].size();
+    tempSize = jsonInput["angular-acceleration"]["xv"].size();
+    assert(tempSize == angAccXSize);
+    angAccXt = (double*)malloc(sizeof(double)*angAccXSize);
+    angAccXv = (double*)malloc(sizeof(double)*angAccXSize);
+    angAccYSize = jsonInput["angular-acceleration"]["yt"].size();
+    tempSize = jsonInput["angular-acceleration"]["yv"].size();
+    assert(tempSize == angAccYSize);
+    angAccYt = (double*)malloc(sizeof(double)*angAccYSize);
+    angAccYv = (double*)malloc(sizeof(double)*angAccYSize);
+    angAccZSize = jsonInput["angular-acceleration"]["zt"].size();
+    tempSize = jsonInput["angular-acceleration"]["zv"].size();
+    assert(tempSize == angAccZSize);
+    angAccZt = (double*)malloc(sizeof(double)*angAccZSize);
+    angAccZv = (double*)malloc(sizeof(double)*angAccZSize);
+    jsonToArray(angAccXt, jsonInput["angular-acceleration"]["xt"]);
+    jsonToArray(angAccXv, jsonInput["angular-acceleration"]["xv"]);
+    jsonToArray(angAccYt, jsonInput["angular-acceleration"]["yt"]);
+    jsonToArray(angAccYv, jsonInput["angular-acceleration"]["yv"]);
+    jsonToArray(angAccZt, jsonInput["angular-acceleration"]["zt"]);
+    jsonToArray(angAccZv, jsonInput["angular-acceleration"]["zv"]);
+
+    // Convert linear accelerations from g force to m/s^2
+    // Convert time from milli-seconds to seconds
+    for (int i = 0; i < linAccXSize; ++i) {
+      linAccXv[i] = gC*linAccXv[i];
+      linAccXt[i] = 0.001*linAccXt[i];
+    }
+    for (int i = 0; i < linAccYSize; ++i) {
+      linAccYv[i] = gC*linAccYv[i];
+      linAccYt[i] = 0.001*linAccYt[i];
+    }
+    for (int i = 0; i < linAccZSize; ++i) {
+      linAccZv[i] = gC*linAccZv[i];
+      linAccZt[i] = 0.001*linAccZt[i];
+    }
+    for (int i = 0; i < angAccXSize; ++i) {
+      angAccXt[i] = 0.001*angAccXt[i];
+    }
+    for (int i = 0; i < angAccYSize; ++i) {
+      angAccYt[i] = 0.001*angAccYt[i];
+    }
+    for (int i = 0; i < angAccZSize; ++i) {
+      angAccZt[i] = 0.001*angAccZt[i];
+    }
+  } else { // Read maximum values from input file
+    double accMax[3];
+    accMax[0] = gC*jsonInput["linear-acceleration"][0].asDouble();
+    accMax[1] = gC*jsonInput["linear-acceleration"][1].asDouble();
+    accMax[2] = gC*jsonInput["linear-acceleration"][2].asDouble();
+    peakTime = jsonInput["time-peak-acceleration"].asDouble();
+    linAccXSize = 3; linAccYSize = 3; linAccZSize = 3;
+    linAccXt = (double*)calloc(linAccXSize, sizeof(double));
+    linAccXv = (double*)calloc(linAccXSize, sizeof(double));
+    linAccYt = (double*)calloc(linAccYSize, sizeof(double));
+    linAccYv = (double*)calloc(linAccYSize, sizeof(double));
+    linAccZt = (double*)calloc(linAccZSize, sizeof(double));
+    linAccZv = (double*)calloc(linAccZSize, sizeof(double));
+    linAccXt[1] = linAccYt[1] = linAccZt[1] = peakTime;
+    linAccXt[2] = linAccYt[2] = linAccZt[2] = tMax;
+    linAccXv[1] = accMax[0]; 
+    linAccYv[1] = accMax[1]; 
+    linAccZv[1] = accMax[2];
+    if (jsonInput["angular-acceleration"].size() == 3) {
+      accMax[0] = jsonInput["angular-acceleration"][0].asDouble();
+      accMax[1] = jsonInput["angular-acceleration"][1].asDouble();
+      accMax[2] = jsonInput["angular-acceleration"][2].asDouble();
+    } else {
+      double angNormal[3];
+      int impactPointID = getImpactID(jsonInput["impact-point"].asString());
+      // Compute the axis of rotation based on center of mass and impact point
+      printf("Location of impact : %d\n", impactPointID);
+      double impactNodeCoord[3];
+      // Find if global node ID is present on the current process
+      int nodeStatus = coordinateFromGlobalID(globalNodeID, impactPointID, nnodes, \
+          impactNodeCoord);
+      // Find lowest rank process with node ID
+      int *nodeWithID = (int*)malloc(world_size*sizeof(int));
+      MPI_Allgather(&nodeStatus, 1, MPI_INT, nodeWithID, 1, MPI_INT, MPI_COMM_WORLD);
+      int nodeIDGlobal = -1;
+      for (int i = 0; i < world_size; ++i) {
+        if (nodeWithID[i]) {
+          nodeIDGlobal = i;
+          break;
+        }
+      }
+      // Recieve node co-ordinates
+      MPI_Bcast(impactNodeCoord, ndim, MPI_DOUBLE, nodeIDGlobal, MPI_COMM_WORLD);
+      printf("Coordinates (%d) : %f, %f, %f\n", world_rank, impactNodeCoord[0], \
+          impactNodeCoord[1], impactNodeCoord[2]);
+      //Compute the axis of rotation
+      double norm = 0.0;
+      for (int i = 0; i < ndim; ++i) {
+        double ds = impactNodeCoord[i]-cm[i];
+        angNormal[i] = ds;
+        norm += ds*ds;
+      }
+      norm = sqrt(norm);
+      for (int i = 0; i < ndim; ++i) {
+        angNormal[i] /= norm;
+      }
+      double angAccMax = jsonInput["angular-acceleration"].asDouble();
+      accMax[0] = angAccMax*angNormal[0];
+      accMax[1] = angAccMax*angNormal[1];
+      accMax[2] = angAccMax*angNormal[2];
+    }
+    angAccXSize = 3; angAccYSize = 3; angAccZSize = 3;
+    angAccXt = (double*)calloc(angAccXSize, sizeof(double));
+    angAccXv = (double*)calloc(angAccXSize, sizeof(double));
+    angAccYt = (double*)calloc(angAccYSize, sizeof(double));
+    angAccYv = (double*)calloc(angAccYSize, sizeof(double));
+    angAccZt = (double*)calloc(angAccZSize, sizeof(double));
+    angAccZv = (double*)calloc(angAccZSize, sizeof(double));
+    angAccXt[1] = angAccYt[1] = angAccZt[1] = peakTime;
+    angAccXt[2] = angAccYt[2] = angAccZt[2] = tMax;
+    angAccXv[1] = accMax[0]; 
+    angAccYv[1] = accMax[1]; 
+    angAccZv[1] = accMax[2];
+  }
+
   double tol = 1e-5;
   // Find count of nodes with specified partID
   int rigidNodeCount = 0;
@@ -446,7 +524,7 @@ void InitBoundaryCondition(double *aMax, double angMax, int impactID) {
   // Allocate node storage
   int *rigidNodeID = (int *)malloc(rigidNodeCount * sizeof(int));
   if (rigidNodeID == NULL) {
-    printf("ERROR(%d) : Unable to alocate rigidNodeID\n", world_rank);
+    printf("ERROR(%d) : Unable to allocate rigidNodeID\n", world_rank);
     exit(0);
   }
   // Store all nodes to be made rigid
@@ -494,58 +572,20 @@ void InitBoundaryCondition(double *aMax, double angMax, int impactID) {
     }
   }
   assert(idIndex == boundarySize);
-  // Compute the constants required for acceleration computations
-  for (int i = 0; i < ndim; ++i) {
-    aLin[i] = aMax[i] / peakTime;
-    bLin[i] = aMax[i] / (tMax - peakTime);
-  }
-  aAng = angMax / peakTime;
-  bAng = angMax / (tMax - peakTime);
-  for (int i = 0; i < 3; ++i) {
-    linDisplOld[i] = 0.0;
-  }
-
-  // Compute the axis of rotation based on center of mass and impact point
-  // printf("Location of impact : %d\n", impactID);
-  double cm[3], impactNodeCoord[3];
   GetBodyCenterofMass(cm);
-  // Find if global node ID is present on the current process
-  int nodeStatus = coordinateFromGlobalID(globalNodeID, impactID, nnodes, \
-      impactNodeCoord);
-  // Find lowest rank process with node ID
-  int *nodeWithID = (int*)malloc(world_size*sizeof(int));
-  MPI_Allgather(&nodeStatus, 1, MPI_INT, nodeWithID, 1, MPI_INT, MPI_COMM_WORLD);
-  int nodeIDGlobal = -1;
-  for (int i = 0; i < world_size; ++i) {
-    if (nodeWithID[i]) {
-      nodeIDGlobal = i;
-      break;
+  // Setting initial conditions
+  for (int j = 0; j < nIntVar; ++j) {
+    yInt[j] = 0.0;
+    ydotInt[j] = 0.0;
+  }
+  // Set initial displacements, accelerations, velocities to zero
+  for (int i = 0; i < boundarySize; i++) {
+    int index = boundaryID[i] * ndim;
+    for (int j = 0; j < ndim; ++j) {
+      displacements[index+j] = 0.0;
+      velocities[index+j] = 0.0;
+      accelerations[index+j] = 0.0;
     }
-  }
-  // Recieve node co-ordinates
-  MPI_Bcast(impactNodeCoord, ndim, MPI_DOUBLE, nodeIDGlobal, MPI_COMM_WORLD);
-  // printf("Coordinates (%d) : %f, %f, %f\n", world_rank, impactNodeCoord[0], \
-  //     impactNodeCoord[1], impactNodeCoord[2]);
-  //Compute the axis of rotation
-  double norm = 0.0;
-  for (int i = 0; i < ndim; ++i) {
-    double ds = impactNodeCoord[i]-cm[i];
-    angNormal[i] = ds;
-    norm += ds*ds;
-  }
-  norm = sqrt(norm);
-  for (int i = 0; i < ndim; ++i) {
-    angNormal[i] /= norm;
-  }
-
-  FILE *datFile;
-  if (world_rank == 0) {
-    datFile = fopen("motion.dat", "w");
-    fprintf(datFile, "# Motion Results\n");
-    fprintf(datFile,
-            "# Time     AccX    AccY    AccZ    VelX    VelY    VelZ    "
-            "LinDispX  LinDisp Y  LinDisp Z  AngAcc   AngVel   Angle \n");
-    fclose(datFile);
   }
   return;
 }
@@ -617,6 +657,52 @@ int getImpactID(std::string location) {
     {"right-high", 5720}, {"bottom-front", 2575}, {"top-front", 1967}, \
     {"top-rear", 1873}};
   return pointMap.at(location);
+}
+
+void computeDerivatives(const state_type &y, state_type &ydot, const double t) {
+  // ydot[0-2] : Store angular acceleration, alpha
+  // ydot[3-5] : Store derivative of rotation quaternion generator, rdot
+  // ydot[6-8] : Linear acceleration of the center of mass, acc
+  // ydot[9-11] : Linear velocity of the center of mass, vel
+  // Storing alpha
+  ydot[0] = interpolateLinear(angAccXSize, angAccXt, angAccXv, t);
+  ydot[1] = interpolateLinear(angAccYSize, angAccYt, angAccYv, t);
+  ydot[2] = interpolateLinear(angAccZSize, angAccZt, angAccZv, t);
+  // Linear Acceleration
+  ydot[6] = interpolateLinear(linAccXSize, linAccXt, linAccXv, t);
+  ydot[7] = interpolateLinear(linAccYSize, linAccYt, linAccYv, t);
+  ydot[8] = interpolateLinear(linAccZSize, linAccZt, linAccZv, t);
+  // Linear Velocity
+  ydot[9] = y[6];
+  ydot[10] = y[7];
+  ydot[11] = y[8];
+  // rdot
+  // Ref: The integration of angular velocity, Michael Boyle, 2017
+  // https://arxiv.org/pdf/1604.08139.pdf
+  double r[3];
+  r[0] = y[3]; r[1] = y[4]; r[2] = y[5];
+  double *rdot = &(ydot[3]);
+  double rMagnitude = sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2]);
+  if (rMagnitude < 1e-10) {
+    // rdot = 0.5*omega
+    rdot[0] = 0.5*y[0]; 
+    rdot[1] = 0.5*y[1]; 
+    rdot[2] = 0.5*y[2]; 
+  } else {
+    double rCotR = rMagnitude/tan(rMagnitude);
+    double omega[3]; omega[0] = y[0]; omega[1] = y[1]; omega[2] = y[2];
+    crossProduct(omega, r, rdot); // compute rdot = omega x r
+    // Normalize r by its magnitude
+    for (int i = 0; i < 3; ++i) {
+      r[i] = r[i]/rMagnitude;
+    }
+    double rDotOmega = dotProduct3D(r, omega); // compure r.omega/||r||
+    for (int i = 0; i < 3; ++i) {
+      // Compute 0.5 omegaxr + omega*(0.5||r|| cot(||r||) + (1-||r||cot(||r||))
+      // *(r.omega)*r/(2*||r||*||r||)
+      rdot[i] = 0.5*(rdot[i] + rCotR*y[i] + (1.0-rCotR)*rDotOmega*r[i]);
+    }
+  }
 }
 
 void WriteOutputFile(void) {
