@@ -134,8 +134,8 @@ int main(int argc, char **argv) {
   int nsteps_plot = (int)(nSteps / nPlotSteps);
 
   if (world_rank == 0) {
-    printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
-           nsteps_plot);
+    printf("INFO(%d) : initial dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", \
+        world_rank, dt, nSteps, nsteps_plot);
   }
 
   time_step_counter = time_step_counter + 1;
@@ -303,9 +303,9 @@ void ApplyAccBoundaryConditions() {
 }
 
 void InitCustomPlot() {
-  double xPlot = 0.041547;
-  double yPlot = 0.066168;
-  double zPlot = 0.018190;
+  double xPlot = -0.009213;
+  double yPlot = 0.046231;
+  double zPlot = 0.007533;
   double tol = 1e-5;
 
   int idToPlot;
@@ -464,7 +464,6 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
       double angNormal[3];
       int impactPointID = getImpactID(jsonInput["impact-point"].asString());
       // Compute the axis of rotation based on center of mass and impact point
-      printf("Location of impact : %d\n", impactPointID);
       double impactNodeCoord[3];
       // Find if global node ID is present on the current process
       int nodeStatus = coordinateFromGlobalID(globalNodeID, impactPointID, nnodes, \
@@ -481,8 +480,11 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
       }
       // Recieve node co-ordinates
       MPI_Bcast(impactNodeCoord, ndim, MPI_DOUBLE, nodeIDGlobal, MPI_COMM_WORLD);
-      printf("Coordinates (%d) : %f, %f, %f\n", world_rank, impactNodeCoord[0], \
-          impactNodeCoord[1], impactNodeCoord[2]);
+      if (world_rank == 0) {
+        printf("INFO(%d) : NodeID of impact : %d (%15.9e, %15.9e, %15.9e)\n", \
+            world_rank, impactPointID, impactNodeCoord[0], impactNodeCoord[1], \
+            impactNodeCoord[2]);
+      }
       //Compute the axis of rotation
       double norm = 0.0;
       for (int i = 0; i < ndim; ++i) {
