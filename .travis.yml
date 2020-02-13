@@ -25,7 +25,7 @@ before_script:
   # Run your build commands next
   - mkdir build
   - cd build/
-  - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON -DEXAMPLE1=ON -DEXAMPLE10=ON 
+  - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON -DEXAMPLE1=ON -DEXAMPLE10=ON -DEXAMPLE5=ON
 script:
   - pwd
   - make -j 4 
