@@ -3,6 +3,8 @@ dist: bionic
 #   - export DISPLAY=:99.0
 language:
   - cpp
+services:
+  - docker
 compiler:
   - gcc
 addons:
@@ -21,6 +23,8 @@ before_install:
   # Check versions of gcc, g++ and cmake
   - gcc -v && g++ -v && cmake --version
   - python --version
+install:
+  - docker build -t name .
 before_script:
   # Run your build commands next
   - mkdir build
@@ -39,3 +43,4 @@ script:
   # test example 10
   - cd ../ex10
   - mpirun -n 1 --mca btl_base_warn_component_unused 0 ex10 1-elt-tet.k
+  - docker ps | grep -q name
