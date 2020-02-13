@@ -66,12 +66,11 @@ int main(int argc, char **argv) {
          nsteps_plot);
 
   // Save old displacements
-  memcpy(displacements_prev, displacements, ndim * nnodes * sizeof(double));
+  memcpy(displacements_prev, displacements, nDOF * sizeof(double));
 
   /* Step-4: Time loop starts....*/
   time_step_counter = time_step_counter + 1;
   double t_n = 0.0;
-  const int nDOF = ndim * nnodes;
   printf("------------------------------- Loop ----------------------------\n");
   printf("Time : %10.5E, tmax : %10.5E\n", Time, tMax);
   while (Time < tMax) {
@@ -89,8 +88,8 @@ int main(int argc, char **argv) {
 
     /* Update Nodal Displacements */
     // Store old displacements for energy computation
-    memcpy(displacements_prev, displacements, ndim * nnodes * sizeof(double));
-    for (int i = 0; i < ndim * nnodes; i++) {
+    memcpy(displacements_prev, displacements, nDOF * sizeof(double));
+    for (int i = 0; i < nDOF; i++) {
       displacements[i] = displacements[i] + dt_nphalf * velocities_half[i];
     }
     /* Step 6 Enforce displacement boundary Conditions */
@@ -104,7 +103,7 @@ int main(int argc, char **argv) {
     // nodal forces.
 
     /** Step- 10 - Second Partial Update of Nodal Velocities */
-    for (int i = 0; i < ndim * nnodes; i++) {
+    for (int i = 0; i < nDOF; i++) {
       velocities[i] =
           velocities_half[i] + (t_np1 - t_nphalf) * accelerations[i];
     }
@@ -122,7 +121,7 @@ int main(int argc, char **argv) {
 #ifdef DEBUG
       if (debug) {
         printf("DEBUG : Printing Displacement Solution\n");
-        for (int i = 0; i < nnodes; ++i) {
+        for (int i = 0; i < nNodes; ++i) {
           for (int j = 0; j < ndim; ++j) {
             printf("%15.6E", displacements[i * ndim + j]);
           }
@@ -137,7 +136,7 @@ int main(int argc, char **argv) {
 #ifdef DEBUG
   if (debug) {
     printf("DEBUG : Printing Displacement Solution\n");
-    for (int i = 0; i < nnodes; ++i) {
+    for (int i = 0; i < nNodes; ++i) {
       for (int j = 0; j < ndim; ++j) {
         printf("%15.6E", displacements[i * ndim + j]);
       }
@@ -162,7 +161,7 @@ void ApplyBoundaryConditions(double dMax, double tMax) {
   // Apply Ramped Displacment
   double AppliedDisp = Time * (dMax / tMax);
 
-  for (int i = 0; i < nnodes; i++) {
+  for (int i = 0; i < nNodes; i++) {
     // if x value = 0, constrain node to x plane (0-direction)
     if (fabs(coordinates[ndim * i + 0] - 0.0) < tol) {
       boundary[ndim * i + 0] = 1;
@@ -214,7 +213,7 @@ void CustomPlot() {
 
   } else {
     datFile = fopen("plot.dat", "a");
-    for (int i = 0; i < nnodes; i++) {
+    for (int i = 0; i < nNodes; i++) {
       if (fabs(coordinates[ndim * i + x] - 0.005) < tol &&
           fabs(coordinates[ndim * i + y] - 0.005) < tol &&
           fabs(coordinates[ndim * i + z] - 0.005) < tol) {

@@ -257,28 +257,28 @@ bool ReadAbaqus(const char *FileName) {
             break;
         }
     }
-    nnodes = 0;
+    nNodes = 0;
     coordinates = (double *)malloc(ConnectivitySize * csize);
     for (int i1 = 0; i1 < ConnectivitySize; i1++) {
         const int *p = (const int *)bsearch(&connectivity[i1], UniqueConnectivity, UniqueConnectivitySize, sizeof(int), compare);
         if (p != NULL) {
             const int I = p - UniqueConnectivity;
             memcpy(&coordinates[i1 * ndim], &UniqueConnCoordinates[I * ndim], csize);
-            nnodes = nnodes + 1;
+            nNodes = nNodes + 1;
         }
     }
     free(UniqueConnCoordinates);
     free(UniqueConnectivity);
     
     // Checking if "coordinates" array is OK
-    if (nnodes != ConnectivitySize) {
+    if (nNodes != ConnectivitySize) {
         FreeArrays();
         printf("\nERROR( proc %d ): Failed to initialize 'coordinates' array.\n", world_rank);
-        printf("\nnnodes = %d, ConnectivitySize = %d, ndim = %d\n", nnodes, ConnectivitySize, ndim);
+        printf("\nnnodes = %d, ConnectivitySize = %d, ndim = %d\n", nNodes, ConnectivitySize, ndim);
     }
     
     fclose(File);
-    return nnodes == ConnectivitySize;
+    return nNodes == ConnectivitySize;
 }
 //-------------------------------------------------------------------------------------------
 static char **LineToTokens(const char *Line, int *Size) {

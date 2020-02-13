@@ -299,24 +299,24 @@ bool ReadLsDyna(const char *FileName) {
             break;
         }
     }
-    nnodes = 0;
+    nNodes = 0;
     coordinates = (double *)malloc(ConnectivitySize * csize);
     for (int i1 = 0; i1 < ConnectivitySize; i1++) {
         const int *p = (const int *)bsearch(&connectivity[i1], UniqueConnectivity, UniqueConnectivitySize, sizeof(int), compare);
         if (p != NULL) {
             const int I = p - UniqueConnectivity;
             memcpy(&coordinates[i1 * ndim], &UniqueConnCoordinates[I * ndim], csize);
-            nnodes = nnodes + 1;
+            nNodes = nNodes + 1;
         }
     }
     free(UniqueConnCoordinates);
     free(UniqueConnectivity);
 
     // Checking if "coordinates" array is OK
-    if (nnodes != ConnectivitySize) {
+    if (nNodes != ConnectivitySize) {
         FreeArrays();
         printf("\nERROR( proc %d ): Failed to initialize 'coordinates' array.\n", world_rank);
-        printf("\nnnodes = %d, ConnectivitySize = %d, ndim = %d\n", nnodes, ConnectivitySize, ndim);
+        printf("\nnnodes = %d, ConnectivitySize = %d, ndim = %d\n", nNodes, ConnectivitySize, ndim);
     }
 
 #if 0
@@ -339,9 +339,9 @@ bool ReadLsDyna(const char *FileName) {
         printf("%s/%d  ", ElementType[i], pid[i]);
     }
     printf("\n");
-    printf("\nSize of coordinates array in processor %d before partitioning = %d\n", world_rank, nnodes * ndim);
+    printf("\nSize of coordinates array in processor %d before partitioning = %d\n", world_rank, nNodes * ndim);
     printf("\nCoordinates array in processor %d before partitioning =", world_rank);
-    for (int i = 0; i < nnodes; i++) {
+    for (int i = 0; i < nNodes; i++) {
         printf(" (%d)  ", i);
         for (int j = 0; j < ndim; j++) {
             printf("%.*f ", 1, coordinates[ndim * i + j]);
@@ -351,5 +351,5 @@ bool ReadLsDyna(const char *FileName) {
 #endif
     // Everything is OK for now. Closing the mesh file, returning TRUE.
     fclose(File);
-    return nnodes == ConnectivitySize;
+    return nNodes == ConnectivitySize;
 }

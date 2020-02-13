@@ -111,7 +111,6 @@ int main(int argc, char **argv) {
   CustomPlot();
 
   int time_step_counter = 0;
-  const int nDOF = nnodes * ndim;
   /** Central Difference Method - Beta and Gamma */
   // double beta = 0;
   // double gamma = 0.5;
@@ -217,7 +216,7 @@ int main(int argc, char **argv) {
 #ifdef DEBUG
       if (debug) {
         printf("DEBUG : Printing Displacement Solution\n");
-        for (int i = 0; i < nnodes; ++i) {
+        for (int i = 0; i < nNodes; ++i) {
           for (int j = 0; j < ndim; ++j) {
             printf("%15.6E", displacements[i * ndim + j]);
           }
@@ -237,7 +236,7 @@ int main(int argc, char **argv) {
 #ifdef DEBUG
   if (debug) {
     printf("DEBUG : Printing Displacement Solution\n");
-    for (int i = 0; i < nnodes; ++i) {
+    for (int i = 0; i < nNodes; ++i) {
       for (int j = 0; j < ndim; ++j) {
         printf("%15.6E", displacements[i * ndim + j]);
       }
@@ -318,7 +317,7 @@ void InitCustomPlot() {
   int state = 0;
   int cumState = 0;
 
-  for (int i = 0; i < nnodes; ++i) {
+  for (int i = 0; i < nNodes; ++i) {
     if (fabs(coordinates[ndim * i + x] - xPlot) < tol &&
         fabs(coordinates[ndim * i + y] - yPlot) < tol &&
         fabs(coordinates[ndim * i + z] - zPlot) < tol) {
@@ -466,7 +465,7 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
       // Compute the axis of rotation based on center of mass and impact point
       double impactNodeCoord[3];
       // Find if global node ID is present on the current process
-      int nodeStatus = coordinateFromGlobalID(globalNodeID, impactPointID, nnodes, \
+      int nodeStatus = coordinateFromGlobalID(globalNodeID, impactPointID, nNodes, \
           impactNodeCoord);
       // Find lowest rank process with node ID
       int *nodeWithID = (int*)malloc(world_size*sizeof(int));
@@ -552,7 +551,7 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
   updateBoundaryNeighbour();
   free(rigidNodeID);
   boundarySize = 0;
-  for (int i = 0; i < nnodes*ndim; i += 3) {
+  for (int i = 0; i < nDOF; i += 3) {
     if (boundary[i]) {
       boundarySize = boundarySize + 1;
     }
@@ -566,7 +565,7 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
   }
 
   int idIndex = 0;
-  for (int i = 0; i < nnodes; ++i) {
+  for (int i = 0; i < nNodes; ++i) {
     int index = i * ndim;
     if (boundary[index]) {
       boundaryID[idIndex] = i;

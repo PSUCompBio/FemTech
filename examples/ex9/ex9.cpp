@@ -77,7 +77,6 @@ int main(int argc, char **argv) {
     double dMax = 0.007; // max displacment in meters
 
     int time_step_counter = 0;
-    const int nDOF = nnodes * ndim;
     /** Central Difference Method - Beta and Gamma */
     // double beta = 0;
     // double gamma = 0.5;
@@ -182,7 +181,7 @@ int main(int argc, char **argv) {
 #ifdef DEBUG
         if (debug) {
           printf("DEBUG : Printing Displacement Solution\n");
-          for (int i = 0; i < nnodes; ++i) {
+          for (int i = 0; i < nNodes; ++i) {
             for (int j = 0; j < ndim; ++j) {
               printf("%15.6E", displacements[i * ndim + j]);
             }
@@ -203,7 +202,7 @@ int main(int argc, char **argv) {
 #ifdef DEBUG
   if (debug) {
     printf("DEBUG : Printing Displacement Solution\n");
-    for (int i = 0; i < nnodes; ++i) {
+    for (int i = 0; i < nNodes; ++i) {
       for (int j = 0; j < ndim; ++j) {
         printf("%15.6E", displacements[i * ndim + j]);
       }
@@ -237,7 +236,7 @@ void ApplyBoundaryConditions(double dMax, double tMax) {
   }
   int index;
 
-  for (int i = 0; i < nnodes; i++) {
+  for (int i = 0; i < nNodes; i++) {
     // if x value = 0, constrain node to x plane (0-direction)
     index = ndim * i + 0;
     if (fabs(coordinates[index] - 0.0) < tol) {
@@ -304,7 +303,7 @@ void CustomPlot() {
 
   } else {
     datFile = fopen("plot.dat", "a");
-    for (int i = 0; i < nnodes; i++) {
+    for (int i = 0; i < nNodes; i++) {
       if (fabs(coordinates[ndim * i + x] - 0.005) < tol &&
           fabs(coordinates[ndim * i + y] - 0.005) < tol &&
           fabs(coordinates[ndim * i + z] - 0.005) < tol) {

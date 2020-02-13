@@ -267,11 +267,11 @@ void ShapeFunctions() {
 
   // Allocate arrays after shape functions are formed
   int cSize = 6;
-  int nNodesMax = 0, nNodes;
+  int nNodesMax = 0, nNodesL;
   for (int i = 0; i < nelements; ++i) {
-    nNodes = nShapeFunctions[i];
-    if (nNodes > nNodesMax) {
-      nNodesMax = nNodes;
+    nNodesL = nShapeFunctions[i];
+    if (nNodesL > nNodesMax) {
+      nNodesMax = nNodesL;
     }
   }
   int bColSize = nNodesMax*ndim;

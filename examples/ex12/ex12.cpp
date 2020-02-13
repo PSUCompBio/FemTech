@@ -63,12 +63,11 @@ int main(int argc, char **argv) {
           nsteps_plot);
 
   // Save old displacements
-  // memcpy(displacements_prev, displacements, ndim*nnodes*sizeof(double));
+  // memcpy(displacements_prev, displacements, nDOF*sizeof(double));
 
   /* Step-4: Time loop starts....*/
   time_step_counter = time_step_counter + 1;
   double t_n = 0.0;
-  const int nDOF = ndim*nnodes;
   while (Time <= tMax) {
     /*Step 4 */
     // note: box 6.1 in belytschko
@@ -90,7 +89,7 @@ int main(int argc, char **argv) {
     /* Update Nodal Displacements */
     printf("%d (%.6f) Dispalcements\n--------------------\n",
             time_step_counter, Time);
-    for (int i = 0; i < ndim * nnodes; i++) {
+    for (int i = 0; i < nDOF; i++) {
       displacements[i] = displacements[i] + dt_nphalf * velocities_half[i];
        printf("%.6f, %0.6f, %0.6f\n", displacements[i], velocities[i],
        accelerations[i]);
@@ -106,7 +105,7 @@ int main(int argc, char **argv) {
                               // nodal forces.
 
     /** Step- 10 - Second Partial Update of Nodal Velocities */
-    for (int i = 0; i < ndim * nnodes; i++) {
+    for (int i = 0; i < nDOF; i++) {
       velocities[i] =
           velocities_half[i] + (t_np1 - t_nphalf) * accelerations[i];
     }
@@ -121,7 +120,7 @@ int main(int argc, char **argv) {
       WriteVTU(argv[1], plot_counter);
       if (debug) {
         printf("DEBUG : Printing Displacement Solution\n");
-        for (int i = 0; i < nnodes; ++i) {
+        for (int i = 0; i < nNodes; ++i) {
           for (int j = 0; j < ndim; ++j) {
             printf("%12.4f", displacements[i*ndim+j]);
           }
@@ -138,7 +137,7 @@ int main(int argc, char **argv) {
 
   if (debug) {
     printf("DEBUG : Printing Displacement Solution\n");
-    for (int i = 0; i < nnodes; ++i) {
+    for (int i = 0; i < nNodes; ++i) {
       for (int j = 0; j < ndim; ++j) {
         printf("%12.4f", displacements[i*ndim+j]);
       }
@@ -168,7 +167,7 @@ void ApplyBoundaryConditions(double dMax, double tMax) {
   }
   printf("Applied displacement = %.6f\n", k);
 
-  for (int i = 0; i < nnodes; i++) {
+  for (int i = 0; i < nNodes; i++) {
 
 		if (fabs(coordinates[ndim * i + 0] - 0.0) < tol) {
 			boundary[ndim * i + 0] = 1;

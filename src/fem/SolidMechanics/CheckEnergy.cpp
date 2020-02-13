@@ -16,7 +16,7 @@ void CheckEnergy(double time, int writeFlag) {
 
   // Calculate in parallel
   // Loop over all the nodes
-  for(int i = 0; i < nnodes; ++i) {
+  for(int i = 0; i < nNodes; ++i) {
     bool includeSum = true;
     for (int j = 0; (j < sendProcessCount) && includeSum; ++j) {
       // If sending to a node with lower rank its already included

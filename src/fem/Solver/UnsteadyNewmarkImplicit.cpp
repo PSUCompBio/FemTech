@@ -10,7 +10,6 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double deltaT, \
   // Make a copy of displacements to convert it into unsteady load increasing
   // incrementally from 0 to timeFinal
 
-  const int nDOF = nnodes*ndim;
   rhs = (double*)calloc(nDOF, sizeof(double));
   double *displacementFinal = (double*)malloc(nDOF*sizeof(double));
   memcpy(displacementFinal, displacements, sizeof(double)*nDOF);
@@ -70,7 +69,7 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double deltaT, \
 #ifdef DEBUG
     if (debug) {
       printf("DEBUG : Printing Displacement Solution\n");
-      for (int i = 0; i < nnodes; ++i) {
+      for (int i = 0; i < nNodes; ++i) {
         for (int k = 0; k < ndim; ++k) {
           printf("%12.4f", displacements[i*ndim+k]);
         }
@@ -89,9 +88,8 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double deltaT, \
 }
 
 void ModifyMassAndStiffnessMatrix() {
-  const int matSize = nnodes*ndim;
   nSpecifiedDispBC = 0;
-  for (int i = 0; i < matSize; ++i) {
+  for (int i = 0; i < nDOF; ++i) {
     if(boundary[i] != 0) {
       nSpecifiedDispBC += 1;
     }
@@ -104,40 +102,40 @@ void ModifyMassAndStiffnessMatrix() {
    return;
   }
   // Allocate space to save eliminated columns, to use in computing modified rhs
-  double *stiffnessEliminated = (double*)malloc(matSize*nSpecifiedDispBC*sizeof(double));
+  double *stiffnessEliminated = (double*)malloc(nDOF*nSpecifiedDispBC*sizeof(double));
   int writeColumn = 0;
   int writeAuxColumn = 0;
   // Eliminate columns first
-  for (int i = 0; i < matSize; ++i) {
+  for (int i = 0; i < nDOF; ++i) {
     if(boundary[i] == 0) {
       // Retain column
       if (writeColumn == i) {
         writeColumn = writeColumn + 1;
         continue;
       } else {
-        double *writeLocation = &(stiffness[writeColumn*matSize]);
-        double *readLocation = &(stiffness[i*matSize]);
-        memcpy(writeLocation, readLocation, sizeof(double)*matSize);
+        double *writeLocation = &(stiffness[writeColumn*nDOF]);
+        double *readLocation = &(stiffness[i*nDOF]);
+        memcpy(writeLocation, readLocation, sizeof(double)*nDOF);
         writeColumn += 1;
       }
     } else {
-      double *writeAuxLocation = &(stiffnessEliminated[writeAuxColumn*matSize]);
-      double *readLocation = &(stiffness[i*matSize]);
-      memcpy(writeAuxLocation, readLocation, sizeof(double)*matSize);
+      double *writeAuxLocation = &(stiffnessEliminated[writeAuxColumn*nDOF]);
+      double *readLocation = &(stiffness[i*nDOF]);
+      memcpy(writeAuxLocation, readLocation, sizeof(double)*nDOF);
       writeAuxColumn += 1;
     }
   }
   // Move eliminated columns to end of matrix
-  const int modifiedMatSize = matSize-nSpecifiedDispBC;
-  memcpy(&stiffness[matSize*modifiedMatSize], stiffnessEliminated, \
-        matSize*nSpecifiedDispBC*sizeof(double));
+  const int modifiedMatSize = nDOF-nSpecifiedDispBC;
+  memcpy(&stiffness[nDOF*modifiedMatSize], stiffnessEliminated, \
+        nDOF*nSpecifiedDispBC*sizeof(double));
   // eliminate rows
   // Eliminated rows are stored in middle part of stiffness matrix so as to
   // computed tractions at nodes with prescribed displacement.  
   int rIndex = 0, wIndex = 0; // read and write index to eliminate row
   int wAuxIndex = 0; //write index for eliminated rows
   for (int i = 0; i < modifiedMatSize; ++i) {
-    for (int j = 0; j < matSize; ++j) {
+    for (int j = 0; j < nDOF; ++j) {
       if(boundary[j] == 0) {
         // Retain row
         if (rIndex == wIndex) {
@@ -164,8 +162,8 @@ void ModifyMassAndStiffnessMatrix() {
   // Hence eliminate olny rows and store at the end of matrix
   rIndex = 0, wIndex = 0; // read and write index to eliminate row
   wAuxIndex = 0; //write index for eliminated rows
-  for (int i = 0; i < matSize; ++i) {
-    for (int j = 0; j < matSize; ++j) {
+  for (int i = 0; i < nDOF; ++i) {
+    for (int j = 0; j < nDOF; ++j) {
       if(boundary[j] == 0) {
         // Retain row
         if (rIndex == wIndex) {
@@ -186,8 +184,8 @@ void ModifyMassAndStiffnessMatrix() {
     }
   }
   // Move eliminated row to middle of mass matrix
-  memcpy(&mass[matSize*modifiedMatSize], stiffnessEliminated, \
-        matSize*nSpecifiedDispBC*sizeof(double));
+  memcpy(&mass[nDOF*modifiedMatSize], stiffnessEliminated, \
+        nDOF*nSpecifiedDispBC*sizeof(double));
   // Free temperory storage
   free(stiffnessEliminated);
   return;
@@ -195,7 +193,6 @@ void ModifyMassAndStiffnessMatrix() {
 
 void ComputeUnsteadyRHS(const int n, const int nMax, double* displacementFinal, \
     const double a, const double b, const double c) {
-  int nDOF = nnodes*ndim;
   int nRHS = nDOF-nSpecifiedDispBC;
   // Set rhs to zero
   memset(rhs, 0, sizeof(double)*nDOF);

@@ -577,7 +577,7 @@ void PartitionMesh() {
     }
     free(ElementTypeRecv);
 
-    nnodes = eptr[nelementsRecv];
+    nNodes = eptr[nelementsRecv];
     nelements = nelementsRecv;
 
     // Create nodal communcication pattern
@@ -585,9 +585,9 @@ void PartitionMesh() {
 
     // Reorder local connectivity
     updateConnectivityGlobalToLocal();
+    nDOF = nNodes * ndim;
 
-    printf("INFO(%d) : Number of nodes : %d\n",world_rank, nnodes);
-    const int nDOF = nnodes*ndim;
+    printf("INFO(%d) : Number of nodes : %d\n",world_rank, nNodes);
     printf("INFO(%d) : Number of DOFs : %d\n",world_rank, nDOF);
 #ifdef DEBUG
     if (debug && 1 == 0) {
@@ -656,10 +656,10 @@ void updateConnectivityGlobalToLocal(void) {
   int *sorted = (int *)malloc(totalSize * sizeof(int));
   memcpy(sorted, connectivity, totalSize * sizeof(int));
   qsort(sorted, totalSize, sizeof(int), compare);
-  nnodes = unique(sorted, totalSize);
+  nNodes = unique(sorted, totalSize);
   for (int i = 0; i < totalSize; ++i) {
     int j;
-    for (j = 0; j < nnodes; ++j) {
+    for (j = 0; j < nNodes; ++j) {
       if (sorted[j] == connectivity[i]) {
         break;
       }
@@ -668,8 +668,8 @@ void updateConnectivityGlobalToLocal(void) {
   }
 
   // Reoder co-ordinates
-  double *newCoordinates = (double *)malloc(ndim * nnodes * sizeof(double));
-  for (int j = 0; j < nnodes; ++j) {
+  double *newCoordinates = (double *)malloc(ndim * nNodes * sizeof(double));
+  for (int j = 0; j < nNodes; ++j) {
     int i;
     for (i = 0; i < totalSize; ++i) {
       if (sorted[j] == connectivity[i]) {
@@ -683,7 +683,7 @@ void updateConnectivityGlobalToLocal(void) {
   totalSize = sendNeighbourCountCum[sendProcessCount];
   for (int i = 0; i < totalSize; ++i) {
     int j;
-    for (j = 0; j < nnodes; ++j) {
+    for (j = 0; j < nNodes; ++j) {
       if (sorted[j] == sendNodeIndex[i]) {
         break;
       }
@@ -691,8 +691,8 @@ void updateConnectivityGlobalToLocal(void) {
     sendNodeIndex[i] = j;
   }
   // Copy sorted array to globalNodeID for pre and post processing
-  globalNodeID = (int*)malloc(nnodes*sizeof(int));
-  for (int i = 0; i < nnodes; ++i) {
+  globalNodeID = (int*)malloc(nNodes*sizeof(int));
+  for (int i = 0; i < nNodes; ++i) {
     globalNodeID[i] = sorted[i];
   }
   free(connectivity);

@@ -36,7 +36,7 @@ void WriteVTU(const char* FileName, int step) {
 	fprintf(fp,"<?xml version=\"1.0\"?>\n");
 	fprintf(fp,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n");
 	fprintf(fp,"\t<UnstructuredGrid>\n");
-	fprintf(fp,"\t\t<Piece NumberOfPoints=\"%d\" NumberOfCells=\"%d\">\n",nnodes,nelements);
+	fprintf(fp,"\t\t<Piece NumberOfPoints=\"%d\" NumberOfCells=\"%d\">\n",nNodes,nelements);
 	// write coordinates
 
 	// Temporary soution for ndim
@@ -45,7 +45,7 @@ void WriteVTU(const char* FileName, int step) {
 
 	fprintf(fp,"\t\t\t<Points>\n");
 	fprintf(fp,"\t\t\t\t<DataArray type=\"Float64\" NumberOfComponents=\"%d\" format=\"ascii\">\n", ndim);
-	for(i=0;i<nnodes;i++){
+	for(i=0;i<nNodes;i++){
 		fprintf(fp,"\t\t\t\t\t");
 		for(j=0;j<ndim;j++){
 			if(fabs(displacements[ndim*i+j]-0.0)< 1e-20){
@@ -105,7 +105,7 @@ void WriteVTU(const char* FileName, int step) {
 									"NumberOfComponents=\"%d\" ComponentName0=\"X\" "
 									"ComponentName1=\"Y\" ComponentName2=\"Z\" "
 									"format=\"ascii\">\n",ndim);
-	for(i=0;i<nnodes;i++){
+	for(i=0;i<nNodes;i++){
 			fprintf(fp,"\t\t\t\t\t");
 			for(j=0;j<ndim;j++){
 				fprintf(fp,"%10.8e ",displacements[ndim*i+j]);
@@ -121,7 +121,7 @@ void WriteVTU(const char* FileName, int step) {
                   "NumberOfComponents=\"%d\" ComponentName0=\"X\" "
                   "ComponentName1=\"Y\" ComponentName2=\"Z\" "
                   "format=\"ascii\">\n",ndim);
-  for(i=0;i<nnodes;i++){
+  for(i=0;i<nNodes;i++){
       fprintf(fp,"\t\t\t\t\t");
       for(j=0;j<ndim;j++){
         fprintf(fp,"%10.8e ",accelerations[ndim*i+j]);
@@ -137,7 +137,7 @@ void WriteVTU(const char* FileName, int step) {
 									"NumberOfComponents=\"%d\" ComponentName0=\"X\" "
 									"ComponentName1=\"Y\" ComponentName2=\"Z\" "
 									"format=\"ascii\">\n",ndim);
-	for(i=0;i<nnodes;i++){
+	for(i=0;i<nNodes;i++){
 			fprintf(fp,"\t\t\t\t\t");
 			for(j=0;j<ndim;j++){
 				fprintf(fp,"%d ",boundary[ndim*i+j]);

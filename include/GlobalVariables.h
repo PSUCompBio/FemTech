@@ -1,4 +1,6 @@
 #include <map>
+#include <string>
+
 /* Currently HGO Isotropic model uses 5 properties + 4 properties for
  * viscoelastic properties*/
 static int MAXMATPARAMS = 9; /* maximum number of material parameters stored for each element */
@@ -16,8 +18,9 @@ const double huge = 1e20;
 extern int nparts;
 extern int nelements;
 extern int nallelements;
-extern int nnodes;
+extern int nNodes;
 extern int ndim;
+extern int nDOF;
 extern int nPID, nPIDglobal; /* Local and global number of unique parts*/
 extern int world_rank;
 extern int world_size;

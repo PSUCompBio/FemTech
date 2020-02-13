@@ -36,9 +36,9 @@ int main(int argc, char **argv){
 		printf("%s/%d  ", ElementType[i], pid[i]);
 	}
 	printf("\n");
-	printf("\nSize of coordinates array in processor %d after partitioning = %d\n", world_rank, nnodes * ndim);
+	printf("\nSize of coordinates array in processor %d after partitioning = %d\n", world_rank, nDOF);
 	printf("\nCoordinates array in processor %d after partitioning =", world_rank);
-	for (int i = 0; i < nnodes; i++) {
+	for (int i = 0; i < nNodes; i++) {
 		printf(" (%d)  ", i);
 		for (int j = 0; j < ndim; j++) {
 			printf("%.*f ", 1, coordinates[ndim * i + j]);

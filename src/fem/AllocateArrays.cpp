@@ -25,7 +25,6 @@ int *boundary;
 FILE *energyFile;
 
 void AllocateArrays() {
-  const int nDOF = nnodes * ndim;
   // Allocate and initialize global displacements
 	displacements=(double*)calloc(nDOF,sizeof(double));
   if (!displacements) {
