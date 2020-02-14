@@ -54,7 +54,7 @@ script:
   - mpirun -n 1 --mca btl_base_warn_component_unused 0 ex10 1-elt-tet.k
     # Build docker image if on develop branch
   - if [ "$TRAVIS_BRANCH" = "CI" ]; then 
-      cd ../../;
+      cd ../../..;
       mkdir builddocker;
       docker build --pull --cache-from nsfcareer/femtech:production --tag nsfcareer/femtech:production -f Dockerfile builddocker; 
     fi
