@@ -499,6 +499,7 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
       accMax[0] = angAccMax*angNormal[0];
       accMax[1] = angAccMax*angNormal[1];
       accMax[2] = angAccMax*angNormal[2];
+      free(nodeWithID);
     }
     angAccXSize = 3; angAccYSize = 3; angAccZSize = 3;
     angAccXt = (double*)calloc(angAccXSize, sizeof(double));
