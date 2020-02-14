@@ -3,7 +3,7 @@ dist: bionic
 sudo: required
 
 env:
-  - DOCKER_REPO_PROD = nsfcareer/femtech:production
+  - DOCKER_REPO = nsfcareer/femtech
   - DOCKER_REPO_DEV = nsfcareer/femtech:develop
 
 language:
@@ -37,7 +37,7 @@ before_script:
   - cd build/
   - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON -DEXAMPLE1=ON -DEXAMPLE10=ON -DEXAMPLE5=ON
   - if [ "$TRAVIS_BRANCH" = "CI" ]; then 
-    docker pull $DOCKER_REPO_PROD || true; 
+      docker pull $DOCKER_REPO:production || true; 
     fi
 
 script:
@@ -55,9 +55,9 @@ script:
   - mpirun -n 1 --mca btl_base_warn_component_unused 0 ex10 1-elt-tet.k
     # Build docker image if on develop branch
   - if [ "$TRAVIS_BRANCH" = "CI" ]; then 
-    cd ../../
-    mkdir builddocker;
-    docker build --pull --cache-from $DOCKER_REPO_PROD --tag $DOCKER_REPO_PROD -f Dockerfile builddocker; 
+      cd ../../;
+      mkdir builddocker;
+      docker build --pull --cache-from $DOCKER_REPO:production --tag $DOCKER_REPO:production -f Dockerfile builddocker; 
     fi
 
 after_script:
@@ -68,6 +68,6 @@ before_deploy:
 
 deploy:
   provider: script
-  script: docker push $DOCKER_REPO_PROD
+  script: docker push $DOCKER_REPO:production
   on:
     branch: CI
