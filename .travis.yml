@@ -4,7 +4,6 @@ sudo: required
 
 env:
   - DOCKER_REPO = nsfcareer/femtech
-  - DOCKER_REPO_DEV = nsfcareer/femtech:develop
 
 language:
   - cpp
@@ -37,7 +36,7 @@ before_script:
   - cd build/
   - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON -DEXAMPLE1=ON -DEXAMPLE10=ON -DEXAMPLE5=ON
   - if [ "$TRAVIS_BRANCH" = "CI" ]; then 
-      docker pull $DOCKER_REPO:production || true; 
+      docker pull nsfcareer/femtech:production || true; 
     fi
 
 script:
@@ -57,7 +56,7 @@ script:
   - if [ "$TRAVIS_BRANCH" = "CI" ]; then 
       cd ../../;
       mkdir builddocker;
-      docker build --pull --cache-from $DOCKER_REPO:production --tag $DOCKER_REPO:production -f Dockerfile builddocker; 
+      docker build --pull --cache-from nsfcareer/femtech:production --tag nsfcareer/femtech:production -f Dockerfile builddocker; 
     fi
 
 after_script:
@@ -68,6 +67,6 @@ before_deploy:
 
 deploy:
   provider: script
-  script: docker push $DOCKER_REPO:production
+  script: docker push nsfcareer/femtech:production
   on:
     branch: CI
