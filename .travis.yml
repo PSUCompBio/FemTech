@@ -37,6 +37,7 @@ before_script:
   - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON -DEXAMPLE1=ON -DEXAMPLE10=ON -DEXAMPLE5=ON
   - if [ "$TRAVIS_BRANCH" = "CI" ]; then 
       docker pull nsfcareer/femtech:production || true; 
+      docker pull nsfcareer/femtech:develop || true; 
     fi
 
 script:
@@ -56,6 +57,7 @@ script:
   - if [ "$TRAVIS_BRANCH" = "CI" ]; then 
       cd ../../..;
       mkdir builddocker;
+      docker build --pull --cache-from nsfcareer/femtech:develop --target buildFemTech --tag nsfcareer/femtech:develop -f Dockerfile builddocker;
       docker build --pull --cache-from nsfcareer/femtech:production --tag nsfcareer/femtech:production -f Dockerfile builddocker; 
     fi
 
@@ -67,6 +69,6 @@ before_deploy:
 
 deploy:
   provider: script
-  script: docker push nsfcareer/femtech:production
+  script: docker push nsfcareer/femtech:production &&  docker push nsfcareer/femtech:develop
   on:
     branch: CI
