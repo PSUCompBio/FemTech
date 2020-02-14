@@ -36,7 +36,9 @@ before_script:
   - mkdir build
   - cd build/
   - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON -DEXAMPLE1=ON -DEXAMPLE10=ON -DEXAMPLE5=ON
-  - if [ "$TRAVIS_BRANCH" = "CI" ]; then docker pull $DOCKER_REPO_PROD . || true; fi
+  - if [ "$TRAVIS_BRANCH" = "CI" ]; then 
+    docker pull $DOCKER_REPO_PROD || true; 
+    fi
 
 script:
   - pwd
@@ -52,7 +54,11 @@ script:
   - cd ../ex10
   - mpirun -n 1 --mca btl_base_warn_component_unused 0 ex10 1-elt-tet.k
     # Build docker image if on develop branch
-  - if [ "$TRAVIS_BRANCH" = "CI" ]; then docker build --pull --cache-from $DOCKER_REPO_PROD --tag $DOCKER_REPO_PROD .; fi
+  - if [ "$TRAVIS_BRANCH" = "CI" ]; then 
+    cd ../../
+    mkdir builddocker;
+    docker build --pull --cache-from $DOCKER_REPO_PROD --tag $DOCKER_REPO_PROD -f Dockerfile builddocker; 
+    fi
 
 after_script:
   - if [ "$TRAVIS_BRANCH" = "CI" ]; then docker images; fi
