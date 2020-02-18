@@ -1,6 +1,8 @@
 #include "FemTech.h"
 #include "blas.h"
 
+void AllocateArraysAfterPartioning(void);
+
 /* Global Variables */
 int *gptr;
 // TODO(anil) dsptr[i] = ndim*gptr[i] always. Could be eliminated.
@@ -22,6 +24,10 @@ double *internals; /*internal variables for history dependent models */
 int *gpPtr;
 double *detJacobian;
 double *gaussWeights;
+
+double *fintGQ;
+double *B;
+double *Hn_1, *Hn_2, *S0n; 
 
 void ShapeFunctions() {
   // Global Array - keeps track of how many gauss points there are
@@ -258,5 +264,30 @@ void ShapeFunctions() {
     }
   }
 #endif //DEBUG
+
+  // Allocate arrays after shape functions are formed
+  int cSize = 6;
+  int nNodesMax = 0, nNodesL;
+  for (int i = 0; i < nelements; ++i) {
+    nNodesL = nShapeFunctions[i];
+    if (nNodesL > nNodesMax) {
+      nNodesMax = nNodesL;
+    }
+  }
+  int bColSize = nNodesMax*ndim;
+  int Bsize = bColSize*cSize;
+  fintGQ = (double*)malloc(bColSize*sizeof(double));
+  B = (double*)malloc(Bsize*sizeof(double));
+  // Allocate arrays specific to viscoelastic material
+  // Check if viscoelastic material is used 
+  for (int i = 0; i < nPIDglobal; ++i) {
+    if (materialID[i] == 5) {
+      // Allocated and set to zero for first time step
+      Hn_1 = (double *)calloc(F_counter, sizeof(double));
+      Hn_2 = (double *)calloc(F_counter, sizeof(double));
+      S0n = (double *)calloc(F_counter, sizeof(double));
+      break;
+    }
+  }
   return;
 }

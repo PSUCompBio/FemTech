@@ -1,5 +1,7 @@
 #include "FemTech.h"
 
+#include <assert.h>
+
 #ifdef _WIN32
 #include <string.h>
 
@@ -168,30 +170,35 @@ bool ReadAbaqus(const char *FileName) {
 
     // Creating and initializing "pid" array
     pid = (int *)calloc(nelements, sizeof(int));
-    for (int i = 0; i < UniqueElSetsCount; i++) {
-        for (int j = 0; j < nelements; j++) {
-            if (strcmp(UniqueElSetNames[i], ElSetNames[j]) == 0) {
-                pid[j] = i;
+    for (int i1 = 0; i1 < UniqueElSetsCount; i1++) {
+        for (int j1 = 0; j1 < nelements; j1++) {
+            if (strcmp(UniqueElSetNames[i1], ElSetNames[j1]) == 0) {
+                pid[j1] = i1;
             }
         }
     }
     Free2DimArray((void **)ElSetNames, nelements);
     Free2DimArray((void **)UniqueElSetNames, ElSetsCount);
 
+    global_eid = (int *)malloc(nelements*sizeof(int));
+
     // Creating and initializing "connectivity" array for processor
     connectivity = (int *)calloc(ConnectivitySize, sizeof(int));
     i = 0, j = 0;
+    int eIndex = 0;
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (IsElementSection(Line, File)) {
             long LastValidElemDataLinePos = -1;
             while (fgets(Line, sizeof(Line), File) != NULL) {
                 int *Nodes;
-                const int n = LineToArray(true, false, 2, 0, Line, Delim, (void**)&Nodes);
+                const int n = LineToArray(true, false, 1, 0, Line, Delim, (void**)&Nodes);
                 if (n == 0) {
                     break;
                 }
                 if (i >= From && i <= To) {
-                    for (int k = 0; k < n; k++) {
+                  global_eid[eIndex] = Nodes[0];
+                  eIndex = eIndex + 1;
+                    for (int k = 1; k < n; k++) {
                         connectivity[j] = Nodes[k] - 1;
                         j = j + 1;
                     }
@@ -206,6 +213,10 @@ bool ReadAbaqus(const char *FileName) {
             }
         }
     }
+    assert(eIndex == nelements);
+    // for (int k = 0; k < 10; ++k) {
+    //   printf("Rank : %d, element global id : %d of From : %d and To : %d\n", world_rank, global_eid[k], From, To);
+    // }
     
     // Checking if we can go to nodes section of mesh file
     if (fseek(File, NodesSectionPos, SEEK_SET) != 0) {
@@ -246,28 +257,28 @@ bool ReadAbaqus(const char *FileName) {
             break;
         }
     }
-    nnodes = 0;
+    nNodes = 0;
     coordinates = (double *)malloc(ConnectivitySize * csize);
-    for (int i = 0; i < ConnectivitySize; i++) {
-        const int *p = (const int *)bsearch(&connectivity[i], UniqueConnectivity, UniqueConnectivitySize, sizeof(int), compare);
+    for (int i1 = 0; i1 < ConnectivitySize; i1++) {
+        const int *p = (const int *)bsearch(&connectivity[i1], UniqueConnectivity, UniqueConnectivitySize, sizeof(int), compare);
         if (p != NULL) {
             const int I = p - UniqueConnectivity;
-            memcpy(&coordinates[i * ndim], &UniqueConnCoordinates[I * ndim], csize);
-            nnodes = nnodes + 1;
+            memcpy(&coordinates[i1 * ndim], &UniqueConnCoordinates[I * ndim], csize);
+            nNodes = nNodes + 1;
         }
     }
     free(UniqueConnCoordinates);
     free(UniqueConnectivity);
     
     // Checking if "coordinates" array is OK
-    if (nnodes != ConnectivitySize) {
+    if (nNodes != ConnectivitySize) {
         FreeArrays();
         printf("\nERROR( proc %d ): Failed to initialize 'coordinates' array.\n", world_rank);
-        printf("\nnnodes = %d, ConnectivitySize = %d, ndim = %d\n", nnodes, ConnectivitySize, ndim);
+        printf("\nnnodes = %d, ConnectivitySize = %d, ndim = %d\n", nNodes, ConnectivitySize, ndim);
     }
     
     fclose(File);
-    return nnodes == ConnectivitySize;
+    return nNodes == ConnectivitySize;
 }
 //-------------------------------------------------------------------------------------------
 static char **LineToTokens(const char *Line, int *Size) {
@@ -279,8 +290,8 @@ static char **LineToTokens(const char *Line, int *Size) {
         StrToken[0] = 0;
         Count = 0;
         for (int i = 0; i < strlen(Line); i++) {
-            const char C = Line[i];
-            if (C == ' ' || C == '\t' || C == '\r' || C == '\n') {
+            const char Ch = Line[i];
+            if (Ch == ' ' || Ch == '\t' || Ch == '\r' || Ch == '\n') {
                 if (strlen(StrToken) != 0) {
                     if (Result != NULL) {
                         Result[Count] = (char *)malloc((strlen(StrToken) + 1) * sizeof(char));
@@ -290,7 +301,7 @@ static char **LineToTokens(const char *Line, int *Size) {
                     Count++;
                 }
             }
-            else if ((C >= 'a' && C <= 'z') || (C >= 'A' && C <= 'Z') || (C >= '0' && C <= '9') || C == '_' || C == '-') {
+            else if ((Ch >= 'a' && Ch <= 'z') || (Ch >= 'A' && Ch <= 'Z') || (Ch >= '0' && Ch <= '9') || Ch == '_' || Ch == '-') {
                 strncat(StrToken, &Line[i], 1);
                 if (i == (strlen(Line) - 1)) {
                     if (Result != NULL) {

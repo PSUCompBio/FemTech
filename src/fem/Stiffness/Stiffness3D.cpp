@@ -9,7 +9,9 @@ void StiffnessElementMatrix(double* Ke, int e) {
   int keSize = bColSize*bColSize;
   // Create B Matrix of size 24x6 in column major format.
   // B is computed for each Gauss Quadrature point
-  double *B = (double*)calloc(Bsize, sizeof(double));
+  for (int k = 0; k < Bsize; ++k) {
+    B[k] = 0.0;
+  }
   // Create temperory variables to store intermediate results
   double *BtC = (double*)calloc(Bsize, sizeof(double));
   double *KeGQ = (double*)calloc(keSize, sizeof(double));

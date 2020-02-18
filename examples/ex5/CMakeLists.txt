@@ -12,11 +12,13 @@ else()
 endif(ENABLE_MPI)
 
 file(INSTALL brain.inp DESTINATION .)
+file(INSTALL coarse_brain.inp DESTINATION .)
 file(INSTALL materials.dat DESTINATION .)
 file(INSTALL input.json DESTINATION .)
 file(INSTALL gnuplot.script DESTINATION .)
 file(INSTALL gnuplotEnergy.script DESTINATION .)
 file(INSTALL README.md DESTINATION .)
+file(INSTALL paraview-movie1.py DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
 

@@ -1,19 +1,22 @@
 #include "FemTech.h"
 #include "blas.h"
 
+#include <assert.h>
+
+
 /*Delare Functions*/
-void ApplyBoundaryConditions(double Time,double dMax, double tMax);
+void ApplyBoundaryConditions(double dMax, double tMax);
+void CustomPlot();
 
 /* Global Variables/Parameters  - could be moved to parameters.h file?  */
-double Time;
-int nStep;
+double Time, dt;
 int nSteps;
-int nPlotSteps = 50;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
+int nPlotSteps = 50;
 
 int main(int argc, char **argv) {
 
@@ -24,17 +27,19 @@ int main(int argc, char **argv) {
   // Get the rank of the process
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-  if (ReadInputFile(argv[1])) {
-    PartitionMesh();
-  }
+  ReadInputFile(argv[1]);
+  ReadMaterials();
+
+  PartitionMesh();
 
   AllocateArrays();
-  ReadMaterials();
 
   /* Write inital, undeformed configuration*/
   Time = 0.0;
-  nStep = 0;
-  WriteVTU(argv[1], nStep, Time);
+  int plot_counter = 0;
+  WriteVTU(argv[1], plot_counter);
+  stepTime[plot_counter] = Time;
+  CustomPlot();
 
   if (ImplicitStatic) {
     // Static solution
@@ -42,23 +47,22 @@ int main(int argc, char **argv) {
     double tMax = 1.0;
     ShapeFunctions();
     CreateLinearElasticityCMatrix();
-    ApplyBoundaryConditions(Time, dMax, tMax);
+    ApplyBoundaryConditions(dMax, tMax);
     Assembly((char *)"stiffness");
     ApplySteadyBoundaryConditions();
     SolveSteadyImplicit();
     Time = tMax;
-    nStep = 1;
     /* Write final, deformed configuration*/
-    WriteVTU(argv[1], nStep, Time);
+    WriteVTU(argv[1], 1);
   } else if (ImplicitDynamic) {
     // Dynamic Implicit solution using Newmark's scheme for time integration
-    double dt = 0.1;
+    dt = 0.1;
     double tMax = 1.0;
     double dMax = 0.1; // max displacment in meters
     ShapeFunctions();
     CreateLinearElasticityCMatrix();
     Time = 1.0;
-    ApplyBoundaryConditions(Time, dMax, tMax);
+    ApplyBoundaryConditions(dMax, tMax);
     Assembly((char *)"stiffness");
     Assembly((char *)"mass");
     /* beta and gamma of Newmark's scheme */
@@ -68,14 +72,12 @@ int main(int argc, char **argv) {
   } else if (ExplicitDynamic) {
     // Dynamic Explcit solution using....
 
-		double dt = 0.0;
-    double tMax = 100.0; //max simulation time in seconds
-    double dMax = 1.4; // max displacment in meters
+    dt = 0.0;
+    double tMax = 1.00; // max simulation time in seconds
+    double dMax = 0.007; // max displacment in meters
 
-    double Time = 0.0;
+    Time = 0.0;
     int time_step_counter = 0;
-    int plot_counter = 0;
-    const int nDOF = nnodes * ndim;
     /** Central Difference Method - Beta and Gamma */
     // double beta = 0;
     // double gamma = 0.5;
@@ -85,19 +87,18 @@ int main(int argc, char **argv) {
     AssembleLumpedMass();
 
     // Used if initial velocity and acceleration BC is to be set.
-    ApplyBoundaryConditions(Time, dMax, tMax);
-    /* Step-2: getforce step from Belytschko */
-    GetForce(); // Calculating the force term.
+    ApplyBoundaryConditions(dMax, tMax);
 
     /* Obtain dt, according to Belytschko dt is calculated at end of getForce */
     dt = ExplicitTimeStepReduction * StableTimeStep();
+    /* Step-2: getforce step from Belytschko */
+    GetForce(); // Calculating the force term.
 
     /* Step-3: Calculate accelerations */
     CalculateAccelerations();
 
     nSteps = (int)(tMax / dt);
     int nsteps_plot = (int)(nSteps / nPlotSteps);
-    printf("--- %d\n", nsteps_plot);
 
     if (world_rank == 0) {
       printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
@@ -115,7 +116,7 @@ int main(int argc, char **argv) {
 
     /* Step-4: Time loop starts....*/
     while (Time < tMax) {
-      double t_n = Time;
+      t_n = Time;
       double t_np1 = Time + dt;
       Time = t_np1; /*Update the time by adding full time step */
       if (world_rank == 0) {
@@ -147,7 +148,7 @@ int main(int argc, char **argv) {
         }
       }
       /* Step 6 Enforce displacement boundary Conditions */
-      ApplyBoundaryConditions(Time, dMax, tMax);
+      ApplyBoundaryConditions(dMax, tMax);
 
       /* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
       GetForce(); // Calculating the force term.
@@ -164,18 +165,25 @@ int main(int argc, char **argv) {
       }
 
       /** Step - 11 Checking* Energy Balance */
-      CheckEnergy(Time);
+      int writeFlag = time_step_counter%nsteps_plot;
+      CheckEnergy(Time, writeFlag);
 
-      if (time_step_counter % nsteps_plot == 0) {
+      if (writeFlag == 0) {
         plot_counter = plot_counter + 1;
         CalculateStrain();
         printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter, world_rank);
-        WriteVTU(argv[1], plot_counter, Time);
+        WriteVTU(argv[1], plot_counter);
+        if (plot_counter < MAXPLOTSTEPS) {
+          printf("------ %d: WritePVD by rank : %d at Time : %f\n", plot_counter, world_rank, Time);
+          stepTime[plot_counter] = Time;
+          WritePVD(argv[1], plot_counter);
+        }
+        CustomPlot();
 
 #ifdef DEBUG
         if (debug) {
           printf("DEBUG : Printing Displacement Solution\n");
-          for (int i = 0; i < nnodes; ++i) {
+          for (int i = 0; i < nNodes; ++i) {
             for (int j = 0; j < ndim; ++j) {
               printf("%15.6E", displacements[i * ndim + j]);
             }
@@ -190,13 +198,13 @@ int main(int argc, char **argv) {
       MPI_Barrier(MPI_COMM_WORLD);
     } // end explcit while loop
 
-    nStep = plot_counter;
     // Write out the last time step
+    CustomPlot();
   } // end if ExplicitDynamic
 #ifdef DEBUG
   if (debug) {
     printf("DEBUG : Printing Displacement Solution\n");
-    for (int i = 0; i < nnodes; ++i) {
+    for (int i = 0; i < nNodes; ++i) {
       for (int j = 0; j < ndim; ++j) {
         printf("%15.6E", displacements[i * ndim + j]);
       }
@@ -206,15 +214,18 @@ int main(int argc, char **argv) {
 #endif // DEBUG
 
   /* Below are things to do at end of program */
-  if (world_rank == 0) {
-    WritePVD(argv[1], nStep, Time);
-  }
+  // if (world_rank == 0) {
+  //   if (plot_counter < MAXPLOTSTEPS) {
+  //     stepTime[plot_counter] = Time;
+  //     WritePVD(argv[1], plot_counter);
+  //   }
+  // }
   FreeArrays();
   MPI_Finalize();
   return 0;
 }
 
-void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
+void ApplyBoundaryConditions(double dMax, double tMax) {
   double tol = 1e-5;
   int count = 0;
   double AppliedDisp;
@@ -227,7 +238,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
   }
   int index;
 
-  for (int i = 0; i < nnodes; i++) {
+  for (int i = 0; i < nNodes; i++) {
     // if x value = 0, constrain node to x plane (0-direction)
     index = ndim * i + 0;
     if (fabs(coordinates[index] - 0.0) < tol) {
@@ -258,7 +269,7 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
     }
     // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
     index = ndim * i + 1;
-    if (fabs(coordinates[index] - 1.0) < tol) {
+    if (fabs(coordinates[index] - 0.005) < tol) {
       boundary[index] = 1;
       count = count + 1;
       // note that this may have to be divided into
@@ -276,5 +287,36 @@ void ApplyBoundaryConditions(double Time, double dMax, double tMax) {
   if (world_rank == 0) {
     printf("Applied Disp = %10.5e\n", AppliedDisp);
   }
+  return;
+}
+
+void CustomPlot() {
+  double tol = 1e-5;
+  FILE *datFile;
+  int x = 0;
+  int y = 1;
+  int z = 2;
+
+  if (fabs(Time - 0.0) < 1e-16) {
+    datFile = fopen("plot.dat", "w");
+    fprintf(datFile, "# Results for Node ?\n");
+    fprintf(datFile, "# Time  DispX    DispY   DispZ\n");
+    fprintf(datFile, "%11.5e %11.5e  %11.5e  %11.5e\n", 0.0, 0.0, 0.0, 0.0);
+
+  } else {
+    datFile = fopen("plot.dat", "a");
+    for (int i = 0; i < nNodes; i++) {
+      if (fabs(coordinates[ndim * i + x] - 0.005) < tol &&
+          fabs(coordinates[ndim * i + y] - 0.0) < tol &&
+          fabs(coordinates[ndim * i + z] - 0.0) < tol) {
+
+        fprintf(datFile, "%11.5e %11.5e  %11.5e  %11.5e\n", Time,
+                displacements[ndim * i + x], displacements[ndim * i + y],
+                displacements[ndim * i + z]);
+      }
+    }
+  }
+
+  fclose(datFile);
   return;
 }

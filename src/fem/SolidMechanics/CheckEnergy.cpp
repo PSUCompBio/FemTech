@@ -1,6 +1,6 @@
 #include "FemTech.h"
 
-void CheckEnergy(double time) {
+void CheckEnergy(double time, int writeFlag) {
   static double Wint_n = 0.0;
   static double Wext_n = 0.0;
 
@@ -16,7 +16,7 @@ void CheckEnergy(double time) {
 
   // Calculate in parallel
   // Loop over all the nodes
-  for(int i = 0; i < nnodes; ++i) {
+  for(int i = 0; i < nNodes; ++i) {
     bool includeSum = true;
     for (int j = 0; (j < sendProcessCount) && includeSum; ++j) {
       // If sending to a node with lower rank its already included
@@ -81,7 +81,9 @@ void CheckEnergy(double time) {
     if (total > epsilon*max) {
       printf("\nERROR - Energy Violation:  Total = %15.9e, Max = %15.9e, Error%% : %10.2f \n", total, max, total*100.0/max);
     }
-    fprintf(energyFile, "%12.6e %12.6e  %12.6e  %12.6e %12.6e\n", time,
-            Wint_n, Wext_n, WKE_Total, total);
+    if (writeFlag == 0) {
+      fprintf(energyFile, "%12.6e %12.6e  %12.6e  %12.6e %12.6e\n", time,
+              Wint_n, Wext_n, WKE_Total, total);
+    }
   }
 }

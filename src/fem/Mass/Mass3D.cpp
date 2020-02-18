@@ -63,7 +63,7 @@ void MassElementMatrix(double *Me, int e) {
     printf("DEBUG : Printing Me (Mass Matrix) for Element %d\n", e);
     for (int j = 0; j < bColSize; ++j) {
       for (int k = 0; k < bColSize; ++k) {
-        printf("%.4f\t", Me[j+k*bColSize]);
+        printf("%.9e\t", Me[j+k*bColSize]);
       }
       printf("\n");
     }
@@ -74,17 +74,16 @@ void MassElementMatrix(double *Me, int e) {
   return;
 }
 void LumpMassMatrix(void) {
-  const int massSize = nnodes*ndim;
   // Lump mass matrix by summing up along the row
-  for(int i = 1; i < massSize; ++i) {
-    for(int j = 0; j < massSize; ++j) {
-      mass[j] += mass[j+i*massSize];
+  for(int i = 1; i < nDOF; ++i) {
+    for(int j = 0; j < nDOF; ++j) {
+      mass[j] += mass[j+i*nDOF];
     }
   }
 #ifdef DEBUG
 	if(debug && 1==0){
 	  printf("Lumped Mass\n");
-	  for(int j = 0; j < massSize; ++j) {
+	  for(int j = 0; j < nDOF; ++j) {
 	    printf("%d  %12.6f\n", j, mass[j]);
 	  }
 	}
@@ -139,9 +138,8 @@ void updateMassMatrixNeighbour(void) {
   free(requestListRecv);
 #ifdef DEBUG
 	if(debug && 1==0){
-    const int massSize = nnodes*ndim;
 	  printf("Lumped Mass After Exchange\n");
-	  for(int j = 0; j < massSize; ++j) {
+	  for(int j = 0; j < nDOF; ++j) {
 	    printf("%d  %12.6f\n", j, mass[j]);
 	  }
 	}
@@ -150,8 +148,7 @@ void updateMassMatrixNeighbour(void) {
 
 void AssembleLumpedMass(void) {
   // Create global mass matrix
-  const int massSize = nnodes*ndim;
-  mass = (double*)calloc(massSize, sizeof(double));
+  mass = (double*)calloc(nDOF, sizeof(double));
   if (!mass) {
     printf("ERROR(%d) : Allocation of mass matrix failed\n", world_rank);
     exit(12);
@@ -179,7 +176,7 @@ void AssembleLumpedMass(void) {
 #ifdef DEBUG
   if(debug && 1==0){
     printf("Lumped Mass\n");
-    for(int j = 0; j < massSize; ++j) {
+    for(int j = 0; j < nDOF; ++j) {
       printf("%d  %12.6f\n", j, mass[j]);
     }
   }

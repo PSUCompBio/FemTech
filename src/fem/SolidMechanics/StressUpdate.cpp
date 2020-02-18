@@ -1,28 +1,33 @@
 #include "FemTech.h"
 
+#include <stdlib.h>
+
 void StressUpdate(int e, int gp){
 #ifdef DEBUG
 	if(debug && 1==0){
   	printf("---- Calling Stress Update %d, %d ---\n", e, gp);
 	}
 #endif //DEBUG
-	//Compressible Neohookean
-	if(materialID[pid[e]]==1){
-		CompressibleNeoHookean(e, gp);
-	}
-	// St. Venant-Kirchhoff
-	if(materialID[pid[e]]==2){
-#ifdef DEBUG
-		if(debug && 1==0){
-    	printf("---- Calling Material Model St. Venant %d, %d ---\n", e, gp);
-    	printf("---- ----\n");
-		}
-#endif //DEBUG
-		StVenantKirchhoff(e, gp);
-	}
-  // Linear Elastic
-  if(materialID[pid[e]] == 3) {
-    LinearElastic(e, gp);
+  switch (materialID[pid[e]]) {
+    case 0 : // Rigid-body motion
+             break;
+    case 1 : //Compressible Neohookean
+             CompressibleNeoHookean(e, gp);
+             break;
+    case 2 : // St. Venant-Kirchhoff
+             StVenantKirchhoff(e, gp);
+             break;
+    case 3 : // Linear Elastic
+             LinearElastic(e, gp);
+             break;
+    case 4 : // HGO with isotropic fiber distribution
+             HGOIsotropic(e, gp);
+             break;
+    case 5 : // HGO with isotropic fiber distribution and viscoelasticity
+             HGOIsotropicViscoelastic(e, gp);
+             break;
+    default : printf("Unknown material type\n");
+              exit(EXIT_FAILURE);
   }
   return;
 }

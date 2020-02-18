@@ -318,8 +318,8 @@ printf("le = %3.3f\n",le);
 		printf("--------F for gauss point %d --------\n",gp);
 		for(int i=0;i<ndim;i++){
 			for(int j=0;j<ndim;j++){
-					int index = fptr[e] + ndim*ndim*gp + ndim*j+i;
-					printf("%3.3e   ",F[index]);
+					int indexD = fptr[e] + ndim*ndim*gp + ndim*j+i;
+					printf("%3.3e   ",F[indexD]);
 			} //loop on j
 			printf("\n");
 		} //loop on i

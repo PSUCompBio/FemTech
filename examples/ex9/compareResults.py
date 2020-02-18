@@ -26,3 +26,4 @@ if (dT < 1.0):
         raise sys.exit(1)
 else:
     raise sys.exit(1)
+print "Validation Sucessful : Ex9"

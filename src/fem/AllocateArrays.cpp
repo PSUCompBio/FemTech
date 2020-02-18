@@ -1,8 +1,6 @@
 #include "FemTech.h"
 
 double *displacements;
-int *materialID;
-double *properties;
 double *velocities;
 double *velocities_half;
 double *accelerations;
@@ -19,29 +17,20 @@ double *f_damp_prev;
 double *f_damp_curr;
 double *displacements_prev;
 double *accelerations_prev;
+double *stepTime;
+// Used to compute stress by files in materials folder
+double *mat1, *mat2, *mat3, *mat4;
 
 int *boundary;
 FILE *energyFile;
 
 void AllocateArrays() {
-  const int nDOF = nnodes * ndim;
   // Allocate and initialize global displacements
 	displacements=(double*)calloc(nDOF,sizeof(double));
   if (!displacements) {
     printf("ERROR : Error in allocating displacements array\n");
     exit(12);
   }
-	materialID=(int*)calloc(nPIDglobal,sizeof(int));
-  if (!materialID) {
-    printf("ERROR : Error in allocating materialID array\n");
-    exit(12);
-  }
-	properties=(double*)calloc(nPIDglobal*MAXMATPARAMS,sizeof(double));
-  if (!properties) {
-    printf("ERROR : Error in allocating properties array\n");
-    exit(12);
-  }
-
 	//Allocate and initialize global boundary conditions
 	boundary=(int*)calloc(nDOF, sizeof(int));
   if (!boundary) {
@@ -133,6 +122,29 @@ void AllocateArrays() {
     energyFile = fopen("energy.dat", "w");
     fprintf(energyFile, "# Energy for FEM\n");
     fprintf(energyFile, "# Time  Winternal   Wexternal   WKE   total\n");
+
+    stepTime = (double*)malloc((MAXPLOTSTEPS)*sizeof(double));
+    if (!stepTime) {
+      printf("ERROR : Error in allocating stepTime array\n");
+      exit(12);
+    }
+    // Allocations for material temporary computation
+    // By default initialize mat1 and mat2
+    // If HGO or Linear Elastic material model present, allocate mat3 and mat4
+    int matCount = 2;
+    for (int i = 0; i < nPIDglobal; ++i) {
+      if (materialID[i] == 3 || materialID[i] == 4 || materialID[i] == 5) {
+        matCount = 4;
+        break;
+      }    
+    }
+    const int matSize = ndim*ndim;
+    mat1 = (double*)malloc(matSize*sizeof(double));
+    mat2 = (double*)malloc(matSize*sizeof(double));
+    if (matCount == 4) {
+      mat3 = (double*)malloc(matSize*sizeof(double));
+      mat4 = (double*)malloc(matSize*sizeof(double));
+    }
   }
 	return;
 }

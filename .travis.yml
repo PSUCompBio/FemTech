@@ -1,10 +1,20 @@
 dist: bionic
-# env:
-#   - export DISPLAY=:99.0
+
+sudo: required
+
+env:
+  global:
+    - DOCKER_REPO=nsfcareer/femtech
+
 language:
   - cpp
+
+services:
+  - docker
+
 compiler:
   - gcc
+
 addons:
   apt:
     packages:
@@ -15,17 +25,22 @@ addons:
       - openmpi-common 
       - libopenmpi-dev
       - python-numpy
+
 before_install:
-  # test/start GUI
-  # - sh -e /etc/init.d/xvfb start
   # Check versions of gcc, g++ and cmake
   - gcc -v && g++ -v && cmake --version
   - python --version
+
 before_script:
   # Run your build commands next
   - mkdir build
   - cd build/
-  - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON -DEXAMPLE1=ON -DEXAMPLE10=ON 
+  - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON -DEXAMPLE1=ON -DEXAMPLE10=ON -DEXAMPLE5=ON
+  - if [ "$TRAVIS_BRANCH" = "develop" ]; then 
+      docker pull $DOCKER_REPO:production || true; 
+      docker pull $DOCKER_REPO:develop || true; 
+    fi
+
 script:
   - pwd
   - make -j 4 
@@ -39,3 +54,22 @@ script:
   # test example 10
   - cd ../ex10
   - mpirun -n 1 --mca btl_base_warn_component_unused 0 ex10 1-elt-tet.k
+    # Build docker image if on develop branch
+  - if [ "$TRAVIS_BRANCH" = "develop" ]; then 
+      cd ../../..;
+      mkdir builddocker;
+      docker build --pull --cache-from $DOCKER_REPO:develop --target buildFemTech --tag $DOCKER_REPO:develop -f Dockerfile builddocker;
+      docker build --pull --cache-from $DOCKER_REPO:develop --cache-from $DOCKER_REPO:production --tag $DOCKER_REPO:production -f Dockerfile builddocker; 
+    fi
+
+after_script:
+  - if [ "$TRAVIS_BRANCH" = "develop" ]; then docker images; fi
+
+before_deploy:
+  - if [ "$TRAVIS_BRANCH" = "develop" ]; then docker login -u "$CONTAINER_USER" -p "$CONTAINER_PASS"; fi
+
+deploy:
+  provider: script
+  script: docker push $DOCKER_REPO:production &&  docker push $DOCKER_REPO:develop
+  on:
+    branch: develop

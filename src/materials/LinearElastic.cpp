@@ -24,14 +24,14 @@ void LinearElastic(int e, int gp) {
 
     // Compute strain \epsilon = 0.5*(F+F^T)-I
     double matSize = ndim * ndim;
-    double *eps = (double *)malloc(matSize * sizeof(double));
+    double *eps = mat1;
     double *F_element_gp = &(F[index]);
     // trace(\epsilon) = trace(F)-3
     const double trEps = F_element_gp[0]+F_element_gp[4]+F_element_gp[8]-3.0;
     for (int i = 0; i < ndim; ++i) {
       for (int j = 0; j < ndim; ++j) {
-        const int index = j + i*ndim;
-        eps[index] = (F_element_gp[index]+F_element_gp[i+j*ndim]);
+        const int indexL = j + i*ndim;
+        eps[indexL] = (F_element_gp[indexL]+F_element_gp[i+j*ndim]);
       }
     }
     eps[0] -= 2.0;
@@ -39,7 +39,7 @@ void LinearElastic(int e, int gp) {
     eps[8] -= 2.0;
 
     // Compute sigma = \lambda tr(\eps) I + 2 \mu \eps
-    double *P = (double *)malloc(matSize * sizeof(double));
+    double *P = mat2;
     for (int i = 0; i < matSize; ++i) {
       P[i] = mu * eps[i];
     }
@@ -48,8 +48,8 @@ void LinearElastic(int e, int gp) {
     P[8] += lambda * trEps;
 
     // Compute pk2 : S = F^{-1} P 
-    double *fInv = (double *)malloc(matSize * sizeof(double));
-    double *S = (double *)malloc(matSize * sizeof(double));
+    double *fInv = mat3;
+    double *S = mat4;
     InverseF(e, gp, fInv);
     // Compute F^{-1}*P
     dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim,
@@ -67,11 +67,6 @@ void LinearElastic(int e, int gp) {
     pk2[pk2ptr[e] + 6 * gp + 4] = S[6];
     // in voigt notation, sigma12
     pk2[pk2ptr[e] + 6 * gp + 5] = S[3];
-
-    free(eps);
-    free(P);
-    free(fInv);
-    free(S);
 	}
 	return;
 }
