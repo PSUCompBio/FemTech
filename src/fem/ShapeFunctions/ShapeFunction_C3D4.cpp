@@ -1,5 +1,7 @@
 #include "FemTech.h"
 
+#include <math.h>
+
 
 void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ){
 	 //  Purpose : Compute 3-d isoparametric 4 - node tet element shape
@@ -67,7 +69,8 @@ void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ){
   double det, J_Inv[9];
 
   inverse3x3Matrix(xs, J_Inv, &det);
-  detJ[gp] = det;
+  //Chandrupatla Eq. 9.19
+  detJ[gp] = fabs(det);
 
   // Transform derivatives to global co-ordinates
   double c1, c2, c3;

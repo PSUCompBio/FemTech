@@ -6,8 +6,7 @@ double *mass;
 void Assembly(char *operation) {
 	if (strcmp("mass", operation) == 0) {
     // Create global mass matrix
-    const int massSize = nnodes*ndim;
-    mass = (double*)calloc(massSize*massSize, sizeof(double));
+    mass = (double*)calloc(nDOF*nDOF, sizeof(double));
     for (int e = 0; e < nelements; ++e) {
       int bColSize = nShapeFunctions[e]*ndim;
       int mLocalSize = bColSize*bColSize;
@@ -20,20 +19,19 @@ void Assembly(char *operation) {
           for (int l = 0; l < nShapeFunctions[e]; ++l) {
             int g2Index = connectivity[eptr[e]+l];
             for (int k = 0; k < ndim; ++k) {
-              mass[(g1Index*ndim+m)*massSize+g2Index*ndim+k] += Me[(n*ndim+m)*bColSize+l*ndim+k];
+              mass[(g1Index*ndim+m)*nDOF+g2Index*ndim+k] += Me[(n*ndim+m)*bColSize+l*ndim+k];
             }
           }
         }
       }
       free(Me);
     }
-    FILE_LOGMatrix_SINGLE(DEBUGLOG, mass, massSize, massSize, \
+    FILE_LOGMatrix_SINGLE(DEBUGLOG, mass, nDOF, nDOF, \
         "Printing Full Mass Matrix");
 	} else {
 	  if (strcmp("stiffness", operation) == 0) {
       // Create global stiffness matrix
-      const int kSize = nnodes*ndim;
-      stiffness = (double*)calloc(kSize*kSize, sizeof(double));
+      stiffness = (double*)calloc(nDOF*nDOF, sizeof(double));
       for (int e = 0; e < nelements; ++e) {
         // number of shape functions * ndim
         int bColSize = nShapeFunctions[e]*ndim;
@@ -49,14 +47,14 @@ void Assembly(char *operation) {
             for (int l = 0; l < nShapeFunctions[e]; ++l) {
               int g2Index = connectivity[eptr[e]+l];
               for (int k = 0; k < ndim; ++k) {
-                stiffness[(g1Index*ndim+m)*kSize+g2Index*ndim+k] += Ke[(n*ndim+m)*bColSize+l*ndim+k];
+                stiffness[(g1Index*ndim+m)*nDOF+g2Index*ndim+k] += Ke[(n*ndim+m)*bColSize+l*ndim+k];
               }
             }
           }
         }
         free(Ke);
       }
-      FILE_LOGMatrix_SINGLE(DEBUGLOG, stiffness, kSize, kSize, \
+      FILE_LOGMatrix_SINGLE(DEBUGLOG, stiffness, nDOF, nDOF, \
           "Printing Full Stiffness Matrix");
     }
   }

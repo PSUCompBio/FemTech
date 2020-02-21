@@ -5,7 +5,6 @@ void updateInternalForceNeighbour(void);
 void GetForce_3D() {
   // TODO(Anil) special treatment for first time step
   // Below algorithm works for n > 0
-  const int nDOF = nnodes * ndim;
   // Following Belytschko
   // Set force_n to zero
   // TODO : Call function to update fe
@@ -14,10 +13,10 @@ void GetForce_3D() {
 
   // Loop over elements and Gauss points
   for (int i = 0; i < nelements; i++) {
-    int nNodes = nShapeFunctions[i];
+    int nNodesL = nShapeFunctions[i];
     // number of shape functions * ndim
     // TODO : nShapeFunctions not always equal to nNodes
-    double *fintLocal = (double*)calloc(nNodes*ndim, sizeof(double));
+    double *fintLocal = (double*)calloc(nNodesL*ndim, sizeof(double));
 		// force calculaton for hexes, tets and quads
 		for(int j=0; j<GaussPoints[i]; j++) {
 			// truss elements are unique b/c the 3D formulation is not like solid
@@ -37,7 +36,7 @@ void GetForce_3D() {
 			} // else
 		} //loop on gauss points
     // Move Local internal for to global force
-    for (int k = 0; k < nNodes; ++k) {
+    for (int k = 0; k < nNodesL; ++k) {
       int dIndex = connectivity[eptr[i] + k];
       for (int l = 0; l < ndim; ++l) {
         fi[dIndex * ndim + l] += fintLocal[k * ndim + l];
@@ -47,7 +46,7 @@ void GetForce_3D() {
   } // loop on i, nelements
   updateInternalForceNeighbour();
   // Update net force with internal force
-  for (int i = 0; i < nnodes * ndim; ++i) {
+  for (int i = 0; i < nDOF; ++i) {
     f_net[i] -= fi[i];
   }
   return;
@@ -99,5 +98,5 @@ void updateInternalForceNeighbour(void) {
   free(requestListSend);
   free(requestListRecv);
 
-  FILE_LOGArray(DEBUGLOGIGNORE, fi, nnodes*ndim, "Lumped Internal Force After Exchange");
+  FILE_LOGArray(DEBUGLOGIGNORE, fi, nDOF, "Lumped Internal Force After Exchange");
 }

@@ -2,7 +2,7 @@
 #include "blas.h"
 
 void SolveSteadyImplicit(void) {
-  int matSize = nnodes*ndim-nSpecifiedDispBC;
+  int matSize = nDOF-nSpecifiedDispBC;
   // To store pivot order in LU
   int* pivot = (int*)malloc(matSize*sizeof(int));
   int info;
@@ -13,13 +13,13 @@ void SolveSteadyImplicit(void) {
   }
   // Copy solution to displacement vector
   int j = 0;
-  for (int i = 0; i < nnodes*ndim; ++i) {
+  for (int i = 0; i < nDOF; ++i) {
     if(boundary[i] == 0) {
       displacements[i] = rhs[j];
       j = j + 1;
     }
   }
-  FILE_LOGMatrixRM(DEBUGLOGIGNORE, displacements, nnodes, ndim, \
+  FILE_LOGMatrixRM(DEBUGLOGIGNORE, displacements, nNodes, ndim, \
       "Printing Displacement Solution");
   free(pivot);
   return;

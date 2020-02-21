@@ -3,13 +3,14 @@
 
 void InternalForceUpdate(int e, int gp, double *force) {
   int cSize = 6;
-  int nNodes = nShapeFunctions[e];
-  double *fintGQ = (double*)calloc(nNodes*ndim, sizeof(double));
-  int bColSize = nNodes*ndim;
+  int nNodesL = nShapeFunctions[e];
+  int bColSize = nNodesL*ndim;
   int Bsize = bColSize*cSize;
-  double *B = (double*)calloc(Bsize, sizeof(double));
+  for (int k = 0; k < Bsize; ++k) {
+    B[k] = 0.0;
+  }
   // Calculate B matrix for each shape function
-  for (int k = 0; k < nNodes; ++k) {
+  for (int k = 0; k < nNodesL; ++k) {
     StrainDisplacementMatrix(e, gp, k, &(B[6*ndim*k]));
   }
   double* sigma = &(pk2[pk2ptr[e]+6*gp]);
@@ -23,7 +24,5 @@ void InternalForceUpdate(int e, int gp, double *force) {
   for (int k = 0; k < bColSize; ++k) {
     force[k] += preFactor*fintGQ[k];
   }
-  free(fintGQ);
-  free(B);
 	return;
 }

@@ -1,16 +1,12 @@
 #include "FemTech.h"
-
-void free1DArray(void *array) {
-  if(array) {
-    free(array);
-    array = NULL;
-  }
-}
+#include "utilities.h"
 
 void FreeArrays() {
   free1DArray(coordinates);
   free1DArray(connectivity);
+  free1DArray(globalNodeID);
   free1DArray(pid);
+  free1DArray(global_eid);
   free1DArray(eptr);
   free1DArray(shp);
   free1DArray(dshp);
@@ -42,12 +38,10 @@ void FreeArrays() {
   free1DArray(F);
 	free1DArray(pk2);
 	free1DArray(pk2ptr);
-  free1DArray(Favg);
 	free1DArray(materialID);
 	free1DArray(properties);
 	free1DArray(detF);
-	free1DArray(b);
-	free1DArray(E);
+	free1DArray(invF);
 	free1DArray(Eavg);
 	free1DArray(detFptr);
 	free1DArray(InternalsPtr);
@@ -60,6 +54,20 @@ void FreeArrays() {
   free1DArray(sendNeighbourCountCum);
   free1DArray(sendNodeIndex);
   free1DArray(sendNodeDisplacement);
+  free1DArray(stepTime);
+
+  // Temporary arrays used in materials folder
+  free1DArray(mat1);
+  free1DArray(mat2);
+  free1DArray(mat3);
+  free1DArray(mat4);
+  // InternalForceUpdate
+  free1DArray(fintGQ);
+  free1DArray(B);
+  // Viscoelastic materials
+  free1DArray(Hn_1);
+  free1DArray(Hn_2);
+  free1DArray(S0n);
 
   if (ElementType != NULL){
     for (int i = 0; i < nelements; i++){

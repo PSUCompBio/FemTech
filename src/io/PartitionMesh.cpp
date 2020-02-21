@@ -1,6 +1,7 @@
 #include "FemTech.h"
 
 #include <assert.h>
+#include <stdlib.h>
 
 // Variables to keep store the communication patterns between processes
 int sendProcessCount;
@@ -11,10 +12,12 @@ int *sendNodeIndex;
 double *sendNodeDisplacement;
 double *recvNodeDisplacement;
 
+int *globalNodeID;
+
 void updateConnectivityGlobalToLocal(void);
 void createNodalCommunicationPattern(void);
 
-bool PartitionMesh() {
+void PartitionMesh() {
 
   // Options for ParMETIS
   idx_t options[3];
@@ -23,14 +26,22 @@ bool PartitionMesh() {
   options[2] = 15; // seed for random number generator
 
   // Number of partitions (one for each process)
-  idx_t nparts = world_size; // number of parts equals number of processes
+  idx_t npartis = world_size; // number of parts equals number of processes
 
   // Strange weight arrays needed by ParMETIS
   idx_t ncon = 1; // number of balance constraints
 
   // Prepare remaining arguments for ParMETIS
-  idx_t *elmwgt = NULL;
-  idx_t wgtflag = 0;      // we don't use weights
+  // idx_t *elmwgt = NULL;
+  idx_t *elmwgt = (idx_t*)malloc(nelements*sizeof(idx_t));
+  // Assign weights based on element type and material type
+  for (int i = 0; i < nelements; ++i) {
+    const unsigned int matID = materialID[pid[i]];
+    const int matW = materialWeight[matID];
+    const int elemW = elemWeight[elemID.at(ElementType[i])];
+    elmwgt[i] = matW*elemW;
+  }
+  idx_t wgtflag = 2;      // we don't use weights
   idx_t numflag = 0;      // we are using C-style arrays
   idx_t ncommonnodes = 2; // number of nodes elements must have in common
   if (nallelements == 2) {
@@ -38,10 +49,10 @@ bool PartitionMesh() {
            "parmetis)");
     ncommonnodes = 8;
   }
-  const int tpwgts_size = ncon * nparts;
+  const int tpwgts_size = ncon * npartis;
   real_t *tpwgts = (real_t *)malloc(tpwgts_size * sizeof(real_t));
   for (int i = 0; i < tpwgts_size; i++) {
-    tpwgts[i] = (real_t)1.0 / (real_t)nparts;
+    tpwgts[i] = (real_t)1.0 / (real_t)npartis;
   }
 
   real_t *ubvec = (real_t *)malloc(ncon * sizeof(real_t));
@@ -69,7 +80,7 @@ bool PartitionMesh() {
   MPI_Comm_dup(MPI_COMM_WORLD, &comm);
   const int Result = ParMETIS_V3_PartMeshKway(
       elmdist, eptr, connectivity, elmwgt, &wgtflag, &numflag, &ncon,
-      &ncommonnodes, &nparts, tpwgts, ubvec, options, &edgecut, part, &comm);
+      &ncommonnodes, &npartis, tpwgts, ubvec, options, &edgecut, part, &comm);
 
   // Output of ParMETIS_V3_PartMeshKway call will be used here
   if (Result == METIS_OK) {
@@ -99,8 +110,8 @@ bool PartitionMesh() {
       elementSendCum[i + 1] = elementSendCum[i] + elementRedistributePattern[i];
       nodeSendCum[i + 1] = nodeSendCum[i] + nodeRedistributePattern[i];
     }
-    // Multiply by 5 as we are sending 5 seperate lists for each process
-    sendCount *= 5;
+    // Multiply by 6 as we are sending 6 seperate lists for each process
+    sendCount *= 6;
     int nnodes_process = nodeSendCum[world_size];
     // Verify that all elements are included for distribution
     assert(nelements == elementSendCum[world_size]);
@@ -141,6 +152,7 @@ bool PartitionMesh() {
         (double *)malloc(nnodes_process * sizeof(double) * ndim);
     int *eptrPacked = (int *)malloc(nelements * sizeof(int));
     int *pidPacked = (int *)malloc(nelements * sizeof(int));
+    int *eidPacked = (int *)malloc(nelements * sizeof(int));
     char *ElementTypePacked =
         (char *)malloc(nelements * MAX_ELEMENT_TYPE_SIZE * sizeof(char *));
 
@@ -166,6 +178,7 @@ bool PartitionMesh() {
       eptrPacked[elementLocToCopy] = count;
       // Copy pid to send
       pidPacked[elementLocToCopy] = pid[i];
+      eidPacked[elementLocToCopy] = global_eid[i];
       // Copy element type
       memcpy(&(ElementTypePacked[elementLocToCopy * MAX_ELEMENT_TYPE_SIZE]),
              ElementType[i], sizeof(char) * MAX_ELEMENT_TYPE_SIZE);
@@ -192,6 +205,7 @@ bool PartitionMesh() {
     int eptrTag = 7134;
     int pidTag = 7135;
     int eTypeTag = 7136;
+    int eidTag = 7137;
 
     for (int i = 0; i < world_size; ++i) {
       // Check if there are elements to send
@@ -220,7 +234,9 @@ bool PartitionMesh() {
       MPI_Isend(&(ElementTypePacked[startElemLocation * MAX_ELEMENT_TYPE_SIZE]),
                 sizeElem * MAX_ELEMENT_TYPE_SIZE, MPI_CHAR, i, eTypeTag,
                 MPI_COMM_WORLD, &(requestListSend[requestIndex + 4]));
-      requestIndex = requestIndex + 5;
+      MPI_Isend(&(eidPacked[startElemLocation]), sizeElem, MPI_INT, i, eidTag,
+                MPI_COMM_WORLD, &(requestListSend[requestIndex + 5]));
+      requestIndex = requestIndex + 6;
     }
     // Verify that number of requests send matches the required
     assert(requestIndex == sendCount);
@@ -239,7 +255,7 @@ bool PartitionMesh() {
       nodeRecvCum[i + 1] = nodeRecvCum[i] + nodeReceivePattern[i];
     }
     // Multiply recvCount by number of messages to recv per process
-    recvCount *= 5;
+    recvCount *= 6;
     int nnodesRecv = nodeRecvCum[world_size];
     int nelementsRecv = elementRecvCum[world_size];
 
@@ -250,6 +266,7 @@ bool PartitionMesh() {
     int *eptrRecv = (int *)malloc((nelementsRecv + 1) * sizeof(int));
     eptrRecv[0] = 0;
     int *pidRecv = (int *)malloc(nelementsRecv * sizeof(int));
+    int *eidRecv = (int *)malloc(nelementsRecv * sizeof(int));
     char *ElementTypeRecv =
         (char *)malloc(nelementsRecv * MAX_ELEMENT_TYPE_SIZE * sizeof(char));
 
@@ -282,6 +299,8 @@ bool PartitionMesh() {
         memcpy(&(ElementTypeRecv[startElemLocation * MAX_ELEMENT_TYPE_SIZE]),
                &(ElementTypePacked[startLocSendElem * MAX_ELEMENT_TYPE_SIZE]),
                sizeof(char) * sizeElem * MAX_ELEMENT_TYPE_SIZE);
+        memcpy(&(eidRecv[startElemLocation]), &(eidPacked[startLocSendElem]),
+               sizeof(int) * sizeElem);
         continue;
       }
       // Recv connectivity array from i
@@ -298,7 +317,9 @@ bool PartitionMesh() {
       MPI_Irecv(&(ElementTypeRecv[startElemLocation * MAX_ELEMENT_TYPE_SIZE]),
                 sizeElem * MAX_ELEMENT_TYPE_SIZE, MPI_CHAR, i, eTypeTag,
                 MPI_COMM_WORLD, &(requestListRecv[requestIndex + 4]));
-      requestIndex = requestIndex + 5;
+      MPI_Irecv(&(eidRecv[startElemLocation]), sizeElem, MPI_INT, i, eidTag,
+                MPI_COMM_WORLD, &(requestListRecv[requestIndex + 5]));
+      requestIndex = requestIndex + 6;
     }
     // Verify that number of requests send matches the required
     assert(requestIndex == recvCount);
@@ -330,6 +351,7 @@ bool PartitionMesh() {
     free(coordinatesPacked);
     free(eptrPacked);
     free(pidPacked);
+    free(eidPacked);
     free(ElementTypePacked);
     free(requestListSend);
 
@@ -379,6 +401,8 @@ bool PartitionMesh() {
     coordinates = coordinatesRecv;
     free(pid);
     pid = pidRecv;
+    free(global_eid);
+    global_eid = eidRecv;
 
     // Find cumulative sum on eptr
     for (int i = 0; i < nelementsRecv; ++i) {
@@ -400,7 +424,7 @@ bool PartitionMesh() {
     }
     free(ElementTypeRecv);
 
-    nnodes = eptr[nelementsRecv];
+    nNodes = eptr[nelementsRecv];
     nelements = nelementsRecv;
 
     // Create nodal communcication pattern
@@ -408,32 +432,19 @@ bool PartitionMesh() {
 
     // Reorder local connectivity
     updateConnectivityGlobalToLocal();
+    nDOF = nNodes * ndim;
 
-    FILE_LOG(INFO, "Number of nodes : %d", nnodes);
-    const int nDOF = nnodes*ndim;
+    FILE_LOG(INFO, "Number of nodes : %d", nNodes);
     FILE_LOG(INFO, "Number of DOFs : %d", nDOF);
-#ifdef DEBUG
-    if (debug && 1 == 0) {
-      printf("DEBUG(%d) : Node list to share in local node ID\n", world_rank);
-      for (int i = 0; i < sendProcessCount; ++i) {
-        printf("With process %d\n", sendProcessID[i]);
-        for (int j = sendNeighbourCountCum[i]; j < sendNeighbourCountCum[i + 1];
-             ++j) {
-          printf("%d\t", sendNodeIndex[j]);
-        }
-        printf("\n");
-      }
-      printf("\n");
-    }
-#endif //DEBUG
   } else {
     FILE_LOG_SINGLE(ERROR, "ParMETIS returned error code %d", Result);
+    exit(EXIT_FAILURE);
   }
   free(ubvec);
   free(tpwgts);
   free(elmdist);
   free(part);
-  return Result == METIS_OK;
+  free(elmwgt);
 }
 //-------------------------------------------------------------------------------------------
 int compare(const void *a, const void *b) { return (*(int *)a - *(int *)b); }
@@ -454,6 +465,22 @@ int unique(int *arr, int n) {
   free(temp);
   return j;
 }
+int coordinateFromGlobalID(int *array, int nodeID, int size, double* coord) {
+  int *position = (int*)bsearch(&nodeID, array, size, sizeof(int), compare);
+  if (position) {
+    int location = position-array;
+    // printf("Value at position : %d or %d\n", *position, array[location]);
+    // printf("NodeID : %d (location = %d), found on rank %d\n", nodeID, location, world_rank);
+    location *= 3;
+    coord[0] = coordinates[location]; 
+    coord[1] = coordinates[location+1]; 
+    coord[2] = coordinates[location+2]; 
+    // printf("Coordinates : %f, %f, %f\n", coord[0], coord[1], coord[2]);
+    return 1;
+  } else {
+    return 0;
+  }
+}
 //-------------------------------------------------------------------------------------------
 void updateConnectivityGlobalToLocal(void) {
   int totalSize = eptr[nelements];
@@ -461,10 +488,10 @@ void updateConnectivityGlobalToLocal(void) {
   int *sorted = (int *)malloc(totalSize * sizeof(int));
   memcpy(sorted, connectivity, totalSize * sizeof(int));
   qsort(sorted, totalSize, sizeof(int), compare);
-  nnodes = unique(sorted, totalSize);
+  nNodes = unique(sorted, totalSize);
   for (int i = 0; i < totalSize; ++i) {
     int j;
-    for (j = 0; j < nnodes; ++j) {
+    for (j = 0; j < nNodes; ++j) {
       if (sorted[j] == connectivity[i]) {
         break;
       }
@@ -473,8 +500,8 @@ void updateConnectivityGlobalToLocal(void) {
   }
 
   // Reoder co-ordinates
-  double *newCoordinates = (double *)malloc(ndim * nnodes * sizeof(double));
-  for (int j = 0; j < nnodes; ++j) {
+  double *newCoordinates = (double *)malloc(ndim * nNodes * sizeof(double));
+  for (int j = 0; j < nNodes; ++j) {
     int i;
     for (i = 0; i < totalSize; ++i) {
       if (sorted[j] == connectivity[i]) {
@@ -488,12 +515,17 @@ void updateConnectivityGlobalToLocal(void) {
   totalSize = sendNeighbourCountCum[sendProcessCount];
   for (int i = 0; i < totalSize; ++i) {
     int j;
-    for (j = 0; j < nnodes; ++j) {
+    for (j = 0; j < nNodes; ++j) {
       if (sorted[j] == sendNodeIndex[i]) {
         break;
       }
     }
     sendNodeIndex[i] = j;
+  }
+  // Copy sorted array to globalNodeID for pre and post processing
+  globalNodeID = (int*)malloc(nNodes*sizeof(int));
+  for (int i = 0; i < nNodes; ++i) {
+    globalNodeID[i] = sorted[i];
   }
   free(connectivity);
   connectivity = newConnectivity;

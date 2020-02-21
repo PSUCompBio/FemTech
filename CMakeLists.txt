@@ -19,10 +19,21 @@ if(${CMAKE_BUILD_TYPE} STREQUAL DEBUG)
   add_compile_definitions(DEBUG)
 endif()
 
+#Setting c++11 parameters
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+if(COMPILER_SUPPORTS_CXX11)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+else()
+  message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+endif()
+
 message(STATUS "Configuring application: ${PROJECT_NAME}")
 message(STATUS "Install Directory : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Current built type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Current build type flags: ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}")
+# Set additional compiler flags
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=native")
 
 # set install rules (windows only)
 if(WIN32)
@@ -71,6 +82,9 @@ if(ENABLE_MPI)
 	include_directories(third-party/parmetis-4.0.3/metis/include)
 endif(ENABLE_MPI)
 
+#Compiler and Linker parameters common to all compilers
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wshadow")
+
 #Get git related parameters
 execute_process(
   COMMAND git rev-parse --abbrev-ref HEAD
@@ -101,12 +115,14 @@ add_subdirectory(third-party)
 
 #Add JsonCPP Include and Link Directories
 ExternalProject_Get_Property(JsonCpp source_dir)
-message(STATUS "JSON Cpp Src : ${source_dir}")
 include_directories(${source_dir}/include)
 
 ExternalProject_Get_Property(JsonCpp binary_dir)
-message(STATUS "JSON Cpp Lib : ${binary_dir}")
 link_directories(${binary_dir}/src/lib_json)
+
+#Add Boost Include Directories
+ExternalProject_Get_Property(Boost source_dir)
+include_directories(${source_dir})
 
 
 

@@ -2,6 +2,7 @@
 #define FEMTECH_H
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include <limits.h>
 #include <string.h>
@@ -19,8 +20,8 @@
 int LineToArray(const bool IntOrFloat, const bool CheckLastVal, \
     const int ColumnToStart, const int ColumnCount, const char *ConstLine, \
     const char *Delim = " \t", void **Array = NULL);
-bool ReadInputFile(const char *FileName);
-bool PartitionMesh();
+void ReadInputFile(const char *FileName);
+void PartitionMesh();
 void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWeights);
 void ShapeFunctions();
 void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ);
@@ -33,10 +34,9 @@ void AllocateArrays();
 void Assembly(char *operation);
 void StiffnessElementMatrix(double* Ke, int e);
 void MassElementMatrix(double* Me, int e);
-void WriteVTU(const char* FileName, int step, double time);
-void WritePVD(const char* FileName, int step, double time);
+void WriteVTU(const char* FileName, int step);
+void WritePVD(const char* FileName, int step);
 void FreeArrays();
-void ReadMaterialProperties();
 void ApplySteadyBoundaryConditions(void);
 void SolveSteadyImplicit(void);
 void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double dt, \
@@ -54,19 +54,25 @@ void CalculateAccelerations();
 
 void CalculateFR();
 
-void CalculateStrain(int e);
+void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
+    double *currentStrainMin);
+void CalculateStrain();
 void CalculateDeformationGradient(int e, int gp);
 void SumOfDeformationGradient(int e, int gp);
 void StrainDisplacementMatrix(int e, int gp, int nI, double *B);
-void CompressibleNeoHookean(int e, int gp);
 void StressUpdate(int e, int gp);
 void DeterminateF(int e, int gp);
 void InverseF(int e, int gp, double *fInv);
 void InternalForceUpdate(int e, int gp, double *force);
 void TrussStressForceUpdate(int e, int gp, double *force);
 void ReadMaterials();
+
+// Material Models
 void StVenantKirchhoff(int e, int gp);
+void CompressibleNeoHookean(int e, int gp);
 void LinearElastic(int e, int gp);
+void HGOIsotropic(int e, int gp);
+void HGOIsotropicViscoelastic(int e, int gp);
 
 void inverse3x3Matrix(double* mat, double* invMat, double* det);
 //void MultiplyMatrices(double* a, double* b, int sizeM, double* result);
@@ -77,8 +83,14 @@ double norm3D(double *a);
 double dotProduct3D(double *a, double *b);
 void rotate3d(double *n, double theta, double *xin);
 void get3dRotationMatrix(double *n, double theta, double mat[3][3]);
+double interpolateLinear(int n, double *x, double *y, double value);
+void quaternionExp(double *q1, double *q2);
+void quaternionMultiply(double *q1, double *q2, double *qr);
+void quaternionInverse(double *q, double *qinv);
+void quaternionRotate(double *v, double *R, double* vp);
+void quaternionRotate(double *v, double *R, double *Rinv, double* vp);
 
-void CheckEnergy(double time);
+void CheckEnergy(double time, int writeFlag);
 
 /* Functions to calculate characteristic lengths */
 double CalculateCharacteristicLength(int e);
@@ -100,6 +112,7 @@ double volumeTetrahedron(double *coordinates);
 
 int compare(const void *a, const void *b);
 int unique(int *arr, int n);
+int coordinateFromGlobalID(int *array, int nodeID, int size, double* coord);
 
 /*Init and finalize femtech */
 void InitFemTech();

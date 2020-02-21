@@ -24,6 +24,7 @@ endif(ENABLE_MPI)
 #endif(WIN32)
 
 file(COPY mixed-hex-tet.k DESTINATION .)
+file(COPY materials.dat DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
 

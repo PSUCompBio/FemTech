@@ -1,10 +1,10 @@
 #include "FemTech.h"
 
-void StrainDisplacementMatrix(int e, int gp, int nI, double *B) {
+void StrainDisplacementMatrix(int e, int gp, int nI, double *Bmat) {
 
 	//FT = F.transpose();
 	if(ndim == 2) {
-		// B in 2D is a 3 x 2 matrix
+		// Bmat in 2D is a 3 x 2 matrix
 		double B11,B12,B21,B22,B31,B32;
 		double dnIdx = 0.0;
 		double dnIdy = 0.0;
@@ -71,9 +71,9 @@ void StrainDisplacementMatrix(int e, int gp, int nI, double *B) {
     B62 = dnIdx*F22+dnIdy*F21;
     B63 = dnIdx*F32+dnIdy*F31;
 
-    B[0] = B11; B[1] = B21; B[2] = B31; B[3] = B41; B[4] = B51; B[5] = B61;
-    B[6] = B12; B[7] = B22; B[8] = B32; B[9] = B42; B[10] = B52; B[11] = B62;
-    B[12] = B13; B[13] = B23; B[14] = B33; B[15] = B43; B[16] = B53; B[17] = B63;
+    Bmat[0] = B11; Bmat[1] = B21; Bmat[2] = B31; Bmat[3] = B41; Bmat[4] = B51; Bmat[5] = B61;
+    Bmat[6] = B12; Bmat[7] = B22; Bmat[8] = B32; Bmat[9] = B42; Bmat[10] = B52; Bmat[11] = B62;
+    Bmat[12] = B13; Bmat[13] = B23; Bmat[14] = B33; Bmat[15] = B43; Bmat[16] = B53; Bmat[17] = B63;
 	}
 	return;
 }

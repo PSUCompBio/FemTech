@@ -66,14 +66,13 @@ void MassElementMatrix(double *Me, int e) {
   return;
 }
 void LumpMassMatrix(void) {
-  const int massSize = nnodes*ndim;
   // Lump mass matrix by summing up along the row
-  for(int i = 1; i < massSize; ++i) {
-    for(int j = 0; j < massSize; ++j) {
-      mass[j] += mass[j+i*massSize];
+  for(int i = 1; i < nDOF; ++i) {
+    for(int j = 0; j < nDOF; ++j) {
+      mass[j] += mass[j+i*nDOF];
     }
   }
-  FILE_LOGArraySingle(DEBUGLOGIGNORE, mass, massSize, "Lumped Mass");
+  FILE_LOGArraySingle(DEBUGLOGIGNORE, mass, nDOF, "Lumped Mass");
 }
 void updateMassMatrixNeighbour(void) {
   // Update array to send 
@@ -122,13 +121,12 @@ void updateMassMatrixNeighbour(void) {
   }
   free(requestListSend);
   free(requestListRecv);
-  FILE_LOGArraySingle(DEBUGLOGIGNORE, mass, nnodes*ndim, "Lumped Mass After Exchange");
+  FILE_LOGArraySingle(DEBUGLOGIGNORE, mass, nDOF, "Lumped Mass After Exchange");
 }
 
 void AssembleLumpedMass(void) {
   // Create global mass matrix
-  const int massSize = nnodes*ndim;
-  mass = (double*)calloc(massSize, sizeof(double));
+  mass = (double*)calloc(nDOF, sizeof(double));
   if (!mass) {
     FILE_LOG_SINGLE(ERROR, "Allocation of mass matrix failed");
     exit(12);
@@ -153,7 +151,7 @@ void AssembleLumpedMass(void) {
     }
     free(Me);
   }
-  FILE_LOGArraySingle(DEBUGLOGIGNORE, mass, massSize, "Lumped Mass");
+  FILE_LOGArraySingle(DEBUGLOGIGNORE, mass, nDOF, "Lumped Mass");
   // Include effect of elements on other processors
   updateMassMatrixNeighbour();
 }

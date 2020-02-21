@@ -1,6 +1,8 @@
 #include "FemTech.h"
 #include "blas.h"
 
+void AllocateArraysAfterPartioning(void);
+
 /* Global Variables */
 int *gptr;
 // TODO(anil) dsptr[i] = ndim*gptr[i] always. Could be eliminated.
@@ -11,10 +13,8 @@ double *dshp; //pointer for deriviatives of shp functions
 int *fptr; //pointer for incrementing through deformation gradient, F, detF, InvF, b, E
 int *nShapeFunctions;
 double *F; // deformation gradient array, F
-double *Favg; // avg deformation gradient array
-double *detF; // det of deformation gradient array
-double *b; // left Cauchy Green tensor
-double *E; //Green Lagrange strain tensor
+double *detF; // inverse of deformation gradient array
+double *invF; // inverse of deformation gradient array
 double *pk2; // PK2 Stress
 int *pk2ptr; // pointer for iterating through PK2 stress.
 int *detFptr; //pointer for iterating through detF array.
@@ -24,6 +24,10 @@ double *internals; /*internal variables for history dependent models */
 int *gpPtr;
 double *detJacobian;
 double *gaussWeights;
+
+double *fintGQ;
+double *B;
+double *Hn_1, *Hn_2, *S0n; 
 
 void ShapeFunctions() {
   // Global Array - keeps track of how many gauss points there are
@@ -54,7 +58,6 @@ void ShapeFunctions() {
   int gpCount = 0; // counter for gaupp points
 	int F_counter = 0; //counter for storage of deformation gradient, F
   int pk2_counter = 0; //counter for storage of PK2 stress.
-  int Favg_counter = 0; //counter for storing avg of deformation gradient
 	int detF_counter = 0; // counter for storage of detF for each element.
 	int internals_counter = 0; //counter for storage of internals for each gauss point.
 
@@ -96,12 +99,6 @@ void ShapeFunctions() {
 	    // Also this counter will be used (as well as fptr) for detF, InvF, b and E.
 			F_counter += 72;
 
-      //This counter is used to keep track of avg deformation gradient across gauss points for
-      //every element. Since it is an average, it doesn't depend on the number of gauss points
-      //and for every element is just an array of 9 terms.
-      Favg_counter += 9;
-
-
 			//the next counter is for the PK2 stress array
 			//there is a PK2 stress tensor stored at each gauss point
 			//there are six values stored at each gauss point since
@@ -134,7 +131,6 @@ void ShapeFunctions() {
       counter += 4;
       dshp_counter += 12;
 			F_counter += 9;
-      Favg_counter += 9;
 			pk2_counter += 6; // six positions for 3D, it is symmetric
 			detF_counter +=1;
 			internals_counter += MAXINTERNALVARS * GaussPoints[i];
@@ -154,7 +150,6 @@ void ShapeFunctions() {
       counter += nShapeFunctions[i]*gpCount;
       dshp_counter += (ndim * nShapeFunctions[i] * gpCount);
 			F_counter += (ndim*ndim*gpCount);
-      Favg_counter += 9;
 			pk2_counter += 6; // six positions for 3D, it is symmetric
 			detF_counter +=1; // detF stored only at gauss point
 			internals_counter += MAXINTERNALVARS * GaussPoints[i];
@@ -191,10 +186,8 @@ void ShapeFunctions() {
   /* set size of deformation gradient, F array -
 		it holds F for all gauss points in all elemnts */
   F = (double *)calloc(F_counter, sizeof(double));
-  Favg = (double *)calloc(Favg_counter, sizeof(double));
   detF = (double *)calloc(detF_counter, sizeof(double));
-	b = (double *)calloc(F_counter, sizeof(double));
-	E = (double *)calloc(F_counter, sizeof(double));
+	invF = (double *)calloc(F_counter, sizeof(double));
 	internals = (double *)calloc(internals_counter, sizeof(double));
 	/*  size of PK2 stress is 6 values for each gauss point
 	  	the PK2 stress is symmetric */
@@ -268,5 +261,30 @@ void ShapeFunctions() {
     }
   }
 #endif //DEBUG
+
+  // Allocate arrays after shape functions are formed
+  int cSize = 6;
+  int nNodesMax = 0, nNodesL;
+  for (int i = 0; i < nelements; ++i) {
+    nNodesL = nShapeFunctions[i];
+    if (nNodesL > nNodesMax) {
+      nNodesMax = nNodesL;
+    }
+  }
+  int bColSize = nNodesMax*ndim;
+  int Bsize = bColSize*cSize;
+  fintGQ = (double*)malloc(bColSize*sizeof(double));
+  B = (double*)malloc(Bsize*sizeof(double));
+  // Allocate arrays specific to viscoelastic material
+  // Check if viscoelastic material is used 
+  for (int i = 0; i < nPIDglobal; ++i) {
+    if (materialID[i] == 5) {
+      // Allocated and set to zero for first time step
+      Hn_1 = (double *)calloc(F_counter, sizeof(double));
+      Hn_2 = (double *)calloc(F_counter, sizeof(double));
+      S0n = (double *)calloc(F_counter, sizeof(double));
+      break;
+    }
+  }
   return;
 }

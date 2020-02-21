@@ -4,10 +4,9 @@ double *rhs;
 int nSpecifiedDispBC;
 
 void ApplySteadyBoundaryConditions(void) {
-  const int matSize = nnodes*ndim;
-  rhs = (double*)calloc(matSize, sizeof(double));
+  rhs = (double*)calloc(nDOF, sizeof(double));
   nSpecifiedDispBC = 0;
-  for (int i = 0; i < matSize; ++i) {
+  for (int i = 0; i < nDOF; ++i) {
     if(boundary[i] != 0) {
       nSpecifiedDispBC += 1;
     }
@@ -18,23 +17,23 @@ void ApplySteadyBoundaryConditions(void) {
   }
   int writeColumn = 0;
   // Eliminate columns first
-  for (int i = 0; i < matSize; ++i) {
+  for (int i = 0; i < nDOF; ++i) {
     if(boundary[i] == 0) {
       // Retain column
       if (writeColumn == i) {
         writeColumn = writeColumn + 1;
         continue;
       } else {
-        double *writeLocation = &(stiffness[writeColumn*matSize]);
-        double *readLocation = &(stiffness[i*matSize]);
-        memcpy(writeLocation, readLocation, sizeof(double)*matSize);
+        double *writeLocation = &(stiffness[writeColumn*nDOF]);
+        double *readLocation = &(stiffness[i*nDOF]);
+        memcpy(writeLocation, readLocation, sizeof(double)*nDOF);
         writeColumn += 1;
       }
     } else {
       // Modify RHS
       double displ = displacements[i];
-      for (int j = 0; j < matSize; ++j) {
-        rhs[j] -= displ*stiffness[i*matSize+j];
+      for (int j = 0; j < nDOF; ++j) {
+        rhs[j] -= displ*stiffness[i*nDOF+j];
       }
     }
   }
@@ -42,11 +41,11 @@ void ApplySteadyBoundaryConditions(void) {
   // Eliminated rows are stored in latter part of stiffness matrix so as to
   // computed tractions at nodes with prescribed displacement. Space is present
   // in the stiffness matrix from the eliminated columns. 
-  int modifiedMatSize = matSize-nSpecifiedDispBC;
+  int modifiedMatSize = nDOF-nSpecifiedDispBC;
   int rIndex = 0, wIndex = 0; // read and write index to eliminate row
-  int wAuxIndex = matSize*modifiedMatSize; //write index for eliminated rows
+  int wAuxIndex = nDOF*modifiedMatSize; //write index for eliminated rows
   for (int i = 0; i < modifiedMatSize; ++i) {
-    for (int j = 0; j < matSize; ++j) {
+    for (int j = 0; j < nDOF; ++j) {
       if(boundary[j] == 0) {
         // Retain row
         if (rIndex == wIndex) {
@@ -69,7 +68,7 @@ void ApplySteadyBoundaryConditions(void) {
   rIndex = wIndex = 0; // read and write index to eliminate row
   wAuxIndex = 0; //write index for eliminated rows
   double *rhsAux = (double*)malloc(sizeof(double)*nSpecifiedDispBC);
-  for (int j = 0; j < matSize; ++j) {
+  for (int j = 0; j < nDOF; ++j) {
     if(boundary[j] == 0) {
       // Retain row
       if (j == wIndex) {
@@ -90,7 +89,7 @@ void ApplySteadyBoundaryConditions(void) {
 
   FILE_LOGMatrix_SINGLE(DEBUGLOG, stiffness, modifiedMatSize, modifiedMatSize, \
       "Printing Full Stiffness Matrix");
-  int offset = matSize*modifiedMatSize;
+  int offset = nDOF*modifiedMatSize;
   FILE_LOGMatrix_SINGLE(DEBUGLOG, stiffness+offset, nSpecifiedDispBC, modifiedMatSize, \
       "Printing Auxillary Stiffness Matrix");
   FILE_LOGArraySingle(DEBUGLOG, rhs, modifiedMatSize, "Printing RHS");

@@ -1,5 +1,8 @@
 #include "FemTech.h"
 
+int *materialID;
+double *properties;
+
 void ReadMaterials() {
   /* Function to be called only after reading the mesh */
   FILE *File;
@@ -17,32 +20,97 @@ void ReadMaterials() {
   for (int i = 0; i < nPIDglobal; ++i) {
     checkFullRead[i] = false;
   }
+	materialID=(int*)calloc(nPIDglobal,sizeof(int));
+  if (!materialID) {
+    printf("ERROR : Error in allocating materialID array\n");
+    exit(12);
+  }
+	properties=(double*)calloc(nPIDglobal*MAXMATPARAMS,sizeof(double));
+  if (!properties) {
+    printf("ERROR : Error in allocating properties array\n");
+    exit(12);
+  }
 
   for (int i = 0; i < nPIDglobal; i++) {
     fscanf(File, "%d", &partID);
     fscanf(File, "%d", &materialID[partID]);
     int index = partID * MAXMATPARAMS;
-    if (materialID[partID] == 1) { // CompressibleNeoHookean
-      // properties[0] = density
-      // properties[1] = mu
-      // properties[2] = lambda
-      fscanf(File, "%lf %lf %lf", &properties[index + 0],
-              &properties[index + 1], &properties[index + 2]);
-    } else if (materialID[partID] == 2) { // St. Venant
-      // properties[0] = density
-      // properties[1] = mu
-      // properties[2] = lambda
-      fscanf(File, "%lf %lf %lf", &properties[index + 0],
-              &properties[index + 1], &properties[index + 2]);
-    } else if (materialID[partID] == 3) { // Linear Elastic
-      // properties[0] = density
-      // properties[1] = mu
-      // properties[2] = lambda
-      fscanf(File, "%lf %lf %lf", &properties[index + 0],
-              &properties[index + 1], &properties[index + 2]);
-    } else {
-      FILE_LOG_SINGLE(ERROR, "Material ID for Part %d not found", partID);
-      exit(0);
+    switch (materialID[partID]) {
+      case 0 :// Rigid body
+              // properties[0] = density
+              fscanf(File, "%lf", &properties[index + 0]);
+              break;
+      case 1 ://Compressible Neohookean
+              // properties[0] = density
+              // properties[1] = mu
+              // properties[2] = lambda
+              fscanf(File, "%lf %lf %lf", &properties[index + 0],
+                      &properties[index + 1], &properties[index + 2]);
+              // printf("Part %d Compressible NeoHookean properties (rho, mu, "
+              //        "lambda) = %3.3f %3.3f %3.3f\n",
+              //         partID, properties[index + 0], properties[index + 1],
+              //         properties[index + 2]);
+              break;
+      case 2 :// St. Venant-Kirchhoff
+              // properties[0] = density
+              // properties[1] = mu
+              // properties[2] = lambda
+              fscanf(File, "%lf %lf %lf", &properties[index + 0],
+                      &properties[index + 1], &properties[index + 2]);
+              // printf("element %d St. Venant-Kirchhoff properties (rho, mu, lambda) = "
+              //        "%3.3f %3.3f %3.3f\n",
+                      // elementID, properties[index + 0], properties[index + 1],
+                      // properties[index + 2]);
+              break;
+      case 3 :// Linear Elastic
+              // properties[0] = density
+              // properties[1] = mu
+              // properties[2] = lambda
+              fscanf(File, "%lf %lf %lf", &properties[index + 0],
+                      &properties[index + 1], &properties[index + 2]);
+              // printf("element %d Linear Elastic properties (rho, mu, lambda) = "
+              //        "%3.3f %3.3f %3.3f\n",
+                      // elementID, properties[index + 0], properties[index + 1],
+                      // properties[index + 2]);
+              break;
+      case 4 :// HGO with isotropic fiber distribution
+              // properties[0] = density
+              // properties[1] = mu
+              // properties[2] = lambda
+              // properties[3] = k1
+              // properties[4] = k2
+              fscanf(File, "%lf %lf %lf %lf %lf", &properties[index + 0],
+                      &properties[index + 1], &properties[index + 2], 
+                      &properties[index + 3], &properties[index + 4]);
+              // printf("Part %d HGO properties (rho, mu, lambda, k1, k2) = "
+              //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
+              //         partID, properties[index + 0], properties[index + 1],
+              //         properties[index + 2], properties[index + 3], properties[index + 4]);
+              break;
+      case 5 :// HGO with isotropic fiber distribution with 2 term Prony series for viscoelastic properties
+              // properties[0] = density
+              // properties[1] = mu
+              // properties[2] = lambda
+              // properties[3] = k1
+              // properties[4] = k2
+              // properties[5] = g1
+              // properties[6] = t1
+              // properties[7] = g2
+              // properties[8] = t2
+              fscanf(File, "%lf %lf %lf %lf %lf %lf %lf %lf %lf", &properties[index + 0],
+                      &properties[index + 1], &properties[index + 2], 
+                      &properties[index + 3], &properties[index + 4],
+                      &properties[index + 5], &properties[index + 6],
+                      &properties[index + 7], &properties[index + 8]);
+              // printf("Part %d HGO properties (rho, mu, lambda, k1, k2) = "
+              //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
+              //         partID, properties[index + 0], properties[index + 1],
+              //         properties[index + 2], properties[index + 3], properties[index + 4],
+              //         properties[index + 5], properties[index + 6], properties[index + 7],
+              //         properties[index + 8]);
+              break;
+      default :FILE_LOG_SINGLE(ERROR, "Material ID for Part %d not found", partID);
+                exit(EXIT_FAILURE);
     }
     checkFullRead[partID] = true;
   }

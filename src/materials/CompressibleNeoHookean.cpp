@@ -20,14 +20,13 @@ void CompressibleNeoHookean(int e, int gp){
     double J = detF[index2];
 
     // Compute Green-Lagrange Tensor: C = F^T*F
-    double matSize = ndim * ndim;
-    double *C = (double *)malloc(matSize * sizeof(double));
-    double *Cinv = (double *)malloc(matSize * sizeof(double));
+    double *Cmat = mat1;
+    double *Cinv = mat2;
     double *F_element_gp = &(F[index]);
     dgemm_(chy, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
-           F_element_gp, &ndim, &zero, C, &ndim);
+           F_element_gp, &ndim, &zero, Cmat, &ndim);
     double Cdet;
-    inverse3x3Matrix(C, Cinv, &Cdet);
+    inverse3x3Matrix(Cmat, Cinv, &Cdet);
 
 		//From Bonet and Wood - Flagshyp
 		//mu              = properties(2);
@@ -56,8 +55,6 @@ void CompressibleNeoHookean(int e, int gp){
 		pk2[pk2ptr[e]+6*gp+5] = -mu*Cinv[3] + logJ*Cinv[3];
     FILE_LOGArraySingle(DEBUGLOGIGNORE, &(pk2[pk2ptr[e]+6*gp]), 6, \
         "Element : %d, GP : %d Stress values", e, gp);
-    free(C);
-    free(Cinv);
 	}
 	return;
 }

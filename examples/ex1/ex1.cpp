@@ -12,10 +12,9 @@ int main(int argc, char **argv){
 	// Get the rank of the process
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 	
-	if (ReadInputFile(argv[1])) {
-	    PartitionMesh();
-	}
-	
+	ReadInputFile(argv[1]);
+  ReadMaterials();
+	PartitionMesh();
 
 #if 0
 	// Printing local arrays of processor (this section can be removed)
@@ -37,9 +36,9 @@ int main(int argc, char **argv){
 		printf("%s/%d  ", ElementType[i], pid[i]);
 	}
 	printf("\n");
-	printf("\nSize of coordinates array in processor %d after partitioning = %d\n", world_rank, nnodes * ndim);
+	printf("\nSize of coordinates array in processor %d after partitioning = %d\n", world_rank, nDOF);
 	printf("\nCoordinates array in processor %d after partitioning =", world_rank);
-	for (int i = 0; i < nnodes; i++) {
+	for (int i = 0; i < nNodes; i++) {
 		printf(" (%d)  ", i);
 		for (int j = 0; j < ndim; j++) {
 			printf("%.*f ", 1, coordinates[ndim * i + j]);
@@ -48,10 +47,9 @@ int main(int argc, char **argv){
 	printf("\n");
 #endif
 
-  WriteVTU(argv[1], 0, 0.0);  
-
+  AllocateArrays();
+  WriteVTU(argv[1], 0);  
   ShapeFunctions();
-
   FreeArrays();
   MPI_Finalize();
   return 0;

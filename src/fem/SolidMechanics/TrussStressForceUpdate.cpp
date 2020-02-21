@@ -100,5 +100,214 @@ void TrussStressForceUpdate(int e, int gp, double *force){
 	force[3] = 0.0;
 	force[4] = 0.0;
 	force[5] = 0.0;
+	//
+  // // Calculate Tranformation
+	// double dir_truss_x[3];
+	// double dir_truss_y[3];
+	// double dir_truss_z[3];
+	// dir_truss_x[0] = x2 - x1;
+	// dir_truss_x[1] = y2 - y1;
+	// dir_truss_x[2] = z2 - z1;
+	// if (dir_truss_x[0] != 0) {
+	// 	dir_truss_y[1] = 1;
+	// 	dir_truss_y[2] = 0;
+	// 	dir_truss_y[0] = -(((dir_truss_y[1] * dir_truss_x[1]) + (dir_truss_y[2] * dir_truss_x[2])) / dir_truss_x[0]);
+	// }
+	// else {
+	// 	if ((dir_truss_x[0] == 0) && (dir_truss_x[1] != 0)) {
+	// 		dir_truss_y[0] = 1;
+	// 		dir_truss_y[2] = 1;
+	// 		dir_truss_y[1] = -(((dir_truss_y[2] * dir_truss_x[2]) + (dir_truss_y[0] * dir_truss_x[0])) / dir_truss_x[1]);
+	// 	}
+	// 	else if ((dir_truss_x[0] == 0) && (dir_truss_x[2] != 0)) {
+	// 		dir_truss_y[0] = 0;
+	// 		dir_truss_y[1] = 1;
+	// 		dir_truss_y[2] = -(((dir_truss_y[0] * dir_truss_x[0]) + (dir_truss_y[1] * dir_truss_x[1])) / dir_truss_x[2]);
+	// 	}
+	// 	else {
+	// 		printf("Truss element is not practically possible.\n");
+	// 	}
+	// }
+  // // cross product: of x cross y to get z
+	// double a1 = dir_truss_x[0];
+	// double a2 = dir_truss_x[1];
+	// double a3 = dir_truss_x[2];
+	// double b1 = dir_truss_y[0];
+	// double b2 = dir_truss_y[1];
+	// double b3 = dir_truss_y[2];
+  // dir_truss_z[0] = (a2*b3 - a3*b2);
+	// dir_truss_z[1] = (a1*b3 - a3*b1);
+	// dir_truss_z[2] = (a1*b1 - a2*b1);
+	//
+	// //normalize each vector
+	// double norm_x = sqrt(dir_truss_x[0]*dir_truss_x[0] + dir_truss_x[1]*dir_truss_x[1] + dir_truss_x[2]*dir_truss_x[2] );
+	// double norm_y = sqrt(dir_truss_y[0]*dir_truss_y[0] + dir_truss_y[1]*dir_truss_y[1] + dir_truss_y[2]*dir_truss_y[2] );
+	// double norm_z = sqrt(dir_truss_z[0]*dir_truss_z[0] + dir_truss_z[1]*dir_truss_z[1] + dir_truss_z[2]*dir_truss_z[2] );
+	// // x
+  // dir_truss_x[0] =  dir_truss_x[0]/norm_x;
+	// dir_truss_x[1] =  dir_truss_x[1]/norm_x;
+	// dir_truss_x[2] =  dir_truss_x[2]/norm_x;
+ 	// // y
+	// dir_truss_y[0] =  dir_truss_y[0]/norm_y;
+	// dir_truss_y[1] =  dir_truss_y[1]/norm_y;
+	// dir_truss_y[2] =  dir_truss_y[2]/norm_y;
+	// // z
+	// dir_truss_z[0] =  dir_truss_z[0]/norm_z;
+	// dir_truss_z[1] =  dir_truss_z[1]/norm_z;
+	// dir_truss_z[2] =  dir_truss_z[2]/norm_z;
+	//
+	// // define global coordinate system
+	// double dir_global_x[3];
+	// dir_global_x[0]=1;
+	// dir_global_x[1]=0;
+	// dir_global_x[2]=0;
+	// double dir_global_y[3];
+	// dir_global_y[0]=0;
+	// dir_global_y[1]=1;
+	// dir_global_y[2]=0;
+	// double dir_global_z[3];
+	// dir_global_z[0]=0;
+	// dir_global_z[1]=0;
+	// dir_global_z[2]=1;
+	// //normalize each global vector - not really needed but left in b/c it can
+	// // accomadate different global orientations in future  - IS THIS NEEDED??
+	// double gnorm_x = sqrt(dir_global_x[0]*dir_global_x[0] + dir_global_x[1]*dir_global_x[1] + dir_global_x[2]*dir_global_x[2] );
+	// double gnorm_y = sqrt(dir_global_y[0]*dir_global_y[0] + dir_global_y[1]*dir_global_y[1] + dir_global_y[2]*dir_global_y[2] );
+	// double gnorm_z = sqrt(dir_global_z[0]*dir_global_z[0] + dir_global_z[1]*dir_global_z[1] + dir_global_z[2]*dir_global_z[2] );
+	//
+	// // define direction cosines
+	// double dot_global_x_truss_x = dir_global_x[0]*dir_truss_x[0] + dir_global_x[1]*dir_truss_x[1] + dir_global_x[2]*dir_truss_x[2];
+	// double dot_global_x_truss_y = dir_global_x[0]*dir_truss_y[0] + dir_global_x[1]*dir_truss_y[1] + dir_global_x[2]*dir_truss_y[2];
+	// double dot_global_x_truss_z = dir_global_x[0]*dir_truss_z[0] + dir_global_x[1]*dir_truss_z[1] + dir_global_x[2]*dir_truss_z[2];
+	// double dot_global_y_truss_x = dir_global_y[0]*dir_truss_x[0] + dir_global_y[1]*dir_truss_x[1] + dir_global_y[2]*dir_truss_x[2];
+	// double dot_global_y_truss_y = dir_global_y[0]*dir_truss_y[0] + dir_global_y[1]*dir_truss_y[1] + dir_global_y[2]*dir_truss_y[2];
+	// double dot_global_y_truss_z = dir_global_y[0]*dir_truss_z[0] + dir_global_y[1]*dir_truss_z[1] + dir_global_y[2]*dir_truss_z[2];
+	// double dot_global_z_truss_x = dir_global_z[0]*dir_truss_x[0] + dir_global_z[1]*dir_truss_x[1] + dir_global_z[2]*dir_truss_x[2];
+	// double dot_global_z_truss_y = dir_global_z[0]*dir_truss_y[0] + dir_global_z[1]*dir_truss_y[1] + dir_global_z[2]*dir_truss_y[2];
+	// double dot_global_z_truss_z = dir_global_z[0]*dir_truss_z[0] + dir_global_z[1]*dir_truss_z[1] + dir_global_z[2]*dir_truss_z[2];
+	// // l
+	// double l_1 = dot_global_x_truss_x / (gnorm_x * norm_x);
+	// double l_2 = dot_global_x_truss_y / (gnorm_x * norm_y);
+	// double l_3 = dot_global_x_truss_z / (gnorm_x * norm_z);
+  // // m
+	// double m_1 = dot_global_y_truss_x / (gnorm_y * norm_x);
+	// double m_2 = dot_global_y_truss_y / (gnorm_y * norm_y);
+	// double m_3 = dot_global_y_truss_z / (gnorm_y * norm_z);
+	// // n
+	// double n_1 = dot_global_z_truss_x / (gnorm_z * norm_x);
+	// double n_2 = dot_global_z_truss_y / (gnorm_z * norm_y);
+	// double n_3 = dot_global_z_truss_z / (gnorm_z * norm_z);
+	//
+	// // choice - 1: Stress Transformation Matrix
+	// // choice - 2: Strain Transformation Matrix
+	// // choice - 3: 3X3 transformation matrix as produced in my thesis in electrophysiology chapter
+	// // int choice = 3;
+	// // if (choice == 2) {
+	// // 	double T[6][6];
+	// // 	memset(T, 0.0, sizeof(T));
+	// // 	T[0][0]=l_1*l_1;T[1][0]=m_1*m_1;T[2][0]=n_1*n_1;T[3][0]=l_1*m_1;T[4][0]=m_1*n_1;T[5][0]=n_1*l_1;
+	// // 	T[0][1]=l_2*l_2;T[1][1]=m_2*m_2;T[2][1]=n_2*n_2;T[3][1]=l_2*m_2;T[4][1]=m_2*n_2;T[5][1]=n_2*l_2;
+	// // 	T[0][2]=l_3*l_3;T[1][2]=m_3*m_3;T[2][2]=n_3*n_3;T[3][2]=l_3*m_3;T[4][2]=m_3*n_3;T[5][2]=n_3*l_3;
+	// // 	T[0][3]=2.0*l_1*l_2;T[1][3]=2.0*m_1*m_2;T[2][3]=2.0*n_1*n_2;T[3][3]=(l_1*m_2)+(l_2*m_1);T[4][3]=(m_1*n_2)+(m_2*n_1);T[5][3]=(l_1*n_2)+(l_2*n_1);
+	// // 	T[0][4]=2.0*l_2*l_3;T[1][4]=2.0*m_2*m_3;T[2][4]=2.0*n_2*n_3;T[3][4]=(l_2*m_3)+(l_3*m_2);T[4][4]=(m_2*n_3)+(m_3*n_2);T[5][4]=(l_2*n_3)+(l_3*n_2);
+	// // 	T[0][5]=2.0*l_1*l_3;T[1][5]=2.0*m_1*m_3;T[2][5]=2.0*n_1*n_3;T[3][5]=(l_1*m_3)+(l_3*m_1);T[4][5]=(m_1*n_3)+(m_3*n_1);T[5][5]=(l_1*n_3)+(l_3*n_1);
+	// 	// T.row(0) << (l_1 * l_1), (m_1 * m_1), (n_1 * n_1), (l_1 * m_1), (m_1 * n_1), (n_1 * l_1);
+	// 	// T.row(1) << (l_2 * l_2), (m_2 * m_2), (n_2 * n_2), (l_2 * m_2), (m_2 * n_2), (n_2 * l_2);
+	// 	// T.row(2) << (l_3 * l_3), (m_3 * m_3), (n_3 * n_3), (l_3 * m_3), (m_3 * n_3), (n_3 * l_3);
+	// 	// T.row(3) << (2 * l_1 * l_2), (2 * m_1 * m_2), (2 * n_1 * n_2), ((l_1 * m_2) + (l_2 * m_1)), ((m_1 * n_2) + (m_2 * n_1)), ((l_1 * n_2) + (l_2 * n_1));
+	// 	// T.row(4) << (2 * l_2 * l_3), (2 * m_2 * m_3), (2 * n_2 * n_3), ((l_2 * m_3) + (l_3 * m_2)), ((m_2 * n_3) + (m_3 * n_2)), ((l_2 * n_3) + (l_3 * n_2));
+	// 	// T.row(5) << (2 * l_1 * l_3), (2 * m_1 * m_3), (2 * n_1 * n_3), ((l_1 * m_3) + (l_3 * m_1)), ((m_1 * n_3) + (m_3 * n_1)), ((l_1 * n_3) + (l_3 * n_1));
+	// // }
+	// // else if (choice == 1) {
+	// // 	double T[6][6];
+	// // 	memset(T, 0.0, sizeof(T));
+	// // 	T[0][0]=l_1*l_1;T[1][0]=m_1*m_1;T[2][0]=n_1*n_1; T[3][0]=2.0*l_1*m_1;T[4][0]=2.0*m_1*n_1;T[5][0]=2.0*n_1*l_1;
+	// // 	T[0][1]=l_2*l_2;T[1][1]=m_2*m_2;T[2][1]=n_2*n_2; T[3][1]=2.0*l_2*m_2;T[4][1]=2.0*m_2*n_2;T[5][1]=2.0*n_2*l_2;
+	// // 	T[0][2]=l_3*l_3;T[1][2]=m_3*m_3;T[2][2]=n_3*n_3; T[3][2]=2.0*l_3*m_3;T[4][2]=2.0*m_3*n_3;T[5][2]=2.0*n_3*l_3;
+	// // 	T[0][3]=l_1*l_2;T[1][3]=m_1*m_2;T[2][3]=n_1*n_2;T[3][3]=(l_1*m_2)+(l_2*m_1);T[4][3]=(m_1*n_2)+(m_2*n_1);T[5][3]=(l_1*n_2)+(l_2*n_1);
+	// // 	T[0][4]=l_2*l_3;T[1][4]=m_2*m_3;T[2][4]=n_2*n_3;T[3][4]=(l_2*m_3)+(l_3*m_2);T[4][4]=(m_2*n_3)+(m_3*n_2);T[5][4]=(l_2*n_3)+(l_3*n_2);
+	// // 	T[0][5]=l_1*l_3;T[1][5]=m_1*m_3;T[2][5]=n_1*n_3;T[3][5]=(l_1*m_3)+(l_3*m_1);T[4][5]=(m_1*n_3)+(m_3*n_1);T[5][5]=(l_1*n_3)+(l_3*n_1);
+	// // 	// T.row(0) << pow(l_1, 2), pow(m_1, 2), pow(n_1, 2), (2 * l_1 * m_1), (2 * m_1 * n_1), (2 * n_1 * l_1);
+	// // 	// T.row(1) << pow(l_2, 2), pow(m_2, 2), pow(n_2, 2), (2 * l_2 * m_2), (2 * m_2 * n_2), (2 * n_2 * l_2);
+	// // 	// T.row(2) << pow(l_3, 2), pow(m_3, 2), pow(n_3, 2), (2 * l_3 * m_3), (2 * m_3 * n_3), (2 * n_3 * l_3);
+	// // 	// T.row(3) << (1 * l_1 * l_2), (1 * m_1 * m_2), (1 * n_1 * n_2), ((l_1 * m_2) + (l_2 * m_1)), ((m_1 * n_2) + (m_2 * n_1)), ((l_1 * n_2) + (l_2 * n_1));
+	// // 	// T.row(4) << (1 * l_2 * l_3), (1 * m_2 * m_3), (1 * n_2 * n_3), ((l_2 * m_3) + (l_3 * m_2)), ((m_2 * n_3) + (m_3 * n_2)), ((l_2 * n_3) + (l_3 * n_2));
+	// // 	// T.row(5) << (1 * l_1 * l_3), (1 * m_1 * m_3), (1 * n_1 * n_3), ((l_1 * m_3) + (l_3 * m_1)), ((m_1 * n_3) + (m_3 * n_1)), ((l_1 * n_3) + (l_3 * n_1));
+	// // }
+	// // else if (choice == 3) {
+	// 	double T[3][3];
+	// 	memset(T, 0.0, sizeof(T));
+	// 	T[0][0]=l_1;T[1][0]=l_2;T[2][0]=l_3;
+	// 	T[0][1]=m_1;T[1][1]=m_2;T[2][1]=m_3;
+	// 	T[0][2]=n_1;T[1][2]=n_2;T[2][2]=n_3;
+	// 	// T.row(0) << l_1, l_2, l_3;
+	// 	// T.row(1) << m_1, m_2, m_3;
+	// 	// T.row(2) << n_1, n_2, n_3;
+	// //}
+	// // else {
+	// // 	printf("WRONG CHOICE OF TRANSFORMATION MATRIX\n");
+	// // }
+	//
+	// // Compute inverse of T
+	// double T_inv[3][3];
+	// double T_inv_transpose[3][3];
+	// memset(T, 0.0, sizeof(T_inv));
+	// // first compute determinant
+	// double tmp1 = T[0][0]*(T[1][1]*T[2][2] - T[1][2]*T[2][1]);
+	// double tmp2 = T[0][1]*(T[1][0]*T[2][2] - T[1][2]*T[2][0]);
+	// double tmp3 = T[0][2]*(T[1][0]*T[2][1] - T[1][1]*T[2][0]);
+	// double detT = tmp1 - tmp2 + tmp3;
+	// // now compute inverse
+	// T_inv[0][0] = 1/detT*(T[1][1]*T[2][2] - T[1][2]*T[2][1]);
+	// T_inv[0][1] = 1/detT*(T[0][2]*T[2][1] - T[0][1]*T[2][2]);
+	// T_inv[0][2] = 1/detT*(T[0][1]*T[1][2] - T[0][2]*T[1][1]);
+	//
+	// T_inv[1][0] = 1/detT*(T[1][2]*T[2][0] - T[1][0]*T[2][2]);
+	// T_inv[1][1] = 1/detT*(T[0][0]*T[2][2] - T[0][2]*T[2][0]);
+	// T_inv[1][2] = 1/detT*(T[0][2]*T[1][0] - T[0][0]*T[1][2]);
+	//
+	// T_inv[2][0] = 1/detT*(T[1][0]*T[2][1] - T[1][1]*T[2][0]);
+	// T_inv[2][1] = 1/detT*(T[0][1]*T[2][0] - T[0][0]*T[2][1]);
+	// T_inv[2][2] = 1/detT*(T[0][0]*T[1][1] - T[0][1]*T[1][0]);
+	// // Finding the transpose of matrix T_inv
+  // for(int i=0; i<ndim; ++i){
+  //   for(int j=0; j<ndim; ++j){
+  //    	T_inv_transpose[j][i] = T_inv[i][j];
+  //   }
+	// }
+	//
+	// // Compute deformation gradient of truss  - assumes incompressibilty
+	// // because F is typically stored at gauss points, the loop over gauss points
+	// // is included. The size of F is defined in Shapefunctions.cpp. It is already
+  // // created but it needs to referenced correctly.
+	// index = fptr[e] + ndim*ndim*gp;
+	// F[index+ndim*0+0] = lambda;
+	// F[index+ndim*1+1] = 1.0/sqrt(lambda);
+	// F[index+ndim*2+2] = 1.0/sqrt(lambda);
+	//
+	// // Muitiple T_inv_transpose * F
+	// double sum = 0;
+	// double multiply[3][3];
+	// for (int c = 0; c < ndim; c++) {
+	// 	for (int d = 0; d < ndim; d++) {
+	// 		for (int k = 0; k < ndim; k++) {
+	// 			sum = sum + T_inv_transpose[c][k]*F[index+ndim*d+k];
+	// 		}
+	// 		multiply[c][d] = sum;
+	// 		sum = 0;
+	// 	}
+	// }
+
+	// // mulitipl F * T_inv
+	// sum = 0;
+	// for (int c = 0; c < ndim; c++) {
+	// 	for (int d = 0; d < ndim; d++) {
+	// 		for (int k = 0; k < ndim; k++) {
+	// 			sum = sum + multiply[c][k]*T_inv[d][k];
+	// 		}
+	// 		F[c][d] = sum;
+	// 		sum = 0;
+	// 	}
+	// }
 	return ;
 }

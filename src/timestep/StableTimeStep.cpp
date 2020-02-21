@@ -4,7 +4,7 @@
 /** For all elements -- this function calculates the minimum critical timestep */
 double StableTimeStep() {
 
-	double dt;
+	double dtElem;
 	double dtMin = huge;
   bool isNotRigid;
   // int minElementID;
@@ -20,9 +20,9 @@ double StableTimeStep() {
       }
     }
     if (isNotRigid) {
-      dt = CalculateTimeStep(i);
-      if (dt < dtMin){
-        dtMin = dt;
+      dtElem = CalculateTimeStep(i);
+      if (dtElem < dtMin){
+        dtMin = dtElem;
         // minElementID = i;
       }
     } 

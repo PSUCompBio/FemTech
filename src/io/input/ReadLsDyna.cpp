@@ -1,5 +1,7 @@
 #include "FemTech.h"
 
+#include <assert.h>
+
 #define TITLE_ELEMENT_SOLID  "*ELEMENT_SOLID"
 #define TITLE_ELEMENT_SHELL  "*ELEMENT_SHELL"
 #define TITLE_ELEMENT_BEAM   "*ELEMENT_BEAM"
@@ -188,9 +190,10 @@ bool ReadLsDyna(const char *FileName) {
     // Creating and initializing "connectivity", "pid" and "ElementType" arrays for processor
     connectivity = (int *)calloc(ConnectivitySize, sizeof(int));
     pid = (int *)calloc(nelements, sizeof(int));
+    global_eid = (int *)malloc(nelements*sizeof(int));
     ElementType = (char **)calloc(nelements, sizeof(char *));
-    for (int i = 0; i < nelements; i++) {
-        ElementType[i] = (char *)calloc(MAX_ELEMENT_TYPE_SIZE, sizeof(char));
+    for (int i1 = 0; i1 < nelements; i1++) {
+        ElementType[i1] = (char *)calloc(MAX_ELEMENT_TYPE_SIZE, sizeof(char));
     }
     i = 0;
     int ci = 0, pi = 0;
@@ -199,20 +202,25 @@ bool ReadLsDyna(const char *FileName) {
 
             long LastValidElemDataLinePos = -1;
             while (fgets(Line, sizeof(Line), File) != NULL) {
-                int *PIDs, *Nodes;
+                int *PIDs, *Nodes, *eids;
+                const int ne = LineToArray(true, false, 1, 1, Line, Delim, (void**)&eids);
                 const int np = LineToArray(true, false, 2, 1, Line, Delim, (void**)&PIDs);
                 const int nn = LineToArray(true, true, 3, 0, Line, Delim, (void**)&Nodes);
-                if (np == 0 || nn == 0) {
+                if (np == 0 || nn == 0 || ne == 0) {
                     if (np > 0) {
                         free(PIDs);
                     }
                     if (nn > 0) {
                         free(Nodes);
                     }
+                    if (ne > 0) {
+                        free(eids);
+                    }
                     break;
                 }
                 if (i >= From && i <= To) {
                     pid[pi] = PIDs[0]-1;
+                    global_eid[pi] = eids[0];
 
                     const int N = nn == 8 ? CalcUniqueValues(Nodes, nn) : nn;
                     if (N > 4) {
@@ -230,11 +238,12 @@ bool ReadLsDyna(const char *FileName) {
                     
                     pi = pi + 1;
 
-                    for (int j = 0; j < nn; j++) {
-                        connectivity[ci] = Nodes[j] - 1;
+                    for (int j1 = 0; j1 < nn; j1++) {
+                        connectivity[ci] = Nodes[j1] - 1;
                         ci = ci + 1;
                     }
                 }
+                free(eids);
                 free(PIDs);
                 free(Nodes);
                 i = i + 1;
@@ -246,6 +255,10 @@ bool ReadLsDyna(const char *FileName) {
             }
         }
     }
+    assert(pi == nelements);
+    // for (int k = 0; k < 10; ++k) {
+    //   printf("Rank : %d, element global id : %d of From : %d and To : %d\n", world_rank, global_eid[k], From, To);
+    // }
 
     // Checking if we can go to nodes section of mesh file
     if (fseek(File, NodesSectionPos, SEEK_SET) != 0) {
@@ -286,27 +299,27 @@ bool ReadLsDyna(const char *FileName) {
             break;
         }
     }
-    nnodes = 0;
+    nNodes = 0;
     coordinates = (double *)malloc(ConnectivitySize * csize);
-    for (int i = 0; i < ConnectivitySize; i++) {
-        const int *p = (const int *)bsearch(&connectivity[i], UniqueConnectivity, UniqueConnectivitySize, sizeof(int), compare);
+    for (int i1 = 0; i1 < ConnectivitySize; i1++) {
+        const int *p = (const int *)bsearch(&connectivity[i1], UniqueConnectivity, UniqueConnectivitySize, sizeof(int), compare);
         if (p != NULL) {
             const int I = p - UniqueConnectivity;
-            memcpy(&coordinates[i * ndim], &UniqueConnCoordinates[I * ndim], csize);
-            nnodes = nnodes + 1;
+            memcpy(&coordinates[i1 * ndim], &UniqueConnCoordinates[I * ndim], csize);
+            nNodes = nNodes + 1;
         }
     }
     free(UniqueConnCoordinates);
     free(UniqueConnectivity);
 
     // Checking if "coordinates" array is OK
-    if (nnodes != ConnectivitySize) {
+    if (nNodes != ConnectivitySize) {
         FreeArrays();
         FILE_LOG_SINGLE(ERROR, "Failed to initialize 'coordinates' array");
-        FILE_LOG_SINGLE(ERROR, "nnodes = %d, ConnectivitySize = %d, ndim = %d", nnodes, ConnectivitySize, ndim);
+        FILE_LOG_SINGLE(ERROR, "nnodes = %d, ConnectivitySize = %d, ndim = %d", nNodes, ConnectivitySize, ndim);
     }
 
     // Everything is OK for now. Closing the mesh file, returning TRUE.
     fclose(File);
-    return nnodes == ConnectivitySize;
+    return nNodes == ConnectivitySize;
 }

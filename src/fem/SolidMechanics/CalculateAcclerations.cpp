@@ -2,9 +2,9 @@
 #include "blas.h"
 
 void CalculateAccelerations(){
-  FILE_LOGArray(DEBUGLOGIGNORE, f_net, ndim*nnodes, "RHS of Solution");
+  FILE_LOGArray(DEBUGLOGIGNORE, f_net, nDOF, "RHS of Solution");
 
-  for (int i = 0; i < ndim*nnodes; ++i) {
+  for (int i = 0; i < nDOF; ++i) {
     if (!boundary[i]) {
       accelerations[i] = f_net[i]/mass[i];
     }

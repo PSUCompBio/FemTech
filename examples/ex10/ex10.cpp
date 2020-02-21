@@ -1,21 +1,24 @@
 #include "FemTech.h"
 #include "blas.h"
 
+#include <assert.h>
+
+
 /*Delare Functions*/
-void ApplyBoundaryConditions(double Time,double dMax, double tMax);
+void ApplyBoundaryConditions(double dMax, double tMax);
+void CustomPlot();
 
 /* Global Variables/Parameters  - could be moved to parameters.h file?  */
-double Time;
-int nStep;
+double Time, dt;
 int nSteps;
-int nPlotSteps = 10;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
+int nPlotSteps = 50;
 
-int main(int argc, char **argv){
+int main(int argc, char **argv) {
 
   // Initialize the MPI environment
   MPI_Init(NULL, NULL);
@@ -24,229 +27,296 @@ int main(int argc, char **argv){
   // Get the rank of the process
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-  if (ReadInputFile(argv[1])) {
-    PartitionMesh();
-  }
+  ReadInputFile(argv[1]);
+  ReadMaterials();
+
+  PartitionMesh();
 
   AllocateArrays();
 
-  if(debug) {
-    // Printing local arrays of processor (this section can be removed)
-    printf("\neptr array in processor %d after partitioning = ", world_rank);
-    for (int i = 0; i <= nelements; i++) {
-      printf("%d ", eptr[i]);
-    }
-    printf("\n");
-    printf("\neind array in processor %d after partitioning =", world_rank);
-    for (int i = 0; i < nelements; i++) {
-      printf(" (%d)  ", i);
-      for (int j = eptr[i]; j < eptr[i + 1]; j++) {
-        printf("%d ", connectivity[j]);
-      }
-    }
-    printf("\n");
-    printf("\nType/PartID of element in processor %d after partitioning = ", world_rank);
-    for (int i = 0; i < nelements; i++) {
-      printf("%s/%d  ", ElementType[i], pid[i]);
-    }
-    printf("\n");
-    printf("\nSize of coordinates array in processor %d after partitioning = %d\n", world_rank, nnodes * ndim);
-    printf("\nCoordinates array in processor %d after partitioning =", world_rank);
-    for (int i = 0; i < nnodes; i++) {
-      printf(" (%d)  ", i);
-      for (int j = 0; j < ndim; j++) {
-        printf("%.*f ", 1, coordinates[ndim * i + j]);
-      }
-    }
-    printf("\n");
-  }
-
   /* Write inital, undeformed configuration*/
-	Time = 0.0;
-	nStep = 0;
-  WriteVTU(argv[1], nStep, Time);
+  Time = 0.0;
+  int plot_counter = 0;
+  WriteVTU(argv[1], plot_counter);
+  stepTime[plot_counter] = Time;
+  CustomPlot();
 
   if (ImplicitStatic) {
     // Static solution
     double dMax = 0.1; // max displacment in meters
-		double tMax = 1.0;
+    double tMax = 1.0;
     ShapeFunctions();
     CreateLinearElasticityCMatrix();
-    ApplyBoundaryConditions(Time,dMax,tMax);
-    Assembly((char*)"stiffness");
+    ApplyBoundaryConditions(dMax, tMax);
+    Assembly((char *)"stiffness");
     ApplySteadyBoundaryConditions();
     SolveSteadyImplicit();
     Time = tMax;
-    nStep = 1;
     /* Write final, deformed configuration*/
-    WriteVTU(argv[1], nStep, Time);
-  }
-	else if (ImplicitDynamic) {
+    WriteVTU(argv[1], 1);
+  } else if (ImplicitDynamic) {
     // Dynamic Implicit solution using Newmark's scheme for time integration
-    double dt = 0.1;
-    double tMax = 10.0;
-    double dMax = 0.1;// max displacment in meters
+    dt = 0.1;
+    double tMax = 1.0;
+    double dMax = 0.1; // max displacment in meters
     ShapeFunctions();
     CreateLinearElasticityCMatrix();
-    ApplyBoundaryConditions(Time,dMax,tMax);
-    Assembly((char*)"stiffness");
-    Assembly((char*)"mass");
+    Time = 1.0;
+    ApplyBoundaryConditions(dMax, tMax);
+    Assembly((char *)"stiffness");
+    Assembly((char *)"mass");
     /* beta and gamma of Newmark's scheme */
     double beta = 0.25;
     double gamma = 0.5;
     SolveUnsteadyNewmarkImplicit(beta, gamma, dt, tMax, argv[1]);
-  }
-	else if (ExplicitDynamic){
-		// Dynamic Explcit solution using....
-		double dt = 1e-4;
-    double tMax = 1e-3; //max simulation time in seconds
-    double dMax = 0.1; // max displacment in meters
-		double Time=0.0;
-		int time_step_counter = 0;
-		int plot_counter = 0;
-		/** Central Difference Method - Beta and Gamma */
-		double beta = 0;
-		double gamma = 0.5;
+  } else if (ExplicitDynamic) {
+    // Dynamic Explcit solution using....
+
+    dt = 0.0;
+    double tMax = 1.00; // max simulation time in seconds
+    double dMax = 0.007; // max displacment in meters
+
+    Time = 0.0;
+    int time_step_counter = 0;
+    /** Central Difference Method - Beta and Gamma */
+    // double beta = 0;
+    // double gamma = 0.5;
 
     ShapeFunctions();
-    ApplyBoundaryConditions(Time,dMax,tMax);
-    Assembly((char*)"stiffness");
     /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
+    AssembleLumpedMass();
 
-    AssembleLumpedMass(); // Add Direct-lumped as an option
-		/* Step-2: getforce step from Belytschko */
+    // Used if initial velocity and acceleration BC is to be set.
+    ApplyBoundaryConditions(dMax, tMax);
 
+    /* Obtain dt, according to Belytschko dt is calculated at end of getForce */
+    dt = ExplicitTimeStepReduction * StableTimeStep();
+    /* Step-2: getforce step from Belytschko */
     GetForce(); // Calculating the force term.
 
-    /* obtain stable time step */
-   	dt = ExplicitTimeStepReduction*StableTimeStep();
-		nSteps = (int)(tMax/dt);
-		int nsteps_plot = (int)(nSteps/nPlotSteps);
-		printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n",dt,nSteps,nsteps_plot);
+    /* Step-3: Calculate accelerations */
+    CalculateAccelerations();
 
-		/* Step-3: Calculate accelerations */
-   	CalculateAccelerations();
+    nSteps = (int)(tMax / dt);
+    int nsteps_plot = (int)(nSteps / nPlotSteps);
 
- 		// Save old displacments
-		for(int i=0;i<ndim*nnodes;i++){
-   		displacements_prev[i] = displacements[i];
-		}
+    if (world_rank == 0) {
+      printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
+            nsteps_plot);
+    }
 
-		/* Step-4: Time loop starts....*/
-		time_step_counter = time_step_counter + 1;
-	//	clock_t s, s_prev, ds;
-	//	s = clock();
-		while (Time <= tMax) {
- 			Time=Time+dt; /*Update the time by adding full time step */
+    time_step_counter = time_step_counter + 1;
+    double t_n = 0.0;
 
-			/* Steps - 4,5,6 and 7 from Belytschko Box 6.1 - Update time, velocity and displacements */
-			/* Partially Update Nodal Velocities */
-			for(int i=0;i<ndim*nnodes;i++){
-				velocities_half[i] = velocities[i] + ((1.0 - gamma)*dt*accelerations[i]);
-			}
+    if (world_rank == 0) {
+      printf(
+          "------------------------------- Loop ----------------------------\n");
+      printf("Time : %f, tmax : %f\n", Time, tMax);
+    }
 
-			/* Update Nodal Displacements */
-			for(int i=0;i<ndim*nnodes;i++){
-				displacements[i] = displacements[i]+
-													(dt*velocities[i]) +
-													((pow(dt,2)/2.0)*(1.0-(2.0*beta))*accelerations[i]) +
-													(beta*dt*dt*accelerations[i]);
-			}
-	 		/** Update Loading Conditions - time dependent loading conditions */
-			ApplyBoundaryConditions(Time,dMax,tMax);
+    /* Step-4: Time loop starts....*/
+    while (Time < tMax) {
+      t_n = Time;
+      double t_np1 = Time + dt;
+      Time = t_np1; /*Update the time by adding full time step */
+      if (world_rank == 0) {
+        printf("Time : %15.6e, dt=%15.6e, tmax : %15.6e\n", Time, dt, tMax);
+      }
+      double dt_nphalf = dt;                 // equ 6.2.1
+      double t_nphalf = 0.5 * (t_np1 + t_n); // equ 6.2.1
 
-			/* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
-    	GetForce(); // Calculating the force term.
+      /* Step 5 from Belytschko Box 6.1 - Update velocity */
+      for (int i = 0; i < nDOF; i++) {
+        if (boundary[i]) {
+          velocities_half[i] = velocities[i];
+        } else {
+          velocities_half[i] =
+              velocities[i] + (t_nphalf - t_n) * accelerations[i];
+        }
+      }
 
-    	/* Step - 9 from Belytschko Box 6.1 - Calculate Accelerations */
-    	CalculateAccelerations(); // Calculating the new accelerations from total nodal forces.
-    	//fe_apply_bc_acceleration(A, t);
+      // Store old displacements and accelerations for energy computation
+      memcpy(displacements_prev, displacements, nDOF * sizeof(double));
+      memcpy(accelerations_prev, accelerations, nDOF * sizeof(double));
+      // Store internal external force from previous step to compute energy
+      memcpy(fi_prev, fi, nDOF * sizeof(double));
+      memcpy(fe_prev, fe, nDOF * sizeof(double));
 
-    	/** Step- 10 from Belytschko Box 6.1 - Second Partial Update of Nodal Velocities */
-    	// using newmark-beta-central-difference
-			for(int i=0;i<ndim*nnodes;i++){
-				velocities[i] = velocities_half[i] + (gamma*dt*accelerations[i]);
-			}
-			//fe_apply_bc_velocity(V, t);
+      for (int i = 0; i < nDOF; i++) {
+        if (!boundary[i]) {
+          displacements[i] = displacements[i] + dt_nphalf * velocities_half[i];
+        }
+      }
+      /* Step 6 Enforce displacement boundary Conditions */
+      ApplyBoundaryConditions(dMax, tMax);
 
-    //fi_curr = fe - F_net;
-			for(int i=0;i<ndim*nnodes;i++){
-				fi[i] = fe[i] - f_net[i];
-			}
+      /* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
+      GetForce(); // Calculating the force term.
+      /* Step - 9 from Belytschko Box 6.1 - Calculate Accelerations */
+      CalculateAccelerations(); // Calculating the new accelerations from total
+                                // nodal forces.
 
-      CalculateFR();
+      /** Step- 10 - Second Partial Update of Nodal Velocities */
+      for (int i = 0; i < nDOF; i++) {
+        if (!boundary[i]) {
+          velocities[i] =
+              velocities_half[i] + (t_np1 - t_nphalf) * accelerations[i];
+        }
+      }
 
-    /** Step - 11 from Belytschko Box 6.1 - Calculating energies and Checking Energy Balance */
-    //fe_checkEnergies(U_prev, U, fi_prev, fi_curr, f_damp_prev, f_damp_curr, fe_prev, fe, fr_prev, fr_curr, m_system, V, energy_int_old, energy_int_new, energy_vd_old, energy_vd_new, energy_ext_old, energy_ext_new, energy_k
-    //printf("mod: %d\n", time_step_counter % nsteps_plot);
-		if(time_step_counter % nsteps_plot == 0 ){
-			plot_counter = plot_counter + 1;
+      /** Step - 11 Checking* Energy Balance */
+      int writeFlag = time_step_counter%nsteps_plot;
+      CheckEnergy(Time, writeFlag);
 
-			printf("------Plot %d: WriteVTU\n",plot_counter);
-			WriteVTU(argv[1], plot_counter, Time);
-		}
-		time_step_counter = time_step_counter + 1;
-		dt = StableTimeStep();
+      if (writeFlag == 0) {
+        plot_counter = plot_counter + 1;
+        CalculateStrain();
+        printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter, world_rank);
+        WriteVTU(argv[1], plot_counter);
+        if (plot_counter < MAXPLOTSTEPS) {
+          printf("------ %d: WritePVD by rank : %d at Time : %f\n", plot_counter, world_rank, Time);
+          stepTime[plot_counter] = Time;
+          WritePVD(argv[1], plot_counter);
+        }
+        CustomPlot();
 
-		} // end explcit while loop
-	}// end if ExplicitDynamic
+#ifdef DEBUG
+        if (debug) {
+          printf("DEBUG : Printing Displacement Solution\n");
+          for (int i = 0; i < nNodes; ++i) {
+            for (int j = 0; j < ndim; ++j) {
+              printf("%15.6E", displacements[i * ndim + j]);
+            }
+            printf("\n");
+          }
+        }
+#endif // DEBUG
+      }
+      time_step_counter = time_step_counter + 1;
+      dt = ExplicitTimeStepReduction * StableTimeStep();
+      // Barrier not a must
+      MPI_Barrier(MPI_COMM_WORLD);
+    } // end explcit while loop
 
-	/* Below are things to do at end of program */
-	if(world_rank == 0){
-		WritePVD(argv[1], nStep, Time);
-	}
+    // Write out the last time step
+    CustomPlot();
+  } // end if ExplicitDynamic
+#ifdef DEBUG
+  if (debug) {
+    printf("DEBUG : Printing Displacement Solution\n");
+    for (int i = 0; i < nNodes; ++i) {
+      for (int j = 0; j < ndim; ++j) {
+        printf("%15.6E", displacements[i * ndim + j]);
+      }
+      printf("\n");
+    }
+  }
+#endif // DEBUG
+
+  /* Below are things to do at end of program */
+  // if (world_rank == 0) {
+  //   if (plot_counter < MAXPLOTSTEPS) {
+  //     stepTime[plot_counter] = Time;
+  //     WritePVD(argv[1], plot_counter);
+  //   }
+  // }
   FreeArrays();
   MPI_Finalize();
   return 0;
 }
 
-void ApplyBoundaryConditions(double Time, double dMax, double tMax){
+void ApplyBoundaryConditions(double dMax, double tMax) {
   double tol = 1e-5;
   int count = 0;
-	double AppliedDisp;
+  double AppliedDisp;
 
-	// Apply Ramped Displacment
-	if (ExplicitDynamic || ImplicitDynamic){
-		AppliedDisp = Time*(dMax/tMax);
-  }
-  else if (ImplicitStatic){
+  // Apply Ramped Displacment
+  if (ExplicitDynamic || ImplicitDynamic) {
+    AppliedDisp = Time * (dMax / tMax);
+  } else if (ImplicitStatic) {
     AppliedDisp = dMax;
   }
+  int index;
 
-
-  for(int i=0;i<nnodes;i++){
+  for (int i = 0; i < nNodes; i++) {
     // if x value = 0, constrain node to x plane (0-direction)
-    if(fabs(coordinates[ndim*i+0]-0.0) <tol){
-      boundary[ndim*i+0]=1;
-      //printf("node : %d x : %d\n", i, count);
-      count = count+1;
+    index = ndim * i + 0;
+    if (fabs(coordinates[index] - 0.0) < tol) {
+      boundary[index] = 1;
+      displacements[index] = 0.0;
+      velocities[index] = 0.0;
+      // For energy computations
+      accelerations[index] = 0.0;
+      count = count + 1;
     }
     // if y coordinate = 0, constrain node to y plane (1-direction)
-    if(fabs(coordinates[ndim*i+1]-0.0) <tol){
-      boundary[ndim*i+1]=1;
-      //printf("node : %d y : %d\n", i, count);
-      count = count+1;
+    index = ndim * i + 1;
+    if (fabs(coordinates[index] - 0.0) < tol) {
+      boundary[index] = 1;
+      displacements[index] = 0.0;
+      velocities[index] = 0.0;
+      accelerations[index] = 0.0;
+      count = count + 1;
     }
     // if z coordinate = 0, constrain node to z plane (2-direction)
-    if(fabs(coordinates[ndim*i+2]-0.0) <tol){
-      boundary[ndim*i+2]=1;
-      //printf("node : %d z : %d\n", i, count);
-      count = count+1;
+    index = ndim * i + 2;
+    if (fabs(coordinates[index] - 0.0) < tol) {
+      boundary[index] = 1;
+      displacements[index] = 0.0;
+      velocities[index] = 0.0;
+      accelerations[index] = 0.0;
+      count = count + 1;
     }
     // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
-    if(fabs(coordinates[ndim*i+1]-1.0) <tol){
-      boundary[ndim*i+1]=1;
-      //printf("node : %d y2 : %d\n", i, count);
-      count = count+1;
+    index = ndim * i + 1;
+    if (fabs(coordinates[index] - 0.005) < tol) {
+      boundary[index] = 1;
+      count = count + 1;
       // note that this may have to be divided into
       // diplacement increments for both implicit and
       // explicit solver. In the future this would be
       // equal to some time dependent function i.e.,
       // CalculateDisplacement to get current increment out
       //  displacment to be applied.
-      displacements[ndim*i+1] = AppliedDisp;
+      displacements[index] = AppliedDisp;
+      velocities[index] = dMax/tMax;
+      // For energy computations
+      accelerations[index] = 0.0;
     }
   }
-  //printf("Time = %3.3e, Applied Disp = %3.3e\n",Time,AppliedDisp);
+  if (world_rank == 0) {
+    printf("Applied Disp = %10.5e\n", AppliedDisp);
+  }
+  return;
+}
+
+void CustomPlot() {
+  double tol = 1e-5;
+  FILE *datFile;
+  int x = 0;
+  int y = 1;
+  int z = 2;
+
+  if (fabs(Time - 0.0) < 1e-16) {
+    datFile = fopen("plot.dat", "w");
+    fprintf(datFile, "# Results for Node ?\n");
+    fprintf(datFile, "# Time  DispX    DispY   DispZ\n");
+    fprintf(datFile, "%11.5e %11.5e  %11.5e  %11.5e\n", 0.0, 0.0, 0.0, 0.0);
+
+  } else {
+    datFile = fopen("plot.dat", "a");
+    for (int i = 0; i < nNodes; i++) {
+      if (fabs(coordinates[ndim * i + x] - 0.005) < tol &&
+          fabs(coordinates[ndim * i + y] - 0.0) < tol &&
+          fabs(coordinates[ndim * i + z] - 0.0) < tol) {
+
+        fprintf(datFile, "%11.5e %11.5e  %11.5e  %11.5e\n", Time,
+                displacements[ndim * i + x], displacements[ndim * i + y],
+                displacements[ndim * i + z]);
+      }
+    }
+  }
+
+  fclose(datFile);
   return;
 }
