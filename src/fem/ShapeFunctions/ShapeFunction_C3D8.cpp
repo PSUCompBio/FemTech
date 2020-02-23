@@ -62,18 +62,12 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 	dshp[indexDshp + ndim * 7 + 2] = -((chi - 1)*(eta + 1)) / 8;
 
 
-	//for debugging can be removed...
-#ifdef DEBUG
-	if (debug && 1==0) {
-		for (int i = eptr[e]; i < eptr[e + 1]; i++) {
-			printf("%d %8.4f %8.4f %8.4f \n", connectivity[i],
-				coordinates[ndim*connectivity[i] + 0],
-				coordinates[ndim*connectivity[i] + 1],
-				coordinates[ndim*connectivity[i] + 2]);
-		}
-		printf("\n");
-	}
-#endif //DEBUG
+  for (int i = eptr[e]; i < eptr[e + 1]; i++) {
+    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "%d %8.4f %8.4f %8.4f", connectivity[i],
+      coordinates[ndim*connectivity[i] + 0],
+      coordinates[ndim*connectivity[i] + 1],
+      coordinates[ndim*connectivity[i] + 2]);
+  }
 	// Compute jacobian transformation
 	// If this gets called everytime function is called,
 	// I don't like it.

@@ -94,7 +94,7 @@ void get3dRotationMatrix(double *n, double theta, double mat[3][3]) {
 // Linear interpolation of tabulated data
 double interpolateLinear(int n, double *x, double *y, double value) {
   if (value < x[0]) {
-    printf("Error : value outside range\n");
+    FILE_LOG_SINGLE(ERROR, "Linear Interpolation value outside range");
     return 0.0;
   }
   if (value > x[n-1]) {

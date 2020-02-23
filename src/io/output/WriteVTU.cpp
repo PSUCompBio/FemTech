@@ -17,7 +17,7 @@ void WriteVTU(const char* FileName, int step) {
 	if (strlen(FileName) < ARR_SIZE) {
 	    strcpy(outfile, FileName);
 	}
-	strip_ext(outfile);
+	// strip_ext(outfile);
 
 	sprintf(s, ".vtu.%04d.%04d",step,world_rank);
   sprintf(paths,"./results/vtu/");

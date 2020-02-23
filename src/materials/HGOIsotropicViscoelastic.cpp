@@ -26,7 +26,7 @@
 
 void HGOIsotropicViscoelastic(int e, int gp) {
   if (ndim == 2) {
-    printf("Plane Strain implementation yet to be done \n");
+    FILE_LOG_SINGLE(ERROR, "Plane Strain implementation yet to be done");
     exit(EXIT_FAILURE);
   }
   // Assumes ndim == 3
@@ -159,12 +159,10 @@ void HGOIsotropicViscoelastic(int e, int gp) {
   }
 
 #ifdef DEBUG
-  if(debug && 0){
-    printf("Element ID = %d, gp = %d\n", e, gp);
-    for(int i=0;i<6;i++){
-      int indexD = pk2ptr[e]+6*gp+i;
-      printf("PK2[%d] = %10.6e\n", indexD, pk2[indexD]);
-    }
+  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Element ID = %d, gp = %d", e, gp);
+  for(int i=0;i<6;i++){
+    int indexD = pk2ptr[e]+6*gp+i;
+    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "PK2[%d] = %10.6e", indexD, pk2[indexD]);
   }
 #endif //DEBUG
 }

@@ -22,12 +22,12 @@ void ReadMaterials() {
   }
 	materialID=(int*)calloc(nPIDglobal,sizeof(int));
   if (!materialID) {
-    printf("ERROR : Error in allocating materialID array\n");
+    FILE_LOG_SINGLE(ERROR, "Error in allocating materialID array");
     exit(12);
   }
 	properties=(double*)calloc(nPIDglobal*MAXMATPARAMS,sizeof(double));
   if (!properties) {
-    printf("ERROR : Error in allocating properties array\n");
+    FILE_LOG_SINGLE(ERROR, "Error in allocating properties array");
     exit(12);
   }
 
@@ -46,7 +46,7 @@ void ReadMaterials() {
               // properties[2] = lambda
               fscanf(File, "%lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2]);
-              // printf("Part %d Compressible NeoHookean properties (rho, mu, "
+              // FILE_LOG_SINGLE(DEBUGLOG, "Part %d Compressible NeoHookean properties (rho, mu, "
               //        "lambda) = %3.3f %3.3f %3.3f\n",
               //         partID, properties[index + 0], properties[index + 1],
               //         properties[index + 2]);
@@ -57,7 +57,7 @@ void ReadMaterials() {
               // properties[2] = lambda
               fscanf(File, "%lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2]);
-              // printf("element %d St. Venant-Kirchhoff properties (rho, mu, lambda) = "
+              // FILE_LOG_SINGLE(DEBUGLOG, "element %d St. Venant-Kirchhoff properties (rho, mu, lambda) = "
               //        "%3.3f %3.3f %3.3f\n",
                       // elementID, properties[index + 0], properties[index + 1],
                       // properties[index + 2]);
@@ -68,7 +68,7 @@ void ReadMaterials() {
               // properties[2] = lambda
               fscanf(File, "%lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2]);
-              // printf("element %d Linear Elastic properties (rho, mu, lambda) = "
+              // FILE_LOG_SINGLE(DEBUGLOG, "element %d Linear Elastic properties (rho, mu, lambda) = "
               //        "%3.3f %3.3f %3.3f\n",
                       // elementID, properties[index + 0], properties[index + 1],
                       // properties[index + 2]);
@@ -82,7 +82,7 @@ void ReadMaterials() {
               fscanf(File, "%lf %lf %lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2], 
                       &properties[index + 3], &properties[index + 4]);
-              // printf("Part %d HGO properties (rho, mu, lambda, k1, k2) = "
+              // FILE_LOG_SINGLE(DEBUGLOG, "Part %d HGO properties (rho, mu, lambda, k1, k2) = "
               //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
               //         partID, properties[index + 0], properties[index + 1],
               //         properties[index + 2], properties[index + 3], properties[index + 4]);
@@ -102,7 +102,7 @@ void ReadMaterials() {
                       &properties[index + 3], &properties[index + 4],
                       &properties[index + 5], &properties[index + 6],
                       &properties[index + 7], &properties[index + 8]);
-              // printf("Part %d HGO properties (rho, mu, lambda, k1, k2) = "
+              // FILE_LOG_SINGLE(DEBUGLOG, "Part %d HGO properties (rho, mu, lambda, k1, k2) = "
               //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
               //         partID, properties[index + 0], properties[index + 1],
               //         properties[index + 2], properties[index + 3], properties[index + 4],

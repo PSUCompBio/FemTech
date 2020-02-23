@@ -469,13 +469,13 @@ int coordinateFromGlobalID(int *array, int nodeID, int size, double* coord) {
   int *position = (int*)bsearch(&nodeID, array, size, sizeof(int), compare);
   if (position) {
     int location = position-array;
-    // printf("Value at position : %d or %d\n", *position, array[location]);
-    // printf("NodeID : %d (location = %d), found on rank %d\n", nodeID, location, world_rank);
+    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Value at position : %d or %d", *position, array[location]);
+    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "NodeID : %d (location = %d)", nodeID, location);
     location *= 3;
     coord[0] = coordinates[location]; 
     coord[1] = coordinates[location+1]; 
     coord[2] = coordinates[location+2]; 
-    // printf("Coordinates : %f, %f, %f\n", coord[0], coord[1], coord[2]);
+    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Coordinates : %f, %f, %f", coord[0], coord[1], coord[2]);
     return 1;
   } else {
     return 0;
@@ -690,13 +690,10 @@ void createNodalCommunicationPattern(void) {
     if (ghostCountProcess[i]) {
       sendCount += 1;
 #ifdef DEBUG
-      if (debug && 1 == 0) {
-        printf("DEBUG (%d) : Before Make Unique for %d\n", world_rank, i);
-        for (int j = ghostCountProcessCum[i]; j < ghostCountProcessCum[i + 1];
-             ++j) {
-          printf("%d\t", elemID_request[j]);
-        }
-        printf("\n");
+      FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Before Make Unique for %d", i);
+      for (int j = ghostCountProcessCum[i]; j < ghostCountProcessCum[i + 1];
+            ++j) {
+        FILE_LOG_SINGLE(DEBUGLOGIGNORE, "%d ", elemID_request[j]);
       }
 #endif //DEBUG
       qsort(&(elemID_request[ghostCountProcessCum[i]]), ghostCountProcess[i],
@@ -704,12 +701,9 @@ void createNodalCommunicationPattern(void) {
       ghostCountProcess[i] = unique(&(elemID_request[ghostCountProcessCum[i]]),
                                     ghostCountProcess[i]);
 #ifdef DEBUG
-      if (debug && 1 == 0) {
-        printf("DEBUG (%d) : After Make Unique for %d\n", world_rank, i);
-        for (int j = 0; j < ghostCountProcess[i]; ++j) {
-          printf("%d\t", elemID_request[ghostCountProcessCum[i] + j]);
-        }
-        printf("\n");
+      FILE_LOG_SINGLE(DEBUGLOGIGNORE, "After Make Unique for %d", i);
+      for (int j = 0; j < ghostCountProcess[i]; ++j) {
+        FILE_LOG_SINGLE(DEBUGLOGIGNORE, "%d ", elemID_request[ghostCountProcessCum[i] + j]);
       }
 #endif //DEBUG
     }
@@ -784,15 +778,12 @@ void createNodalCommunicationPattern(void) {
   }
 
 #ifdef DEBUG
-  if (debug && 1 == 0) {
-    printf("DEBUG(%d) : Element id requests received \n", world_rank);
-    for (int i = 0; i < world_size; ++i) {
-      printf("From %d\n", i);
-      for (int j = elemID_recvCountCum[i]; j < elemID_recvCountCum[i + 1];
-           ++j) {
-        printf("%d\t", elemID_recv[j]);
-      }
-      printf("\n");
+  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Element id requests received", world_rank);
+  for (int i = 0; i < world_size; ++i) {
+    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "From %d", i);
+    for (int j = elemID_recvCountCum[i]; j < elemID_recvCountCum[i + 1];
+          ++j) {
+      FILE_LOG_SINGLE("%d ", elemID_recv[j]);
     }
   }
 #endif //DEBUG
@@ -920,33 +911,26 @@ void createNodalCommunicationPattern(void) {
     nodePtrRecv[i + 1] += nodePtrRecv[i];
   }
 #ifdef DEBUG
-  if (debug && 1 == 0) {
-    for (int i = 0; i < world_size; ++i) {
-      if (ghostCountProcess[i]) {
-        printf("DEBUG(%d) : Recv from %d\t : ", world_rank, i);
-        for (int j = 0; j < ghostCountProcess[i]; ++j) {
-          printf("%d\t", nodePtrRecv[uniqueElementCountCum[i] + 1 + j]);
-        }
-        printf("\n");
+  for (int i = 0; i < world_size; ++i) {
+    if (ghostCountProcess[i]) {
+      FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Recv from %d : ", i);
+      for (int j = 0; j < ghostCountProcess[i]; ++j) {
+        FILE_LOG_SINGLE(DEBUGLOGIGNORE, "%d ", nodePtrRecv[uniqueElementCountCum[i] + 1 + j]);
       }
     }
   }
-  if (debug && 1 == 0) {
-    printf("\nDEBUG(%d) : Printing available ghost data\n", world_rank);
+  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Printing available ghost data");
     for (int i = 0; i < world_size; ++i) {
-      printf("\nElement ID from process %d\n", i);
+      FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Element ID from process %d", i);
       for (int j = ghostCountProcessCum[i], l = 0;
            j < (ghostCountProcessCum[i] + ghostCountProcess[i]); ++j, ++l) {
-        printf("%d\t : ", elemID_request[j]);
+        FILE_LOG_SINGLE(DEBUGLOGIGNORE, "%d  : ", elemID_request[j]);
         int loc = uniqueElementCountCum[i] + l;
         for (int k = nodePtrRecv[loc]; k < nodePtrRecv[loc + 1]; ++k) {
-          printf("%d\t", nodeListRecv[k]);
+          FILE_LOG_SINGLE(DEBUGLOGIGNORE, "%d ", nodeListRecv[k]);
         }
-        printf("\n");
       }
     }
-    printf("\n");
-  }
 #endif //DEBUG
   free(ghostCountProcessCum);
   free(elemID_request);
@@ -1011,17 +995,13 @@ void createNodalCommunicationPattern(void) {
   free(boundaryElement);
 
 #ifdef DEBUG
-  if (debug && 1 == 0) {
-    printf("DEBUG (%d) : Shared node list before unique \n", world_rank);
-    for (int i = 0; i < world_size; ++i) {
-      printf("On process %d\n", i);
-      for (int j = nodeListCountProcessCum[i];
-           j < nodeListCountProcessCum[i + 1]; ++j) {
-        printf("%d\t", localBoundaryNodeList[j]);
-      }
-      printf("\n");
+  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Shared node list before unique");
+  for (int i = 0; i < world_size; ++i) {
+    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "On process %d", i);
+    for (int j = nodeListCountProcessCum[i];
+          j < nodeListCountProcessCum[i + 1]; ++j) {
+      FILE_LOG_SINGLE(DEBUGLOGIGNORE, "%d", localBoundaryNodeList[j]);
     }
-    printf("\n");
   }
 #endif //DEBUG
   // Make all local node list unique
@@ -1038,31 +1018,23 @@ void createNodalCommunicationPattern(void) {
   free(nodeListCountProcess);
 
 #ifdef DEBUG
-  if (debug && 1 == 0) {
-    printf("DEBUG (%d) : Shared node list after unique \n", world_rank);
-    for (int i = 0; i < world_size; ++i) {
-      printf("On process %d\n", i);
-      int location = nodeListCountProcessCum[i];
-      int size = nodeListCurrentProcess[i];
-      for (int j = 0; j < size; ++j) {
-        printf("%d\t", localBoundaryNodeList[location + j]);
-      }
-      printf("\n");
+  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Shared node list after unique");
+  for (int i = 0; i < world_size; ++i) {
+    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "On process %d", i);
+    int location = nodeListCountProcessCum[i];
+    int size = nodeListCurrentProcess[i];
+    for (int j = 0; j < size; ++j) {
+      FILE_LOG_SINGLE(DEBUGLOGIGNORE, "%d", localBoundaryNodeList[location + j]);
     }
-    printf("\n");
   }
   // Make node list received from processes unique
-  if (debug && 1 == 0) {
-    printf("DEBUG (%d) : Received node list before unique \n", world_rank);
-    for (int i = 0; i < world_size; ++i) {
-      printf("On process %d\n", i);
-      for (int j = nodeID_countRecvCum[i]; j < nodeID_countRecvCum[i + 1];
-           ++j) {
-        printf("%d\t", nodeListRecv[j]);
-      }
-      printf("\n");
+  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Received node list before unique");
+  for (int i = 0; i < world_size; ++i) {
+    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "On process %d", i);
+    for (int j = nodeID_countRecvCum[i]; j < nodeID_countRecvCum[i + 1];
+          ++j) {
+      FILE_LOG_SINGLE(DEBUGLOGIGNORE, "%d", nodeListRecv[j]);
     }
-    printf("\n");
   }
 #endif //DEBUG
   // Make all local node list unique
@@ -1079,18 +1051,14 @@ void createNodalCommunicationPattern(void) {
   }
   free(nodeID_countRecv);
 #ifdef DEBUG
-  if (debug && 1 == 0) {
-    printf("DEBUG (%d) : Received node list after unique \n", world_rank);
-    for (int i = 0; i < world_size; ++i) {
-      printf("On process %d\n", i);
-      int location = nodeID_countRecvCum[i];
-      int size = nodeListNeighbourProcessCount[i];
-      for (int j = 0; j < size; ++j) {
-        printf("%d\t", nodeListRecv[location + j]);
-      }
-      printf("\n");
+  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Received node list after unique");
+  for (int i = 0; i < world_size; ++i) {
+    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "On process %d", i);
+    int location = nodeID_countRecvCum[i];
+    int size = nodeListNeighbourProcessCount[i];
+    for (int j = 0; j < size; ++j) {
+      FILE_LOG_SINGLE(DEBUGLOGIGNORE, "%d", nodeListRecv[location + j]);
     }
-    printf("\n");
   }
 #endif //DEBUG
 
@@ -1143,17 +1111,13 @@ void createNodalCommunicationPattern(void) {
   free(intersectionStorage);
 
 #ifdef DEBUG
-  if (debug && 1 == 0) {
-    printf("DEBUG(%d) : Node list to share \n", world_rank);
-    for (int i = 0; i < sendProcessCount; ++i) {
-      printf("With process %d\n", sendProcessID[i]);
-      for (int j = sendNeighbourCountCum[i]; j < sendNeighbourCountCum[i + 1];
-           ++j) {
-        printf("%d\t", sendNodeIndex[j]);
-      }
-      printf("\n");
+  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Node list to share");
+  for (int i = 0; i < sendProcessCount; ++i) {
+    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "With process %d", sendProcessID[i]);
+    for (int j = sendNeighbourCountCum[i]; j < sendNeighbourCountCum[i + 1];
+          ++j) {
+      FILE_LOG_SINGLE(DEBUGLOGIGNORE, "%d", sendNodeIndex[j]);
     }
-    printf("\n");
   }
 #endif //DEBUG
 

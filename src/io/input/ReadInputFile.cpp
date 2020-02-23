@@ -16,9 +16,6 @@ int *eptr;
 int *pid;
 int *global_eid;
 char **ElementType;
-// TODO : Move to init functions
-int world_rank;
-int world_size;
 int nPIDglobal = 0;
 int nPID = 0;
 

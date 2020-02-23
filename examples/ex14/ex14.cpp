@@ -24,7 +24,7 @@ void InitCustomPlot();
 void InitBoundaryCondition(const Json::Value& jsonInput);
 void updateBoundaryNeighbour(void);
 void ApplyAccBoundaryConditions();
-void WriteOutputFile(void);
+void WriteOutputFile(std::string);
 void CalculateInjuryCriterions(void);
 
 /* Global Variables/Parameters */
@@ -35,7 +35,6 @@ bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
-static const double radToDeg = 180.0 / (atan(1.0) * 4.0);
 int nPlotSteps = 50;
 
 /* Global variables used only in this file */
@@ -72,19 +71,22 @@ state_type yInt, ydotInt;
 double cm[3];
 
 int main(int argc, char **argv) {
-  InitFemTech();
-
+  // Initialize FemTech including logfile and MPI
+  std::string uid = InitFemTech(argc, argv);
   // Read the input file
   Json::Value simulationJson = getConfig(argv[1]);
-  std::string meshFile = simulationJson["mesh"].asString();
 
+  std::string meshFile = simulationJson["mesh"].asString();
   tMax = simulationJson["maximum-time"].asDouble();
-  FILE_LOG_MASTER(INFO, "Git commit : %s of branch %s", GIT_COMMIT_HASH,
+  FILE_LOG_MASTER(INFO, "Code with commit hash : %s of branch %s", GIT_COMMIT_HASH,
            GIT_BRANCH);
   FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
-
+  // Read Input Mesh file and equally partition elements among processes
   ReadInputFile(meshFile.c_str());
-  // Read material properties before mesh partition to estimate material type kernel compute intensity
+  size_t lastindex = meshFile.find_last_of(".");
+  std::string outputFileName = meshFile.substr(0, lastindex) + "_" + uid;
+  // Read material properties before mesh partition to estimate 
+  // material type kernel compute intensity
   ReadMaterials();
 
   PartitionMesh();
@@ -99,7 +101,7 @@ int main(int argc, char **argv) {
   /* Write inital, undeformed configuration*/
   Time = 0.0;
   int plot_counter = 0;
-  WriteVTU(meshFile.c_str(), plot_counter);
+  WriteVTU(outputFileName.c_str(), plot_counter);
   stepTime[plot_counter] = Time;
   CustomPlot();
 
@@ -125,7 +127,7 @@ int main(int argc, char **argv) {
   nSteps = (int)(tMax / dt);
   int nsteps_plot = (int)(nSteps / nPlotSteps);
 
-  FILE_LOG_MASTER(INFO, "inital dt = %3.3e, nSteps = %d, nsteps_plot = %d", dt, nSteps,
+  FILE_LOG_MASTER(INFO, "initial dt = %3.3e, nSteps = %d, nsteps_plot = %d", dt, nSteps,
            nsteps_plot);
 
   time_step_counter = time_step_counter + 1;
@@ -191,27 +193,25 @@ int main(int argc, char **argv) {
       CalculateInjuryCriterions();
 
       FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
-      WriteVTU(meshFile.c_str(), plot_counter);
+      WriteVTU(outputFileName.c_str(), plot_counter);
       if (plot_counter < MAXPLOTSTEPS) {
         stepTime[plot_counter] = Time;
-        WritePVD(meshFile.c_str(), plot_counter);
+        WritePVD(outputFileName.c_str(), plot_counter);
       }
       CustomPlot();
-
       FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Displacement Solution");
     }
     time_step_counter = time_step_counter + 1;
     dt = ExplicitTimeStepReduction * StableTimeStep();
-    // Barrier not a must
-    MPI_Barrier(MPI_COMM_WORLD);
 
     // Write out the last time step
     CustomPlot();
+    // Barrier not a must
+    MPI_Barrier(MPI_COMM_WORLD);
   } // end explcit while loop
   FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Final Displacement Solution");
 
-  WriteOutputFile();
-  FreeArrays();
+  WriteOutputFile(uid);
   // Free local boundary condition related arrays
   free1DArray(boundaryID);
   free1DArray(linAccXt);
@@ -332,6 +332,7 @@ void CustomPlot() {
 
 void InitBoundaryCondition(const Json::Value& jsonInput) {
   static const double gC = 9.81;
+  GetBodyCenterofMass(cm);
   // Read input JSON for acceleration values
   if (jsonInput["linear-acceleration"].isObject()) { // Use time traces from file
     // Read linear acceleration and angular acceleration time traces
@@ -449,7 +450,7 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
   int *rigidNodeID = (int *)malloc(rigidNodeCount * sizeof(int));
   if (rigidNodeID == NULL) {
     FILE_LOG_SINGLE(ERROR, "Unable to alocate rigidNodeID");
-    exit(0);
+    TerminateFemTech(12);
   }
   // Store all nodes to be made rigid
   int nodePtr = 0;
@@ -484,7 +485,7 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
   boundaryID = (int *)malloc(boundarySize * sizeof(int));
   if (boundaryID == NULL) {
     FILE_LOG_SINGLE(ERROR, "Unable to alocate boundaryID");
-    exit(0);
+    TerminateFemTech(12);
   }
 
   int idIndex = 0;
@@ -496,7 +497,6 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
     }
   }
   assert(idIndex == boundarySize);
-  GetBodyCenterofMass(cm);
   // Setting initial conditions
   for (int j = 0; j < nIntVar; ++j) {
     yInt[j] = 0.0;
@@ -621,7 +621,7 @@ void computeDerivatives(const state_type &y, state_type &ydot, const double t) {
   }
 }
 
-void WriteOutputFile(void) {
+void WriteOutputFile(std::string uid) {
   /* Calculate min and max strain location and send to master */
   // Copy max and min strain 
   if (parStructMin.rank == world_rank) {
@@ -726,7 +726,7 @@ void WriteOutputFile(void) {
     builder["commentStyle"] = "None";
     builder["indentation"] = "  ";
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-    std::ofstream oFile("output.json");
+    std::ofstream oFile("output_"+ uid + ".json");
     writer -> write(output, &oFile);
   }
 }

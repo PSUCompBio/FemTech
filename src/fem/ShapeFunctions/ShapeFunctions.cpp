@@ -193,30 +193,6 @@ void ShapeFunctions() {
 	  	the PK2 stress is symmetric */
 	pk2 = (double *)calloc(pk2_counter, sizeof(double));
 
-#ifdef DEBUG
-  if (debug && 1==0) {
-    for (int i = 0; i < nelements; i++) {
-      printf("e.%d: int. pts = %d, # shp functions = %d\n", i, GaussPoints[i], nShapeFunctions[i]);
-      for (int j = 0; j < GaussPoints[i]; j++) {
-        for (int k = 0; k < nShapeFunctions[i]; k++) {
-          printf(" %d", gptr[i] + j * GaussPoints[i] + k);
-        }
-        printf("\n");
-      }
-      printf("\n");
-      for (int j = 0; j < GaussPoints[i]; j++) {
-        for (int k = 0; k < nShapeFunctions[i]; k++) {
-          for (int l = 0; l < ndim; l++) {
-            printf("%d ", dsptr[i]  +  j*GaussPoints[i]*ndim  +  k*ndim + l);
-          }
-          printf("\n");
-        }
-        printf("\n");
-      }
-    }
-  }
-#endif //DEBUG
-
   // Depending on element type call correct shape function library
   for (int i = 0; i < nelements; i++) {
     double *Chi = (double*)malloc(GaussPoints[i] * ndim * sizeof(double));
@@ -240,27 +216,6 @@ void ShapeFunctions() {
     }
     free(Chi);
   }// loop on nelements
-
-  // for debugging
-#ifdef DEBUG
-  if (debug && 1==0) {
-    for (int i = 0; i < nelements; i++) {
-      printf("shp array e.%d with %d Gauss points, each with %d shp functions \n", i, GaussPoints[i], nShapeFunctions[i]);
-      for (int j = 0; j < GaussPoints[i]; j++) {
-        printf("int.%d:\n", j);
-        for (int k = 0; k < nShapeFunctions[i]; k++) {
-          //printf("%8.5f ", shp[gptr[i] + j * GaussPoints[i] + k]);
-          printf(" shp: %4.4f dshp: %8.4f %8.4f %8.4f\n",
-              shp[gptr[i] + j * GaussPoints[i] + k],
-              dshp[dsptr[i] + j * GaussPoints[i] * ndim + k * ndim + 0],
-              dshp[dsptr[i] + j * GaussPoints[i] * ndim + k * ndim + 1],
-              dshp[dsptr[i] + j * GaussPoints[i] * ndim + k * ndim + 2]);
-        }
-        printf("\n");
-      }
-    }
-  }
-#endif //DEBUG
 
   // Allocate arrays after shape functions are formed
   int cSize = 6;

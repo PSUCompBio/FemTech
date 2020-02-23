@@ -115,6 +115,7 @@ int unique(int *arr, int n);
 int coordinateFromGlobalID(int *array, int nodeID, int size, double* coord);
 
 /*Init and finalize femtech */
-void InitFemTech();
+std::string InitFemTech(int argc, char **argv);
 void FinalizeFemTech();
+void TerminateFemTech(int errorCode);
 #endif

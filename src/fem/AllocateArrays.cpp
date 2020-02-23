@@ -125,7 +125,7 @@ void AllocateArrays() {
 
     stepTime = (double*)malloc((MAXPLOTSTEPS)*sizeof(double));
     if (!stepTime) {
-      printf("ERROR : Error in allocating stepTime array\n");
+      FILE_LOG_SINGLE(ERROR, "Error in allocating stepTime array");
       exit(12);
     }
     // Allocations for material temporary computation

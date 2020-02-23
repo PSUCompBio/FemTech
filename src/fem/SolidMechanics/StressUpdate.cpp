@@ -22,7 +22,7 @@ void StressUpdate(int e, int gp){
     case 5 : // HGO with isotropic fiber distribution and viscoelasticity
              HGOIsotropicViscoelastic(e, gp);
              break;
-    default : printf("Unknown material type\n");
+    default : FILE_LOG_SINGLE(ERROR, "Unknown material type");
               exit(EXIT_FAILURE);
   }
   return;

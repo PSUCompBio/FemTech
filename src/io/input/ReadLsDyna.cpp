@@ -256,9 +256,6 @@ bool ReadLsDyna(const char *FileName) {
         }
     }
     assert(pi == nelements);
-    // for (int k = 0; k < 10; ++k) {
-    //   printf("Rank : %d, element global id : %d of From : %d and To : %d\n", world_rank, global_eid[k], From, To);
-    // }
 
     // Checking if we can go to nodes section of mesh file
     if (fseek(File, NodesSectionPos, SEEK_SET) != 0) {
