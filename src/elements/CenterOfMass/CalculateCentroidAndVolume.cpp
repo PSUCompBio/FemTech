@@ -16,8 +16,8 @@ double CalculateCentroidAndVolume(int e, double *cm) {
       }
       volume = volumeTetrahedron(coord);
     } else {
-      printf("ERROR : Unknown Element Type Encountered\n");
-      exit(0);
+      FILE_LOG_SINGLE(ERROR, "Unknown Element Type Encountered");
+      TerminateFemTech(3);
     }
   }
   return volume;

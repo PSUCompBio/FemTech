@@ -1,7 +1,6 @@
 #include "FemTech.h"
 
 #include <assert.h>
-#include <stdlib.h> // For exit on failure
 
 /* Global Variables */
 int nparts = 0;
@@ -16,8 +15,6 @@ int *eptr;
 int *pid;
 int *global_eid;
 char **ElementType;
-int world_rank;
-int world_size;
 int nPIDglobal = 0;
 int nPID = 0;
 
@@ -29,16 +26,14 @@ bool ReadAbaqus(const char *FileName);
 void ReadInputFile(const char *FileName) {
   // Checking MPI variables validity
   if (world_size < 1 || world_rank < 0 || world_rank >= world_size) {
-    printf("\nERROR( proc %d ): 'world_size' and/or 'world_rank' variable is "
-           "not valid.\n",
-           world_rank);
-    exit(EXIT_FAILURE);
+    FILE_LOG_SINGLE(ERROR, "'World_size' and/or 'world_rank' variable is not valid");
+    TerminateFemTech(3);
   }
 
   // Checking file name validity
   if (FileName == NULL || strlen(FileName) == 0) {
-    printf("\nERROR( proc %d ): Input file name is empty.\n", world_rank);
-    exit(EXIT_FAILURE);
+    FILE_LOG_SINGLE(ERROR, "Input file name is empty");
+    TerminateFemTech(3);
   }
 
   // Checking file extension and calling corresponding reader
@@ -55,7 +50,7 @@ void ReadInputFile(const char *FileName) {
   } else if (StrCmpCI(Ext, ".inp") == 0) {
     returnValue = ReadAbaqus(FileName);
   } else {
-    printf("\nERROR( proc %d ): Input file type is unknown.\n", world_rank);
+    FILE_LOG_SINGLE(ERROR, "Input file type is unknown");
   }
   if (returnValue) {
     // Change pid from 1 based number to zero based numbering
@@ -70,20 +65,15 @@ void ReadInputFile(const char *FileName) {
                   MPI_COMM_WORLD);
     nPIDglobal = globalPIDmax;
     nDOF = nNodes * ndim;
-#ifdef DEBUG
-    printf("DEBUG : Number of local pid : %d, global : %d \n", nPID,
-           nPIDglobal);
-    for (int i = 0; i < nPID; ++i) {
-      printf("DEBUG : %d\t", sortedPID[i]);
-    }
-    printf("\n");
-#endif // DEBUG
+    FILE_LOGArrayInt(DEBUGLOGIGNORE, sortedPID, nPID, \
+        "Number of local pid : %d, global : %d", nPID, nPIDglobal);
+
     free(sortedPID);
     assert(nPID <= nPIDglobal);
     assert(nPIDglobal > 0);
   } else {
-    printf("\nERROR (proc %d): Input mesh file read failed.\n", world_rank);
-    exit(EXIT_FAILURE);
+    FILE_LOG_SINGLE(ERROR, "Input mesh file read failed");
+    TerminateFemTech(3);
   }
 }
 //-------------------------------------------------------------------------------------------

@@ -1,5 +1,4 @@
 #include "FemTech.h"
-#include "blas.h"
 
 /** For all elements -- this function calculates the minimum critical timestep */
 double StableTimeStep() {
@@ -30,14 +29,13 @@ double StableTimeStep() {
     //   elemSkipped = elemSkipped + 1;
     // }
 	}
-  // printf("INFO(%d): Minimum dtElem from element %d\n", world_rank, minElementID);
-  // printf("INFO(%d): Elements skipped %d\n", world_rank, elemSkipped);
+  // FILE_LOG(DEBUGLOG, "Minimum dt from element %d", minElementID);
+  // FILE_LOG(DEBUGLOG, "Elements skipped %d", elemSkipped);
   MPI_Allreduce(MPI_IN_PLACE, &dtMin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 
   if(dtMin < FailureTimeStep){
-		printf("Simulation Failed - Timestep too small.\n");
-		printf("Timestep is: %3.3e\n", dtMin);
+		FILE_LOG_MASTER(ERROR, "Timestep too small, dt = %15.9e", dtMin);
+    TerminateFemTech(19);
 	}
-
   return dtMin;
 }

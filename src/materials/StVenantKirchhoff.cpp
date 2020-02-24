@@ -5,27 +5,6 @@
 // Evaluates the PK2 stress tensor
 
 void StVenantKirchhoff(int e, int gp) {
-#ifdef DEBUG
-  if (debug && 1 == 0) {
-    printf("shp array e.%d with %d Gauss points, each with %d shp functions \n",
-           e, GaussPoints[e], nShapeFunctions[e]);
-    // printf("int.%d:\n", j);
-    if (1 == 0) {
-      for (int k = 0; k < nShapeFunctions[e]; k++) {
-        // printf("%8.5f ", shp[gptr[e] + j * GaussPoints[e] + k]);
-        printf(" shp: %4.4f dshp: %8.4f %8.4f %8.4f\n",
-               shp[gptr[e] + gp * GaussPoints[e] + k],
-               dshp[dsptr[e] + gp * GaussPoints[e] * ndim + k * ndim + 0],
-               dshp[dsptr[e] + gp * GaussPoints[e] * ndim + k * ndim + 1],
-               dshp[dsptr[e] + gp * GaussPoints[e] * ndim + k * ndim + 2]);
-      }
-    }
-  }
-#endif //DEBUG
-
-  // double J = 1;
-  // printf("element %d, gauss point %d\n",e,gp);
-
   if (ndim == 2) {
     // 6 values saved per gauss point for 3d
     for (int i = 0; i < 3; i++) {
@@ -73,50 +52,12 @@ void StVenantKirchhoff(int e, int gp) {
     pk2[pk2ptr[e] + 6 * gp + 4] = S[6];
     // in voigt notation, sigma12
     pk2[pk2ptr[e] + 6 * gp + 5] = S[3];
-#ifdef DEBUG
-		if(debug && 1==0){
-	    printf("---- Calculate Stress ---\n");
-	    printf("Element : %d, GP : %d\n", e, gp);
-	    for (int k = 0; k < 6; ++k) {
-	      int index_1 = pk2ptr[e]+6*gp+k;
-	      printf("Stress value : %12.4E\n", pk2[index_1]);
-	    }
-	    printf("---- ----\n");
-		}
-#endif //DEBUG
 
-#ifdef DEBUG
-    if (debug && 1 == 0) {
-      printf("Printing F Matrix\n");
-      for (int i = 0; i < ndim; ++i) {
-        for (int j = 0; j < ndim; ++j) {
-          printf("%12.6f\t", F_element_gp[j*ndim+i]);
-        }
-        printf("\n");
-      }
-      printf("\n");
-      printf("Printing E Matrix\n");
-      for (int i = 0; i < ndim; ++i) {
-        for (int j = 0; j < ndim; ++j) {
-          printf("%12.6f\t", E[j*ndim+i]);
-        }
-        printf("\n");
-      }
-      printf("\n");
-      printf("Printing S Matrix\n");
-      for (int i = 0; i < ndim; ++i) {
-        for (int j = 0; j < ndim; ++j) {
-          printf("%12.6f\t", S[j*ndim+i]);
-        }
-        printf("\n");
-      }
-      printf("\n");
-      for (int i = 0; i < 6; i++) {
-        int indexD = pk2ptr[e] + 6 * gp + i;
-        printf("cauchy[%d] = %3.3e\n", indexD, pk2[indexD]);
-      }
-    }
-#endif //DEBUG
+    FILE_LOGArraySingle(DEBUGLOGIGNORE, &(pk2[pk2ptr[e]+6*gp]), 6, \
+        "Element : %d, GP : %d Stress values", e, gp);
+    FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, F_element_gp, ndim, ndim, "Printing F Matrix");
+    FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, E, ndim, ndim, "Printing E Matrix");
+    FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, S, ndim, ndim, "Printing S Matrix");
   } // if ndim == 3
   return;
 }

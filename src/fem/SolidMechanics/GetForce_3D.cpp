@@ -24,7 +24,7 @@ void GetForce_3D() {
 	    if(strcmp(ElementType[i], "T3D2") == 0){
 				TrussStressForceUpdate(i,j,fintLocal);
 				//CalculateDeformationGradient(i, j);
-				//exit(0);
+        // TerminateFemTech(1);
 			}else{
 	      // calculate F^n
 				CalculateDeformationGradient(i, j);
@@ -97,12 +97,6 @@ void updateInternalForceNeighbour(void) {
   }
   free(requestListSend);
   free(requestListRecv);
-#ifdef DEBUG
-  if (debug && 1 == 0) {
-    printf("Lumped Internal Force After Exchange\n");
-    for (int j = 0; j < nDOF; ++j) {
-      printf("%d  %12.6f\n", j, fi[j]);
-    }
-  }
-#endif //DEBUG
+
+  FILE_LOGArray(DEBUGLOGIGNORE, fi, nDOF, "Lumped Internal Force After Exchange");
 }

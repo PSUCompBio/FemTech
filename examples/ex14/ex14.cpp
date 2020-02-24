@@ -1,6 +1,4 @@
 #include "FemTech.h"
-#include "blas.h"
-#include "gitbranch.h"
 #include "jsonfuncs.h"
 #include "utilities.h"
 
@@ -24,7 +22,7 @@ void InitCustomPlot();
 void InitBoundaryCondition(const Json::Value& jsonInput);
 void updateBoundaryNeighbour(void);
 void ApplyAccBoundaryConditions();
-void WriteOutputFile(void);
+void WriteOutputFile(std::string);
 void CalculateInjuryCriterions(void);
 
 /* Global Variables/Parameters */
@@ -35,7 +33,6 @@ bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
-static const double radToDeg = 180.0 / (atan(1.0) * 4.0);
 int nPlotSteps = 50;
 
 /* Global variables used only in this file */
@@ -72,26 +69,20 @@ state_type yInt, ydotInt;
 double cm[3];
 
 int main(int argc, char **argv) {
-  // Initialize the MPI environment
-  MPI_Init(NULL, NULL);
-  // Get the number of processes
-  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  // Get the rank of the process
-  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
+  // Initialize FemTech including logfile and MPI
+  std::string uid = InitFemTech(argc, argv);
   // Read the input file
   Json::Value simulationJson = getConfig(argv[1]);
+
   std::string meshFile = simulationJson["mesh"].asString();
-
   tMax = simulationJson["maximum-time"].asDouble();
-  if (world_rank == 0) {
-    printf("INFO : Git commit : %s of branch %s\n", GIT_COMMIT_HASH,
-           GIT_BRANCH);
-    printf("INFO : Reading Mesh File : %s\n", meshFile.c_str());
-  }
-
+  FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
+  // Read Input Mesh file and equally partition elements among processes
   ReadInputFile(meshFile.c_str());
-  // Read material properties before mesh partition to estimate material type kernel compute intensity
+  size_t lastindex = meshFile.find_last_of(".");
+  std::string outputFileName = meshFile.substr(0, lastindex) + "_" + uid;
+  // Read material properties before mesh partition to estimate 
+  // material type kernel compute intensity
   ReadMaterials();
 
   PartitionMesh();
@@ -106,7 +97,7 @@ int main(int argc, char **argv) {
   /* Write inital, undeformed configuration*/
   Time = 0.0;
   int plot_counter = 0;
-  WriteVTU(meshFile.c_str(), plot_counter);
+  WriteVTU(outputFileName.c_str(), plot_counter);
   stepTime[plot_counter] = Time;
   CustomPlot();
 
@@ -132,19 +123,14 @@ int main(int argc, char **argv) {
   nSteps = (int)(tMax / dt);
   int nsteps_plot = (int)(nSteps / nPlotSteps);
 
-  if (world_rank == 0) {
-    printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
+  FILE_LOG_MASTER(INFO, "initial dt = %3.3e, nSteps = %d, nsteps_plot = %d", dt, nSteps,
            nsteps_plot);
-  }
 
   time_step_counter = time_step_counter + 1;
   double t_n = 0.0;
 
-  if (world_rank == 0) {
-    printf(
-        "------------------------------- Loop ----------------------------\n");
-    printf("Time : %f, tmax : %f\n", Time, tMax);
-  }
+  FILE_LOG_MASTER(INFO, "------------------------------- Loop ----------------------------");
+  FILE_LOG_MASTER(INFO, "Time : %15.6e, tmax : %15.6e", Time, tMax);
 
   /* Step-4: Time loop starts....*/
   while (Time < tMax) {
@@ -198,55 +184,30 @@ int main(int argc, char **argv) {
     CheckEnergy(Time, writeFlag);
 
     if (writeFlag == 0) {
-      if (world_rank == 0) {
-        printf("Time : %15.6e, dt=%15.6e, tmax : %15.6e\n", Time, dt, tMax);
-      }
+      FILE_LOG_MASTER(INFO, "Time : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt, tMax);
       plot_counter = plot_counter + 1;
       CalculateInjuryCriterions();
 
-      printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter,
-             world_rank);
-      WriteVTU(meshFile.c_str(), plot_counter);
+      FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
+      WriteVTU(outputFileName.c_str(), plot_counter);
       if (plot_counter < MAXPLOTSTEPS) {
         stepTime[plot_counter] = Time;
-        WritePVD(meshFile.c_str(), plot_counter);
+        WritePVD(outputFileName.c_str(), plot_counter);
       }
       CustomPlot();
-
-#ifdef DEBUG
-      if (debug) {
-        printf("DEBUG : Printing Displacement Solution\n");
-        for (int i = 0; i < nNodes; ++i) {
-          for (int j = 0; j < ndim; ++j) {
-            printf("%15.6E", displacements[i * ndim + j]);
-          }
-          printf("\n");
-        }
-      }
-#endif // DEBUG
+      FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Displacement Solution");
     }
     time_step_counter = time_step_counter + 1;
     dt = ExplicitTimeStepReduction * StableTimeStep();
-    // Barrier not a must
-    MPI_Barrier(MPI_COMM_WORLD);
 
     // Write out the last time step
     CustomPlot();
+    // Barrier not a must
+    MPI_Barrier(MPI_COMM_WORLD);
   } // end explcit while loop
-#ifdef DEBUG
-  if (debug) {
-    printf("DEBUG : Printing Displacement Solution\n");
-    for (int i = 0; i < nNodes; ++i) {
-      for (int j = 0; j < ndim; ++j) {
-        printf("%15.6E", displacements[i * ndim + j]);
-      }
-      printf("\n");
-    }
-  }
-#endif // DEBUG
+  FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Final Displacement Solution");
 
-  WriteOutputFile();
-  FreeArrays();
+  WriteOutputFile(uid);
   // Free local boundary condition related arrays
   free1DArray(boundaryID);
   free1DArray(linAccXt);
@@ -261,7 +222,7 @@ int main(int argc, char **argv) {
   free1DArray(angAccXv);
   free1DArray(angAccYv);
   free1DArray(angAccZv);
-  MPI_Finalize();
+  FinalizeFemTech();
   return 0;
 }
 
@@ -335,8 +296,8 @@ void InitCustomPlot() {
       rankForCustomPlot = false;
       return;
     }
-    printf("INFO(%d) : nodeID for plot : %d (%15.9e, %15.9e, %15.9e)\n",
-          world_rank, nodeIDtoPlot, coordinates[ndim * nodeIDtoPlot + x],
+    FILE_LOG_SINGLE(INFO, "nodeID for plot : %d (%15.9e, %15.9e, %15.9e)",
+          nodeIDtoPlot, coordinates[ndim * nodeIDtoPlot + x],
           coordinates[ndim * nodeIDtoPlot + y],
           coordinates[ndim * nodeIDtoPlot + z]);
     datFile = fopen("plot.dat", "w");
@@ -367,6 +328,7 @@ void CustomPlot() {
 
 void InitBoundaryCondition(const Json::Value& jsonInput) {
   static const double gC = 9.81;
+  GetBodyCenterofMass(cm);
   // Read input JSON for acceleration values
   if (jsonInput["linear-acceleration"].isObject()) { // Use time traces from file
     // Read linear acceleration and angular acceleration time traces
@@ -483,8 +445,8 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
   // Allocate node storage
   int *rigidNodeID = (int *)malloc(rigidNodeCount * sizeof(int));
   if (rigidNodeID == NULL) {
-    printf("ERROR(%d) : Unable to allocate rigidNodeID\n", world_rank);
-    exit(0);
+    FILE_LOG_SINGLE(ERROR, "Unable to alocate rigidNodeID");
+    TerminateFemTech(12);
   }
   // Store all nodes to be made rigid
   int nodePtr = 0;
@@ -515,11 +477,11 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
     }
   }
 
-  printf("INFO(%d): %d nodes given rigid motion\n", world_rank, boundarySize);
+  FILE_LOG(INFO, "%d nodes given rigid motion", boundarySize);
   boundaryID = (int *)malloc(boundarySize * sizeof(int));
   if (boundaryID == NULL) {
-    printf("ERROR(%d) : Unable to alocate boundaryID\n", world_rank);
-    exit(0);
+    FILE_LOG_SINGLE(ERROR, "Unable to alocate boundaryID");
+    TerminateFemTech(12);
   }
 
   int idIndex = 0;
@@ -531,7 +493,6 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
     }
   }
   assert(idIndex == boundarySize);
-  GetBodyCenterofMass(cm);
   // Setting initial conditions
   for (int j = 0; j < nIntVar; ++j) {
     yInt[j] = 0.0;
@@ -656,7 +617,7 @@ void computeDerivatives(const state_type &y, state_type &ydot, const double t) {
   }
 }
 
-void WriteOutputFile(void) {
+void WriteOutputFile(std::string uid) {
   /* Calculate min and max strain location and send to master */
   // Copy max and min strain 
   if (parStructMin.rank == world_rank) {
@@ -761,7 +722,7 @@ void WriteOutputFile(void) {
     builder["commentStyle"] = "None";
     builder["indentation"] = "  ";
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-    std::ofstream oFile("output.json");
+    std::ofstream oFile("output_"+ uid + ".json");
     writer -> write(output, &oFile);
   }
 }

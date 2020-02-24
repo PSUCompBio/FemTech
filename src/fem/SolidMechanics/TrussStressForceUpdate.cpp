@@ -25,24 +25,24 @@ void TrussStressForceUpdate(int e, int gp, double *force){
 	double le = sqrt( pow((x2-x1),  2.0) +  pow((y2-y1), 2.0) + pow((z2-z1),  2.0) );
 	// axial stretch
 	double lambda = le/le0;
-	printf("coords = %3.3e\n", coordinates[ndim*connectivity[index+node1]+x]);
-	printf("disp = %3.3e\n", displacements[ndim*connectivity[index+node1]+x]);
-	printf("x2 = %3.3f\n",x2 );
-printf("x1 = %3.3f\n",x1 );
-	printf("(x2-x1)^2 = %3.3f\n",pow((x2-x1),  2.0) );
-	printf("(y2-y1)^2 = %3.3f\n",pow((y2-y1), 2.0));
-printf("(z2-z1)^2 = %3.3f\n",pow((z2-z1), 2.0));
-printf("le0 = %3.3f\n",le0);
-printf("le = %3.3f\n",le);
-	printf("lambda = %3.3f\n",lambda);
+	FILE_LOG_SINGLE(DEBUGLOG, "coords = %3.3e\n", coordinates[ndim*connectivity[index+node1]+x]);
+	FILE_LOG_SINGLE(DEBUGLOG, "disp = %3.3e\n", displacements[ndim*connectivity[index+node1]+x]);
+	FILE_LOG_SINGLE(DEBUGLOG, "x2 = %3.3f\n",x2 );
+  FILE_LOG_SINGLE(DEBUGLOG, "x1 = %3.3f\n",x1 );
+	FILE_LOG_SINGLE(DEBUGLOG, "(x2-x1)^2 = %3.3f\n",pow((x2-x1),  2.0) );
+	FILE_LOG_SINGLE(DEBUGLOG, "(y2-y1)^2 = %3.3f\n",pow((y2-y1), 2.0));
+  FILE_LOG_SINGLE(DEBUGLOG, "(z2-z1)^2 = %3.3f\n",pow((z2-z1), 2.0));
+  FILE_LOG_SINGLE(DEBUGLOG, "le0 = %3.3f\n",le0);
+  FILE_LOG_SINGLE(DEBUGLOG, "le = %3.3f\n",le);
+	FILE_LOG_SINGLE(DEBUGLOG, "lambda = %3.3f\n",lambda);
 	// direction cosines
 	double l = (x2-x1)/le;
 	double m = (y2-y1)/le;
 	double n = (z2-z1)/le;
 
-	printf("l = %3.3f\n",l);
-	printf("m = %3.3f\n",m);
-		printf("n = %3.3f\n",n);
+	FILE_LOG_SINGLE(DEBUGLOG, "l = %3.3f\n",l);
+	FILE_LOG_SINGLE(DEBUGLOG, "m = %3.3f\n",m);
+  FILE_LOG_SINGLE(DEBUGLOG, "n = %3.3f\n",n);
 	//create transformation matrix. following logan, section 3.7, page 93, equation 3.7.6
 	double T[6];
 	memset(T, 0.0, sizeof(T));
@@ -70,16 +70,15 @@ printf("le = %3.3f\n",le);
 		sum = sum + T[i] * d[i];
 	}
 
-
   //green Lagrange strain
   double gls=0.5*(pow(lambda,2.0)-1.0);
 	double area=1.0;
 	double youngs = 1.0;
   double cauchystress = youngs * gls;
 	double truss_axial_force  = cauchystress*area;
-	printf("gls = %3.3f\n",gls);
+	FILE_LOG_SINGLE(DEBUGLOG, "gls = %3.3f\n",gls);
 
-	printf("s = %3.3f, f = %3.3f\n",cauchystress, truss_axial_force);
+	FILE_LOG_SINGLE(DEBUGLOG, "s = %3.3f, f = %3.3f\n",cauchystress, truss_axial_force);
 
 	// 6 values saved per gauss point for 3d
 	// in voigt notation, sigma11
@@ -101,8 +100,6 @@ printf("le = %3.3f\n",le);
 	force[3] = 0.0;
 	force[4] = 0.0;
 	force[5] = 0.0;
-
-
 	//
   // // Calculate Tranformation
 	// double dir_truss_x[3];
@@ -312,18 +309,5 @@ printf("le = %3.3f\n",le);
 	// 		sum = 0;
 	// 	}
 	// }
-
-#ifdef DEBUG
-	if(debug && 1==0){
-		printf("--------F for gauss point %d --------\n",gp);
-		for(int i=0;i<ndim;i++){
-			for(int j=0;j<ndim;j++){
-					int indexD = fptr[e] + ndim*ndim*gp + ndim*j+i;
-					printf("%3.3e   ",F[indexD]);
-			} //loop on j
-			printf("\n");
-		} //loop on i
-	} // if debug
-#endif //DEBUG
 	return ;
 }

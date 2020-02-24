@@ -17,9 +17,8 @@ void WriteVTU(const char* FileName, int step) {
 	if (strlen(FileName) < ARR_SIZE) {
 	    strcpy(outfile, FileName);
 	}
-	strip_ext(outfile);
+	// strip_ext(outfile);
 
-	//printf("\nwrite_VTU partition: %d\n", world_rank);
 	sprintf(s, ".vtu.%04d.%04d",step,world_rank);
   sprintf(paths,"./results/vtu/");
 	sprintf(paths2,"./results/");
@@ -30,7 +29,6 @@ void WriteVTU(const char* FileName, int step) {
   strcat(paths,s);
 
 
-	//printf("\nnew name: %s\n",outfile);
 	fp=fopen(paths,"w");
 
 	fprintf(fp,"<?xml version=\"1.0\"?>\n");
@@ -197,7 +195,6 @@ void WriteVTU(const char* FileName, int step) {
 
 	// Write the pvtu file if you are rank zero and code in parallel
   if (world_rank == 0) {
-	  //printf("\nRank 0 Writing PVTU file\n");
 		sprintf(s, ".%.04d.pvtu",step);
 		strcat(paths2, s);
 		fp=fopen(paths2, "w");

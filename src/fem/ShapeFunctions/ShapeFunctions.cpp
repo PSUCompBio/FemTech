@@ -167,16 +167,14 @@ void ShapeFunctions() {
 
   // for debugging purposes
 #ifdef DEBUG
-  if (debug && 1==0) {
-    for (int i = 0; i < nelements; i++) {
-      printf("(e.%d) - eptr:[%d->%d] - gptr:[%d->%d] -  dsptr:[%d->%d] - fptr:[%d->%d] - pk2ptr:[%d->%d] \n",
- 				i, eptr[i], eptr[i + 1], gptr[i], gptr[i + 1], dsptr[i], dsptr[i + 1],
-				fptr[i],fptr[i + 1],pk2ptr[i],pk2ptr[i+1]);
-    }
-    printf("size of shp array = %d \n", counter);
-    printf("size of derivatives of shp functions array, dshp = %d \n", dshp_counter);
-		printf("size of deformation gradient array, F = %d \n", F_counter);
+  for (int i = 0; i < nelements; i++) {
+    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "(e.%d) - eptr:[%d->%d] - gptr:[%d->%d] -  dsptr:[%d->%d] - fptr:[%d->%d] - pk2ptr:[%d->%d]",
+      i, eptr[i], eptr[i + 1], gptr[i], gptr[i + 1], dsptr[i], dsptr[i + 1],
+      fptr[i],fptr[i + 1],pk2ptr[i],pk2ptr[i+1]);
   }
+  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "size of shp array = %d", counter);
+  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "size of derivatives of shp functions array, dshp = %d", dshp_counter);
+  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "size of deformation gradient array, F = %d", F_counter);
 #endif //DEBUG
 
   /*set size of shp array  - this holds shp functions for all elements */
@@ -194,31 +192,6 @@ void ShapeFunctions() {
 	/*  size of PK2 stress is 6 values for each gauss point
 	  	the PK2 stress is symmetric */
 	pk2 = (double *)calloc(pk2_counter, sizeof(double));
-
-  /* for debugging */
-#ifdef DEBUG
-  if (debug && 1==0) {
-    for (int i = 0; i < nelements; i++) {
-      printf("e.%d: int. pts = %d, # shp functions = %d\n", i, GaussPoints[i], nShapeFunctions[i]);
-      for (int j = 0; j < GaussPoints[i]; j++) {
-        for (int k = 0; k < nShapeFunctions[i]; k++) {
-          printf(" %d", gptr[i] + j * GaussPoints[i] + k);
-        }
-        printf("\n");
-      }
-      printf("\n");
-      for (int j = 0; j < GaussPoints[i]; j++) {
-        for (int k = 0; k < nShapeFunctions[i]; k++) {
-          for (int l = 0; l < ndim; l++) {
-            printf("%d ", dsptr[i]  +  j*GaussPoints[i]*ndim  +  k*ndim + l);
-          }
-          printf("\n");
-        }
-        printf("\n");
-      }
-    }
-  }
-#endif //DEBUG
 
   // Depending on element type call correct shape function library
   for (int i = 0; i < nelements; i++) {
@@ -243,27 +216,6 @@ void ShapeFunctions() {
     }
     free(Chi);
   }// loop on nelements
-
-  // for debugging
-#ifdef DEBUG
-  if (debug && 1==0) {
-    for (int i = 0; i < nelements; i++) {
-      printf("shp array e.%d with %d Gauss points, each with %d shp functions \n", i, GaussPoints[i], nShapeFunctions[i]);
-      for (int j = 0; j < GaussPoints[i]; j++) {
-        printf("int.%d:\n", j);
-        for (int k = 0; k < nShapeFunctions[i]; k++) {
-          //printf("%8.5f ", shp[gptr[i] + j * GaussPoints[i] + k]);
-          printf(" shp: %4.4f dshp: %8.4f %8.4f %8.4f\n",
-              shp[gptr[i] + j * GaussPoints[i] + k],
-              dshp[dsptr[i] + j * GaussPoints[i] * ndim + k * ndim + 0],
-              dshp[dsptr[i] + j * GaussPoints[i] * ndim + k * ndim + 1],
-              dshp[dsptr[i] + j * GaussPoints[i] * ndim + k * ndim + 2]);
-        }
-        printf("\n");
-      }
-    }
-  }
-#endif //DEBUG
 
   // Allocate arrays after shape functions are formed
   int cSize = 6;
