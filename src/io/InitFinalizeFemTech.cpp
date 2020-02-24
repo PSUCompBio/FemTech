@@ -17,8 +17,8 @@ std::string InitFemTech(int argc, char **argv) {
   // Get the rank of the process
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
   if (argc < 1) {
-    fprintf(stdout, "ERROR(%d): Please provide an input JSON file\n", world_rank);
-    fprintf(stdout, "ERROR(%d): Usage %s inputFile.json\n", world_rank, argv[0]);
+    fprintf(stdout, "ERROR(%d): Please provide an input file\n", world_rank);
+    fprintf(stdout, "ERROR(%d): Usage %s inputFile\n", world_rank, argv[0]);
     MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
   }
   // create simulation unique id from time

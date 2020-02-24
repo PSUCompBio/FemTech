@@ -1,106 +1,88 @@
 #include "FemTech.h"
-#include "blas.h"
 
 /*Delare Functions*/
 void ApplyBoundaryConditions(double dMax, double tMax);
 
-/* Global Variables/Parameters  - could be moved to parameters.h file?  */
 double Time, dt;
 int nSteps;
+double ExplicitTimeStepReduction = 0.8;
+double FailureTimeStep = 1e-11;
+
+int nPlotSteps = 1;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
-double ExplicitTimeStepReduction = 0.8;
-double FailureTimeStep = 1e-11;
-int nPlotSteps = 1;
 
 int main(int argc, char **argv) {
-
-  // Initialize the MPI environment
-  MPI_Init(NULL, NULL);
-  // Get the number of processes
-  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  // Get the rank of the process
-  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+  InitFemTech(argc, argv);
 
   ReadInputFile(argv[1]);
-	ReadMaterials();
+  ReadMaterials();
 
   PartitionMesh();
 
   AllocateArrays();
 
+  std::string meshFile(argv[1]);
+  size_t lastindex = meshFile.find_last_of(".");
+  std::string outputFileName = meshFile.substr(0, lastindex);
   /* Write inital, undeformed configuration*/
   Time = 0.0;
   int plot_counter = 0;
-  WriteVTU(argv[1], plot_counter);
-  printf("going to exit - rk\n");
-  MPI_Finalize();
-  exit(0);
-  
+  WriteVTU(outputFileName.c_str(), plot_counter);
+  stepTime[plot_counter] = Time;
+
   // Dynamic Explcit solution using....
   double tMax = 1; // max simulation time in seconds
   double dMax = 0.5;  // max displacment in meters
   int time_step_counter = 0;
-  /** Central Difference Method - Beta and Gamma */
-  // double beta = 0;
-  // double gamma = 0.5;
 
   ShapeFunctions();
-  CreateLinearElasticityCMatrix();
-  
   /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
-  Assembly((char *)"mass"); // Add Direct-lumped as an option
-  LumpMassMatrix();
+  AssembleLumpedMass();
 
   /* obtain dt, according to Belytschko dt is calculated at end of getForce */
   dt = ExplicitTimeStepReduction * StableTimeStep();
   /* Step-2: getforce step from Belytschko */
   GetForce(); // Calculating the force term.
-  tMax = 2*dt;
 
   /* Step-3: Calculate accelerations */
   CalculateAccelerations();
 
   nSteps = (int)(tMax / dt);
   int nsteps_plot = (int)(nSteps / nPlotSteps);
-  printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
-          nsteps_plot);
+  FILE_LOG_MASTER(INFO, "initial dt = %3.3e, nSteps = %d, nsteps_plot = %d", dt, nSteps,
+           nsteps_plot);
 
   // Save old displacements
-  // memcpy(displacements_prev, displacements, nDOF*sizeof(double));
+  memcpy(displacements_prev, displacements, nDOF * sizeof(double));
 
   /* Step-4: Time loop starts....*/
   time_step_counter = time_step_counter + 1;
   double t_n = 0.0;
-  while (Time <= tMax) {
-    /*Step 4 */
-    // note: box 6.1 in belytschko
-    // varibles t_np1 = t_n+1
-    // dt_nphalf = deltat_n+1/2
-
+  FILE_LOG_MASTER(INFO, "------------------------------- Loop ----------------------------");
+  FILE_LOG_MASTER(INFO, "Time : %15.6e, tmax : %15.6e", Time, tMax);
+  while (Time < tMax) {
     t_n = Time;
     double t_np1 = Time + dt;
     Time = t_np1; /*Update the time by adding full time step */
-    double dt_nphalf = dt;        // equ 6.2.1
+    FILE_LOG_MASTER(INFO, "Time : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt, tMax);
+    double dt_nphalf = dt;                 // equ 6.2.1
     double t_nphalf = 0.5 * (t_np1 + t_n); // equ 6.2.1
 
     /* Step 5 from Belytschko Box 6.1 - Update velocity */
     for (int i = 0; i < nDOF; i++) {
-      velocities_half[i] =
-          velocities[i] + (t_nphalf - t_n) * accelerations[i];
+      velocities_half[i] = velocities[i] + (t_nphalf - t_n) * accelerations[i];
     }
 
 
     /* Update Nodal Displacements */
-    printf("%d (%.6f) Dispalcements\n--------------------\n",
-            time_step_counter, Time);
+    // Store old displacements for energy computation
+    memcpy(displacements_prev, displacements, nDOF * sizeof(double));
     for (int i = 0; i < nDOF; i++) {
       displacements[i] = displacements[i] + dt_nphalf * velocities_half[i];
-      // printf("%.6f, %0.6f, %0.6f\n", displacements[i], velocities[i],
-      // accelerations[i]);
     }
-    /* Step 6 Enfotce velocity boundary Conditions */
+    /* Step 6 Enforce displacement boundary Conditions */
     ApplyBoundaryConditions(dMax, tMax);
 
     /* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
@@ -108,7 +90,7 @@ int main(int argc, char **argv) {
 
     /* Step - 9 from Belytschko Box 6.1 - Calculate Accelerations */
     CalculateAccelerations(); // Calculating the new accelerations from total
-                              // nodal forces.
+    // nodal forces.
 
     /** Step- 10 - Second Partial Update of Nodal Velocities */
     for (int i = 0; i < nDOF; i++) {
@@ -122,41 +104,21 @@ int main(int argc, char **argv) {
 
     if (writeFlag == 0) {
       plot_counter = plot_counter + 1;
-      printf("------Plot %d: WriteVTU\n", plot_counter);
-      WriteVTU(argv[1], plot_counter);
-      if (debug) {
-        printf("DEBUG : Printing Displacement Solution\n");
-        for (int i = 0; i < nNodes; ++i) {
-          for (int j = 0; j < ndim; ++j) {
-            printf("%12.4f", displacements[i*ndim+j]);
-          }
-          printf("\n");
-        }
+      FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
+      WriteVTU(outputFileName.c_str(), plot_counter);
+      if (plot_counter < MAXPLOTSTEPS) {
+        stepTime[plot_counter] = Time;
+        WritePVD(outputFileName.c_str(), plot_counter);
       }
+      FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Displacement Solution");
     }
     time_step_counter = time_step_counter + 1;
-
-    // not sure if this is needed. part of getForce in Belytschko
-    // dt = ExplicitTimeStepReduction * StableTimeStep();
-
+    dt = ExplicitTimeStepReduction * StableTimeStep();
+    MPI_Barrier(MPI_COMM_WORLD);
   } // end explcit while loop
+  FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Final Displacement Solution");
 
-  if (debug) {
-    printf("DEBUG : Printing Displacement Solution\n");
-    for (int i = 0; i < nNodes; ++i) {
-      for (int j = 0; j < ndim; ++j) {
-        printf("%12.4f", displacements[i*ndim+j]);
-      }
-      printf("\n");
-    }
-  }
-
-  /* Below are things to do at end of program */
-  if (world_rank == 0) {
-    WritePVD(argv[1], plot_counter);
-  }
-  FreeArrays();
-  MPI_Finalize();
+  FinalizeFemTech();
   return 0;
 }
 
