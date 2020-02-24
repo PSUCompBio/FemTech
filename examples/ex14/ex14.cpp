@@ -1,6 +1,5 @@
 #include "FemTech.h"
 #include "blas.h"
-#include "gitbranch.h"
 #include "jsonfuncs.h"
 #include "utilities.h"
 
@@ -78,8 +77,6 @@ int main(int argc, char **argv) {
 
   std::string meshFile = simulationJson["mesh"].asString();
   tMax = simulationJson["maximum-time"].asDouble();
-  FILE_LOG_MASTER(INFO, "Code with commit hash : %s of branch %s", GIT_COMMIT_HASH,
-           GIT_BRANCH);
   FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
   // Read Input Mesh file and equally partition elements among processes
   ReadInputFile(meshFile.c_str());

@@ -129,7 +129,7 @@ void AssembleLumpedMass(void) {
   mass = (double*)calloc(nDOF, sizeof(double));
   if (!mass) {
     FILE_LOG_SINGLE(ERROR, "Allocation of mass matrix failed");
-    exit(12);
+    TerminateFemTech(12);
   }
   for (int e = 0; e < nelements; ++e) {
     int bColSize = nShapeFunctions[e]*ndim;

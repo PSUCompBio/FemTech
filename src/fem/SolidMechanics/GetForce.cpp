@@ -13,11 +13,11 @@ void GetForce() {
 
 	if(ndim == 1){
 		FILE_LOG_SINGLE(ERROR, "GetForce function not yet implemented for 1D");
-		exit(0);
+		TerminateFemTech(3);
 	}
 	else if (ndim == 2){
 		FILE_LOG_SINGLE(ERROR, "GetForce function not yet implemented for 2D");
-		exit(0);
+		TerminateFemTech(3);
 	}
 	else if (ndim ==3){
 		GetForce_3D();

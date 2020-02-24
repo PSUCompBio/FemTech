@@ -1,5 +1,4 @@
 #include "FemTech.h"
-#include "blas.h"
 
 /** For all elements -- this function calculates the minimum critical timestep */
 double StableTimeStep() {
@@ -35,7 +34,8 @@ double StableTimeStep() {
   MPI_Allreduce(MPI_IN_PLACE, &dtMin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 
   if(dtMin < FailureTimeStep){
-		FILE_LOG_MASTER(WARNING, "Timestep too small, dt = %15.9e", dtMin);
+		FILE_LOG_MASTER(ERROR, "Timestep too small, dt = %15.9e", dtMin);
+    TerminateFemTech(19);
 	}
   return dtMin;
 }

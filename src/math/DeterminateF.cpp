@@ -57,7 +57,7 @@ void DeterminateF(int e, int gp) {
   }
   else {
     FILE_LOG_SINGLE(ERROR, "ALERT: PROBLEM CALCULATING DETERMINANT OF MATRIX.\nMATRIX SIZE IS NOT 2X2 OR 3X3. SIMULATION CANCELLED");
-    exit(0);
+    TerminateFemTech(3);
   }
 
 	return;

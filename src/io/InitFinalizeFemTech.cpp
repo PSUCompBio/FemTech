@@ -1,4 +1,5 @@
 #include "FemTech.h"
+#include "gitbranch.h"
 
 #include "mpi.h"
 
@@ -30,11 +31,14 @@ std::string InitFemTech(int argc, char **argv) {
 
   // Initialize the output log file
   initLog(logFile.c_str());
+  FILE_LOG_MASTER(INFO, "Code with commit hash : %s of branch %s", GIT_COMMIT_HASH,
+           GIT_BRANCH);
 
   return uid;
 }
 
 void FinalizeFemTech() {
+  FILE_LOG_MASTER(INFO, "Terminating Application Normally");
   finaliseLog();
   FreeArrays();
   MPI_Finalize();

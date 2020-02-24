@@ -24,7 +24,7 @@ void GetForce_3D() {
 	    if(strcmp(ElementType[i], "T3D2") == 0){
 				TrussStressForceUpdate(i,j,fintLocal);
 				//CalculateDeformationGradient(i, j);
-				//exit(0);
+        // TerminateFemTech(1);
 			}else{
 	      // calculate F^n
 				CalculateDeformationGradient(i, j);

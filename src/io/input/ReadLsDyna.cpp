@@ -48,7 +48,7 @@ bool ReadLsDyna(const char *FileName) {
     // Checking if mesh file can be opened or not
     FILE *File;
     if ((File = fopen(FileName, "rb")) == NULL) {
-        FILE_LOG_SINGLE(ERROR, "Cannot open input file");
+        FILE_LOG_SINGLE(ERROR, "Cannot open input mesh file");
         return false;
     }
 

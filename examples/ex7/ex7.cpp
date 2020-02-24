@@ -7,7 +7,6 @@
 void ApplyBoundaryConditions(double dMax, double tMax);
 void CustomPlot();
 
-/* Global Variables/Parameters  - could be moved to parameters.h file?  */
 double Time, dt;
 int nSteps;
 double ExplicitTimeStepReduction = 0.8;

@@ -1,7 +1,6 @@
 #include "FemTech.h"
 
 #include <assert.h>
-#include <stdlib.h> // For exit on failure
 
 /* Global Variables */
 int nparts = 0;
@@ -28,13 +27,13 @@ void ReadInputFile(const char *FileName) {
   // Checking MPI variables validity
   if (world_size < 1 || world_rank < 0 || world_rank >= world_size) {
     FILE_LOG_SINGLE(ERROR, "'World_size' and/or 'world_rank' variable is not valid");
-    exit(EXIT_FAILURE);
+    TerminateFemTech(3);
   }
 
   // Checking file name validity
   if (FileName == NULL || strlen(FileName) == 0) {
     FILE_LOG_SINGLE(ERROR, "Input file name is empty");
-    exit(EXIT_FAILURE);
+    TerminateFemTech(3);
   }
 
   // Checking file extension and calling corresponding reader
@@ -73,8 +72,8 @@ void ReadInputFile(const char *FileName) {
     assert(nPID <= nPIDglobal);
     assert(nPIDglobal > 0);
   } else {
-    FILE_LOG_SINGLE(ERROR, "Input file read failed");
-    exit(EXIT_FAILURE);
+    FILE_LOG_SINGLE(ERROR, "Input mesh file read failed");
+    TerminateFemTech(3);
   }
 }
 //-------------------------------------------------------------------------------------------

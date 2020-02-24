@@ -23,7 +23,7 @@ void StressUpdate(int e, int gp){
              HGOIsotropicViscoelastic(e, gp);
              break;
     default : FILE_LOG_SINGLE(ERROR, "Unknown material type");
-              exit(EXIT_FAILURE);
+              TerminateFemTech(1);
   }
   return;
 }

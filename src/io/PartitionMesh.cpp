@@ -438,7 +438,7 @@ void PartitionMesh() {
     FILE_LOG(INFO, "Number of DOFs : %d", nDOF);
   } else {
     FILE_LOG_SINGLE(ERROR, "ParMETIS returned error code %d", Result);
-    exit(EXIT_FAILURE);
+    TerminateFemTech(3);
   }
   free(ubvec);
   free(tpwgts);
@@ -783,7 +783,7 @@ void createNodalCommunicationPattern(void) {
     FILE_LOG_SINGLE(DEBUGLOGIGNORE, "From %d", i);
     for (int j = elemID_recvCountCum[i]; j < elemID_recvCountCum[i + 1];
           ++j) {
-      FILE_LOG_SINGLE("%d ", elemID_recv[j]);
+      FILE_LOG_SINGLE(DEBUGLOGIGNORE, "%d ", elemID_recv[j]);
     }
   }
 #endif //DEBUG

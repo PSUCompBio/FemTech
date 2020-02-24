@@ -1,6 +1,4 @@
 #include "FemTech.h"
-#include "blas.h"
-#include "gitbranch.h"
 #include "jsonfuncs.h"
 #include "utilities.h"
 
@@ -35,7 +33,7 @@ bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
-double FailureTimeStep = 1e-11;
+double FailureTimeStep = 5e-8; // Set for max runtime of around 5 hrs on aws
 int nPlotSteps = 50;
 
 /* Global variables used only in this file */
@@ -79,8 +77,6 @@ int main(int argc, char **argv) {
 
   std::string meshFile = simulationJson["mesh"].asString();
   tMax = simulationJson["maximum-time"].asDouble();
-  FILE_LOG_MASTER(INFO, "Code with commit hash : %s of branch %s", GIT_COMMIT_HASH,
-           GIT_BRANCH);
   FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
   // Read Input Mesh file and equally partition elements among processes
   ReadInputFile(meshFile.c_str());

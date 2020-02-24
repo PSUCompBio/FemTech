@@ -21,7 +21,7 @@
 void HGOIsotropic(int e, int gp) {
   if (ndim == 2) {
     FILE_LOG_SINGLE(ERROR, "Plane Strain implementation yet to be done");
-    exit(EXIT_FAILURE);
+    TerminateFemTech(3);
   }
   // Assumes ndim == 3
   // Pointer to start of deformation gradient matrix for given element number
