@@ -13,6 +13,7 @@ endif(ENABLE_MPI)
 
 file(INSTALL brain.inp DESTINATION .)
 file(INSTALL coarse_brain.inp DESTINATION .)
+file(INSTALL centroid_coarse.txt DESTINATION .)
 file(INSTALL materials.dat DESTINATION .)
 file(INSTALL input.json DESTINATION .)
 file(INSTALL gnuplot.script DESTINATION .)
