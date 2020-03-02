@@ -23,3 +23,4 @@ Set(fem_src
     )
 
 add_library(fem OBJECT ${fem_src})
+add_dependencies(fem JsonCpp)

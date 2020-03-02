@@ -6,3 +6,4 @@ Set(math_src
     )
 
 add_library(math OBJECT ${math_src})
+add_dependencies(math JsonCpp)

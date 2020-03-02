@@ -8,7 +8,7 @@ add_subdirectory(common)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 add_library(FemTech $<TARGET_OBJECTS:timestep> $<TARGET_OBJECTS:math> $<TARGET_OBJECTS:materials> $<TARGET_OBJECTS:io> $<TARGET_OBJECTS:elements> $<TARGET_OBJECTS:fem> $<TARGET_OBJECTS:common>)
 
-ADD_DEPENDENCIES(FemTech JsonCpp)
+add_dependencies(FemTech JsonCpp)
 
 if(ENABLE_MPI)
   target_link_libraries(FemTech ${MPI_CXX_LIBRARIES} jsoncpp)
