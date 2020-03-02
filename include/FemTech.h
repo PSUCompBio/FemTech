@@ -1,6 +1,8 @@
 #ifndef FEMTECH_H
 #define FEMTECH_H
 
+#include "json/json.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -115,7 +117,8 @@ int unique(int *arr, int n);
 int coordinateFromGlobalID(int *array, int nodeID, int size, double* coord);
 
 /*Init and finalize femtech */
-std::string InitFemTech(int argc, char **argv);
+Json::Value InitFemTech(int argc, char **argv);
+void InitFemTechWoInput(int argc, char **argv);
 void FinalizeFemTech();
 void TerminateFemTech(int errorCode);
 #endif

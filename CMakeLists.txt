@@ -16,7 +16,9 @@ endif()
 
 if(${CMAKE_BUILD_TYPE} STREQUAL DEBUG)
   message("Adding Debug flag...")
-  add_compile_definitions(DEBUG)
+  add_definitions(-DDEBUG)
+  # Add compile definition requires cmake 3.12+
+  # add_compile_definitions(DEBUG)
 endif()
 
 #Setting c++11 parameters

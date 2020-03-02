@@ -71,9 +71,9 @@ double cm[3];
 
 int main(int argc, char **argv) {
   // Initialize FemTech including logfile and MPI
-  std::string uid = InitFemTech(argc, argv);
-  // Read the input file
-  Json::Value simulationJson = getConfig(argv[1]);
+  Json::Value inputJson = InitFemTech(argc, argv);
+  std::string uid = inputJson["uid"].asString();
+  Json::Value simulationJson = inputJson["simulation"];
 
   std::string meshFile = simulationJson["mesh"].asString();
   tMax = simulationJson["maximum-time"].asDouble();

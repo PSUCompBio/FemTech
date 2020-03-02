@@ -16,7 +16,7 @@ bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 
 int main(int argc, char **argv) {
-  InitFemTech(argc, argv);
+  InitFemTechWoInput(argc, argv);
 
   ReadInputFile(argv[1]);
   ReadMaterials();
