@@ -57,7 +57,7 @@ script:
   - cd ../ex10
   - mpirun -n 1 --mca btl_base_warn_component_unused 0 ex10 1-elt-tet.k
     # Build docker image if on develop branch
-  - if [ "$TRAVIS_BRANCH" = "CI" ]; then 
+  - if [ "$TRAVIS_BRANCH" = "develop" ]; then 
       cd ../../..;
       mkdir builddocker;
       docker build --pull --cache-from $DOCKER_REPO:develop --target buildFemTech --tag $DOCKER_REPO:develop -f Dockerfile builddocker;
@@ -65,7 +65,7 @@ script:
     fi
 
 after_script:
-  - if [ "$TRAVIS_BRANCH" = "CI" ]; then docker images; fi
+  - if [ "$TRAVIS_BRANCH" = "develop" ]; then docker images; fi
 
 before_deploy:
   - if [ "$TRAVIS_BRANCH" = "develop" ]; then docker login -u "$CONTAINER_USER" -p "$CONTAINER_PASS"; fi
