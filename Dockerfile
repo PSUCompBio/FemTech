@@ -1,11 +1,10 @@
 FROM ubuntu:18.04 AS buildFemTech
 
-# using mpich because of bug with openmpi
-# https://bugs.launchpad.net/ubuntu/+source/openmpi/+bug/1838684
 RUN apt-get update && \
   apt-get install -y  --no-install-recommends \
-  cmake git g++ mpich libmpich-dev ca-certificates\
-  libopenblas-base libopenblas-dev vim make\
+  cmake git g++ openmpi-bin openmpi-common ca-certificates \
+  libopenmpi-dev libopenblas-base libopenblas-dev vim make \
+  openssh-client \
   && rm -rf /var/lib/apt/lists/*
 
 # Setup home environment
@@ -27,7 +26,7 @@ FROM ubuntu:18.04
 
 RUN apt-get update && \
   apt-get install -y  --no-install-recommends \
-  mpich libopenblas-base \
+  openmpi-bin libopenblas-base openssh-client \
   && rm -rf /var/lib/apt/lists/*
 
 # Setup home environment

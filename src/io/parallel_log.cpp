@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <sys/time.h>
 
 #include "mpi.h"
 
@@ -14,9 +15,16 @@ char s1[256];
 char s2[256];
 va_list arg;
 
-const char* levelToString(enum logLevel level) {
+void levelToString(enum logLevel level, char* result) {
 	static const char* const buffer[] = {"ERROR  ", "WARNING", "INFO   ", "DEBUG  ", "DEBUG  "};
-  return buffer[level];
+  char bufferTime[11];
+  time_t t;
+  time(&t);
+  tm r;
+  strftime(bufferTime, sizeof(buffer), "%X", localtime_r(&t, &r));
+  struct timeval tv;
+  gettimeofday(&tv, 0);
+  sprintf(result, "-%s.%03ld %s", bufferTime, (long)tv.tv_usec / 1000, buffer[level]); 
 }
 
 void initLog(const char *outFileName) {
@@ -42,7 +50,9 @@ void finaliseLog() {
 }
 
 void fileLog(enum logLevel level, const char* fmt, ...) {
-  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  char result[30] = {0};
+  levelToString(level, result);
+  sprintf(s1, "%s[%3d]: %s\n", result, world_rank, fmt);
   va_start(arg, fmt);
   vsprintf(s2, s1, arg);
   va_end(arg);
@@ -51,7 +61,9 @@ void fileLog(enum logLevel level, const char* fmt, ...) {
 
 void fileLogMaster(enum logLevel level, const char* fmt, ...) {
   if (world_rank == 0) {
-    sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+    char result[30] = {0};
+    levelToString(level, result);
+    sprintf(s1, "%s[%3d]: %s\n", result, world_rank, fmt);
     va_start(arg, fmt);
     vsprintf(s2, s1, arg);
     va_end(arg);
@@ -60,7 +72,9 @@ void fileLogMaster(enum logLevel level, const char* fmt, ...) {
 }
 
 void fileLogSingle(enum logLevel level, const char* fmt, ...) {
-  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  char result[30] = {0};
+  levelToString(level, result);
+  sprintf(s1, "%s[%3d]: %s\n", result, world_rank, fmt);
   va_start(arg, fmt);
   vsprintf(s2, s1, arg);
   va_end(arg);
@@ -69,7 +83,9 @@ void fileLogSingle(enum logLevel level, const char* fmt, ...) {
 
 void fileLogMatrix(enum logLevel level, const double* mat, const int n, \
     const int m, const char* fmt, ...) {
-  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  char result[30] = {0};
+  levelToString(level, result);
+  sprintf(s1, "%s[%3d]: %s\n", result, world_rank, fmt);
   va_start(arg, fmt);
   vsprintf(s2, s1, arg);
   va_end(arg);
@@ -89,7 +105,9 @@ void fileLogMatrix(enum logLevel level, const double* mat, const int n, \
 
 void fileLogMatrixRM(enum logLevel level, const double* mat, const int n, \
     const int m, const char* fmt, ...) {
-  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  char result[30] = {0};
+  levelToString(level, result);
+  sprintf(s1, "%s[%3d]: %s\n", result, world_rank, fmt);
   va_start(arg, fmt);
   vsprintf(s2, s1, arg);
   va_end(arg);
@@ -109,7 +127,9 @@ void fileLogMatrixRM(enum logLevel level, const double* mat, const int n, \
 
 void fileLogMatrixSingle(enum logLevel level, const double* mat, const int n, \
     const int m, const char* fmt, ...) {
-  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  char result[30] = {0};
+  levelToString(level, result);
+  sprintf(s1, "%s[%3d]: %s\n", result, world_rank, fmt);
   va_start(arg, fmt);
   vsprintf(s2, s1, arg);
   va_end(arg);
@@ -129,7 +149,9 @@ void fileLogMatrixSingle(enum logLevel level, const double* mat, const int n, \
 
 void fileLogMatrixRMSingle(enum logLevel level, const double* mat, const int n, \
     const int m, const char* fmt, ...) {
-  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  char result[30] = {0};
+  levelToString(level, result);
+  sprintf(s1, "%s[%3d]: %s\n", result, world_rank, fmt);
   va_start(arg, fmt);
   vsprintf(s2, s1, arg);
   va_end(arg);
@@ -149,7 +171,9 @@ void fileLogMatrixRMSingle(enum logLevel level, const double* mat, const int n, 
 
 void fileLogArray(enum logLevel level, const double* arr, const int n, \
     const char* fmt, ...) {
-  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  char result[30] = {0};
+  levelToString(level, result);
+  sprintf(s1, "%s[%3d]: %s\n", result, world_rank, fmt);
   va_start(arg, fmt);
   vsprintf(s2, s1, arg);
   va_end(arg);
@@ -168,7 +192,9 @@ void fileLogArray(enum logLevel level, const double* arr, const int n, \
 void fileLogArrayMaster(enum logLevel level, const double* arr, const int n, \
     const char* fmt, ...) {
   if (world_rank == 0) {
-    sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+    char result[30] = {0};
+    levelToString(level, result);
+    sprintf(s1, "%s[%3d]: %s\n", result, world_rank, fmt);
     va_start(arg, fmt);
     vsprintf(s2, s1, arg);
     va_end(arg);
@@ -187,7 +213,9 @@ void fileLogArrayMaster(enum logLevel level, const double* arr, const int n, \
 
 void fileLogArraySingle(enum logLevel level, const double* arr, const int n, \
     const char* fmt, ...) {
-  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  char result[30] = {0};
+  levelToString(level, result);
+  sprintf(s1, "%s[%3d]: %s\n", result, world_rank, fmt);
   va_start(arg, fmt);
   vsprintf(s2, s1, arg);
   va_end(arg);
@@ -205,7 +233,9 @@ void fileLogArraySingle(enum logLevel level, const double* arr, const int n, \
 
 void fileLogArrayInt(enum logLevel level, const int* arr, const int n, \
     const char* fmt, ...) {
-  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  char result[30] = {0};
+  levelToString(level, result);
+  sprintf(s1, "%s[%3d]: %s\n", result, world_rank, fmt);
   va_start(arg, fmt);
   vsprintf(s2, s1, arg);
   va_end(arg);
@@ -224,7 +254,9 @@ void fileLogArrayInt(enum logLevel level, const int* arr, const int n, \
 void fileLogArrayIntMaster(enum logLevel level, const int* arr, const int n, \
     const char* fmt, ...) {
   if (world_rank == 0) {
-    sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+    char result[30] = {0};
+    levelToString(level, result);
+    sprintf(s1, "%s[%3d]: %s\n", result, world_rank, fmt);
     va_start(arg, fmt);
     vsprintf(s2, s1, arg);
     va_end(arg);
@@ -243,7 +275,9 @@ void fileLogArrayIntMaster(enum logLevel level, const int* arr, const int n, \
 
 void fileLogArrayIntSingle(enum logLevel level, const int* arr, const int n, \
     const char* fmt, ...) {
-  sprintf(s1, "%s(%5d): %s\n", levelToString(level), world_rank, fmt);
+  char result[30] = {0};
+  levelToString(level, result);
+  sprintf(s1, "%s[%3d]: %s\n", result, world_rank, fmt);
   va_start(arg, fmt);
   vsprintf(s2, s1, arg);
   va_end(arg);

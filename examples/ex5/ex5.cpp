@@ -206,6 +206,7 @@ int main(int argc, char **argv) {
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);
   } // end explcit while loop
+  FILE_LOG_MASTER(INFO, "End of Iterative Loop");
   FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Final Displacement Solution");
 
   WriteOutputFile(uid);

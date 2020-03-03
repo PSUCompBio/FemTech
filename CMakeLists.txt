@@ -131,8 +131,8 @@ include_directories(${source_dir})
 #============================================================================
 # BLAS/Lapack
 #==============================================================================
-find_package(BLAS)
-find_package(LAPACK)
+find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
 if(LAPACK_FOUND)
   message("Found Lapack")
   message("Lapack link library is ${LAPACK_LIBRARIES}")
