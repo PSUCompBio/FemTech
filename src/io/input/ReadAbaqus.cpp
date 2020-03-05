@@ -224,8 +224,6 @@ bool ReadAbaqus(const char *FileName) {
     }
        
     // Initializing "coordinates" array
-    int compare (const void * a, const void * b);
-    int unique(int *arr, int n);
     int *UniqueConnectivity = (int *)malloc(ConnectivitySize * sizeof(int));
     memcpy(UniqueConnectivity, connectivity, ConnectivitySize * sizeof(int));
     qsort(UniqueConnectivity, ConnectivitySize, sizeof(int), compare);

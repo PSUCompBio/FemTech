@@ -60,7 +60,7 @@ script:
   - if [ "$TRAVIS_BRANCH" = "develop" ]; then 
       cd ../../..;
       mkdir builddocker;
-      docker build --pull --cache-from $DOCKER_REPO:develop --target buildFemTech --tag $DOCKER_REPO:develop -f Dockerfile builddocker;
+      docker build --pull --cache-from $DOCKER_REPO:develop --target buildFemTech --tag $DOCKER_REPO:develop -f Dockerfile builddocker || travis_terminate 1;
       docker build --pull --cache-from $DOCKER_REPO:develop --cache-from $DOCKER_REPO:production --tag $DOCKER_REPO:production -f Dockerfile builddocker; 
     fi
 

@@ -874,13 +874,6 @@ void createNodalCommunicationPattern(void) {
   // Check if sends tally with element recv count
   assert(requestIndex == 2 * recvCount);
 
-  free(elemID_recvCount);
-  free(elemID_recvCountCum);
-  free(nodePtr);
-  free(nodeCount);
-  free(nodeList);
-  free(nodeID_countSend);
-
   // Receive the node IDs
   requestIndex = 0;
   for (int i = 0; i < world_size; ++i) {
@@ -905,6 +898,12 @@ void createNodalCommunicationPattern(void) {
   }
   free(requestListSend);
   free(requestListRecv);
+  free(elemID_recvCount);
+  free(elemID_recvCountCum);
+  free(nodePtr);
+  free(nodeCount);
+  free(nodeList);
+  free(nodeID_countSend);
 
   // Convert nodePtrRecv to cumulative array
   for (int i = 0; i < nodePtrSize; ++i) {
@@ -987,6 +986,8 @@ void createNodalCommunicationPattern(void) {
       }
     }
   }
+  METIS_Free(xadj);
+  METIS_Free(adjncy);
   // Check if node list is fully populated
   for (int i = 0; i < world_size; ++i) {
     assert(nodeListCurrentProcess[i] == nodeListCountProcess[i]);

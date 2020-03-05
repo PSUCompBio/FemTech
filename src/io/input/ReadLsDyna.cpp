@@ -19,7 +19,8 @@ static bool IsElementSection(char *Line, FILE *File, int *NDimExceptRuleExists =
         if (NDimExceptRuleExists != NULL && strncmp(Line, TITLE_ELEMENT_BEAM, strlen(TITLE_ELEMENT_BEAM)) == 0) {
             *NDimExceptRuleExists = 1;
         }
-        fgets(Line, MAX_FILE_LINE * sizeof(char), File);
+        char* read = fgets(Line, MAX_FILE_LINE * sizeof(char), File);
+        assert(read != NULL);
     }
     return ElementSection;
 }
@@ -266,8 +267,6 @@ bool ReadLsDyna(const char *FileName) {
     }
 
     // Initializing "coordinates" array
-    int compare (const void * a, const void * b);
-    int unique(int *arr, int n);
     int *UniqueConnectivity = (int *)malloc(ConnectivitySize * sizeof(int));
     memcpy(UniqueConnectivity, connectivity, ConnectivitySize * sizeof(int));
     qsort(UniqueConnectivity, ConnectivitySize, sizeof(int), compare);
