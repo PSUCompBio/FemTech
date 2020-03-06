@@ -184,10 +184,10 @@ int main(int argc, char **argv) {
     int writeFlag = time_step_counter%nsteps_plot;
     CheckEnergy(Time, writeFlag);
 
+    CalculateInjuryCriterions();
     if (writeFlag == 0) {
       FILE_LOG_MASTER(INFO, "Time : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt, tMax);
       plot_counter = plot_counter + 1;
-      CalculateInjuryCriterions();
 
       FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
       WriteVTU(outputFileName.c_str(), plot_counter);
@@ -673,6 +673,21 @@ void computeDerivatives(const state_type &y, state_type &ydot, const double t) {
 }
 
 void WriteOutputFile(std::string uid) {
+  // Find the gloabl min and max strain
+  parStructMax.value = maxStrain;
+  parStructMax.rank = world_rank;
+  MPI_Allreduce(MPI_IN_PLACE, &parStructMax, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
+  // maxStrain = parStructMax.value;
+
+  parStructMin.value = minStrain;
+  parStructMin.rank = world_rank;
+  MPI_Allreduce(MPI_IN_PLACE, &parStructMin, 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
+  // minStrain = parStructMin.value;
+
+  parStructSMax.value = maxShear;
+  parStructSMax.rank = world_rank;
+  MPI_Allreduce(MPI_IN_PLACE, &parStructSMax, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
+  // maxShear = parStructSMax.value;
   /* Calculate min and max strain location and send to master */
   // Copy max and min strain 
   if (parStructMin.rank == world_rank) {
@@ -750,7 +765,7 @@ void WriteOutputFile(std::string uid) {
     vec.append(Json::Value(maxRecv[0]));
     vec.append(Json::Value(maxRecv[1]));
     vec.append(Json::Value(maxRecv[2]));
-    output["principal-max-strain"]["value"] = maxStrain;
+    output["principal-max-strain"]["value"] = parStructMax.value;
     output["principal-max-strain"]["location"] = vec;
     output["principal-max-strain"]["time"] = maxRecv[3];
     output["principal-max-strain"]["global-element-id"] = globalIDMax[1];
@@ -758,7 +773,7 @@ void WriteOutputFile(std::string uid) {
     vec[0] = minRecv[0];
     vec[1] = minRecv[1];
     vec[2] = minRecv[2];
-    output["principal-min-strain"]["value"] = minStrain;
+    output["principal-min-strain"]["value"] = parStructMin.value;
     output["principal-min-strain"]["location"] = vec;
     output["principal-min-strain"]["time"] = minRecv[3];
     output["principal-min-strain"]["global-element-id"] = globalIDMax[0];
@@ -766,7 +781,7 @@ void WriteOutputFile(std::string uid) {
     vec[0] = shearRecv[0];
     vec[1] = shearRecv[1];
     vec[2] = shearRecv[2];
-    output["maximum-shear-strain"]["value"] = maxShear;
+    output["maximum-shear-strain"]["value"] = parStructSMax.value;
     output["maximum-shear-strain"]["location"] = vec;
     output["maximum-shear-strain"]["time"] = shearRecv[3];
     output["maximum-shear-strain"]["global-element-id"] = globalIDMax[2];
@@ -785,48 +800,36 @@ void WriteOutputFile(std::string uid) {
 void CalculateInjuryCriterions(void) {
   double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
   double currentStrainMax = 0.0, currentStrainMin = 0.0, currentShearMax = 0.0;
+  int currentMaxElem = 0, currentMinElem = 0, currentShearElem = 0;
   for (int i = 0; i < nelements; i++) {
-    CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, &currentStrainMinElem);
-    currentShearMaxElem = currentStrainMaxElem-currentStrainMinElem;
+    CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, &currentStrainMinElem, &currentShearMaxElem);
     if (currentStrainMax < currentStrainMaxElem) {
       currentStrainMax = currentStrainMaxElem;
-      maxElem = i;
+      currentMaxElem = i;
     }
     if (currentStrainMin > currentStrainMinElem) {
       currentStrainMin = currentStrainMinElem;
-      minElem = i;
+      currentMinElem = i;
     }
     if (currentShearMax < currentShearMaxElem) {
       currentShearMax = currentShearMaxElem;
-      shearElem = i;
+      currentShearElem = i;
     }
   } // calculating max and minimum strain over local elements
   // Updating max and min time
   if (currentStrainMax > maxStrain) {
     maxT = Time;
+    maxElem = currentMaxElem;
     maxStrain = currentStrainMax;
   }
   if (currentStrainMin < minStrain) {
     minT = Time;
+    minElem = currentMinElem;
     minStrain = currentStrainMin;
   }
   if (currentShearMax > maxShear) {
     maxShearT = Time;
+    shearElem = currentShearElem;
     maxShear = currentShearMax;
   }
-  // Find the gloabl min and max strain
-  parStructMax.value = maxStrain;
-  parStructMax.rank = world_rank;
-  MPI_Allreduce(MPI_IN_PLACE, &parStructMax, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
-  maxStrain = parStructMax.value;
-
-  parStructMin.value = minStrain;
-  parStructMin.rank = world_rank;
-  MPI_Allreduce(MPI_IN_PLACE, &parStructMin, 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
-  minStrain = parStructMin.value;
-
-  parStructSMax.value = maxShear;
-  parStructSMax.rank = world_rank;
-  MPI_Allreduce(MPI_IN_PLACE, &parStructSMax, 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
-  maxShear = parStructSMax.value;
 }

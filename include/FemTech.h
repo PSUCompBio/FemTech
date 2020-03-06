@@ -57,7 +57,7 @@ void CalculateAccelerations();
 void CalculateFR();
 
 void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
-    double *currentStrainMin);
+    double *currentStrainMin, double *currentShearMax);
 void CalculateStrain();
 void CalculateDeformationGradient(int e, int gp);
 void SumOfDeformationGradient(int e, int gp);

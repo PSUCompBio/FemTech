@@ -347,14 +347,6 @@ void PartitionMesh() {
     FILE_LOGArrayIntMaster(DEBUGLOGIGNORE, &pidPacked[elementSendCum[2]-10], \
         10, "Send pid array from 0 to 1");
 
-    free(connectivityPacked);
-    free(coordinatesPacked);
-    free(eptrPacked);
-    free(pidPacked);
-    free(eidPacked);
-    free(ElementTypePacked);
-    free(requestListSend);
-
     free(elementRedistributePattern);
     free(nodeRedistributePattern);
     free(elementSendCum);
@@ -366,6 +358,14 @@ void PartitionMesh() {
     for (int i = 0; i < recvCount; ++i) {
       MPI_Wait(&(requestListRecv[i]), &status);
     }
+    free(connectivityPacked);
+    free(coordinatesPacked);
+    free(eptrPacked);
+    free(pidPacked);
+    free(eidPacked);
+    free(ElementTypePacked);
+    free(requestListSend);
+
 
     if (world_rank == 1) {
       FILE_LOGArrayIntSingle(DEBUGLOGIGNORE, &connectivityRecv[nodeRecvCum[0]], \

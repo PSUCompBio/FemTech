@@ -6,7 +6,7 @@
 const double kPi = 4.0*atan(1.0);
 
 void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
-    double *currentStrainMin) {
+    double *currentStrainMin, double *currentShearMax) {
   const int matSize = ndim*ndim;
 
   double *E = &Eavg[elm*matSize];
@@ -53,6 +53,7 @@ void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
   double min, max;
   max = fmax(eps3, fmax(eps2, eps1));
   min = fmin(eps3, fmin(eps2, eps1));
+  *currentShearMax = max - min;
   if (max > 0.0) {
     *currentStrainMax = max;
   } else {
