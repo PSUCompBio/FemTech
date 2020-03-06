@@ -61,8 +61,7 @@ script:
       cd ../../..;
       mkdir builddocker;
       docker build --build-arg BRANCH=$TRAVIS_BRANCH --pull --cache-from $DOCKER_REPO:develop --target buildFemTech --tag $DOCKER_REPO:develop -f Dockerfile builddocker || travis_terminate 1;
-      docker run --name testFemTech -it --rm $DOCKER_REPO:develop /home/ubuntu/FemTech/build/examples/ex5/test_ex5.sh || travis_terminate 1;
-      docker logs --tail;
+      docker run --name testFemTech -it --rm $DOCKER_REPO:develop /bin/bash -c "cd /home/ubuntu/FemTech/build/examples/ex5/;bash test_ex5.sh" || travis_terminate 1;
       docker build --pull --cache-from $DOCKER_REPO:develop --cache-from $DOCKER_REPO:production --tag $DOCKER_REPO:production -f Dockerfile builddocker; 
     fi
 

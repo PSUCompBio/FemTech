@@ -43,6 +43,7 @@ bool rankForCustomPlot;
 int *boundaryID = NULL;
 int boundarySize;
 double peakTime, tMax;
+bool writeField = true;
 
 /* Variables to compute maximim and minimum strain */
 double maxStrain = 0.0, minStrain = 0.0, maxShear = 0.0;
@@ -77,6 +78,9 @@ int main(int argc, char **argv) {
 
   std::string meshFile = simulationJson["mesh"].asString();
   tMax = simulationJson["maximum-time"].asDouble();
+  if (!simulationJson["write-vtu"].empty()) {
+    writeField = simulationJson["write-vtu"].asBool();
+  }
   FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
   // Read Input Mesh file and equally partition elements among processes
   ReadInputFile(meshFile.c_str());
@@ -98,7 +102,9 @@ int main(int argc, char **argv) {
   /* Write inital, undeformed configuration*/
   Time = 0.0;
   int plot_counter = 0;
-  WriteVTU(outputFileName.c_str(), plot_counter);
+  if (writeField) {
+    WriteVTU(outputFileName.c_str(), plot_counter);
+  }
   stepTime[plot_counter] = Time;
   // CustomPlot();
 
@@ -189,11 +195,13 @@ int main(int argc, char **argv) {
       FILE_LOG_MASTER(INFO, "Time : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt, tMax);
       plot_counter = plot_counter + 1;
 
-      FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
-      WriteVTU(outputFileName.c_str(), plot_counter);
       if (plot_counter < MAXPLOTSTEPS) {
         stepTime[plot_counter] = Time;
-        WritePVD(outputFileName.c_str(), plot_counter);
+        if (writeField) {
+          FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
+          WriteVTU(outputFileName.c_str(), plot_counter);
+          WritePVD(outputFileName.c_str(), plot_counter);
+        }
       }
       // CustomPlot();
       FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Displacement Solution");
@@ -802,34 +810,37 @@ void CalculateInjuryCriterions(void) {
   double currentStrainMax = 0.0, currentStrainMin = 0.0, currentShearMax = 0.0;
   int currentMaxElem = 0, currentMinElem = 0, currentShearElem = 0;
   for (int i = 0; i < nelements; i++) {
-    CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, &currentStrainMinElem, &currentShearMaxElem);
-    if (currentStrainMax < currentStrainMaxElem) {
-      currentStrainMax = currentStrainMaxElem;
-      currentMaxElem = i;
+    if (materialID[pid[i]] != 0) {
+      CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, \
+          &currentStrainMinElem, &currentShearMaxElem);
+      if (currentStrainMax < currentStrainMaxElem) {
+        currentStrainMax = currentStrainMaxElem;
+        currentMaxElem = i;
+      }
+      if (currentStrainMin > currentStrainMinElem) {
+        currentStrainMin = currentStrainMinElem;
+        currentMinElem = i;
+      }
+      if (currentShearMax < currentShearMaxElem) {
+        currentShearMax = currentShearMaxElem;
+        currentShearElem = i;
+      }
+    } // calculating max and minimum strain over local elements
+    // Updating max and min time
+    if (currentStrainMax > maxStrain) {
+      maxT = Time;
+      maxElem = currentMaxElem;
+      maxStrain = currentStrainMax;
     }
-    if (currentStrainMin > currentStrainMinElem) {
-      currentStrainMin = currentStrainMinElem;
-      currentMinElem = i;
+    if (currentStrainMin < minStrain) {
+      minT = Time;
+      minElem = currentMinElem;
+      minStrain = currentStrainMin;
     }
-    if (currentShearMax < currentShearMaxElem) {
-      currentShearMax = currentShearMaxElem;
-      currentShearElem = i;
+    if (currentShearMax > maxShear) {
+      maxShearT = Time;
+      shearElem = currentShearElem;
+      maxShear = currentShearMax;
     }
-  } // calculating max and minimum strain over local elements
-  // Updating max and min time
-  if (currentStrainMax > maxStrain) {
-    maxT = Time;
-    maxElem = currentMaxElem;
-    maxStrain = currentStrainMax;
-  }
-  if (currentStrainMin < minStrain) {
-    minT = Time;
-    minElem = currentMinElem;
-    minStrain = currentStrainMin;
-  }
-  if (currentShearMax > maxShear) {
-    maxShearT = Time;
-    shearElem = currentShearElem;
-    maxShear = currentShearMax;
   }
 }
