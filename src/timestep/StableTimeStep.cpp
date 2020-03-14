@@ -2,7 +2,6 @@
 
 /** For all elements -- this function calculates the minimum critical timestep */
 double StableTimeStep() {
-
 	double dtElem;
 	double dtMin = huge;
   bool isNotRigid;

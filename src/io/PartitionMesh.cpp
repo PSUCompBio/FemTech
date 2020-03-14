@@ -347,14 +347,6 @@ void PartitionMesh() {
     FILE_LOGArrayIntMaster(DEBUGLOGIGNORE, &pidPacked[elementSendCum[2]-10], \
         10, "Send pid array from 0 to 1");
 
-    free(connectivityPacked);
-    free(coordinatesPacked);
-    free(eptrPacked);
-    free(pidPacked);
-    free(eidPacked);
-    free(ElementTypePacked);
-    free(requestListSend);
-
     free(elementRedistributePattern);
     free(nodeRedistributePattern);
     free(elementSendCum);
@@ -366,6 +358,14 @@ void PartitionMesh() {
     for (int i = 0; i < recvCount; ++i) {
       MPI_Wait(&(requestListRecv[i]), &status);
     }
+    free(connectivityPacked);
+    free(coordinatesPacked);
+    free(eptrPacked);
+    free(pidPacked);
+    free(eidPacked);
+    free(ElementTypePacked);
+    free(requestListSend);
+
 
     if (world_rank == 1) {
       FILE_LOGArrayIntSingle(DEBUGLOGIGNORE, &connectivityRecv[nodeRecvCum[0]], \
@@ -874,13 +874,6 @@ void createNodalCommunicationPattern(void) {
   // Check if sends tally with element recv count
   assert(requestIndex == 2 * recvCount);
 
-  free(elemID_recvCount);
-  free(elemID_recvCountCum);
-  free(nodePtr);
-  free(nodeCount);
-  free(nodeList);
-  free(nodeID_countSend);
-
   // Receive the node IDs
   requestIndex = 0;
   for (int i = 0; i < world_size; ++i) {
@@ -905,6 +898,12 @@ void createNodalCommunicationPattern(void) {
   }
   free(requestListSend);
   free(requestListRecv);
+  free(elemID_recvCount);
+  free(elemID_recvCountCum);
+  free(nodePtr);
+  free(nodeCount);
+  free(nodeList);
+  free(nodeID_countSend);
 
   // Convert nodePtrRecv to cumulative array
   for (int i = 0; i < nodePtrSize; ++i) {
@@ -987,6 +986,8 @@ void createNodalCommunicationPattern(void) {
       }
     }
   }
+  METIS_Free(xadj);
+  METIS_Free(adjncy);
   // Check if node list is fully populated
   for (int i = 0; i < world_size; ++i) {
     assert(nodeListCurrentProcess[i] == nodeListCountProcess[i]);

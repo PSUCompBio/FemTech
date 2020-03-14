@@ -1,5 +1,7 @@
 #include "FemTech.h"
 
+#include <assert.h>
+
 int *materialID;
 double *properties;
 
@@ -32,20 +34,25 @@ void ReadMaterials() {
   }
 
   for (int i = 0; i < nPIDglobal; i++) {
-    fscanf(File, "%d", &partID);
-    fscanf(File, "%d", &materialID[partID]);
+    int count;
+    count = fscanf(File, "%d", &partID);
+    assert(count == 1);
+    count = fscanf(File, "%d", &materialID[partID]);
+    assert(count == 1);
     int index = partID * MAXMATPARAMS;
     switch (materialID[partID]) {
       case 0 :// Rigid body
               // properties[0] = density
-              fscanf(File, "%lf", &properties[index + 0]);
+              count = fscanf(File, "%lf", &properties[index + 0]);
+              assert(count == 1);
               break;
       case 1 ://Compressible Neohookean
               // properties[0] = density
               // properties[1] = mu
               // properties[2] = lambda
-              fscanf(File, "%lf %lf %lf", &properties[index + 0],
+              count = fscanf(File, "%lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2]);
+              assert(count == 3);
               // FILE_LOG_SINGLE(DEBUGLOG, "Part %d Compressible NeoHookean properties (rho, mu, "
               //        "lambda) = %3.3f %3.3f %3.3f\n",
               //         partID, properties[index + 0], properties[index + 1],
@@ -55,8 +62,9 @@ void ReadMaterials() {
               // properties[0] = density
               // properties[1] = mu
               // properties[2] = lambda
-              fscanf(File, "%lf %lf %lf", &properties[index + 0],
+              count = fscanf(File, "%lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2]);
+              assert(count == 3);
               // FILE_LOG_SINGLE(DEBUGLOG, "element %d St. Venant-Kirchhoff properties (rho, mu, lambda) = "
               //        "%3.3f %3.3f %3.3f\n",
                       // elementID, properties[index + 0], properties[index + 1],
@@ -66,8 +74,9 @@ void ReadMaterials() {
               // properties[0] = density
               // properties[1] = mu
               // properties[2] = lambda
-              fscanf(File, "%lf %lf %lf", &properties[index + 0],
+              count = fscanf(File, "%lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2]);
+              assert(count == 3);
               // FILE_LOG_SINGLE(DEBUGLOG, "element %d Linear Elastic properties (rho, mu, lambda) = "
               //        "%3.3f %3.3f %3.3f\n",
                       // elementID, properties[index + 0], properties[index + 1],
@@ -79,9 +88,10 @@ void ReadMaterials() {
               // properties[2] = lambda
               // properties[3] = k1
               // properties[4] = k2
-              fscanf(File, "%lf %lf %lf %lf %lf", &properties[index + 0],
+              count = fscanf(File, "%lf %lf %lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2], 
                       &properties[index + 3], &properties[index + 4]);
+              assert(count == 5);
               // FILE_LOG_SINGLE(DEBUGLOG, "Part %d HGO properties (rho, mu, lambda, k1, k2) = "
               //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
               //         partID, properties[index + 0], properties[index + 1],
@@ -97,11 +107,12 @@ void ReadMaterials() {
               // properties[6] = t1
               // properties[7] = g2
               // properties[8] = t2
-              fscanf(File, "%lf %lf %lf %lf %lf %lf %lf %lf %lf", &properties[index + 0],
+              count = fscanf(File, "%lf %lf %lf %lf %lf %lf %lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2], 
                       &properties[index + 3], &properties[index + 4],
                       &properties[index + 5], &properties[index + 6],
                       &properties[index + 7], &properties[index + 8]);
+              assert(count == 9);
               // FILE_LOG_SINGLE(DEBUGLOG, "Part %d HGO properties (rho, mu, lambda, k1, k2) = "
               //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
               //         partID, properties[index + 0], properties[index + 1],

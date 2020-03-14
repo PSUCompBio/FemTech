@@ -1,5 +1,4 @@
 #include "FemTech.h"
-#include "blas.h"
 #include "jsonfuncs.h"
 #include "utilities.h"
 
@@ -72,11 +71,11 @@ double cm[3];
 
 int main(int argc, char **argv) {
   // Initialize FemTech including logfile and MPI
-  std::string uid = InitFemTech(argc, argv);
-  // Read the input file
-  Json::Value simulationJson = getConfig(argv[1]);
-  std::string meshFile = simulationJson["mesh"].asString();
+  Json::Value inputJson = InitFemTech(argc, argv);
+  std::string uid = inputJson["uid"].asString();
+  Json::Value simulationJson = inputJson["simulation"];
 
+  std::string meshFile = simulationJson["mesh"].asString();
   tMax = simulationJson["maximum-time"].asDouble();
   FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
   // Read Input Mesh file and equally partition elements among processes
@@ -207,6 +206,7 @@ int main(int argc, char **argv) {
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);
   } // end explcit while loop
+  FILE_LOG_MASTER(INFO, "End of Iterative Loop");
   FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Final Displacement Solution");
 
   WriteOutputFile(uid);

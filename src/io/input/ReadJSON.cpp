@@ -11,17 +11,17 @@ Json::Value getConfig(const char* inputFile) {
   std::ifstream ifs;
   ifs.open(inputFile);
   if (!ifs.is_open()) {
-    FILE_LOG_SINGLE(ERROR, "Failed to open configuration file");
-    TerminateFemTech(3);
+    fprintf(stdout, "Failed to open configuration file");
+    MPI_Abort(MPI_COMM_WORLD, 3);
   }
 
   Json::CharReaderBuilder builder;
   JSONCPP_STRING errs;
   if (!parseFromStream(builder, ifs, &root, &errs)) {
-    FILE_LOG_SINGLE(ERROR, "%s", errs.c_str());
-    TerminateFemTech(3);
+    fprintf(stdout, "%s", errs.c_str());
+    MPI_Abort(MPI_COMM_WORLD, 3);
   }
-  return root["simulation"];
+  return root;
 }
 
 void jsonToArray(double* array, const Json::Value& jsonArray) {

@@ -2,7 +2,7 @@ include(ExternalProject)
 
 ExternalProject_Add(
   JsonCpp
-  URL_MD5 1974803719976bcf0da18e0bf348ee3e
+  URL_MD5 c0c7cb32f10e10f2f5c49f513b0cd8eb
   URL "${CMAKE_CURRENT_SOURCE_DIR}/jsoncpp-1.8.4.zip"
   CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
              -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}

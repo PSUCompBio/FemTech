@@ -8,3 +8,4 @@ Set(materials_src
     )
 
 add_library(materials OBJECT ${materials_src})
+add_dependencies(materials JsonCpp)

@@ -4,3 +4,4 @@ Set(timestep_src
     )
 
 add_library(timestep OBJECT ${timestep_src})
+add_dependencies(timestep JsonCpp)

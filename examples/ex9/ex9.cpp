@@ -17,7 +17,7 @@ bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 
 int main(int argc, char **argv) {
-  InitFemTech(argc, argv);
+  InitFemTechWoInput(argc, argv);
 
   ReadInputFile(argv[1]);
   ReadMaterials();
@@ -173,6 +173,7 @@ int main(int argc, char **argv) {
       // Barrier not a must
       MPI_Barrier(MPI_COMM_WORLD);
     } // end explcit while loop
+    FILE_LOG_MASTER(INFO, "End of Iterative Loop");
 
     // Write out the last time step
     CustomPlot();
