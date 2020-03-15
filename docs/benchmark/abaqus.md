@@ -6,7 +6,7 @@ In order to test Femtech’s speed multiple test simulations were run on FEMTech
 
 ![Cube Deformation](../.gitbook/assets/cube.png)
 
-![Comparison with Abaqus](../.gitbook/assets/img208.png)
+![Comparison with Abaqus](../.gitbook/assets/straindisp.png)
 
 FEMTech and ABAQUS speeds get comparable at 8 processors and above and FEMTech is faster than ABAQUS at 16 processors.
 
