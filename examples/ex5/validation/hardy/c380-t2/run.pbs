@@ -1,0 +1,13 @@
+#PBS -l nodes=1:ppn=8
+#PBS -l mem=5gb
+#PBS -l walltime=01:00:00
+#PBS -j oe
+
+cd $PBS_O_WORKDIR
+
+# load module and then run abaqus
+module load cmake gcc/5.3.1 openmpi/1.10.1 blas/3.6.0 lapack/3.6.0
+echo "Job Started on 'hostname' at 'date'"
+mpirun -n 8 --mca btl_vader_single_copy_mechanism none --mca btl_sm_use_knem 0 --mca orte_base_help_aggregate 0  ../../../ex5 validation_C380-T2.json
+echo "Job ended at 'date'"
+

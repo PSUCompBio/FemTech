@@ -1,0 +1,89 @@
+set termoption dashed
+
+unset colorbox
+
+# nomirror means do not put tics on the opposite side of the plot
+set xtics nomirror
+set ytics nomirror
+
+# On the Y axis put a major tick every 5
+#set ytics 5
+
+# On both the x and y axes split each space in half and put a minor tic there
+#set mxtics 2
+#set mytics 2
+
+set grid xtics
+set grid ytics
+set grid mxtics
+set grid mytics
+
+# Set the range of our x and y axes
+#set xrange [1:10]
+#set yrange [-30:5]
+
+# scale plot canvas size
+set size square 0.9,0.9
+
+# set line style; can be: lines, linespoints, points, impulse
+set style data lines
+
+# Create some linestyles for our data
+# pt = point type (triangles, circles, squares, etc.)
+# ps = point size
+#set style line 1 lt 2 dt 2 lc rgb "red" lw 6 pt 2 ps 2
+#set style line 2 lt 2 dt 2 lc rgb "blue" lw 6 pt 3 ps 2
+
+
+set xtics font ",18"
+set ytics font ",18"
+set bmargin 8
+set xlabel "Time (ms)" offset 0,-2 font ",28"
+set ylabel "Acceleration (m/s^2)" offset -4,0 font ",28"
+
+# set location of legend
+set key right outside
+# set font size of legend
+set key font ",18"
+set term pngcairo dashed notransparent size 1200,960 dashlength .4
+#
+#
+set output "motionAcceleration.png"
+plot "motion.dat" using ($1 * 1000):2 ls 1 title "AccX",  \
+     "motion.dat" using ($1 * 1000):3 ls 2 title "AccY", \
+     "motion.dat" using ($1 * 1000):4 ls 2 title "AccZ"
+#
+#
+set xlabel "Time (ms)" offset 0,-2 font ",28"
+set ylabel "Velocity (m/s)" offset -4,0 font ",28"
+set output "motionVelocity.png"
+plot "motion.dat" using ($1 * 1000):5 ls 1 title "VelX",  \
+     "motion.dat" using ($1 * 1000):6 ls 2 title "VelY", \
+     "motion.dat" using ($1 * 1000):7 ls 2 title "VelZ" 
+#
+#
+set xlabel "Time (ms)" offset 0,-2 font ",28"
+set ylabel "Linear Displacement (m)" offset -4,0 font ",28"
+set output "motionLinearDisp.png"
+plot "motion.dat" using ($1 * 1000):8 ls 1 title "LinDispX",  \
+     "motion.dat" using ($1 * 1000):9 ls 2 title "LinDispY", \
+     "motion.dat" using ($1 * 1000):10 ls 2 title "LinDispZ" 
+#
+#
+set xlabel "Time (ms)" offset 0,-2 font ",28"
+set ylabel "Angular Acceleration (rad/s^2)" offset -4,0 font ",28"
+set output "motionAngularAccel.png"
+plot "motion.dat" using ($1 * 1000):11 ls 1 title "AngAccel"
+#
+#
+set xlabel "Time (ms)" offset 0,-2 font ",28"
+set ylabel "Angular Velocity (rad/s)" offset -4,0 font ",28"
+set output "motionAngularVel.png"
+plot "motion.dat" using ($1 * 1000):12 ls 1 title "AngVel"
+#
+#
+set xlabel "Time (ms)" offset 0,-2 font ",28"
+set ylabel "Angle (rads)" offset -4,0 font ",28"
+set output "motionAngle.png"
+plot "motion.dat" using ($1 * 1000):13 ls 1 title "Angle"
+
