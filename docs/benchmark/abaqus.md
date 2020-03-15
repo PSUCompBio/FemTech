@@ -4,7 +4,7 @@ In order to test Femtech’s speed multiple test simulations were run on FEMTech
 
 19683 elements cube (273): The original cube has a side of 1mm and is stretched in the y direction by 7mm. 
 
-![Cube Deformation](../.gitbook/assets/cube.png)
+![Cube Deformation](../.gitbook/assets/cube.PNG)
 
 ![Comparison with Abaqus](../.gitbook/assets/comparison.PNG)
 
