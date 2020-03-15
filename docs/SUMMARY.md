@@ -29,4 +29,5 @@
 * [External Programs](external-programs/README.md)
   * [BLAS/LAPACK](external-programs/blas-lapack.md)
   * [VTK](external-programs/vtk.md)
+* [Benchmarking](benchmarking.md)
 
