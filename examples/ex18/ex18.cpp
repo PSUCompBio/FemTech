@@ -25,6 +25,7 @@ void ApplyAccBoundaryConditions();
 int getImpactID(std::string location);
 void WriteOutputFile(std::string);
 void CalculateInjuryCriterions(void);
+void TransformMesh(const Json::Value& jsonInput);
 
 /* Global Variables/Parameters */
 double Time, dt;
@@ -89,6 +90,7 @@ int main(int argc, char **argv) {
   PartitionMesh();
 
   AllocateArrays();
+  TransformMesh(simulationJson);
   InitCustomPlot();
 
   // Initial settings for BC evaluations
@@ -184,15 +186,15 @@ int main(int argc, char **argv) {
     int writeFlag = time_step_counter%nsteps_plot;
     CheckEnergy(Time, writeFlag);
 
+    CalculateInjuryCriterions();
     if (writeFlag == 0) {
       FILE_LOG_MASTER(INFO, "Time : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt, tMax);
       plot_counter = plot_counter + 1;
-      CalculateInjuryCriterions();
 
-      FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
-      WriteVTU(outputFileName.c_str(), plot_counter);
       if (plot_counter < MAXPLOTSTEPS) {
         stepTime[plot_counter] = Time;
+        FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
+        WriteVTU(outputFileName.c_str(), plot_counter);
         WritePVD(outputFileName.c_str(), plot_counter);
       }
       CustomPlot();
@@ -245,7 +247,7 @@ void ApplyAccBoundaryConditions() {
   for (int i = 0; i < boundarySize; i++) {
     int index = boundaryID[i] * ndim;
     for (int j = 0; j < ndim; ++j) {
-      locV[j] = coordinates[index + j] - cm[j];
+      locV[j] = coordinates[index + j];
     }
     V[0] = 0.0; V[1] = locV[0]; V[2] = locV[1]; V[3] = locV[2];
     quaternionRotate(V, R, Rinv, Vp); // Vp = RVR^{-1}
@@ -266,9 +268,9 @@ void ApplyAccBoundaryConditions() {
 }
 
 void InitCustomPlot() {
-  double xPlot = -0.009213;
-  double yPlot = 0.046231;
-  double zPlot = 0.007533;
+  double xPlot = 0.046231 - cm[0];
+  double yPlot = -0.007533 - cm[1];
+  double zPlot = 0.009213 - cm[2];
   double tol = 1e-5;
 
   int idToPlot;
@@ -330,7 +332,6 @@ void CustomPlot() {
 
 void InitBoundaryCondition(const Json::Value& jsonInput) {
   static const double gC = 9.81;
-  GetBodyCenterofMass(cm);
   // Read input JSON for acceleration values
   if (jsonInput["linear-acceleration"].isObject()) { // Use time traces from file
     // Read linear acceleration and angular acceleration time traces
@@ -449,7 +450,7 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
       //Compute the axis of rotation
       double norm = 0.0;
       for (int i = 0; i < ndim; ++i) {
-        double ds = impactNodeCoord[i]-cm[i];
+        double ds = impactNodeCoord[i];
         angNormal[i] = ds;
         norm += ds*ds;
       }
@@ -673,6 +674,21 @@ void computeDerivatives(const state_type &y, state_type &ydot, const double t) {
 }
 
 void WriteOutputFile(std::string uid) {
+  // Find the gloabl min and max strain
+  parStructMax.value = maxStrain;
+  parStructMax.rank = world_rank;
+  MPI_Allreduce(MPI_IN_PLACE, &parStructMax, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
+  // maxStrain = parStructMax.value;
+
+  parStructMin.value = minStrain;
+  parStructMin.rank = world_rank;
+  MPI_Allreduce(MPI_IN_PLACE, &parStructMin, 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
+  // minStrain = parStructMin.value;
+
+  parStructSMax.value = maxShear;
+  parStructSMax.rank = world_rank;
+  MPI_Allreduce(MPI_IN_PLACE, &parStructSMax, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
+  // maxShear = parStructSMax.value;
   /* Calculate min and max strain location and send to master */
   // Copy max and min strain 
   if (parStructMin.rank == world_rank) {
@@ -750,7 +766,7 @@ void WriteOutputFile(std::string uid) {
     vec.append(Json::Value(maxRecv[0]));
     vec.append(Json::Value(maxRecv[1]));
     vec.append(Json::Value(maxRecv[2]));
-    output["principal-max-strain"]["value"] = maxStrain;
+    output["principal-max-strain"]["value"] = parStructMax.value;
     output["principal-max-strain"]["location"] = vec;
     output["principal-max-strain"]["time"] = maxRecv[3];
     output["principal-max-strain"]["global-element-id"] = globalIDMax[1];
@@ -758,7 +774,7 @@ void WriteOutputFile(std::string uid) {
     vec[0] = minRecv[0];
     vec[1] = minRecv[1];
     vec[2] = minRecv[2];
-    output["principal-min-strain"]["value"] = minStrain;
+    output["principal-min-strain"]["value"] = parStructMin.value;
     output["principal-min-strain"]["location"] = vec;
     output["principal-min-strain"]["time"] = minRecv[3];
     output["principal-min-strain"]["global-element-id"] = globalIDMax[0];
@@ -766,7 +782,7 @@ void WriteOutputFile(std::string uid) {
     vec[0] = shearRecv[0];
     vec[1] = shearRecv[1];
     vec[2] = shearRecv[2];
-    output["maximum-shear-strain"]["value"] = maxShear;
+    output["maximum-shear-strain"]["value"] = parStructSMax.value;
     output["maximum-shear-strain"]["location"] = vec;
     output["maximum-shear-strain"]["time"] = shearRecv[3];
     output["maximum-shear-strain"]["global-element-id"] = globalIDMax[2];
@@ -785,48 +801,132 @@ void WriteOutputFile(std::string uid) {
 void CalculateInjuryCriterions(void) {
   double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
   double currentStrainMax = 0.0, currentStrainMin = 0.0, currentShearMax = 0.0;
+  int currentMaxElem = 0, currentMinElem = 0, currentShearElem = 0;
   for (int i = 0; i < nelements; i++) {
-    CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, &currentStrainMinElem);
-    currentShearMaxElem = currentStrainMaxElem-currentStrainMinElem;
-    if (currentStrainMax < currentStrainMaxElem) {
-      currentStrainMax = currentStrainMaxElem;
-      maxElem = i;
+    if (materialID[pid[i]] != 0) {
+      CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, \
+          &currentStrainMinElem, &currentShearMaxElem);
+      if (currentStrainMax < currentStrainMaxElem) {
+        currentStrainMax = currentStrainMaxElem;
+        currentMaxElem = i;
+      }
+      if (currentStrainMin > currentStrainMinElem) {
+        currentStrainMin = currentStrainMinElem;
+        currentMinElem = i;
+      }
+      if (currentShearMax < currentShearMaxElem) {
+        currentShearMax = currentShearMaxElem;
+        currentShearElem = i;
+      }
+    } // calculating max and minimum strain over local elements
+    // Updating max and min time
+    if (currentStrainMax > maxStrain) {
+      maxT = Time;
+      maxElem = currentMaxElem;
+      maxStrain = currentStrainMax;
     }
-    if (currentStrainMin > currentStrainMinElem) {
-      currentStrainMin = currentStrainMinElem;
-      minElem = i;
+    if (currentStrainMin < minStrain) {
+      minT = Time;
+      minElem = currentMinElem;
+      minStrain = currentStrainMin;
     }
-    if (currentShearMax < currentShearMaxElem) {
-      currentShearMax = currentShearMaxElem;
-      shearElem = i;
+    if (currentShearMax > maxShear) {
+      maxShearT = Time;
+      shearElem = currentShearElem;
+      maxShear = currentShearMax;
     }
-  } // calculating max and minimum strain over local elements
-  // Updating max and min time
-  if (currentStrainMax > maxStrain) {
-    maxT = Time;
-    maxStrain = currentStrainMax;
   }
-  if (currentStrainMin < minStrain) {
-    minT = Time;
-    minStrain = currentStrainMin;
-  }
-  if (currentShearMax > maxShear) {
-    maxShearT = Time;
-    maxShear = currentShearMax;
-  }
-  // Find the gloabl min and max strain
-  parStructMax.value = maxStrain;
-  parStructMax.rank = world_rank;
-  MPI_Allreduce(MPI_IN_PLACE, &parStructMax, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
-  maxStrain = parStructMax.value;
+}
 
-  parStructMin.value = minStrain;
-  parStructMin.rank = world_rank;
-  MPI_Allreduce(MPI_IN_PLACE, &parStructMin, 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
-  minStrain = parStructMin.value;
-
-  parStructSMax.value = maxShear;
-  parStructSMax.rank = world_rank;
-  MPI_Allreduce(MPI_IN_PLACE, &parStructSMax, 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
-  maxShear = parStructSMax.value;
+void TransformMesh(const Json::Value& jsonInput) {
+  // Check if mesh-transformation key is present in the input json file
+  // If present transform mesh, otherwise subtract center of mass
+  GetBodyCenterofMass(cm);
+  if (!jsonInput["mesh-transformation"].empty()) {
+    double factor[ndim];
+    int index[ndim];
+    for (int i = 0; i < ndim; ++i) {
+      index[i] = -10;
+      std::string tr = jsonInput["mesh-transformation"][i].asString();
+      if (tr.length() == 2) {
+        switch(tr.at(1)) {
+          case 'x' : index[i] = 0;
+                     break;
+          case 'y' : index[i] = 1;
+                     break;
+          case 'z' : index[i] = 2;
+                     break;
+          default : FILE_LOG_MASTER(ERROR, "Mesh transformation has to be x/y/z");
+                    TerminateFemTech(12);
+                    break;
+        }
+        switch(tr.at(0)) {
+          case '-' : factor[i] = -1;
+                     break;
+          case '+' : factor[i] = 1;
+                     break;
+          default : FILE_LOG_MASTER(ERROR, "Prefix of axis not -/+, check input mesh-transformation");
+                    TerminateFemTech(12);
+                    break;
+        }
+      } else {
+        if (tr.length() == 1) {
+          factor[i] = 1;
+          switch(tr.at(0)) {
+            case 'x' : index[i] = 0;
+                      break;
+            case 'y' : index[i] = 1;
+                      break;
+            case 'z' : index[i] = 2;
+                      break;
+            default : FILE_LOG_MASTER(ERROR, "Mesh transformation has to be x/y/z");
+                      TerminateFemTech(12);
+                      break;
+          }
+        } else {
+          FILE_LOG_MASTER(ERROR, "Error in mesh transformation. Please check input file");
+          TerminateFemTech(12);
+        }
+      }
+    }
+    // Validate the input
+    int indexSum = index[0] + index[1] + index[2];
+    if (indexSum != 3) {
+      FILE_LOG_MASTER(ERROR, "Error in mesh transformation. x, y and z not present");
+      TerminateFemTech(12);
+    }
+    if ((index[0] != 0) && (index[1] != 0) && (index[2] != 0)) {
+      FILE_LOG_MASTER(ERROR, "Error in mesh transformation. x not present");
+      TerminateFemTech(12);
+    }
+    // Transform center of mass
+    double coordTemp[ndim];
+    // Transform center of mass based on the transformation
+    for (int i = 0; i < ndim; ++i) {
+      int transformedIndex = index[i];
+      coordTemp[transformedIndex] = cm[i]*factor[i];
+    }
+    // Assign cm array with transformed co-ordinates
+    for (int i = 0; i < ndim; ++i) {
+      cm[i] = coordTemp[i];
+    }
+    // Transform all corodinates and subtract center of mass.
+    // Transform all local co-ordinates
+    for (int j = 0; j < nNodes; ++j) {
+      for (int i = 0; i < ndim; ++i) {
+        int transformedIndex = index[i];
+        coordTemp[transformedIndex] = coordinates[i + ndim*j]*factor[i];
+      }
+      for (int i = 0; i < ndim; ++i) {
+        coordinates[i + ndim*j] = coordTemp[i] - cm[i];
+      }
+    }
+  } else {
+    // Subtract center of mass from co-ordinates
+    for (int j = 0; j < nNodes; ++j) {
+      for (int i = 0; i < ndim; ++i) {
+        coordinates[i + ndim*j] = coordinates[i + ndim*j] - cm[i];
+      }
+    }
+  }
 }

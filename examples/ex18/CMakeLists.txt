@@ -13,7 +13,7 @@ endif(ENABLE_MPI)
 
 file(INSTALL coarse_brain.inp DESTINATION .)
 file(INSTALL materials.dat DESTINATION .)
-file(INSTALL input.json DESTINATION .)
+file(INSTALL input_case9218Jietal2015.json DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
 
