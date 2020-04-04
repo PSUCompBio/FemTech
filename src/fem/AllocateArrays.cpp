@@ -1,5 +1,7 @@
 #include "FemTech.h"
 
+#include <string>
+
 double *displacements;
 double *velocities;
 double *velocities_half;
@@ -119,7 +121,8 @@ void AllocateArrays() {
       FILE_LOG_SINGLE(ERROR, "Error in allocating f_damp_prev array");
       TerminateFemTech(12);
     }
-    energyFile = fopen("energy.dat", "w");
+    std::string energyFileName = "energy_"+uid+".dat"; 
+    energyFile = fopen(energyFileName.c_str(), "w");
     fprintf(energyFile, "# Energy for FEM\n");
     fprintf(energyFile, "# Time  Winternal   Wexternal   WKE   total\n");
 

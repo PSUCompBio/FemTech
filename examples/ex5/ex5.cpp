@@ -23,7 +23,7 @@ void InitBoundaryCondition(const Json::Value& jsonInput);
 void updateBoundaryNeighbour(void);
 void ApplyAccBoundaryConditions();
 int getImpactID(std::string location);
-void WriteOutputFile(std::string);
+void WriteOutputFile();
 void CalculateInjuryCriterions(void);
 
 /* Global Variables/Parameters */
@@ -73,7 +73,6 @@ double cm[3];
 int main(int argc, char **argv) {
   // Initialize FemTech including logfile and MPI
   Json::Value inputJson = InitFemTech(argc, argv);
-  std::string uid = inputJson["uid"].asString();
   Json::Value simulationJson = inputJson["simulation"];
 
   std::string meshFile = simulationJson["mesh"].asString();
@@ -217,7 +216,7 @@ int main(int argc, char **argv) {
   FILE_LOG_MASTER(INFO, "End of Iterative Loop");
   FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Final Displacement Solution");
 
-  WriteOutputFile(uid);
+  WriteOutputFile();
   // Free local boundary condition related arrays
   free1DArray(boundaryID);
   free1DArray(linAccXt);
@@ -680,7 +679,7 @@ void computeDerivatives(const state_type &y, state_type &ydot, const double t) {
   }
 }
 
-void WriteOutputFile(std::string uid) {
+void WriteOutputFile() {
   // Find the gloabl min and max strain
   parStructMax.value = maxStrain;
   parStructMax.rank = world_rank;

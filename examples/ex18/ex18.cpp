@@ -18,12 +18,12 @@ using namespace boost::numeric::odeint;
 
 /*Declare Functions*/
 void CustomPlot();
-void InitCustomPlot();
+void InitCustomPlot(const Json::Value& jsonInput);
 void InitBoundaryCondition(const Json::Value& jsonInput);
 void updateBoundaryNeighbour(void);
 void ApplyAccBoundaryConditions();
 int getImpactID(std::string location);
-void WriteOutputFile(std::string);
+void WriteOutputFile();
 void CalculateInjuryCriterions(void);
 void TransformMesh(const Json::Value& jsonInput);
 
@@ -44,6 +44,13 @@ bool rankForCustomPlot;
 int *boundaryID = NULL;
 int boundarySize;
 double peakTime, tMax;
+/* Global variables for output */
+int *outputNodeList;
+int outputNodeCount = 0;
+MPI_Comm output_comm;
+MPI_File outputFilePtr;
+int output_size, output_rank;
+double *outputNodeRigidDisp;
 
 /* Variables to compute maximim and minimum strain */
 double maxStrain = 0.0, minStrain = 0.0, maxShear = 0.0;
@@ -73,7 +80,6 @@ double cm[3];
 int main(int argc, char **argv) {
   // Initialize FemTech including logfile and MPI
   Json::Value inputJson = InitFemTech(argc, argv);
-  std::string uid = inputJson["uid"].asString();
   Json::Value simulationJson = inputJson["simulation"];
 
   std::string meshFile = simulationJson["mesh"].asString();
@@ -91,7 +97,7 @@ int main(int argc, char **argv) {
 
   AllocateArrays();
   TransformMesh(simulationJson);
-  InitCustomPlot();
+  InitCustomPlot(simulationJson);
 
   // Initial settings for BC evaluations
   // Used if initial velocity and acceleration BC is to be set.
@@ -204,14 +210,14 @@ int main(int argc, char **argv) {
     dt = ExplicitTimeStepReduction * StableTimeStep();
 
     // Write out the last time step
-    CustomPlot();
+    // CustomPlot();
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);
   } // end explcit while loop
   FILE_LOG_MASTER(INFO, "End of Iterative Loop");
   FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Final Displacement Solution");
 
-  WriteOutputFile(uid);
+  WriteOutputFile();
   // Free local boundary condition related arrays
   free1DArray(boundaryID);
   free1DArray(linAccXt);
@@ -226,7 +232,12 @@ int main(int argc, char **argv) {
   free1DArray(angAccXv);
   free1DArray(angAccYv);
   free1DArray(angAccZv);
+  free1DArray(outputNodeList);
+  free1DArray(outputNodeRigidDisp);
 
+  if (rankForCustomPlot) {
+    MPI_File_close(&outputFilePtr);
+  }
   FinalizeFemTech();
   return 0;
 }
@@ -264,68 +275,144 @@ void ApplyAccBoundaryConditions() {
       accelerations[index+j] = 2.0*omegaVel[j] + omegaOmegaR[j] + ydotInt[6+j] + alphaR[j];
     }
   }
+  // Rotate points to plot to obtain their rigid displacements
+  if (rankForCustomPlot) {
+    for (int i = 0; i < outputNodeCount; i++) {
+      int index = outputNodeList[i] * ndim;
+      int index1 = i * ndim;
+      for (int j = 0; j < ndim; ++j) {
+        locV[j] = coordinates[index + j];
+      }
+      V[0] = 0.0; V[1] = locV[0]; V[2] = locV[1]; V[3] = locV[2];
+      quaternionRotate(V, R, Rinv, Vp); // Vp = RVR^{-1}
+      for (int j = 0; j < ndim; ++j) {
+        // Displacement
+        outputNodeRigidDisp[index1+j] = Vp[j+1] - locV[j] + yInt[9+j];
+      }
+    }
+  }
   return;
 }
 
-void InitCustomPlot() {
-  double xPlot = 0.046231 - cm[0];
-  double yPlot = -0.007533 - cm[1];
-  double zPlot = 0.009213 - cm[2];
-  double tol = 1e-5;
-
-  int idToPlot;
-  FILE *datFile;
+void InitCustomPlot(const Json::Value& jsonInput) {
   rankForCustomPlot = false;
-  int index;
-  const int x = 0;
-  const int y = 1;
-  const int z = 2;
-  int state = 0;
-  int cumState = 0;
+  if (!jsonInput["output-nodes"].empty()) {
+    int outputSize = jsonInput["output-nodes"].size();
+    int *outputNodes = (int*)malloc(outputSize*sizeof(int));
+    int *outputLocalNodes = (int*)malloc(outputSize*sizeof(int));
+    int *containsNode = (int*)calloc(outputSize, sizeof(int));
+    int *containsNodeCum = (int*)calloc(outputSize, sizeof(int));
+    // Store input node list to array
+    jsonToArrayInt(outputNodes, jsonInput["output-nodes"]);
 
-  for (int i = 0; i < nNodes; ++i) {
-    if (fabs(coordinates[ndim * i + x] - xPlot) < tol &&
-        fabs(coordinates[ndim * i + y] - yPlot) < tol &&
-        fabs(coordinates[ndim * i + z] - zPlot) < tol) {
-      nodeIDtoPlot = i;
+    // Check if node is present in the current process
+    for (int i = 0; i < outputSize; ++i) {
+      int nodeItem = outputNodes[i];
+      for (int j = 0; j < nNodes; ++j) {
+        if (globalNodeID[j] == nodeItem) {
+          containsNode[i] = 1;
+          outputLocalNodes[i] = j;
+          break;
+        }
+      }
+    }
+    // If multiple procs have same node use the lowest rank
+    MPI_Scan(containsNode, containsNodeCum, outputSize, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    for (int i = 0; i < outputSize; ++i) {
+      if (containsNode[i] == 1 && containsNodeCum[i] == 1) {
+        outputNodeCount = outputNodeCount + 1;
+      }
+    }
+    outputNodeList = (int*)malloc(outputNodeCount*sizeof(int));
+    int currentIndex = 0;
+    for (int i = 0; i < outputSize; ++i) {
+      if (containsNode[i] == 1 && containsNodeCum[i] == 1) {
+        outputNodeList[currentIndex] = outputLocalNodes[i];
+        currentIndex = currentIndex + 1;
+      }
+    }
+    assert(currentIndex == outputNodeCount);
+    if (outputNodeCount > 0) {
       rankForCustomPlot = true;
-      state = 1;
-      break;
     }
-  }
-  // If multiple procs have same node use the lowest rank
-  MPI_Scan(&state, &cumState, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-  if (rankForCustomPlot) {
-    if (cumState > 1) {
-      rankForCustomPlot = false;
-      return;
+    // Create communicator with process with output nodes
+    if (rankForCustomPlot) {
+      int color = 1;
+      MPI_Comm_split(MPI_COMM_WORLD, color, world_rank, &output_comm);
+    } else {
+      MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, world_rank, &output_comm);
     }
-    FILE_LOG_SINGLE(INFO, "nodeID for plot : %d (%15.9e, %15.9e, %15.9e)",
-          nodeIDtoPlot, coordinates[ndim * nodeIDtoPlot + x],
-          coordinates[ndim * nodeIDtoPlot + y],
-          coordinates[ndim * nodeIDtoPlot + z]);
-    datFile = fopen("plot.dat", "w");
-    fprintf(datFile, "# Results for Node %d\n", nodeIDtoPlot);
-    fprintf(datFile, "# Time  DispX    DispY   DispZ\n");
-    fclose(datFile);
-  }
+    if (rankForCustomPlot) {
+      // Get the number of processes in output communicator
+      MPI_Comm_size(output_comm, &output_size);
+      // Get the rank of the process in output communicator
+      MPI_Comm_rank(output_comm, &output_rank);
+      // Open output file and write header
+      std::string outFileStr = "plot_"+ uid + ".dat";
+      MPI_Info infoin;
+      MPI_Info_create(&infoin);
+      MPI_Info_set(infoin, "access_style", "write_once,random");
+      const char *outFileName = outFileStr.c_str();
+
+      int err;
+      err = MPI_File_open(output_comm, outFileName, MPI_MODE_EXCL|MPI_MODE_WRONLY|MPI_MODE_CREATE, infoin, &outputFilePtr);
+      if (err != MPI_SUCCESS) {
+        if (output_rank == 0) {
+          MPI_File_delete(outFileName, MPI_INFO_NULL);
+        }
+        MPI_Barrier(output_comm);
+        err = MPI_File_open(output_comm, outFileName, MPI_MODE_EXCL|MPI_MODE_WRONLY|MPI_MODE_CREATE, infoin, &outputFilePtr);
+        if (err != MPI_SUCCESS) {
+          FILE_LOG_SINGLE(ERROR, "Unable to open file to write co-ordinates");
+          TerminateFemTech(10);
+        }
+      }
+      // Write the header 
+      char *outputHeader = (char*)malloc(sizeof(char)*(10+outputNodeCount*60));
+      outputHeader[0] = 0;
+      if (output_rank == 0) {
+        sprintf(outputHeader, "#Time");
+      }       
+      for (int i = 0; i < outputNodeCount; ++i) {
+        int globalN = globalNodeID[outputNodeList[i]];
+        sprintf(outputHeader, "%s  Node%08d-DispX  Node%08d-DispY  Node%08d-DispZ", outputHeader, globalN, globalN, globalN);
+      }
+      if (output_rank == (output_size-1)) {
+        sprintf(outputHeader, "%s\n", outputHeader);
+      }
+      MPI_File_write_ordered(outputFilePtr, outputHeader, strlen(outputHeader), MPI_CHAR, MPI_STATUS_IGNORE);
+      free(outputHeader);
+      outputNodeRigidDisp = (double*)malloc(sizeof(double)*outputNodeCount*ndim);
+    }
+    free(outputNodes);
+    free(outputLocalNodes);
+    free(containsNode);
+    free(containsNodeCum);
+  }   
   return;
 }
 
 void CustomPlot() {
   if (rankForCustomPlot) {
-    const int x = 0;
-    const int y = 1;
-    const int z = 2;
-    const int index = nodeIDtoPlot * ndim;
-
-    FILE *datFile;
-    datFile = fopen("plot.dat", "a");
-    fprintf(datFile, "%15.9e %15.9e  %15.9e  %15.9e\n", Time,
-            displacements[index + x], displacements[index + y],
-            displacements[index + z]);
-
-    fclose(datFile);
+    // Write the output 
+    char *output = (char*)malloc(sizeof(char)*(17+outputNodeCount*51));
+    output[0] = 0;
+    if (output_rank == 0) {
+      sprintf(output, "%15.9e", Time);
+    }       
+    for (int i = 0; i < outputNodeCount; ++i) {
+      unsigned int plotNode = outputNodeList[i]*ndim;
+      unsigned int plotIndex = i*ndim;
+      sprintf(output, "%s %15.9e %15.9e %15.9e", output, \
+          displacements[plotNode]-outputNodeRigidDisp[plotIndex], \
+          displacements[plotNode+1]-outputNodeRigidDisp[plotIndex+1], \
+          displacements[plotNode+2]-outputNodeRigidDisp[plotIndex+2]);
+    }
+    if (output_rank == (output_size-1)) {
+      sprintf(output, "%s\n", output);
+    }
+    MPI_File_write_ordered(outputFilePtr, output, strlen(output), MPI_CHAR, MPI_STATUS_IGNORE);
+    free(output);
   }
   return;
 }
@@ -673,7 +760,7 @@ void computeDerivatives(const state_type &y, state_type &ydot, const double t) {
   }
 }
 
-void WriteOutputFile(std::string uid) {
+void WriteOutputFile() {
   // Find the gloabl min and max strain
   parStructMax.value = maxStrain;
   parStructMax.rank = world_rank;

@@ -30,3 +30,10 @@ void jsonToArray(double* array, const Json::Value& jsonArray) {
     array[i] = jsonArray[i].asDouble();
   }
 }
+
+void jsonToArrayInt(int* array, const Json::Value& jsonArray) {
+  int size = jsonArray.size();
+  for (int i = 0; i < size; ++i) {
+    array[i] = jsonArray[i].asInt();
+  }
+}

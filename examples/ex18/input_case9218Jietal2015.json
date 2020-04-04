@@ -1,4 +1,5 @@
 {
+  "uid": "case9218",
   "player": {
     "name" : "harry",
     "position" : "OL"
@@ -86,6 +87,8 @@
     // mesh-transformation means : x in femtech Mesh corresponds to y in the
     // validation case, y in femtech mesh corresponds to -z in the validation
     // case and z in femtech mesh corresponds to -x in the validation case
-    "mesh-transformation" : ["y", "-z", "-x"]
+    "mesh-transformation" : ["y", "-z", "-x"],
+    // Node ID List to post process
+    "output-nodes" : [16200, 16296, 37, 10072, 162, 1176, 81, 25]
   }
 }

@@ -10,6 +10,7 @@
 
 int world_rank;
 int world_size;
+std::string uid;
 
 Json::Value InitFemTech(int argc, char **argv) {
   // Initialize the MPI environment
@@ -27,14 +28,12 @@ Json::Value InitFemTech(int argc, char **argv) {
   Json::Value inputJson = getConfig(argv[1]);
   // create simulation unique id from time
   // Check if UID is present in input JSON
-  std::string uid;
   if (inputJson["uid"].empty()) {
     time_t t = time(0);   // get time now
     struct tm * now = localtime( & t );
     char buffer [80];
     strftime(buffer, 80, "%d_%m_%Y_%H_%M_%S", now);
     uid = buffer;
-    inputJson["uid"] = uid;
   } else {
     uid = inputJson["uid"].asString();
   }
@@ -64,7 +63,7 @@ void InitFemTechWoInput(int argc, char **argv) {
   struct tm * now = localtime( & t );
   char buffer [80];
   strftime(buffer, 80, "%d_%m_%Y_%H_%M_%S", now);
-  std::string uid = buffer;
+  uid = buffer;
   std::string logFile = "femtech_"+uid+".log";
 
   // Initialize the output log file
