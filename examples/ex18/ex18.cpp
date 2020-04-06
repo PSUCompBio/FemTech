@@ -990,7 +990,15 @@ void CalculateInjuryCriterions(void) {
 void TransformMesh(const Json::Value& jsonInput) {
   // Check if mesh-transformation key is present in the input json file
   // If present transform mesh, otherwise subtract center of mass
-  GetBodyCenterofMass(cm);
+  if (!jsonInput["head-cg"].empty()) {
+    cm[0] = jsonInput["head-cg"][0].asDouble();
+    cm[1] = jsonInput["head-cg"][1].asDouble();
+    cm[2] = jsonInput["head-cg"][2].asDouble();
+    FILE_LOG_MASTER(INFO, "Center of Mass used : (%15.9e, %15.9e, %15.9e)", cm[0], cm[1], cm[2]);
+  } else {
+    GetBodyCenterofMass(cm);
+    FILE_LOG_MASTER(INFO, "Brain+Skull Center of Mass used : (%15.9e, %15.9e, %15.9e)", cm[0], cm[1], cm[2]);
+  }
   if (!jsonInput["mesh-transformation"].empty()) {
     double factor[ndim];
     int index[ndim];
