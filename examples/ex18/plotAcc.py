@@ -15,7 +15,7 @@ plt.rcParams.update(params)
 
 # Remove comments in json string before parsing
 config = json.loads(re.sub("//.*","", \
-        open("input_case9218Jietal2015.json").read(),flags=re.MULTILINE))
+        open("input_C288-T3_Hardyetal2007.json").read(),flags=re.MULTILINE))
 settings = config["simulation"]
 tMax =settings["maximum-time"]*1000.0
 
@@ -34,7 +34,7 @@ plt.ylabel('Linear Acceleration (g)')
 plt.legend(loc='best')
 
 plt.xlim(0, tMax)
-plt.ylim(-linLimit, linLimit)
+# plt.ylim(-linLimit, linLimit)
 plt.savefig('linearAcceleration.png')
 
 xt = np.array(settings["angular-acceleration"]["xt"])
@@ -53,5 +53,5 @@ plt.ylabel(r'Angular Acceleration (rad/$s^2$)')
 plt.legend(loc='best')
 
 plt.xlim(0, tMax)
-plt.ylim(-angLimit, angLimit)
+# plt.ylim(-angLimit, angLimit)
 plt.savefig('angularAcceleration.png')
