@@ -151,7 +151,7 @@ void ShapeFunctions() {
       dshp_counter += (ndim * nShapeFunctions[i] * gpCount);
 			F_counter += (ndim*ndim*gpCount);
 			pk2_counter += 6; // six positions for 3D, it is symmetric
-			detF_counter +=1; // detF stored only at gauss point
+			detF_counter += gpCount; // detF stored only at gauss point
 			internals_counter += MAXINTERNALVARS * GaussPoints[i];
     }
     GaussPoints[i] = gpCount;
@@ -188,6 +188,16 @@ void ShapeFunctions() {
   F = (double *)calloc(F_counter, sizeof(double));
   detF = (double *)calloc(detF_counter, sizeof(double));
 	invF = (double *)calloc(F_counter, sizeof(double));
+  // Inititalize F to identity matrix
+  for (int i = 0; i < detF_counter; ++i) {
+    F[i*ndim*ndim] = 1.0;
+    F[i*ndim*ndim+4] = 1.0;
+    F[i*ndim*ndim+8] = 1.0;
+    invF[i*ndim*ndim] = 1.0;
+    invF[i*ndim*ndim+4] = 1.0;
+    invF[i*ndim*ndim+8] = 1.0;
+    detF[i] = 1.0;
+  }
 	internals = (double *)calloc(internals_counter, sizeof(double));
 	/*  size of PK2 stress is 6 values for each gauss point
 	  	the PK2 stress is symmetric */

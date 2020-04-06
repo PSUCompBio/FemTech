@@ -47,10 +47,13 @@ double peakTime, tMax;
 /* Global variables for output */
 int *outputNodeList;
 int outputNodeCount = 0;
+int *outputElemList;
+int outputElemCount = 0;
 MPI_Comm output_comm;
 MPI_File outputFilePtr;
 int output_size, output_rank;
 double *outputNodeRigidDisp;
+double *outputElemStress;
 
 /* Variables to compute maximim and minimum strain */
 double maxStrain = 0.0, minStrain = 0.0, maxShear = 0.0;
@@ -108,7 +111,6 @@ int main(int argc, char **argv) {
   int plot_counter = 0;
   WriteVTU(outputFileName.c_str(), plot_counter);
   stepTime[plot_counter] = Time;
-  CustomPlot();
 
   int time_step_counter = 0;
   /** Central Difference Method - Beta and Gamma */
@@ -118,6 +120,8 @@ int main(int argc, char **argv) {
   ShapeFunctions();
   /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
   AssembleLumpedMass();
+  // Needs to be after shapefunctions
+  CustomPlot();
 
   /* Obtain dt, according to Belytschko dt is calculated at end of getForce */
   dt = ExplicitTimeStepReduction * StableTimeStep();
@@ -233,6 +237,7 @@ int main(int argc, char **argv) {
   free1DArray(angAccYv);
   free1DArray(angAccZv);
   free1DArray(outputNodeList);
+  free1DArray(outputElemList);
   free1DArray(outputNodeRigidDisp);
 
   if (rankForCustomPlot) {
@@ -335,67 +340,109 @@ void InitCustomPlot(const Json::Value& jsonInput) {
     if (outputNodeCount > 0) {
       rankForCustomPlot = true;
     }
-    // Create communicator with process with output nodes
-    if (rankForCustomPlot) {
-      int color = 1;
-      MPI_Comm_split(MPI_COMM_WORLD, color, world_rank, &output_comm);
-    } else {
-      MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, world_rank, &output_comm);
-    }
-    if (rankForCustomPlot) {
-      // Get the number of processes in output communicator
-      MPI_Comm_size(output_comm, &output_size);
-      // Get the rank of the process in output communicator
-      MPI_Comm_rank(output_comm, &output_rank);
-      // Open output file and write header
-      std::string outFileStr = "plot_"+ uid + ".dat";
-      MPI_Info infoin;
-      MPI_Info_create(&infoin);
-      MPI_Info_set(infoin, "access_style", "write_once,random");
-      const char *outFileName = outFileStr.c_str();
-
-      int err;
-      err = MPI_File_open(output_comm, outFileName, MPI_MODE_EXCL|MPI_MODE_WRONLY|MPI_MODE_CREATE, infoin, &outputFilePtr);
-      if (err != MPI_SUCCESS) {
-        if (output_rank == 0) {
-          MPI_File_delete(outFileName, MPI_INFO_NULL);
-        }
-        MPI_Barrier(output_comm);
-        err = MPI_File_open(output_comm, outFileName, MPI_MODE_EXCL|MPI_MODE_WRONLY|MPI_MODE_CREATE, infoin, &outputFilePtr);
-        if (err != MPI_SUCCESS) {
-          FILE_LOG_SINGLE(ERROR, "Unable to open file to write co-ordinates");
-          TerminateFemTech(10);
-        }
-      }
-      // Write the header 
-      char *outputHeader = (char*)malloc(sizeof(char)*(10+outputNodeCount*60));
-      outputHeader[0] = 0;
-      if (output_rank == 0) {
-        sprintf(outputHeader, "#Time");
-      }       
-      for (int i = 0; i < outputNodeCount; ++i) {
-        int globalN = globalNodeID[outputNodeList[i]];
-        sprintf(outputHeader, "%s  Node%08d-DispX  Node%08d-DispY  Node%08d-DispZ", outputHeader, globalN, globalN, globalN);
-      }
-      if (output_rank == (output_size-1)) {
-        sprintf(outputHeader, "%s\n", outputHeader);
-      }
-      MPI_File_write_ordered(outputFilePtr, outputHeader, strlen(outputHeader), MPI_CHAR, MPI_STATUS_IGNORE);
-      free(outputHeader);
-      outputNodeRigidDisp = (double*)malloc(sizeof(double)*outputNodeCount*ndim);
-    }
     free(outputNodes);
     free(outputLocalNodes);
     free(containsNode);
     free(containsNodeCum);
   }   
+  if (!jsonInput["output-elements"].empty()) {
+    int outputSize = jsonInput["output-elements"].size();
+    int *outputElements = (int*)malloc(outputSize*sizeof(int));
+    int *outputLocalElements = (int*)malloc(outputSize*sizeof(int));
+    int *containsElement = (int*)calloc(outputSize, sizeof(int));
+    // Store input node list to array
+    jsonToArrayInt(outputElements, jsonInput["output-elements"]);
+
+    // Check if element is present in the current process
+    // TODO : Used the fact that global element ID is sorted and use binary
+    // search
+    for (int i = 0; i < outputSize; ++i) {
+      int elemItem = outputElements[i];
+      for (int j = 0; j < nelements; ++j) {
+        if (global_eid[j] == elemItem) {
+          containsElement[i] = 1;
+          outputLocalElements[i] = j;
+          outputElemCount = outputElemCount + 1;
+          break;
+        }
+      }
+    }
+    if (outputElemCount > 0) {
+      rankForCustomPlot = true;
+      outputElemList = (int*)malloc(sizeof(int)*outputElemCount);
+      int currentIndex = 0;
+      for (int i = 0; i < outputSize; ++i) {
+        if (containsElement[i]) {
+          outputElemList[currentIndex] = outputLocalElements[i];
+          currentIndex = currentIndex + 1;
+        }
+      }
+      assert(currentIndex == outputElemCount);
+    }
+    free(outputElements);
+    free(outputLocalElements);
+    free(containsElement);
+  }
+  // Create communicator with process with output nodes
+  if (rankForCustomPlot) {
+    int color = 1;
+    MPI_Comm_split(MPI_COMM_WORLD, color, world_rank, &output_comm);
+  } else {
+    MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, world_rank, &output_comm);
+  }
+  if (rankForCustomPlot) {
+    // Get the number of processes in output communicator
+    MPI_Comm_size(output_comm, &output_size);
+    // Get the rank of the process in output communicator
+    MPI_Comm_rank(output_comm, &output_rank);
+    // Open output file and write header
+    std::string outFileStr = "plot_"+ uid + ".dat";
+    MPI_Info infoin;
+    MPI_Info_create(&infoin);
+    MPI_Info_set(infoin, "access_style", "write_once,random");
+    const char *outFileName = outFileStr.c_str();
+
+    int err;
+    err = MPI_File_open(output_comm, outFileName, MPI_MODE_EXCL|MPI_MODE_WRONLY|MPI_MODE_CREATE, infoin, &outputFilePtr);
+    if (err != MPI_SUCCESS) {
+      if (output_rank == 0) {
+        MPI_File_delete(outFileName, MPI_INFO_NULL);
+      }
+      MPI_Barrier(output_comm);
+      err = MPI_File_open(output_comm, outFileName, MPI_MODE_EXCL|MPI_MODE_WRONLY|MPI_MODE_CREATE, infoin, &outputFilePtr);
+      if (err != MPI_SUCCESS) {
+        FILE_LOG_SINGLE(ERROR, "Unable to open file to write co-ordinates");
+        TerminateFemTech(10);
+      }
+    }
+    // Write the header 
+    char *outputHeader = (char*)malloc(sizeof(char)*(10+outputNodeCount*60+outputElemCount*40));
+    outputHeader[0] = 0;
+    if (output_rank == 0) {
+      sprintf(outputHeader, "#Time");
+    }       
+    for (int i = 0; i < outputNodeCount; ++i) {
+      int globalN = globalNodeID[outputNodeList[i]];
+      sprintf(outputHeader, "%s  Node%08d-DispX  Node%08d-DispY  Node%08d-DispZ", outputHeader, globalN, globalN, globalN);
+    }
+    for (int i = 0; i < outputElemCount; ++i) {
+      int globalE = global_eid[outputElemList[i]];
+      sprintf(outputHeader, "%s  Elem%08d-StreP  Elem%08d-StreS", outputHeader, globalE, globalE);
+    }
+    if (output_rank == (output_size-1)) {
+      sprintf(outputHeader, "%s\n", outputHeader);
+    }
+    MPI_File_write_ordered(outputFilePtr, outputHeader, strlen(outputHeader), MPI_CHAR, MPI_STATUS_IGNORE);
+    free(outputHeader);
+    outputNodeRigidDisp = (double*)malloc(sizeof(double)*outputNodeCount*ndim);
+  }
   return;
 }
 
 void CustomPlot() {
   if (rankForCustomPlot) {
     // Write the output 
-    char *output = (char*)malloc(sizeof(char)*(17+outputNodeCount*51));
+    char *output = (char*)malloc(sizeof(char)*(17+outputNodeCount*51+outputElemCount*34));
     output[0] = 0;
     if (output_rank == 0) {
       sprintf(output, "%15.9e", Time);
@@ -407,6 +454,20 @@ void CustomPlot() {
           displacements[plotNode]-outputNodeRigidDisp[plotIndex], \
           displacements[plotNode+1]-outputNodeRigidDisp[plotIndex+1], \
           displacements[plotNode+2]-outputNodeRigidDisp[plotIndex+2]);
+    }
+    double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
+    for (int i = 0; i < outputElemCount; ++i) {
+      unsigned int plotElem = outputElemList[i];
+      // Recalculation to decouple from Injury criterion
+      if (materialID[pid[plotElem]] != 0) {
+        CalculateMaximumPrincipalStrain(plotElem, &currentStrainMaxElem, \
+            &currentStrainMinElem, &currentShearMaxElem);
+      } else {
+        currentStrainMaxElem = 0.0;
+        currentShearMaxElem = 0.0;
+      }
+      sprintf(output, "%s %15.9e %15.9e", output, \
+          currentStrainMaxElem, currentShearMaxElem);
     }
     if (output_rank == (output_size-1)) {
       sprintf(output, "%s\n", output);
@@ -905,23 +966,24 @@ void CalculateInjuryCriterions(void) {
         currentShearMax = currentShearMaxElem;
         currentShearElem = i;
       }
-    } // calculating max and minimum strain over local elements
-    // Updating max and min time
-    if (currentStrainMax > maxStrain) {
-      maxT = Time;
-      maxElem = currentMaxElem;
-      maxStrain = currentStrainMax;
-    }
-    if (currentStrainMin < minStrain) {
-      minT = Time;
-      minElem = currentMinElem;
-      minStrain = currentStrainMin;
-    }
-    if (currentShearMax > maxShear) {
-      maxShearT = Time;
-      shearElem = currentShearElem;
-      maxShear = currentShearMax;
-    }
+      // calculating max and minimum strain over local elements
+      // Updating max and min time
+      if (currentStrainMax > maxStrain) {
+        maxT = Time;
+        maxElem = currentMaxElem;
+        maxStrain = currentStrainMax;
+      }
+      if (currentStrainMin < minStrain) {
+        minT = Time;
+        minElem = currentMinElem;
+        minStrain = currentStrainMin;
+      }
+      if (currentShearMax > maxShear) {
+        maxShearT = Time;
+        shearElem = currentShearElem;
+        maxShear = currentShearMax;
+      }
+    }   
   }
 }
 

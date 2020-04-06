@@ -33,22 +33,30 @@ void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
 	a = E[0]; b = E[1]; c = E[2];
 	d = E[4]; e = E[5]; f = E[8];
 
-	// charcteristic eq. : x^3 - I1*x^2 + I2*x -I3 = 0
-	double I1 = a + d + f;
-	double I2 = a*(d+f)+d*f-b*b-c*c-e*e;
-	double I3 = a*d*f+2.0*b*c*e-b*b*f-c*c*d-e*e*a;
-
-  // https://www.continuummechanics.org/principalstress.html
-  double Q = (3.0*I2-I1*I1)/9.0;
-  double R = (2.0*I1*I1*I1-9.0*I1*I2+27.0*I3)/54.0;
-  double theta = acos(R/sqrt(-Q*Q*Q));
-  double sqrtQ = 2.0*sqrt(-Q);
-  I1 = I1/3.0;
-
+  double p1 = b*b + c*c + e*e;
   double eps1, eps2, eps3;
-  eps1 = sqrtQ*cos(theta/3.0)+I1;
-  eps2 = sqrtQ*cos((theta+2.0*kPi)/3.0)+I1;
-  eps3 = sqrtQ*cos((theta+4.0*kPi)/3.0)+I1;
+  if (p1 == 0) {
+   // A is diagonal.
+   eps1 = a;
+   eps2 = d;
+   eps3 = f;
+  } else {
+    // charcteristic eq. : x^3 - I1*x^2 + I2*x -I3 = 0
+    double I1 = a + d + f;
+    double I2 = a*(d+f)+d*f-b*b-c*c-e*e;
+    double I3 = a*d*f+2.0*b*c*e-b*b*f-c*c*d-e*e*a;
+
+    // https://www.continuummechanics.org/principalstress.html
+    double Q = (3.0*I2-I1*I1)/9.0;
+    double R = (2.0*I1*I1*I1-9.0*I1*I2+27.0*I3)/54.0;
+    double theta = acos(R/sqrt(-Q*Q*Q));
+    double sqrtQ = 2.0*sqrt(-Q);
+    I1 = I1/3.0;
+
+    eps1 = sqrtQ*cos(theta/3.0)+I1;
+    eps2 = sqrtQ*cos((theta+2.0*kPi)/3.0)+I1;
+    eps3 = sqrtQ*cos((theta+4.0*kPi)/3.0)+I1;
+  }
   
   double min, max;
   max = fmax(eps3, fmax(eps2, eps1));
