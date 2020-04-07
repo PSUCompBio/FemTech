@@ -213,11 +213,14 @@ int main(int argc, char **argv) {
     time_step_counter = time_step_counter + 1;
     dt = ExplicitTimeStepReduction * StableTimeStep();
 
-    // Write out the last time step
-    // CustomPlot();
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);
   } // end explcit while loop
+  // Write output if last step results not written
+  int writeFlag = (time_step_counter-1)%nsteps_plot;
+  if (writeFlag != 0) {
+    CustomPlot();
+  }
   FILE_LOG_MASTER(INFO, "End of Iterative Loop");
   FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Final Displacement Solution");
 
@@ -344,6 +347,10 @@ void InitCustomPlot(const Json::Value& jsonInput) {
     free(outputLocalNodes);
     free(containsNode);
     free(containsNodeCum);
+    for (int i = 0; i < outputNodeCount; ++i) {
+      int nodeL = outputNodeList[i];
+      FILE_LOG_SINGLE(INFO, "Node ID : %d (%15.9e, %15.9e, %15.9e)", globalNodeID[nodeL], coordinates[nodeL*ndim], coordinates[nodeL*ndim+1], coordinates[nodeL*ndim+2]);
+    }
   }   
   if (!jsonInput["output-elements"].empty()) {
     int outputSize = jsonInput["output-elements"].size();
@@ -434,7 +441,7 @@ void InitCustomPlot(const Json::Value& jsonInput) {
     }
     MPI_File_write_ordered(outputFilePtr, outputHeader, strlen(outputHeader), MPI_CHAR, MPI_STATUS_IGNORE);
     free(outputHeader);
-    outputNodeRigidDisp = (double*)malloc(sizeof(double)*outputNodeCount*ndim);
+    outputNodeRigidDisp = (double*)calloc(outputNodeCount*ndim, sizeof(double));
   }
   return;
 }

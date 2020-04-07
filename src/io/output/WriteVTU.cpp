@@ -147,6 +147,12 @@ void WriteVTU(const char* FileName, int step) {
 			fprintf(fp,"\n");
 	}
 	fprintf(fp,"\t\t\t\t</DataArray>\n");
+	// write Global Node ID
+	fprintf(fp, "\t\t\t\t<DataArray type=\"Int32\" Name=\"GlobalNID\" format=\"ascii\">\n");
+	for (i = 0; i < nNodes; i++) {
+		fprintf(fp, "\t\t\t\t\t%d\n", globalNodeID[i]);
+	}
+	fprintf(fp, "\t\t\t\t</DataArray>\n");
 
 
 	fprintf(fp, "\t\t\t</PointData>\n");
@@ -182,6 +188,13 @@ void WriteVTU(const char* FileName, int step) {
 	fprintf(fp, "\t\t\t\t<DataArray type=\"Int32\" Name=\"ProcID\" format=\"ascii\">\n");
 	for (i = 0; i < nelements; i++) {
 		fprintf(fp, "\t\t\t\t\t%d\n", world_rank);
+	}
+	fprintf(fp, "\t\t\t\t</DataArray>\n");
+
+	// write Global Element ID
+	fprintf(fp, "\t\t\t\t<DataArray type=\"Int32\" Name=\"GlobalEID\" format=\"ascii\">\n");
+	for (i = 0; i < nelements; i++) {
+		fprintf(fp, "\t\t\t\t\t%d\n", global_eid[i]);
 	}
 	fprintf(fp, "\t\t\t\t</DataArray>\n");
 	fprintf(fp, "\t\t\t</CellData>\n");
@@ -221,6 +234,7 @@ void WriteVTU(const char* FileName, int step) {
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"Boundary\" "
 							 "NumberOfComponents=\"%d\" ComponentName0=\"X\" ComponentName1=\"Y\" "
 							 "ComponentName2=\"Z\" format=\"ascii\" />\n",ndim);
+		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"GlobalNID\"/>\n");
     fprintf(fp,"\t\t</PPointData>\n");
 
 		/*-----------CELL DATA -----------------*/
@@ -234,6 +248,7 @@ void WriteVTU(const char* FileName, int step) {
                     "ComponentName7=\"E23\" ComponentName8=\"E33\" "
                     "format=\"ascii\"/>\n",ndim*ndim);
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"ProcID\"/>\n");
+		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"GlobalEID\"/>\n");
     fprintf(fp,"\t\t</PCellData>\n");
     for (i = 0; i < world_size; ++i) {
       fprintf(fp,"\t\t<Piece Source=\"vtu/%s.vtu.%04d.%.4d\"/>\n", outfileP2,step, i);
