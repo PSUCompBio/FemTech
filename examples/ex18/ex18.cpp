@@ -457,12 +457,9 @@ void CustomPlot() {
     for (int i = 0; i < outputNodeCount; ++i) {
       unsigned int plotNode = outputNodeList[i]*ndim;
       unsigned int plotIndex = i*ndim;
-      // double xCord = displacements[plotNode]-outputNodeRigidDisp[plotIndex];
-      // double yCord = displacements[plotNode+1]-outputNodeRigidDisp[plotIndex+1];
-      // double zCord = displacements[plotNode+2]-outputNodeRigidDisp[plotIndex+2];
-      double xCord = displacements[plotNode]+coordinates[plotNode];
-      double yCord = displacements[plotNode+1]+coordinates[plotNode+1];
-      double zCord = displacements[plotNode+2]+coordinates[plotNode+2];
+      double xCord = displacements[plotNode]-outputNodeRigidDisp[plotIndex];
+      double yCord = displacements[plotNode+1]-outputNodeRigidDisp[plotIndex+1];
+      double zCord = displacements[plotNode+2]-outputNodeRigidDisp[plotIndex+2];
       sprintf(output, "%s %15.9e %15.9e %15.9e", output, xCord, yCord, zCord);
     }
     double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
