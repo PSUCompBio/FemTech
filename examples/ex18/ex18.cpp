@@ -430,11 +430,11 @@ void InitCustomPlot(const Json::Value& jsonInput) {
     }       
     for (int i = 0; i < outputNodeCount; ++i) {
       int globalN = globalNodeID[outputNodeList[i]];
-      sprintf(outputHeader, "%s  Node%08d-DispX  Node%08d-DispY  Node%08d-DispZ", outputHeader, globalN, globalN, globalN);
+      sprintf(outputHeader, "%s Node%08d-DispX Node%08d-DispY Node%08d-DispZ", outputHeader, globalN, globalN, globalN);
     }
     for (int i = 0; i < outputElemCount; ++i) {
       int globalE = global_eid[outputElemList[i]];
-      sprintf(outputHeader, "%s  Elem%08d-StreP  Elem%08d-StreS", outputHeader, globalE, globalE);
+      sprintf(outputHeader, "%s Elem%08d-StreP Elem%08d-StreS", outputHeader, globalE, globalE);
     }
     if (output_rank == (output_size-1)) {
       sprintf(outputHeader, "%s\n", outputHeader);
@@ -457,10 +457,13 @@ void CustomPlot() {
     for (int i = 0; i < outputNodeCount; ++i) {
       unsigned int plotNode = outputNodeList[i]*ndim;
       unsigned int plotIndex = i*ndim;
-      sprintf(output, "%s %15.9e %15.9e %15.9e", output, \
-          displacements[plotNode]-outputNodeRigidDisp[plotIndex], \
-          displacements[plotNode+1]-outputNodeRigidDisp[plotIndex+1], \
-          displacements[plotNode+2]-outputNodeRigidDisp[plotIndex+2]);
+      // double xCord = displacements[plotNode]-outputNodeRigidDisp[plotIndex];
+      // double yCord = displacements[plotNode+1]-outputNodeRigidDisp[plotIndex+1];
+      // double zCord = displacements[plotNode+2]-outputNodeRigidDisp[plotIndex+2];
+      double xCord = displacements[plotNode]+coordinates[plotNode];
+      double yCord = displacements[plotNode+1]+coordinates[plotNode+1];
+      double zCord = displacements[plotNode+2]+coordinates[plotNode+2];
+      sprintf(output, "%s %15.9e %15.9e %15.9e", output, xCord, yCord, zCord);
     }
     double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
     for (int i = 0; i < outputElemCount; ++i) {
