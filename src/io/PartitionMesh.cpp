@@ -525,7 +525,8 @@ void updateConnectivityGlobalToLocal(void) {
   // Copy sorted array to globalNodeID for pre and post processing
   globalNodeID = (int*)malloc(nNodes*sizeof(int));
   for (int i = 0; i < nNodes; ++i) {
-    globalNodeID[i] = sorted[i];
+    // Add 1 to shift to 1 based indexing
+    globalNodeID[i] = sorted[i]+1;
   }
   free(connectivity);
   connectivity = newConnectivity;
