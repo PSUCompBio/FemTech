@@ -36,6 +36,7 @@ bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
 int nPlotSteps = 50;
+int nWriteSteps = 2000;
 
 /* Global variables used only in this file */
 int nodeIDtoPlot;
@@ -135,6 +136,7 @@ int main(int argc, char **argv) {
 
   nSteps = (int)(tMax / dt);
   int nsteps_plot = (int)(nSteps / nPlotSteps);
+  int nsteps_write = (int)(nSteps / nWriteSteps);
 
   FILE_LOG_MASTER(INFO, "initial dt = %3.3e, nSteps = %d, nsteps_plot = %d", dt, nSteps,
            nsteps_plot);
@@ -194,9 +196,13 @@ int main(int argc, char **argv) {
 
     /** Step - 11 Checking* Energy Balance */
     int writeFlag = time_step_counter%nsteps_plot;
+    int writeFileFlag = time_step_counter%nsteps_write;
     CheckEnergy(Time, writeFlag);
 
     CalculateInjuryCriterions();
+    if (writeFileFlag == 0) {
+      CustomPlot();
+    }
     if (writeFlag == 0) {
       FILE_LOG_MASTER(INFO, "Time : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt, tMax);
       plot_counter = plot_counter + 1;
@@ -207,7 +213,6 @@ int main(int argc, char **argv) {
         WriteVTU(outputFileName.c_str(), plot_counter);
         WritePVD(outputFileName.c_str(), plot_counter);
       }
-      CustomPlot();
       FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Displacement Solution");
     }
     time_step_counter = time_step_counter + 1;
@@ -217,8 +222,8 @@ int main(int argc, char **argv) {
     MPI_Barrier(MPI_COMM_WORLD);
   } // end explcit while loop
   // Write output if last step results not written
-  int writeFlag = (time_step_counter-1)%nsteps_plot;
-  if (writeFlag != 0) {
+  int writeFileFlag = (time_step_counter-1)%nsteps_write;
+  if (writeFileFlag != 0) {
     CustomPlot();
   }
   FILE_LOG_MASTER(INFO, "End of Iterative Loop");

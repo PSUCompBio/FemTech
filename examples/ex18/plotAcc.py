@@ -2,9 +2,12 @@ import json, re
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 
-linLimit = 100.0;
-angLimit = 5000.0;
+filename = sys.argv[1]
+
+# linLimit = 100.0;
+# angLimit = 5000.0;
 
 params = {'legend.fontsize': 'xx-large',
          'axes.labelsize': 'xx-large',
@@ -14,8 +17,7 @@ params = {'legend.fontsize': 'xx-large',
 plt.rcParams.update(params)
 
 # Remove comments in json string before parsing
-config = json.loads(re.sub("//.*","", \
-        open("input_C288-T3_Hardyetal2007.json").read(),flags=re.MULTILINE))
+config = json.loads(re.sub("//.*","", open(filename).read(),flags=re.MULTILINE))
 settings = config["simulation"]
 tMax =settings["maximum-time"]*1000.0
 
@@ -26,9 +28,9 @@ yv = np.array(settings["linear-acceleration"]["yv"])
 zt = np.array(settings["linear-acceleration"]["zt"])
 zv = np.array(settings["linear-acceleration"]["zv"])
 
-plt.plot(xt, xv, 'r', linewidth=4.0, label='X');
-plt.plot(yt, yv, 'b', linewidth=4.0, label='Y');
-plt.plot(zt, zv, 'k', linewidth=4.0, label='Z');
+plt.plot(xt, xv, '-rx', linewidth=0.1, label='X');
+plt.plot(yt, yv, '-bx', linewidth=0.1, label='Y');
+plt.plot(zt, zv, '-kx', linewidth=0.1, label='Z');
 plt.xlabel('Time (ms)')
 plt.ylabel('Linear Acceleration (g)')
 plt.legend(loc='best')
@@ -45,9 +47,9 @@ zt = np.array(settings["angular-acceleration"]["zt"])
 zv = np.array(settings["angular-acceleration"]["zv"])
 
 plt.figure()
-plt.plot(xt, xv, 'r', linewidth=4.0, label='X');
-plt.plot(yt, yv, 'b', linewidth=4.0, label='Y');
-plt.plot(zt, zv, 'k', linewidth=4.0, label='Z');
+plt.plot(xt, xv, '-rx', linewidth=0.1, label='X');
+plt.plot(yt, yv, '-bx', linewidth=0.1, label='Y');
+plt.plot(zt, zv, '-kx', linewidth=0.1, label='Z');
 plt.xlabel('Time (ms)')
 plt.ylabel(r'Angular Acceleration (rad/$s^2$)')
 plt.legend(loc='best')

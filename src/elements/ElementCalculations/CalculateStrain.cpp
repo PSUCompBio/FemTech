@@ -61,7 +61,7 @@ void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
   double min, max;
   max = fmax(eps3, fmax(eps2, eps1));
   min = fmin(eps3, fmin(eps2, eps1));
-  *currentShearMax = max - min;
+  *currentShearMax = 0.5*(max - min);
   if (max > 0.0) {
     *currentStrainMax = max;
   } else {
