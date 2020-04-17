@@ -147,12 +147,12 @@ void WriteVTU(const char* FileName, int step) {
 			fprintf(fp,"\n");
 	}
 	fprintf(fp,"\t\t\t\t</DataArray>\n");
-	// write Global Node ID
-	fprintf(fp, "\t\t\t\t<DataArray type=\"Int32\" Name=\"GlobalNID\" format=\"ascii\">\n");
-	for (i = 0; i < nNodes; i++) {
-		fprintf(fp, "\t\t\t\t\t%d\n", globalNodeID[i]);
-	}
-	fprintf(fp, "\t\t\t\t</DataArray>\n");
+	// // write Global Node ID
+	// fprintf(fp, "\t\t\t\t<DataArray type=\"Int32\" Name=\"GlobalNID\" format=\"ascii\">\n");
+	// for (i = 0; i < nNodes; i++) {
+	// 	fprintf(fp, "\t\t\t\t\t%d\n", globalNodeID[i]);
+	// }
+	// fprintf(fp, "\t\t\t\t</DataArray>\n");
 
 
 	fprintf(fp, "\t\t\t</PointData>\n");
@@ -191,12 +191,12 @@ void WriteVTU(const char* FileName, int step) {
 	}
 	fprintf(fp, "\t\t\t\t</DataArray>\n");
 
-	// write Global Element ID
-	fprintf(fp, "\t\t\t\t<DataArray type=\"Int32\" Name=\"GlobalEID\" format=\"ascii\">\n");
-	for (i = 0; i < nelements; i++) {
-		fprintf(fp, "\t\t\t\t\t%d\n", global_eid[i]);
-	}
-	fprintf(fp, "\t\t\t\t</DataArray>\n");
+	// // write Global Element ID
+	// fprintf(fp, "\t\t\t\t<DataArray type=\"Int32\" Name=\"GlobalEID\" format=\"ascii\">\n");
+	// for (i = 0; i < nelements; i++) {
+	// 	fprintf(fp, "\t\t\t\t\t%d\n", global_eid[i]);
+	// }
+	// fprintf(fp, "\t\t\t\t</DataArray>\n");
 	fprintf(fp, "\t\t\t</CellData>\n");
 
 

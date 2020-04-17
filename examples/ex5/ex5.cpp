@@ -18,13 +18,14 @@ using namespace boost::numeric::odeint;
 
 /*Declare Functions*/
 void CustomPlot();
-void InitCustomPlot();
+void InitCustomPlot(const Json::Value& jsonInput);
 void InitBoundaryCondition(const Json::Value& jsonInput);
 void updateBoundaryNeighbour(void);
 void ApplyAccBoundaryConditions();
 int getImpactID(std::string location);
 void WriteOutputFile();
 void CalculateInjuryCriterions(void);
+void TransformMesh(const Json::Value& jsonInput);
 
 /* Global Variables/Parameters */
 double Time, dt;
@@ -35,6 +36,7 @@ bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 5e-8; // Set for max runtime of around 5 hrs on aws
 int nPlotSteps = 50;
+int nWriteSteps = 2000;
 
 /* Global variables used only in this file */
 int nodeIDtoPlot;
@@ -44,6 +46,16 @@ int *boundaryID = NULL;
 int boundarySize;
 double peakTime, tMax;
 bool writeField = true;
+/* Global variables for output */
+int *outputNodeList;
+int outputNodeCount = 0;
+int *outputElemList;
+int outputElemCount = 0;
+MPI_Comm output_comm;
+MPI_File outputFilePtr;
+int output_size, output_rank;
+double *outputNodeRigidDisp;
+double *outputElemStress;
 
 /* Variables to compute maximim and minimum strain */
 double maxStrain = 0.0, minStrain = 0.0, maxShear = 0.0;
@@ -76,7 +88,7 @@ int main(int argc, char **argv) {
   Json::Value simulationJson = inputJson["simulation"];
 
   std::string meshFile = simulationJson["mesh"].asString();
-  tMax = simulationJson["maximum-time"].asDouble();
+  tMax = simulationJson["maximum-time"].asDouble()/1000.0; // Convert to seconds
   if (!simulationJson["write-vtu"].empty()) {
     writeField = simulationJson["write-vtu"].asBool();
   }
@@ -92,7 +104,8 @@ int main(int argc, char **argv) {
   PartitionMesh();
 
   AllocateArrays();
-  // InitCustomPlot();
+  TransformMesh(simulationJson);
+  InitCustomPlot(simulationJson);
 
   // Initial settings for BC evaluations
   // Used if initial velocity and acceleration BC is to be set.
@@ -103,9 +116,9 @@ int main(int argc, char **argv) {
   int plot_counter = 0;
   if (writeField) {
     WriteVTU(outputFileName.c_str(), plot_counter);
+    WritePVD(outputFileName.c_str(), plot_counter);
   }
   stepTime[plot_counter] = Time;
-  // CustomPlot();
 
   int time_step_counter = 0;
   /** Central Difference Method - Beta and Gamma */
@@ -115,6 +128,8 @@ int main(int argc, char **argv) {
   ShapeFunctions();
   /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
   AssembleLumpedMass();
+  // Needs to be after shapefunctions
+  CustomPlot();
 
   /* Obtain dt, according to Belytschko dt is calculated at end of getForce */
   dt = ExplicitTimeStepReduction * StableTimeStep();
@@ -128,6 +143,13 @@ int main(int argc, char **argv) {
 
   nSteps = (int)(tMax / dt);
   int nsteps_plot = (int)(nSteps / nPlotSteps);
+  if (nsteps_plot == 0) {
+    nsteps_plot = nSteps;
+  }
+  int nsteps_write = (int)(nSteps / nWriteSteps);
+  if (nsteps_write == 0) {
+    nsteps_write = nSteps;
+  }
 
   FILE_LOG_MASTER(INFO, "initial dt = %3.3e, nSteps = %d, nsteps_plot = %d", dt, nSteps,
            nsteps_plot);
@@ -187,9 +209,13 @@ int main(int argc, char **argv) {
 
     /** Step - 11 Checking* Energy Balance */
     int writeFlag = time_step_counter%nsteps_plot;
+    int writeFileFlag = time_step_counter%nsteps_write;
     CheckEnergy(Time, writeFlag);
 
     CalculateInjuryCriterions();
+    if (writeFileFlag == 0) {
+      CustomPlot();
+    }
     if (writeFlag == 0) {
       FILE_LOG_MASTER(INFO, "Time : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt, tMax);
       plot_counter = plot_counter + 1;
@@ -202,17 +228,19 @@ int main(int argc, char **argv) {
           WritePVD(outputFileName.c_str(), plot_counter);
         }
       }
-      // CustomPlot();
       FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Displacement Solution");
     }
     time_step_counter = time_step_counter + 1;
     dt = ExplicitTimeStepReduction * StableTimeStep();
 
-    // Write out the last time step
-    // CustomPlot();
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);
   } // end explcit while loop
+  // Write output if last step results not written
+  int writeFileFlag = (time_step_counter-1)%nsteps_write;
+  if (writeFileFlag != 0) {
+    CustomPlot();
+  }
   FILE_LOG_MASTER(INFO, "End of Iterative Loop");
   FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Final Displacement Solution");
 
@@ -231,7 +259,13 @@ int main(int argc, char **argv) {
   free1DArray(angAccXv);
   free1DArray(angAccYv);
   free1DArray(angAccZv);
+  free1DArray(outputNodeList);
+  free1DArray(outputElemList);
+  free1DArray(outputNodeRigidDisp);
 
+  if (rankForCustomPlot) {
+    MPI_File_close(&outputFilePtr);
+  }
   FinalizeFemTech();
   return 0;
 }
@@ -252,7 +286,7 @@ void ApplyAccBoundaryConditions() {
   for (int i = 0; i < boundarySize; i++) {
     int index = boundaryID[i] * ndim;
     for (int j = 0; j < ndim; ++j) {
-      locV[j] = coordinates[index + j] - cm[j];
+      locV[j] = coordinates[index + j];
     }
     V[0] = 0.0; V[1] = locV[0]; V[2] = locV[1]; V[3] = locV[2];
     quaternionRotate(V, R, Rinv, Vp); // Vp = RVR^{-1}
@@ -269,75 +303,210 @@ void ApplyAccBoundaryConditions() {
       accelerations[index+j] = 2.0*omegaVel[j] + omegaOmegaR[j] + ydotInt[6+j] + alphaR[j];
     }
   }
+  // Rotate points to plot to obtain their rigid displacements
+  if (rankForCustomPlot) {
+    for (int i = 0; i < outputNodeCount; i++) {
+      int index = outputNodeList[i] * ndim;
+      int index1 = i * ndim;
+      for (int j = 0; j < ndim; ++j) {
+        locV[j] = coordinates[index + j];
+      }
+      V[0] = 0.0; V[1] = locV[0]; V[2] = locV[1]; V[3] = locV[2];
+      quaternionRotate(V, R, Rinv, Vp); // Vp = RVR^{-1}
+      for (int j = 0; j < ndim; ++j) {
+        // Displacement
+        outputNodeRigidDisp[index1+j] = Vp[j+1] - locV[j] + yInt[9+j];
+      }
+    }
+  }
   return;
 }
 
-void InitCustomPlot() {
-  double xPlot = -0.009213;
-  double yPlot = 0.046231;
-  double zPlot = 0.007533;
-  double tol = 1e-5;
-
-  int idToPlot;
-  FILE *datFile;
+void InitCustomPlot(const Json::Value& jsonInput) {
   rankForCustomPlot = false;
-  int index;
-  const int x = 0;
-  const int y = 1;
-  const int z = 2;
-  int state = 0;
-  int cumState = 0;
+  if (!jsonInput["output-nodes"].empty()) {
+    int outputSize = jsonInput["output-nodes"].size();
+    int *outputNodes = (int*)malloc(outputSize*sizeof(int));
+    int *outputLocalNodes = (int*)malloc(outputSize*sizeof(int));
+    int *containsNode = (int*)calloc(outputSize, sizeof(int));
+    int *containsNodeCum = (int*)calloc(outputSize, sizeof(int));
+    // Store input node list to array
+    jsonToArrayInt(outputNodes, jsonInput["output-nodes"]);
 
-  for (int i = 0; i < nNodes; ++i) {
-    if (fabs(coordinates[ndim * i + x] - xPlot) < tol &&
-        fabs(coordinates[ndim * i + y] - yPlot) < tol &&
-        fabs(coordinates[ndim * i + z] - zPlot) < tol) {
-      nodeIDtoPlot = i;
+    // Check if node is present in the current process
+    for (int i = 0; i < outputSize; ++i) {
+      int nodeItem = outputNodes[i];
+      for (int j = 0; j < nNodes; ++j) {
+        if (globalNodeID[j] == nodeItem) {
+          containsNode[i] = 1;
+          outputLocalNodes[i] = j;
+          break;
+        }
+      }
+    }
+    // If multiple procs have same node use the lowest rank
+    MPI_Scan(containsNode, containsNodeCum, outputSize, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    for (int i = 0; i < outputSize; ++i) {
+      if (containsNode[i] == 1 && containsNodeCum[i] == 1) {
+        outputNodeCount = outputNodeCount + 1;
+      }
+    }
+    outputNodeList = (int*)malloc(outputNodeCount*sizeof(int));
+    int currentIndex = 0;
+    for (int i = 0; i < outputSize; ++i) {
+      if (containsNode[i] == 1 && containsNodeCum[i] == 1) {
+        outputNodeList[currentIndex] = outputLocalNodes[i];
+        currentIndex = currentIndex + 1;
+      }
+    }
+    assert(currentIndex == outputNodeCount);
+    if (outputNodeCount > 0) {
       rankForCustomPlot = true;
-      state = 1;
-      break;
     }
+    free(outputNodes);
+    free(outputLocalNodes);
+    free(containsNode);
+    free(containsNodeCum);
+    for (int i = 0; i < outputNodeCount; ++i) {
+      int nodeL = outputNodeList[i];
+      FILE_LOG_SINGLE(INFO, "Node ID : %d (%15.9e, %15.9e, %15.9e)", globalNodeID[nodeL], coordinates[nodeL*ndim], coordinates[nodeL*ndim+1], coordinates[nodeL*ndim+2]);
+    }
+  }   
+  if (!jsonInput["output-elements"].empty()) {
+    int outputSize = jsonInput["output-elements"].size();
+    int *outputElements = (int*)malloc(outputSize*sizeof(int));
+    int *outputLocalElements = (int*)malloc(outputSize*sizeof(int));
+    int *containsElement = (int*)calloc(outputSize, sizeof(int));
+    // Store input node list to array
+    jsonToArrayInt(outputElements, jsonInput["output-elements"]);
+
+    // Check if element is present in the current process
+    // TODO : Used the fact that global element ID is sorted and use binary
+    // search
+    for (int i = 0; i < outputSize; ++i) {
+      int elemItem = outputElements[i];
+      for (int j = 0; j < nelements; ++j) {
+        if (global_eid[j] == elemItem) {
+          containsElement[i] = 1;
+          outputLocalElements[i] = j;
+          outputElemCount = outputElemCount + 1;
+          break;
+        }
+      }
+    }
+    if (outputElemCount > 0) {
+      rankForCustomPlot = true;
+      outputElemList = (int*)malloc(sizeof(int)*outputElemCount);
+      int currentIndex = 0;
+      for (int i = 0; i < outputSize; ++i) {
+        if (containsElement[i]) {
+          outputElemList[currentIndex] = outputLocalElements[i];
+          currentIndex = currentIndex + 1;
+        }
+      }
+      assert(currentIndex == outputElemCount);
+    }
+    free(outputElements);
+    free(outputLocalElements);
+    free(containsElement);
   }
-  // If multiple procs have same node use the lowest rank
-  MPI_Scan(&state, &cumState, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+  // Create communicator with process with output nodes
   if (rankForCustomPlot) {
-    if (cumState > 1) {
-      rankForCustomPlot = false;
-      return;
+    int color = 1;
+    MPI_Comm_split(MPI_COMM_WORLD, color, world_rank, &output_comm);
+  } else {
+    MPI_Comm_split(MPI_COMM_WORLD, MPI_UNDEFINED, world_rank, &output_comm);
+  }
+  if (rankForCustomPlot) {
+    // Get the number of processes in output communicator
+    MPI_Comm_size(output_comm, &output_size);
+    // Get the rank of the process in output communicator
+    MPI_Comm_rank(output_comm, &output_rank);
+    // Open output file and write header
+    std::string outFileStr = "plot_"+ uid + ".dat";
+    MPI_Info infoin;
+    MPI_Info_create(&infoin);
+    MPI_Info_set(infoin, "access_style", "write_once,random");
+    const char *outFileName = outFileStr.c_str();
+
+    int err;
+    err = MPI_File_open(output_comm, outFileName, MPI_MODE_EXCL|MPI_MODE_WRONLY|MPI_MODE_CREATE, infoin, &outputFilePtr);
+    if (err != MPI_SUCCESS) {
+      if (output_rank == 0) {
+        MPI_File_delete(outFileName, MPI_INFO_NULL);
+      }
+      MPI_Barrier(output_comm);
+      err = MPI_File_open(output_comm, outFileName, MPI_MODE_EXCL|MPI_MODE_WRONLY|MPI_MODE_CREATE, infoin, &outputFilePtr);
+      if (err != MPI_SUCCESS) {
+        FILE_LOG_SINGLE(ERROR, "Unable to open file to write co-ordinates");
+        TerminateFemTech(10);
+      }
     }
-    FILE_LOG_SINGLE(INFO, "nodeID for plot : %d (%15.9e, %15.9e, %15.9e)",
-          nodeIDtoPlot, coordinates[ndim * nodeIDtoPlot + x],
-          coordinates[ndim * nodeIDtoPlot + y],
-          coordinates[ndim * nodeIDtoPlot + z]);
-    datFile = fopen("plot.dat", "w");
-    fprintf(datFile, "# Results for Node %d\n", nodeIDtoPlot);
-    fprintf(datFile, "# Time  DispX    DispY   DispZ\n");
-    fclose(datFile);
+    // Write the header 
+    char *outputHeader = (char*)malloc(sizeof(char)*(10+outputNodeCount*60+outputElemCount*40));
+    outputHeader[0] = 0;
+    if (output_rank == 0) {
+      sprintf(outputHeader, "#Time");
+    }       
+    for (int i = 0; i < outputNodeCount; ++i) {
+      int globalN = globalNodeID[outputNodeList[i]];
+      sprintf(outputHeader, "%s Node%08d-DispX Node%08d-DispY Node%08d-DispZ", outputHeader, globalN, globalN, globalN);
+    }
+    for (int i = 0; i < outputElemCount; ++i) {
+      int globalE = global_eid[outputElemList[i]];
+      sprintf(outputHeader, "%s Elem%08d-StreP Elem%08d-StreS", outputHeader, globalE, globalE);
+    }
+    if (output_rank == (output_size-1)) {
+      sprintf(outputHeader, "%s\n", outputHeader);
+    }
+    MPI_File_write_ordered(outputFilePtr, outputHeader, strlen(outputHeader), MPI_CHAR, MPI_STATUS_IGNORE);
+    free(outputHeader);
+    outputNodeRigidDisp = (double*)calloc(outputNodeCount*ndim, sizeof(double));
   }
   return;
 }
 
 void CustomPlot() {
   if (rankForCustomPlot) {
-    const int x = 0;
-    const int y = 1;
-    const int z = 2;
-    const int index = nodeIDtoPlot * ndim;
-
-    FILE *datFile;
-    datFile = fopen("plot.dat", "a");
-    fprintf(datFile, "%15.9e %15.9e  %15.9e  %15.9e\n", Time,
-            displacements[index + x], displacements[index + y],
-            displacements[index + z]);
-
-    fclose(datFile);
+    // Write the output 
+    char *output = (char*)malloc(sizeof(char)*(17+outputNodeCount*51+outputElemCount*34));
+    output[0] = 0;
+    if (output_rank == 0) {
+      sprintf(output, "%15.9e", Time);
+    }       
+    for (int i = 0; i < outputNodeCount; ++i) {
+      unsigned int plotNode = outputNodeList[i]*ndim;
+      unsigned int plotIndex = i*ndim;
+      double xCord = displacements[plotNode]-outputNodeRigidDisp[plotIndex];
+      double yCord = displacements[plotNode+1]-outputNodeRigidDisp[plotIndex+1];
+      double zCord = displacements[plotNode+2]-outputNodeRigidDisp[plotIndex+2];
+      sprintf(output, "%s %15.9e %15.9e %15.9e", output, xCord, yCord, zCord);
+    }
+    double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
+    for (int i = 0; i < outputElemCount; ++i) {
+      unsigned int plotElem = outputElemList[i];
+      // Recalculation to decouple from Injury criterion
+      if (materialID[pid[plotElem]] != 0) {
+        CalculateMaximumPrincipalStrain(plotElem, &currentStrainMaxElem, \
+            &currentStrainMinElem, &currentShearMaxElem);
+      } else {
+        currentStrainMaxElem = 0.0;
+        currentShearMaxElem = 0.0;
+      }
+      sprintf(output, "%s %15.9e %15.9e", output, \
+          currentStrainMaxElem, currentShearMaxElem);
+    }
+    if (output_rank == (output_size-1)) {
+      sprintf(output, "%s\n", output);
+    }
+    MPI_File_write_ordered(outputFilePtr, output, strlen(output), MPI_CHAR, MPI_STATUS_IGNORE);
+    free(output);
   }
   return;
 }
 
 void InitBoundaryCondition(const Json::Value& jsonInput) {
   static const double gC = 9.81;
-  GetBodyCenterofMass(cm);
   // Read input JSON for acceleration values
   if (jsonInput["linear-acceleration"].isObject()) { // Use time traces from file
     // Read linear acceleration and angular acceleration time traces
@@ -413,7 +582,7 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
     accMax[0] = gC*jsonInput["linear-acceleration"][0].asDouble();
     accMax[1] = gC*jsonInput["linear-acceleration"][1].asDouble();
     accMax[2] = gC*jsonInput["linear-acceleration"][2].asDouble();
-    peakTime = jsonInput["time-peak-acceleration"].asDouble();
+    peakTime = jsonInput["time-peak-acceleration"].asDouble()/1000.0; //Convert to second
     linAccXSize = 3; linAccYSize = 3; linAccZSize = 3;
     linAccXt = (double*)calloc(linAccXSize, sizeof(double));
     linAccXv = (double*)calloc(linAccXSize, sizeof(double));
@@ -456,7 +625,7 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
       //Compute the axis of rotation
       double norm = 0.0;
       for (int i = 0; i < ndim; ++i) {
-        double ds = impactNodeCoord[i]-cm[i];
+        double ds = impactNodeCoord[i];
         angNormal[i] = ds;
         norm += ds*ds;
       }
@@ -622,10 +791,10 @@ void updateBoundaryNeighbour(void) {
 }
 
 int getImpactID(std::string location) {
-  const std::map<std::string, int> pointMap{ {"top-right", 5328}, \
-    {"top-left", 1749}, {"front-low", 2575}, {"front-high", 1967}, \
-    {"right-high", 5720}, {"bottom-front", 2575}, {"top-front", 1967}, \
-    {"top-rear", 1873}};
+  const std::map<std::string, int> pointMap{ {"top-right", 5329}, \
+    {"top-left", 1750}, {"front-low", 2576}, {"front-high", 1968}, \
+    {"right-high", 5721}, {"bottom-front", 2576}, {"top-front", 1968}, \
+    {"top-rear", 1874}};
     if (pointMap.find(location) == pointMap.end() ) {
       FILE_LOG_SINGLE(ERROR, "Impact location not found, check value of impact-point");
       TerminateFemTech(11);
@@ -824,22 +993,126 @@ void CalculateInjuryCriterions(void) {
         currentShearMax = currentShearMaxElem;
         currentShearElem = i;
       }
-    } // calculating max and minimum strain over local elements
-    // Updating max and min time
-    if (currentStrainMax > maxStrain) {
-      maxT = Time;
-      maxElem = currentMaxElem;
-      maxStrain = currentStrainMax;
+      // calculating max and minimum strain over local elements
+      // Updating max and min time
+      if (currentStrainMax > maxStrain) {
+        maxT = Time;
+        maxElem = currentMaxElem;
+        maxStrain = currentStrainMax;
+      }
+      if (currentStrainMin < minStrain) {
+        minT = Time;
+        minElem = currentMinElem;
+        minStrain = currentStrainMin;
+      }
+      if (currentShearMax > maxShear) {
+        maxShearT = Time;
+        shearElem = currentShearElem;
+        maxShear = currentShearMax;
+      }
+    }   
+  }
+}
+
+void TransformMesh(const Json::Value& jsonInput) {
+  // Check if mesh-transformation key is present in the input json file
+  // If present transform mesh, otherwise subtract center of mass
+  if (!jsonInput["head-cg"].empty()) {
+    cm[0] = jsonInput["head-cg"][0].asDouble();
+    cm[1] = jsonInput["head-cg"][1].asDouble();
+    cm[2] = jsonInput["head-cg"][2].asDouble();
+    FILE_LOG_MASTER(INFO, "Center of Mass used : (%15.9e, %15.9e, %15.9e)", cm[0], cm[1], cm[2]);
+  } else {
+    GetBodyCenterofMass(cm);
+    FILE_LOG_MASTER(INFO, "Brain+Skull Center of Mass used : (%15.9e, %15.9e, %15.9e)", cm[0], cm[1], cm[2]);
+  }
+  if (!jsonInput["mesh-transformation"].empty()) {
+    double factor[ndim];
+    int index[ndim];
+    for (int i = 0; i < ndim; ++i) {
+      index[i] = -10;
+      std::string tr = jsonInput["mesh-transformation"][i].asString();
+      if (tr.length() == 2) {
+        switch(tr.at(1)) {
+          case 'x' : index[i] = 0;
+                     break;
+          case 'y' : index[i] = 1;
+                     break;
+          case 'z' : index[i] = 2;
+                     break;
+          default : FILE_LOG_MASTER(ERROR, "Mesh transformation has to be x/y/z");
+                    TerminateFemTech(12);
+                    break;
+        }
+        switch(tr.at(0)) {
+          case '-' : factor[i] = -1;
+                     break;
+          case '+' : factor[i] = 1;
+                     break;
+          default : FILE_LOG_MASTER(ERROR, "Prefix of axis not -/+, check input mesh-transformation");
+                    TerminateFemTech(12);
+                    break;
+        }
+      } else {
+        if (tr.length() == 1) {
+          factor[i] = 1;
+          switch(tr.at(0)) {
+            case 'x' : index[i] = 0;
+                      break;
+            case 'y' : index[i] = 1;
+                      break;
+            case 'z' : index[i] = 2;
+                      break;
+            default : FILE_LOG_MASTER(ERROR, "Mesh transformation has to be x/y/z");
+                      TerminateFemTech(12);
+                      break;
+          }
+        } else {
+          FILE_LOG_MASTER(ERROR, "Error in mesh transformation. Please check input file");
+          TerminateFemTech(12);
+        }
+      }
     }
-    if (currentStrainMin < minStrain) {
-      minT = Time;
-      minElem = currentMinElem;
-      minStrain = currentStrainMin;
+    // Validate the input
+    int indexSum = index[0] + index[1] + index[2];
+    if (indexSum != 3) {
+      FILE_LOG_MASTER(ERROR, "Error in mesh transformation. x, y and z not present");
+      TerminateFemTech(12);
     }
-    if (currentShearMax > maxShear) {
-      maxShearT = Time;
-      shearElem = currentShearElem;
-      maxShear = currentShearMax;
+    if ((index[0] != 0) && (index[1] != 0) && (index[2] != 0)) {
+      FILE_LOG_MASTER(ERROR, "Error in mesh transformation. x not present");
+      TerminateFemTech(12);
+    }
+    // Transform center of mass
+    double coordTemp[ndim];
+    // Transform center of mass based on the transformation
+    for (int i = 0; i < ndim; ++i) {
+      int transformedIndex = index[i];
+      coordTemp[transformedIndex] = cm[i]*factor[i];
+    }
+    // Assign cm array with transformed co-ordinates
+    for (int i = 0; i < ndim; ++i) {
+      cm[i] = coordTemp[i];
+    }
+    // Transform all corodinates and subtract center of mass.
+    // Transform all local co-ordinates
+    for (int j = 0; j < nNodes; ++j) {
+      for (int i = 0; i < ndim; ++i) {
+        int transformedIndex = index[i];
+        coordTemp[transformedIndex] = coordinates[i + ndim*j]*factor[i];
+      }
+      for (int i = 0; i < ndim; ++i) {
+        coordinates[i + ndim*j] = coordTemp[i] - cm[i];
+      }
+    }
+  } else {
+    // Subtract center of mass from co-ordinates
+    for (int j = 0; j < nNodes; ++j) {
+      for (int i = 0; i < ndim; ++i) {
+        coordinates[i + ndim*j] = coordinates[i + ndim*j] - cm[i];
+      }
     }
   }
+  // Ensure rest of the code is executed after the mesh transformation
+  MPI_Barrier(MPI_COMM_WORLD);
 }

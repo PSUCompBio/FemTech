@@ -8,8 +8,9 @@
     "mesh" : "coarse_brain.inp",
     "linear-acceleration" : [30.0, 0.0, 0.0],
     "angular-acceleration" : 1500.0,
-    "time-peak-acceleration" : 0.02,
-    "maximum-time" : 0.04,
+    "time-peak-acceleration" : 20.0,
+    "maximum-time" : 40.0,
+    "mesh-transformation" : ["-y", "-z", "x"],
     "impact-point" : "front-low"
   }
 }

@@ -254,7 +254,7 @@
         -1413.8294, -1423.2846, -1412.9467, -1294.0319, -1294.0319 ]
     },
     // Maximum simulation time in millisec
-    "maximum-time" : 0.120,
+    "maximum-time" : 120.0,
     // mesh-transformation means : x in femtech Mesh corresponds to y in the
     // validation case, y in femtech mesh corresponds to -z in the validation
     // case and z in femtech mesh corresponds to -x in the validation case

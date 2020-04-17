@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
   Json::Value simulationJson = inputJson["simulation"];
 
   std::string meshFile = simulationJson["mesh"].asString();
-  tMax = simulationJson["maximum-time"].asDouble();
+  tMax = simulationJson["maximum-time"].asDouble()/1000.0; // Convert to seconds
   FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
   // Read Input Mesh file and equally partition elements among processes
   ReadInputFile(meshFile.c_str());
@@ -111,6 +111,7 @@ int main(int argc, char **argv) {
   Time = 0.0;
   int plot_counter = 0;
   WriteVTU(outputFileName.c_str(), plot_counter);
+  WritePVD(outputFileName.c_str(), plot_counter);
   stepTime[plot_counter] = Time;
 
   int time_step_counter = 0;
@@ -136,7 +137,13 @@ int main(int argc, char **argv) {
 
   nSteps = (int)(tMax / dt);
   int nsteps_plot = (int)(nSteps / nPlotSteps);
+  if (nsteps_plot == 0) {
+    nsteps_plot = nSteps;
+  }
   int nsteps_write = (int)(nSteps / nWriteSteps);
+  if (nsteps_write == 0) {
+    nsteps_write = nSteps;
+  }
 
   FILE_LOG_MASTER(INFO, "initial dt = %3.3e, nSteps = %d, nsteps_plot = %d", dt, nSteps,
            nsteps_plot);
@@ -567,7 +574,7 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
     accMax[0] = gC*jsonInput["linear-acceleration"][0].asDouble();
     accMax[1] = gC*jsonInput["linear-acceleration"][1].asDouble();
     accMax[2] = gC*jsonInput["linear-acceleration"][2].asDouble();
-    peakTime = jsonInput["time-peak-acceleration"].asDouble();
+    peakTime = jsonInput["time-peak-acceleration"].asDouble()/1000.0; //Convert to second
     linAccXSize = 3; linAccYSize = 3; linAccZSize = 3;
     linAccXt = (double*)calloc(linAccXSize, sizeof(double));
     linAccXv = (double*)calloc(linAccXSize, sizeof(double));
@@ -776,10 +783,10 @@ void updateBoundaryNeighbour(void) {
 }
 
 int getImpactID(std::string location) {
-  const std::map<std::string, int> pointMap{ {"top-right", 5328}, \
-    {"top-left", 1749}, {"front-low", 2575}, {"front-high", 1967}, \
-    {"right-high", 5720}, {"bottom-front", 2575}, {"top-front", 1967}, \
-    {"top-rear", 1873}};
+  const std::map<std::string, int> pointMap{ {"top-right", 5329}, \
+    {"top-left", 1750}, {"front-low", 2576}, {"front-high", 1968}, \
+    {"right-high", 5721}, {"bottom-front", 2576}, {"top-front", 1968}, \
+    {"top-rear", 1874}};
     if (pointMap.find(location) == pointMap.end() ) {
       FILE_LOG_SINGLE(ERROR, "Impact location not found, check value of impact-point");
       TerminateFemTech(11);
@@ -1098,4 +1105,6 @@ void TransformMesh(const Json::Value& jsonInput) {
       }
     }
   }
+  // Ensure rest of the code is executed after the mesh transformation
+  MPI_Barrier(MPI_COMM_WORLD);
 }
