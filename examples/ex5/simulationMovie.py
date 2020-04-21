@@ -5,6 +5,9 @@
 
 #### import the simple module from the paraview
 from paraview.simple import *
+import sys
+
+uid = sys.argv[1]
 #### disable automatic camera reset on 'Show'
 paraview.simple._DisableFirstRenderCameraReset()
 
@@ -15,7 +18,7 @@ animationScene1 = GetAnimationScene()
 timeKeeper1 = GetTimeKeeper()
 
 # create a new 'PVD Reader'
-coarse_brainpvd = PVDReader(FileName="coarse_brain.pvd")
+coarse_brainpvd = PVDReader(FileName="coarse_brain_"+uid+".pvd")
 coarse_brainpvd.CellArrays = ['PartID', 'AvgStrain', 'ProcID']
 coarse_brainpvd.PointArrays = ['Displacements', 'Accelerations', 'Boundary']
 
@@ -157,7 +160,7 @@ renderView1.CameraViewUp = [0.5635994966584945, -0.820879116725902, 0.0922663703
 renderView1.CameraParallelScale = 0.1210494059939952
 
 # save animation
-SaveAnimation('sim1.avi', renderView1, ImageResolution=[1084, 856],
+SaveAnimation('simulation_'+uid+'.avi', renderView1, ImageResolution=[1084, 856],
     FrameRate=20,
     FrameWindow=[0, 50])
 
