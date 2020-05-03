@@ -260,9 +260,9 @@
     // case and z in femtech mesh corresponds to -x in the validation case
     "mesh-transformation" : ["y", "-z", "-x"],
     // Node ID List to post process
-    "output-nodes" : [15780, 17023, 15696, 15773, 9190, 3956, 8731, 15885, 10131, 9211, 16712, 15729, 15810, 5199],
+    "output-nodes" : [10785, 17088, 16013, 16116, 17062, 16701, 16022, 10825, 17096, 17125, 16770, 16040, 16141, 16740],
     // Element list to print principal and shear stress
-    "output-elements" : [12984, 13333],
-    "head-cg" : [0.0, -0.3357, -0.0382]
+    "output-elements" : [14065, 14108],
+    "head-cg" : [0.0, -0.3328, -0.0345]
   }
 }
