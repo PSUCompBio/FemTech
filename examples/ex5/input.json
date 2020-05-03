@@ -10,7 +10,8 @@
     "angular-acceleration" : 1500.0,
     "time-peak-acceleration" : 20.0,
     "maximum-time" : 40.0,
-    "mesh-transformation" : ["-y", "-z", "x"],
+    "mesh-transformation" : ["-y", "z", "-x"],
+    "head-cg" : [0.0, -0.3328, -0.0345],
     "impact-point" : "front-low"
   }
 }

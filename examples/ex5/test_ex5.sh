@@ -17,7 +17,7 @@ if [ $simulationSuccess -eq 0 ]; then
     max_shear_id=`cat output_test.json| jq -r .'["maximum-shear-strain"]["global-element-id"]'`
     min_principal_id=`cat output_test.json| jq -r .'["principal-min-strain"]["global-element-id"]'`
     max_principal_id=`cat output_test.json| jq -r .'["principal-max-strain"]["global-element-id"]'`
-    if [ $max_shear_id != "12897" ] || [ $min_principal_id != "12897" ] || [ $max_principal_id != "9372" ]; then
+    if [ $max_shear_id != "12827" ] || [ $min_principal_id != "12827" ] || [ $max_principal_id != "12827" ]; then
       echo "Results do not match. Possible issue with code"
       exit 1
     else

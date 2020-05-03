@@ -160,18 +160,4 @@ renderView1.CameraViewUp = [0.5635994966584945, -0.820879116725902, 0.0922663703
 renderView1.CameraParallelScale = 0.1210494059939952
 
 # save animation
-SaveAnimation('simulation_'+uid+'.avi', renderView1, ImageResolution=[1084, 856],
-    FrameRate=20,
-    FrameWindow=[0, 50])
-
-#### saving camera placements for all active views
-
-# current camera placement for renderView1
-renderView1.CameraPosition = [0.1552542364739311, -0.38254250195511263, -0.49289536586670646]
-renderView1.CameraFocalPoint = [0.1158574080500003, -0.35728629249999966, -0.027543499999999835]
-renderView1.CameraViewUp = [0.5635994966584945, -0.820879116725902, 0.09226637030681739]
-renderView1.CameraParallelScale = 0.1210494059939952
-
-#### uncomment the following to render all views
-# RenderAllViews()
-# alternatively, if you want to write images, you can use SaveScreenshot(...).
+SaveAnimation('simulation_'+uid+'.png', renderView1, ImageResolution=[1084, 856], FrameWindow=[0, 50])

@@ -791,9 +791,9 @@ void updateBoundaryNeighbour(void) {
 }
 
 int getImpactID(std::string location) {
-  const std::map<std::string, int> pointMap{ {"top-right", 5329}, \
-    {"top-left", 1750}, {"front-low", 2576}, {"front-high", 1968}, \
-    {"right-high", 5721}, {"bottom-front", 2576}, {"top-front", 1968}, \
+  const std::map<std::string, int> pointMap{ {"top-right", 5285}, \
+    {"top-left", 1754}, {"front-low", 2576}, {"front-high", 1968}, \
+    {"right-high", 5677}, {"bottom-front", 2576}, {"top-front", 1968}, \
     {"top-rear", 1874}};
     if (pointMap.find(location) == pointMap.end() ) {
       FILE_LOG_SINGLE(ERROR, "Impact location not found, check value of impact-point");
