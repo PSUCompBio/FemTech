@@ -18,7 +18,7 @@ animationScene1 = GetAnimationScene()
 timeKeeper1 = GetTimeKeeper()
 
 # create a new 'PVD Reader'
-coarse_brainpvd = PVDReader(FileName="coarse_brain_"+uid+".pvd")
+coarse_brainpvd = PVDReader(FileName=uid+".pvd")
 coarse_brainpvd.CellArrays = ['PartID', 'AvgStrain', 'ProcID']
 coarse_brainpvd.PointArrays = ['Displacements', 'Accelerations', 'Boundary']
 
