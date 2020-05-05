@@ -5,6 +5,7 @@ double *velocities;
 double *velocities_half;
 double *accelerations;
 double *Eavg;
+double *lnV_avg;
 double *fe;
 double *fe_prev;
 double *fi;
@@ -69,6 +70,11 @@ void AllocateArrays() {
       FILE_LOG_SINGLE(ERROR, "Error in allocating Eavg array");
       TerminateFemTech(12);
     }
+		lnV_avg = (double*)calloc(nelements*ndim*ndim, sizeof(double));
+		if (!lnV_avg) {
+			FILE_LOG_SINGLE(ERROR, "Error in allocating lnV_avg array");
+			TerminateFemTech(12);
+		}
 		fe = (double*)calloc(nDOF, sizeof(double)); // External Nodal force vector
     if (!fe) {
       FILE_LOG_SINGLE(ERROR, "Error in allocating fe array");
@@ -136,7 +142,7 @@ void AllocateArrays() {
       if (materialID[i] == 3 || materialID[i] == 4 || materialID[i] == 5) {
         matCount = 4;
         break;
-      }    
+      }
     }
     const int matSize = ndim*ndim;
     mat1 = (double*)malloc(matSize*sizeof(double));

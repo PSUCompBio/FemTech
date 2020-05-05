@@ -49,7 +49,7 @@ void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
   eps1 = sqrtQ*cos(theta/3.0)+I1;
   eps2 = sqrtQ*cos((theta+2.0*kPi)/3.0)+I1;
   eps3 = sqrtQ*cos((theta+4.0*kPi)/3.0)+I1;
-  
+
   double min, max;
   max = fmax(eps3, fmax(eps2, eps1));
   min = fmin(eps3, fmin(eps2, eps1));
@@ -71,6 +71,8 @@ void CalculateStrain() {
     Eavg[i] = 0.0;
   }
   for (int elm = 0; elm < nelements; ++elm) {
+    /*The next line says local E is part of Eavg and starts from elm*matSize.
+    So when we assign to E, we are in effect assigning to Eavg.*/
     double *E = &Eavg[elm*matSize];
     const int countGP = GaussPoints[elm];
     double preFactor = 0.5/((double)countGP);

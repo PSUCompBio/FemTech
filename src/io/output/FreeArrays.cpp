@@ -43,6 +43,7 @@ void FreeArrays() {
 	free1DArray(detF);
 	free1DArray(invF);
 	free1DArray(Eavg);
+  free1DArray(lnV_avg);
 	free1DArray(detFptr);
 	free1DArray(InternalsPtr);
 	free1DArray(internals);

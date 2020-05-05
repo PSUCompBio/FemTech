@@ -57,6 +57,7 @@ void CalculateFR();
 void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
     double *currentStrainMin);
 void CalculateStrain();
+void Calculate_lnV();
 void CalculateDeformationGradient(int e, int gp);
 void SumOfDeformationGradient(int e, int gp);
 void StrainDisplacementMatrix(int e, int gp, int nI, double *B);

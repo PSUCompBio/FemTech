@@ -160,7 +160,7 @@ void WriteVTU(const char* FileName, int step) {
 	}
 	fprintf(fp,"\t\t\t\t</DataArray>\n");
 
-  fprintf(fp,"\t\t\t\t<DataArray type=\"Float64\" Name=\"AvgStrain\" "
+  fprintf(fp,"\t\t\t\t<DataArray type=\"Float64\" Name=\"AvgGLStrain\" "
                   "NumberOfComponents=\"%d\" ComponentName0=\"E11\" "
                   "ComponentName1=\"E21\" ComponentName2=\"E31\" "
                   "ComponentName3=\"E12\" ComponentName4=\"E22\" "

@@ -10,7 +10,7 @@ int nSteps;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
 
-int nPlotSteps = 50;
+int nPlotSteps = 100;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
@@ -46,8 +46,8 @@ int main(int argc, char **argv) {
   AssembleLumpedMass();
 
   /* obtain dt, according to Belytschko dt is calculated at end of getForce */
-  // dt = ExplicitTimeStepReduction * StableTimeStep();
-  dt = 2.5e-03;
+  dt = ExplicitTimeStepReduction * StableTimeStep();
+
   /* Step-2: getforce step from Belytschko */
   GetForce(); // Calculating the force term.
 
@@ -67,6 +67,8 @@ int main(int argc, char **argv) {
   double t_n = 0.0;
   FILE_LOG_MASTER(INFO, "------------------------------- Loop ----------------------------");
   FILE_LOG_MASTER(INFO, "Time : %15.6e, tmax : %15.6e", Time, tMax);
+  CalculateStrain();
+  Calculate_lnV();
   while (Time < tMax) {
     t_n = Time;
     double t_np1 = Time + dt;
@@ -104,11 +106,16 @@ int main(int argc, char **argv) {
 
     /** Step - 11 Checking* Energy Balance */
     int writeFlag = time_step_counter%nsteps_plot;
+
+    printf("%d, %d, %e writeFlag: %d\n",
+    time_step_counter,nsteps_plot,dt,writeFlag );
     CheckEnergy(Time, writeFlag);
 
     if (writeFlag == 0) {
       plot_counter = plot_counter + 1;
       FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
+      CalculateStrain();
+      Calculate_lnV();
       WriteVTU(outputFileName.c_str(), plot_counter);
       if (plot_counter < MAXPLOTSTEPS) {
         stepTime[plot_counter] = Time;
@@ -134,17 +141,26 @@ void ApplyBoundaryConditions(double dMax, double tMax) {
 
   for (int i = 0; i < nNodes; i++) {
     // x = x + k*y
-    boundary[ndim * i + 0] = 1;
-    displacements[ndim * i + 0] = AppliedDisp*coordinates[ndim*i+1];
-    count = count + 1;
-    // y = y
-    boundary[ndim * i + 1] = 1;
-    displacements[ndim * i + 1] = 0.0;
-    count = count + 1;
-    // z = z
-    boundary[ndim * i + 2] = 1;
-    displacements[ndim * i + 2] = 0.0;
-    count = count + 1;
+    if(fabs(coordinates[ndim*i+0] - 0.0)< 1e-8){
+      boundary[ndim * i + 0] = 1;
+      count = count + 1;
+    }
+    // y = y_MAX
+    if(fabs(coordinates[ndim*i+1] - 1.0)< 1e-8){
+      boundary[ndim * i + 1] = 1;
+      displacements[ndim * i + 1] = AppliedDisp*coordinates[ndim*i+1];
+      count = count + 1;
+    }
+    // y = y_MIN
+    if(fabs(coordinates[ndim*i+1] - 0.0)< 1e-8){
+      boundary[ndim * i + 1] = 1;
+      count = count + 1;
+    }
+    // z = z_min
+    if(fabs(coordinates[ndim*i+2] - 0.0)< 1e-8){
+      boundary[ndim * i + 2] = 1;
+      count = count + 1;
+    }
   }
   return;
 }
