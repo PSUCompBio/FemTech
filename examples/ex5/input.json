@@ -11,7 +11,7 @@
     "time-peak-acceleration" : 20.0,
     "maximum-time" : 40.0,
     "mesh-transformation" : ["-y", "z", "-x"],
-    "head-cg" : [0.0, -0.3328, -0.0345],
+    "head-cg" : [0.0, -0.3308, -0.0037],
     "impact-point" : "front-low"
   }
 }

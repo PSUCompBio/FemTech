@@ -234,7 +234,7 @@ void WriteVTU(const char* FileName, int step) {
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"Boundary\" "
 							 "NumberOfComponents=\"%d\" ComponentName0=\"X\" ComponentName1=\"Y\" "
 							 "ComponentName2=\"Z\" format=\"ascii\" />\n",ndim);
-		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"GlobalNID\"/>\n");
+		// fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"GlobalNID\"/>\n");
     fprintf(fp,"\t\t</PPointData>\n");
 
 		/*-----------CELL DATA -----------------*/
@@ -248,7 +248,7 @@ void WriteVTU(const char* FileName, int step) {
                     "ComponentName7=\"E23\" ComponentName8=\"E33\" "
                     "format=\"ascii\"/>\n",ndim*ndim);
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"ProcID\"/>\n");
-		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"GlobalEID\"/>\n");
+		// fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"GlobalEID\"/>\n");
     fprintf(fp,"\t\t</PCellData>\n");
     for (i = 0; i < world_size; ++i) {
       fprintf(fp,"\t\t<Piece Source=\"vtu/%s.vtu.%04d.%.4d\"/>\n", outfileP2,step, i);

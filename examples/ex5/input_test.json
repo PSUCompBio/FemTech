@@ -84,7 +84,7 @@
     },
     "maximum-time" : 1.0,
     "mesh-transformation" : ["-y", "z", "-x"],
-    "head-cg" : [0.0, -0.3328, -0.0345],
+    "head-cg" : [0.0, -0.3308, -0.0037],
     "write-vtu" : true
   }
 }
