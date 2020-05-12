@@ -45,6 +45,7 @@ COPY --from=buildFemTech ["/home/ubuntu/FemTech/build/examples/ex5/ex5", \
   "/home/ubuntu/FemTech/build/examples/ex5/materials.dat", \
   "/home/ubuntu/FemTech/build/examples/ex5/coarse_brain.inp", \
   "/home/ubuntu/FemTech/build/examples/ex5/simulationMovie.py", \
+  "/home/ubuntu/FemTech/build/examples/ex5/addGraph.py", \
   "/home/ubuntu/FemTechRun/"]
 
 # To create image : docker build --pull --cache-from nsfcareer/femtech:develop --cache-from nsfcareer/femtech:production --tag nsfcareer/femtech:production -f Dockerfile .
