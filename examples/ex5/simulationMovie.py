@@ -223,6 +223,14 @@ renderView4.Update()
 # reset view to fit data
 renderView4.ResetCamera()
 
+# Add new text box
+annotateTimeFilter2 = AnnotateTimeFilter(Input=threshold1)
+annotateTimeFilter2Display = Show(annotateTimeFilter2, renderView1, 'TextSourceRepresentation')
+annotateTimeFilter2.Format = 'Axes : J211'
+annotateTimeFilter2Display.WindowLocation = 'AnyLocation'
+annotateTimeFilter2Display.Position = [0.01, 0.8]
+renderView1.Update()
+
 # create a new 'Annotate Time Filter'
 annotateTimeFilter1 = AnnotateTimeFilter(Input=threshold1)
 
@@ -392,22 +400,22 @@ SetActiveView(renderView4)
 SetActiveView(renderView2)
 
 # current camera placement for renderView1
-renderView1.CameraPosition = [0.7265294586441694, 0.0, -0.028526000000000003]
-renderView1.CameraFocalPoint = [0.2920607317028677, 0.0, -0.028526000000000003]
+renderView1.CameraPosition = [0.9007775473613021, 0.0, -0.028526000000000003]
+renderView1.CameraFocalPoint = [0.46630882042000044, 0.0, -0.028526000000000003]
 renderView1.CameraViewUp = [0.0, 4.440892098500626e-16, -1.0]
 renderView1.CameraParallelScale = 0.11244878103385558
 
 # current camera placement for renderView2
-renderView2.CameraPosition = [-0.006787000000000001, 0.0, -0.8716079944838505]
-renderView2.CameraFocalPoint = [-0.006787000000000001, 0.0, -0.43713926754254834]
+renderView2.CameraPosition = [-0.006787000000000001, 0.0, -1.1683530781692515]
+renderView2.CameraFocalPoint = [-0.006787000000000001, 0.0, -0.73388435122795]
 renderView2.CameraViewUp = [-1.0, 2.220446049250313e-16, 0.0]
 renderView2.CameraParallelScale = 0.11244878103385558
 
 # current camera placement for renderView3
 
 # current camera placement for renderView4
-renderView4.CameraPosition = [-0.006787000000000001, -0.7952152082798101, -0.028526000000000003]
-renderView4.CameraFocalPoint = [-0.006787000000000001, -0.3607464813385082, -0.028526000000000003]
+renderView4.CameraPosition = [-0.006787000000000001, -0.9979077462412631, -0.028526000000000003]
+renderView4.CameraFocalPoint = [-0.006787000000000001, -0.5634390192999611, -0.028526000000000003]
 renderView4.CameraViewUp = [4.440892098500626e-16, 0.0, -1.0]
 renderView4.CameraParallelScale = 0.11244878103385558
 
