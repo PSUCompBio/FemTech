@@ -77,7 +77,7 @@ angMax = (int(np.max(angArray)/100)+2)*100
 for fileCount in range(count1):
     img = plt.imread("simulation_"+mesh+"_"+uid+".%04d.png"%fileCount)
 
-    figure = plt.figure()
+    figure = plt.figure(figsize=(11,8))
     plt.imshow(img)
     plt.axis('off')
     color1 = plt.cm.viridis(0.90)
