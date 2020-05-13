@@ -557,15 +557,15 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
     // Convert linear accelerations from g force to m/s^2
     // Convert time from milli-seconds to seconds
     for (int i = 0; i < linAccXSize; ++i) {
-      linAccXv[i] = gC*linAccXv[i];
+      // linAccXv[i] = gC*linAccXv[i];
       linAccXt[i] = 0.001*linAccXt[i];
     }
     for (int i = 0; i < linAccYSize; ++i) {
-      linAccYv[i] = gC*linAccYv[i];
+      // linAccYv[i] = gC*linAccYv[i];
       linAccYt[i] = 0.001*linAccYt[i];
     }
     for (int i = 0; i < linAccZSize; ++i) {
-      linAccZv[i] = gC*linAccZv[i];
+      // linAccZv[i] = gC*linAccZv[i];
       linAccZt[i] = 0.001*linAccZt[i];
     }
     for (int i = 0; i < angAccXSize; ++i) {

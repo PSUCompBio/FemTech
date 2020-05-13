@@ -47,7 +47,7 @@ if type(simulationJson["linear-acceleration"]) == dict:
     linArrayX = np.interp(tArray, linXt, linXv)
     linArrayY = np.interp(tArray, linYt, linYv)
     linArrayZ = np.interp(tArray, linZt, linZv)
-    linArray = np.sqrt(linArrayX**2+linArrayY**2+linArrayZ**2)
+    linArray = np.sqrt(linArrayX**2+linArrayY**2+linArrayZ**2)/9.81 # Convert to g's
     angArrayX = np.interp(tArray, angXt, angXv)
     angArrayY = np.interp(tArray, angYt, angYv)
     angArrayZ = np.interp(tArray, angZt, angZv)

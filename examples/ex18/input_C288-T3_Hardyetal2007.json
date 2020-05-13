@@ -263,6 +263,6 @@
     "output-nodes" : [10785, 17088, 16013, 16116, 17062, 16701, 16022, 10825, 17096, 17125, 16770, 16040, 16141, 16740],
     // Element list to print principal and shear stress
     "output-elements" : [14065, 14108],
-    "head-cg" : [0.0, -0.3328, -0.0345]
+    "head-cg" : [0.0, -0.3308, -0.037]
   }
 }
