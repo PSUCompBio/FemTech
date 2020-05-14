@@ -425,4 +425,4 @@ renderView3.OrientationAxesVisibility = 0
 
 # save animation
 SaveAnimation('simulation_'+uid+'.png', layout1_1, SaveAllViews=1,
-    ImageResolution=[1920, 1080], FrameWindow=[0, 50])
+    ImageResolution=[1920, 1080])
