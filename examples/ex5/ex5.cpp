@@ -81,6 +81,7 @@ runge_kutta_dopri5<state_type> rk;
 void computeDerivatives(const state_type &y, state_type &ydot, const double t);
 state_type yInt, ydotInt;
 double cm[3];
+double R[4], Rinv[4]; //quaternions
 
 int main(int argc, char **argv) {
   // Initialize FemTech including logfile and MPI
@@ -271,7 +272,7 @@ int main(int argc, char **argv) {
 }
 
 void ApplyAccBoundaryConditions() {
-  double r[4], R[4], Rinv[4], V[4], Vp[4]; //quaternions
+  double r[4], V[4], Vp[4]; //quaternions
   double omegaR[3], omega[3], omegaOmegaR[3], omegaVel[3], vel[3]; //vectors
   double alpha[3], alphaR[3], locV[3];
 
@@ -474,13 +475,17 @@ void CustomPlot() {
     if (output_rank == 0) {
       sprintf(output, "%15.9e", Time);
     }       
+    double v[4], vp[4];
     for (int i = 0; i < outputNodeCount; ++i) {
       unsigned int plotNode = outputNodeList[i]*ndim;
       unsigned int plotIndex = i*ndim;
       double xCord = displacements[plotNode]-outputNodeRigidDisp[plotIndex];
       double yCord = displacements[plotNode+1]-outputNodeRigidDisp[plotIndex+1];
       double zCord = displacements[plotNode+2]-outputNodeRigidDisp[plotIndex+2];
-      sprintf(output, "%s %15.9e %15.9e %15.9e", output, xCord, yCord, zCord);
+      // Output in anatomical co-ordinates
+      v[0] = 0.0; v[1] = xCord; v[2] = yCord; v[3] = zCord;
+      quaternionRotate(v, Rinv, R, vp); // Vp = R^{-1}VR
+      sprintf(output, "%s %15.9e %15.9e %15.9e", output, vp[1], vp[2], vp[3]);
     }
     double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
     for (int i = 0; i < outputElemCount; ++i) {
