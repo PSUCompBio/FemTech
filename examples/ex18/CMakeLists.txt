@@ -12,6 +12,7 @@ else()
 endif(ENABLE_MPI)
 
 file(INSTALL coarse_brain.inp DESTINATION .)
+file(INSTALL c288t3brain.inp DESTINATION .)
 file(INSTALL materials.dat DESTINATION .)
 file(INSTALL plotAcc.py DESTINATION .)
 file(INSTALL postProcess.py DESTINATION .)

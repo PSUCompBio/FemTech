@@ -5,7 +5,7 @@
     "position" : "OL"
   },
   "simulation": {
-    "mesh" : "coarse_brain.inp",
+    "mesh" : "c288t3brain.inp",
     "linear-acceleration": {
       "xt": [ 0.0, 0.4408, 0.7415, 1.077, 1.424, 2.2916, 3.2749, 3.8533, 4.1887,
         4.4316, 4.5473, 4.663, 4.8365, 4.8944, 5.0198, 5.119, 5.2183, 5.3175,
@@ -260,9 +260,9 @@
     // case and z in femtech mesh corresponds to -x in the validation case
     "mesh-transformation" : ["y", "-z", "-x"],
     // Node ID List to post process
-    "output-nodes" : [10785, 17088, 16013, 16116, 17062, 16701, 16022, 10825, 17096, 17125, 16770, 16040, 16141, 16740],
+    "output-nodes" : [10780, 17086, 16012, 16113, 16762, 16699, 15931, 10811, 17066, 16797, 16138, 16039, 16137, 16709],
     // Element list to print principal and shear stress
-    "output-elements" : [14065, 14108],
-    "head-cg" : [0.0, -0.3308, -0.037]
+    "output-elements" : [14064, 14103],
+    "head-cg" : [0.0, -0.328606, -0.037]
   }
 }
