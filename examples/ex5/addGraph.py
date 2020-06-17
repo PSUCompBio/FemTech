@@ -5,6 +5,8 @@ import sys
 import os
 import json
 
+nRes = 100
+
 jsonFile = sys.argv[1]
 inputJson = json.loads(open(jsonFile).read())
 uid = inputJson["uid"]
@@ -20,15 +22,23 @@ key1 = 'timestep'
 for elem in tree.iter():
     if (elem.tag=="DataSet"):
         count = count + 1
-tArray = np.zeros(count)
+tArrayRaw = np.zeros(count)
 count1 = 0
 
 for elem in tree.iter():
     if (elem.tag=="DataSet"):
-        tArray[count1] = float(elem.attrib[key1])
+        tArrayRaw[count1] = float(elem.attrib[key1])
         count1 = count1 + 1
 # Convert tArray to millisec
-tArray = tArray*1000
+tArrayRaw = tArrayRaw*1000
+
+countFull = (count-1)*nRes+1
+tArray = np.zeros(countFull)
+
+for tA in np.arange(count-1):
+    localT = np.linspace(tArrayRaw[tA], tArrayRaw[tA+1], nRes+1)
+    tArray[tA*nRes:(tA+1)*nRes] = localT[:-1]
+tArray[-1] = tArrayRaw[-1]
 
 if type(simulationJson["linear-acceleration"]) == dict:
     linXt = simulationJson["linear-acceleration"]["xt"]
@@ -83,17 +93,17 @@ for fileCount in range(count1):
     color1 = plt.cm.viridis(0.90)
     color2 = plt.cm.viridis(0.50)
 
-    tt = tArray[:fileCount+1]
+    tt = tArray[:fileCount*nRes+1]
     axes2 = figure.add_axes([0.58, 0.25, 0.25, 0.22]) # inset axes
 
     p1 = axes2.twinx()
 
-    l1, = axes2.plot(tt, linArray[:fileCount+1], color=color1, label="Linear")
+    l1, = axes2.plot(tt, linArray[:fileCount*nRes+1], color=color1, label="Linear")
     axes2.set_xlim(0, tMax);
     axes2.set_ylim(0, linMax);
 
     p1.set_ylim(0, angMax);
-    l2, = p1.plot(tt, angArray[:fileCount+1], color=color2, linestyle='--', label="Angular")
+    l2, = p1.plot(tt, angArray[:fileCount*nRes+1], color=color2, linestyle='--', label="Angular")
 
     axes2.set_facecolor((.80, .80, .80))
     label = axes2.set_xlabel("time [msec]", color="white")
