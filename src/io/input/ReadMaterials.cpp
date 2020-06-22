@@ -120,6 +120,21 @@ void ReadMaterials() {
               //         properties[index + 5], properties[index + 6], properties[index + 7],
               //         properties[index + 8]);
               break;
+      case 6 :// Viscoelastic material
+              // properties[0] = density
+              // properties[1] = K
+              // properties[2] = G_0
+              // properties[3] = G_\infity
+              // properties[4] = \beta
+              count = fscanf(File, "%lf %lf %lf %lf %lf", &properties[index + 0],
+                      &properties[index + 1], &properties[index + 2], 
+                      &properties[index + 3], &properties[index + 4]);
+              assert(count == 5);
+              // FILE_LOG_SINGLE(DEBUGLOG, "Part %d Viscoelastic properties (rho, K, G_0, G_infinity, beta) = "
+              //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
+              //         partID, properties[index + 0], properties[index + 1],
+              //         properties[index + 2], properties[index + 3], properties[index + 4]);
+              break;
       default :FILE_LOG_SINGLE(ERROR, "Material ID for Part %d not found", partID);
                 TerminateFemTech(3);
     }

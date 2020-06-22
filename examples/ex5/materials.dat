@@ -21,3 +21,4 @@
 # mat ID 4 - HGO Isotropic               : density mu lambda k1 k2
 # mat ID 5 - HGO Isotropic + Viscoelasticity  : density mu_0 lambda k1 k2 g1 t1 g2 t2
 # g1 t1 and g2 t2 are pairs of 2 term Prony series
+# mat ID 6 - Viscoelastic                : density(Kg/m^3) K(Pa) G_0(Pa) G_\infity(Pa) \beta(1/s)
