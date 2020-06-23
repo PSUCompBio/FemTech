@@ -2,7 +2,7 @@
 #include "blas.h"
 
 void ModifyMassAndStiffnessMatrix();
-void ComputeUnsteadyRHS(const int n, const int nMax, double* displacementFinal, \
+void ComputeUnsteadyRHS(const int n, const int nMaxT, double* displacementFinal, \
     const double a, const double b, const double c);
 
 void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double deltaT, \
@@ -16,7 +16,7 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double deltaT, \
   double *accelerationsOld = (double*)malloc(nDOF*sizeof(double));
   double *displacementsOld = (double*)malloc(nDOF*sizeof(double));
 
-  int nMax = (int)((timeFinal+1e-7)/deltaT);
+  int nMaxT = (int)((timeFinal+1e-7)/deltaT);
 
   // Precompute multipliers
   const double a = 1.0/(beta*deltaT*deltaT);
@@ -41,13 +41,13 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double deltaT, \
     FILE_LOG_SINGLE(ERROR, "LU Decomposition and solution failed with info code %d", info);
   }
 
-  for (int n = 1; n < nMax+1; ++n) {
+  for (int n = 1; n < nMaxT+1; ++n) {
     Time = n*deltaT;
     FILE_LOG_MASTER(INFO, "Time : %15.9e", Time);
     // Compute the RHS for the current time step
     memcpy(accelerationsOld, accelerations, nDOF*sizeof(double));
     memcpy(displacementsOld, displacements, nDOF*sizeof(double));
-    ComputeUnsteadyRHS(n, nMax, displacementFinal, a, b, c);
+    ComputeUnsteadyRHS(n, nMaxT, displacementFinal, a, b, c);
 
     dgetrs_(chn, &matSize, &oneI, stiffness, &matSize, pivot, rhs, &matSize, &info);
     if (info) {
@@ -182,7 +182,7 @@ void ModifyMassAndStiffnessMatrix() {
   return;
 }
 
-void ComputeUnsteadyRHS(const int n, const int nMax, double* displacementFinal, \
+void ComputeUnsteadyRHS(const int n, const int nMaxT, double* displacementFinal, \
     const double a, const double b, const double c) {
   int nRHS = nDOF-nSpecifiedDispBC;
   // Set rhs to zero
@@ -199,7 +199,7 @@ void ComputeUnsteadyRHS(const int n, const int nMax, double* displacementFinal, 
   // Set displacement at specified dofs from bc
   for (int i = 0; i < nDOF; ++i) {
     if(boundary[i] == 1) {
-      displacements[i] = ((double)n/(double)nMax)*displacementFinal[i];
+      displacements[i] = ((double)n/(double)nMaxT)*displacementFinal[i];
     }
   }
   // Include effect of eliminated columns
