@@ -964,6 +964,12 @@ void WriteOutputFile() {
 
     output["output-file"] = "coarse_brain.pvd";
 
+    // Write center of mass co-ordinates in JSON
+    vec[0] = cm[0];
+    vec[1] = cm[1];
+    vec[2] = cm[2];
+    output["center-of-mass"] = vec;
+
     Json::StreamWriterBuilder builder;
     builder["commentStyle"] = "None";
     builder["indentation"] = "  ";
@@ -1015,6 +1021,7 @@ void CalculateInjuryCriterions(void) {
 }
 
 void TransformMesh(const Json::Value& jsonInput) {
+  double cordAngularSensor[3];
   // Check if mesh-transformation key is present in the input json file
   // If present transform mesh, otherwise subtract center of mass
   if (!jsonInput["head-cg"].empty()) {
@@ -1025,6 +1032,18 @@ void TransformMesh(const Json::Value& jsonInput) {
   } else {
     GetBodyCenterofMass(cm);
     FILE_LOG_MASTER(INFO, "Brain+Skull Center of Mass used : (%15.9e, %15.9e, %15.9e)", cm[0], cm[1], cm[2]);
+  }
+  if (!jsonInput["angular-sensor-position"].empty()) {
+    cordAngularSensor[0] = jsonInput["angular-sensor-position"][0].asDouble();
+    cordAngularSensor[1] = jsonInput["angular-sensor-position"][1].asDouble();
+    cordAngularSensor[2] = jsonInput["angular-sensor-position"][2].asDouble();
+    FILE_LOG_MASTER(INFO, "Angular sensor data about : (%15.9e, %15.9e, %15.9e)", \
+        cordAngularSensor[0], cordAngularSensor[1], cordAngularSensor[2]);
+  } else {
+    for (unsigned int i = 0; i < ndim; ++i) {
+      cordAngularSensor[i] = cm[i];
+    }
+    FILE_LOG_MASTER(INFO, "Angular sensor data about center of mass");
   }
   if (!jsonInput["mesh-transformation"].empty()) {
     double factor[ndim];
@@ -1094,7 +1113,15 @@ void TransformMesh(const Json::Value& jsonInput) {
     for (int i = 0; i < ndim; ++i) {
       cm[i] = coordTemp[i];
     }
-    // Transform all corodinates and subtract center of mass.
+    // Transform angular sensor position
+    for (int i = 0; i < ndim; ++i) {
+      int transformedIndex = index[i];
+      coordTemp[transformedIndex] = cordAngularSensor[i]*factor[i];
+    }
+    for (int i = 0; i < ndim; ++i) {
+      cordAngularSensor[i] = coordTemp[i];
+    }
+    // Transform all corodinates and subtract angular sensor position.
     // Transform all local co-ordinates
     for (int j = 0; j < nNodes; ++j) {
       for (int i = 0; i < ndim; ++i) {
@@ -1102,15 +1129,23 @@ void TransformMesh(const Json::Value& jsonInput) {
         coordTemp[transformedIndex] = coordinates[i + ndim*j]*factor[i];
       }
       for (int i = 0; i < ndim; ++i) {
-        coordinates[i + ndim*j] = coordTemp[i] - cm[i];
+        coordinates[i + ndim*j] = coordTemp[i] - cordAngularSensor[i];
       }
     }
+    // Get center of mass wrt angular sensor position
+    for (int i = 0; i < ndim; ++i) {
+      cm[i] = cm[i] - cordAngularSensor[i];
+    }
   } else {
-    // Subtract center of mass from co-ordinates
+    // Subtract angular sensor position from co-ordinates
     for (int j = 0; j < nNodes; ++j) {
       for (int i = 0; i < ndim; ++i) {
-        coordinates[i + ndim*j] = coordinates[i + ndim*j] - cm[i];
+        coordinates[i + ndim*j] = coordinates[i + ndim*j] - cordAngularSensor[i];
       }
+    }
+    // Get center of mass wrt angular sensor position
+    for (int i = 0; i < ndim; ++i) {
+      cm[i] = cm[i] - cordAngularSensor[i];
     }
   }
   // Ensure rest of the code is executed after the mesh transformation
