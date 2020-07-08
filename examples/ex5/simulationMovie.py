@@ -224,12 +224,12 @@ renderView4.Update()
 renderView4.ResetCamera()
 
 # Add new text box
-annotateTimeFilter2 = AnnotateTimeFilter(Input=threshold1)
-annotateTimeFilter2Display = Show(annotateTimeFilter2, renderView1, 'TextSourceRepresentation')
-annotateTimeFilter2.Format = 'Axes : J211'
-annotateTimeFilter2Display.WindowLocation = 'AnyLocation'
-annotateTimeFilter2Display.Position = [0.01, 0.8]
-renderView1.Update()
+# annotateTimeFilter2 = AnnotateTimeFilter(Input=threshold1)
+# annotateTimeFilter2Display = Show(annotateTimeFilter2, renderView1, 'TextSourceRepresentation')
+# annotateTimeFilter2.Format = 'Axes : J211'
+# annotateTimeFilter2Display.WindowLocation = 'AnyLocation'
+# annotateTimeFilter2Display.Position = [0.01, 0.8]
+# renderView1.Update()
 
 # create a new 'Annotate Time Filter'
 annotateTimeFilter1 = AnnotateTimeFilter(Input=threshold1)

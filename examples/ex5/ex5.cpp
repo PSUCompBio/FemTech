@@ -652,6 +652,111 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
     angAccYv[1] = accMax[1]; 
     angAccZv[1] = accMax[2];
   }
+  // Convert angular to linear frame
+  if (!jsonInput["angular-to-linear-frame"].empty()) {
+    double factor[ndim];
+    int index[ndim];
+    for (int i = 0; i < ndim; ++i) {
+      index[i] = -10;
+      std::string tr = jsonInput["angular-to-linear-frame"][i].asString();
+      if (tr.length() == 2) {
+        switch(tr.at(1)) {
+          case 'x' : index[i] = 0;
+                     break;
+          case 'y' : index[i] = 1;
+                     break;
+          case 'z' : index[i] = 2;
+                     break;
+          default : FILE_LOG_MASTER(ERROR, "Transformation has to be x/y/z");
+                    TerminateFemTech(12);
+                    break;
+        }
+        switch(tr.at(0)) {
+          case '-' : factor[i] = -1;
+                     break;
+          case '+' : factor[i] = 1;
+                     break;
+          default : FILE_LOG_MASTER(ERROR, "Prefix of axis not -/+, check input transformation");
+                    TerminateFemTech(12);
+                    break;
+        }
+      } else {
+        if (tr.length() == 1) {
+          factor[i] = 1;
+          switch(tr.at(0)) {
+            case 'x' : index[i] = 0;
+                      break;
+            case 'y' : index[i] = 1;
+                      break;
+            case 'z' : index[i] = 2;
+                      break;
+            default : FILE_LOG_MASTER(ERROR, "Transformation has to be x/y/z");
+                      TerminateFemTech(12);
+                      break;
+          }
+        } else {
+          FILE_LOG_MASTER(ERROR, "Error in angular to linear frame transformation. Please check input file");
+          TerminateFemTech(12);
+        }
+      }
+    }
+    // Validate the input
+    int indexSum = index[0] + index[1] + index[2];
+    if (indexSum != 3) {
+      FILE_LOG_MASTER(ERROR, "Error in angular to linear frame transformation. x, y and z not present");
+      TerminateFemTech(12);
+    }
+    if ((index[0] != 0) && (index[1] != 0) && (index[2] != 0)) {
+      FILE_LOG_MASTER(ERROR, "Error in angular to linear frame transformation. x not present");
+      TerminateFemTech(12);
+    }
+    // Transform all angular acceleration values
+    // Transforming individual values rather than pointer rotation for
+    // readability
+    double accSize[ndim];
+    accSize[index[0]] = angAccXSize;
+    accSize[index[1]] = angAccYSize;
+    accSize[index[2]] = angAccZSize;
+    double *angAccTNew[ndim], *angAccVNew[ndim];
+    angAccTNew[0] = (double*)malloc(accSize[0]*sizeof(double));
+    angAccVNew[0] = (double*)malloc(accSize[0]*sizeof(double));
+    angAccTNew[1] = (double*)malloc(accSize[1]*sizeof(double));
+    angAccVNew[1] = (double*)malloc(accSize[1]*sizeof(double));
+    angAccTNew[2] = (double*)malloc(accSize[2]*sizeof(double));
+    angAccVNew[2] = (double*)malloc(accSize[2]*sizeof(double));
+
+    int transformedIndex = index[0];
+    for (int i = 0; i < angAccXSize; ++i) {
+      angAccTNew[transformedIndex][i] = angAccXt[i];
+      angAccVNew[transformedIndex][i] = angAccXv[i]*factor[0];
+    }
+    transformedIndex = index[1];
+    for (int i = 0; i < angAccYSize; ++i) {
+      angAccTNew[transformedIndex][i] = angAccYt[i];
+      angAccVNew[transformedIndex][i] = angAccYv[i]*factor[1];
+    }
+    transformedIndex = index[2];
+    for (int i = 0; i < angAccZSize; ++i) {
+      angAccTNew[transformedIndex][i] = angAccZt[i];
+      angAccVNew[transformedIndex][i] = angAccZv[i]*factor[2];
+    }
+
+    angAccXSize = accSize[0];
+    angAccYSize = accSize[1];
+    angAccZSize = accSize[2];
+    free(angAccXt);
+    free(angAccXv);
+    free(angAccYt);
+    free(angAccYv);
+    free(angAccZt);
+    free(angAccZv);
+    angAccXt = angAccTNew[0];
+    angAccXv = angAccVNew[0];
+    angAccYt = angAccTNew[1];
+    angAccYv = angAccVNew[1];
+    angAccZt = angAccTNew[2];
+    angAccZv = angAccVNew[2];
+  }
 
   double tol = 1e-5;
   // Find count of nodes with specified partID
