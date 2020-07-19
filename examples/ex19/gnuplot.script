@@ -19,7 +19,7 @@ set grid mxtics
 set grid mytics
 
 # Set the range of our x and y axes
-set xrange [0:0.1]
+set xrange [0:1]
 #set yrange [-30:5]
 
 # scale plot canvas size

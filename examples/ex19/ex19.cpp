@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
   // Dynamic Explcit solution using....
 
   dt = 0.0;
-  double tMax = 0.10; // max simulation time in seconds
+  double tMax = 1.0; // max simulation time in seconds
 
   int time_step_counter = 0;
   /** Central Difference Method - Beta and Gamma */
@@ -159,7 +159,7 @@ int main(int argc, char **argv) {
 void ApplyBoundaryConditions(double tMax) {
   double tol = 1e-5;
   double pressure = 100.0;
-  double area = 0.005*0.005/4.0;
+  double area = 0.005*0.005;
   double unit = pressure*area*0.25;
   // Apply Ramped Pressure
   double rampedUnit = Time*unit/tMax;
@@ -195,25 +195,8 @@ void ApplyBoundaryConditions(double tMax) {
     // if y coordinate = 1, apply force in y direction
     index = ndim * i + 1;
     if (fabs(coordinates[index] - 0.005) < tol) {
-      double xC = coordinates[index-1];
-      double zC = coordinates[index+1];
-      if (fabs(xC-0.0) < tol || fabs(xC-0.005) < tol) {
-        if (fabs(zC-0.0) < tol || fabs(zC-0.005) < tol) {
-          fe[index] = 1.0*rampedUnit;
-          total += rampedUnit;
-        } else {
-          fe[index] = 2.0*rampedUnit;
-          total += 2.0*rampedUnit;
-        }
-      } else {
-        if (fabs(zC-0.0) < tol || fabs(zC-0.005) < tol) {
-          fe[index] = 2.0*rampedUnit;
-          total += 2.0*rampedUnit;
-        } else {
-          fe[index] = 4.0*rampedUnit;
-          total += 4.0*rampedUnit;
-        }
-      }
+      fe[index] = rampedUnit;
+      total += rampedUnit;
     }
   }
   FILE_LOG_SINGLE(INFO, "Total pressure : %f", total/(0.005*0.005));
