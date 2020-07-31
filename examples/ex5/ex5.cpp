@@ -1028,6 +1028,12 @@ void WriteOutputFile() {
     MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7299, MPI_COMM_WORLD);
     MPI_Send(&global_eid[shearElem], 1, MPI_INT, 0, 7299, MPI_COMM_WORLD);
   }
+  // Compute the volume of all parts
+  double volumePart[nPIDglobal];
+  for (int i = 0; i < nPIDglobal; ++i) {
+    volumePart[i] = 0.0;
+  }
+  computePartVolume(volumePart);
   if (world_rank == 0) {
     double minRecv[4];
     double maxRecv[4];
@@ -1039,6 +1045,14 @@ void WriteOutputFile() {
     MPI_Recv(&globalIDMax[1], 1, MPI_INT, parStructMax.rank, 7298, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Recv(shearRecv, 4, MPI_DOUBLE, parStructSMax.rank, 7299, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Recv(&globalIDMax[2], 1, MPI_INT, parStructSMax.rank, 7299, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    int excludePID[2] = {0, 1};
+    double totalVolume = 0.0;
+    for (int i = 0; i < nPIDglobal; ++i) {
+      if (i == excludePID[0] || i == excludePID[1]) {
+        continue;
+      }
+      totalVolume += volumePart[i];
+    }
 
     Json::Value output;
     Json::Value vec(Json::arrayValue);
@@ -1074,6 +1088,9 @@ void WriteOutputFile() {
     vec[1] = cm[1];
     vec[2] = cm[2];
     output["center-of-mass"] = vec;
+
+    // Write brain volume in output.json
+    output["brain-volume"] = totalVolume;
 
     Json::StreamWriterBuilder builder;
     builder["commentStyle"] = "None";

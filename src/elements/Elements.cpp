@@ -25,3 +25,15 @@ void GetBodyCenterofMass(double *cm) {
     cm[j] = cm[j]/totalMass;
   }
 }
+
+/* Calculate volume of each partID */
+void computePartVolume(double *volume) {
+  int pide;
+  double volumeE;
+  for (int i = 0; i < nelements; ++i) {
+    volumeE = calculateVolume(i);
+    pide = pid[i];
+    volume[pide] = volume[pide] + volumeE;
+  }
+  MPI_Allreduce(MPI_IN_PLACE, volume, nPIDglobal, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+}
