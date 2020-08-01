@@ -27,7 +27,7 @@ do
   if [ -e $output_filename ]; then
     rm $output_filename
   fi
-  mpirun --oversubscribe -np 8 -mca btl_vader_single_copy_mechanism none ex5 $input_filename
+  mpirun --oversubscribe -np 8 -mca btl_base_warn_component_unused 0 -mca btl_vader_single_copy_mechanism none ex5 $input_filename
   simulationSuccess=$?
   if [ $simulationSuccess -eq 0 ]; then
     if [ -e $output_filename ]; then
