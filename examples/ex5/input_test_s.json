@@ -6,12 +6,26 @@
   },
   "simulation": {
     "mesh" : "coarse_brain.inp",
-    "linear-acceleration" : [3.0, 0.0, 0.0],
-    "angular-acceleration" : [15.0, 10.0, 10.0],
-    "time-peak-acceleration" : 0.2,
-    "maximum-time" : 0.4,
+    "linear-acceleration": {
+        "xv": [ 0, 10, 0 ],
+        "xt": [0, 20, 40],
+        "yv": [ 0, 10, 0 ],
+        "yt": [0, 20, 40],
+        "zv": [ 0, 10, 0 ],
+        "zt": [0, 20, 40]
+    },
+    "angular-acceleration": {
+        "xv": [ 0, 0, 0 ],
+        "xt": [0, 20, 40],
+        "yv": [ 0, 0, 0 ],
+        "yt": [0, 20, 40],
+        "zv": [ 0, 0, 0 ],
+        "zt": [0, 20, 40]
+    },
+    "maximum-time": 0.4,
     "mesh-transformation" : ["-z", "-x", "y"],
     "head-cg" : [0.0, -0.3308, -0.037],
+    "angular-sensor-position": [ 0.025, -0.281, -0.089757 ],
     "write-vtu" : false
   }
 }

@@ -12,7 +12,7 @@ testInputFiles=( p1 pt x s )
 # max-principal
 value_p1=( 4185 4185 4185 )
 value_pt=( 4749 16263 4749 )
-value_s=( 5299 5299 5167 )
+value_s=( 6530 12602 6662 )
 value_x=( 4419 9769 9774 )
 
 # Run all tests and check output
