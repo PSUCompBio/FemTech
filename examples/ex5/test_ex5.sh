@@ -21,7 +21,7 @@ do
   input_filename="input_test_${name}.json"
 	echo "Input file name : ${input_filename}"
   uid=`cat ${input_filename}|jq -r .'["uid"]'`
-  output_filename="output_${uid}.json"
+  output_filename="${uid}_output.json"
   eval expectedVal=( \${value_$name[@]} )
   # Delete output file if it exists
   if [ -e $output_filename ]; then

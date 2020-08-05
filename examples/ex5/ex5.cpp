@@ -1096,7 +1096,7 @@ void WriteOutputFile() {
     builder["commentStyle"] = "None";
     builder["indentation"] = "  ";
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-    std::ofstream oFile("output_"+ uid + ".json");
+    std::ofstream oFile(uid + "_output.json");
     writer -> write(output, &oFile);
   }
 }
