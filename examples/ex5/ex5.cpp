@@ -65,6 +65,8 @@ struct {
   double value;
   int   rank;
 } parStructMax, parStructMin, parStructSMax; 
+/* Variables for other injury metrics */
+int *MPSgt15, *MPSgt30; // Variable to store if MPS exceeds 15 and 30
 
 /* Variables used to store acceleration values */
 int linAccXSize, linAccYSize, linAccZSize;
@@ -106,6 +108,10 @@ int main(int argc, char **argv) {
   AllocateArrays();
   TransformMesh(simulationJson);
   InitCustomPlot(simulationJson);
+
+  // Allocate variables for injury metrics
+  MPSgt15 = (int*)calloc(nelements, sizeof(int));
+  MPSgt30 = (int*)calloc(nelements, sizeof(int));
 
   // Initial settings for BC evaluations
   // Used if initial velocity and acceleration BC is to be set.
@@ -262,6 +268,8 @@ int main(int argc, char **argv) {
   free1DArray(outputNodeList);
   free1DArray(outputElemList);
   free1DArray(outputNodeRigidDisp);
+  free1DArray(MPSgt15);
+  free1DArray(MPSgt30);
 
   if (rankForCustomPlot) {
     MPI_File_close(&outputFilePtr);
@@ -1030,10 +1038,25 @@ void WriteOutputFile() {
   }
   // Compute the volume of all parts
   double volumePart[nPIDglobal];
+  double elementVolume[nelements]; // For MPS computation
   for (int i = 0; i < nPIDglobal; ++i) {
     volumePart[i] = 0.0;
   }
-  computePartVolume(volumePart);
+  computePartVolume(volumePart, elementVolume);
+
+  // Compute Volume with MPS > 15, 30
+  double MPSgt15Volume = 0.0, MPSgt30Volume = 0.0;
+  for (int i = 0; i < nelements; ++i) {
+    if (MPSgt15[i]) {
+      MPSgt15Volume = MPSgt15Volume + elementVolume[i];
+      if (MPSgt30[i]) {
+        MPSgt30Volume = MPSgt30Volume + elementVolume[i];
+      }
+    }
+  }
+  MPI_Allreduce(MPI_IN_PLACE, &MPSgt15Volume, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &MPSgt30Volume, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
   if (world_rank == 0) {
     double minRecv[4];
     double maxRecv[4];
@@ -1045,6 +1068,7 @@ void WriteOutputFile() {
     MPI_Recv(&globalIDMax[1], 1, MPI_INT, parStructMax.rank, 7298, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Recv(shearRecv, 4, MPI_DOUBLE, parStructSMax.rank, 7299, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Recv(&globalIDMax[2], 1, MPI_INT, parStructSMax.rank, 7299, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    // Excluded PID hardcoded in CSDM-15 computation
     int excludePID[2] = {0, 1};
     double totalVolume = 0.0;
     for (int i = 0; i < nPIDglobal; ++i) {
@@ -1092,6 +1116,10 @@ void WriteOutputFile() {
     // Write brain volume in output.json
     output["brain-volume"] = totalVolume;
 
+    // Write CSDM-15 and 30
+    output["csdm-15"] = MPSgt15Volume/totalVolume;
+    output["csdm-30"] = MPSgt30Volume/totalVolume;
+
     Json::StreamWriterBuilder builder;
     builder["commentStyle"] = "None";
     builder["indentation"] = "  ";
@@ -1138,7 +1166,22 @@ void CalculateInjuryCriterions(void) {
         shearElem = currentShearElem;
         maxShear = currentShearMax;
       }
-    }   
+      // Exclude CSF for MPS computation
+      if (materialID[pid[i]] != 1) {
+        // Calculate MPS 15
+        if (!MPSgt15[i]) {
+          if (currentStrainMaxElem > 15.0) {
+            MPSgt15[i] = 1;
+          }
+        }
+        // Calculate MPS 30
+        if (!MPSgt30[i]) {
+          if (currentStrainMaxElem > 30.0) {
+            MPSgt30[i] = 1;
+          }
+        }
+      }
+    }
   }
 }
 
