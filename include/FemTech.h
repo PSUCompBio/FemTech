@@ -111,7 +111,7 @@ void updateMassMatrixNeighbour(void);
 double volumeHexahedron(double *coordinates);
 double areaHexahedronFace(double *coordinates, const int * const index);
 double volumeTetrahedron(double *coordinates);
-void computePartVolume(double *volume);
+void computePartVolume(double *volume, double *elemVolume);
 double calculateVolume(int e);
 
 int compare(const void *a, const void *b);

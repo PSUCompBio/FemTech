@@ -64,7 +64,12 @@ double maxT = 0.0, minT = 0.0, maxShearT = 0.0;
 struct {
   double value;
   int   rank;
-} parStructMax, parStructMin, parStructSMax; 
+} parStructMax, parStructMin, parStructSMax, parStructPSxSR; 
+/* Variables for other injury metrics */
+int *MPSgt15, *MPSgt30; // Variable to store if MPS exceeds 15 and 30
+/* Variables for maximum Principal Strain times Strain Rate */
+double *PS_Old, maxPSxSR, maxTimePSxSR;
+int maxElemPSxSR;
 
 /* Variables used to store acceleration values */
 int linAccXSize, linAccYSize, linAccZSize;
@@ -106,6 +111,11 @@ int main(int argc, char **argv) {
   AllocateArrays();
   TransformMesh(simulationJson);
   InitCustomPlot(simulationJson);
+
+  // Allocate variables for injury metrics
+  MPSgt15 = (int*)calloc(nelements, sizeof(int));
+  MPSgt30 = (int*)calloc(nelements, sizeof(int));
+  PS_Old = (double*)malloc(nelements*sizeof(double));
 
   // Initial settings for BC evaluations
   // Used if initial velocity and acceleration BC is to be set.
@@ -262,6 +272,9 @@ int main(int argc, char **argv) {
   free1DArray(outputNodeList);
   free1DArray(outputElemList);
   free1DArray(outputNodeRigidDisp);
+  free1DArray(MPSgt15);
+  free1DArray(MPSgt30);
+  free1DArray(PS_Old);
 
   if (rankForCustomPlot) {
     MPI_File_close(&outputFilePtr);
@@ -958,17 +971,41 @@ void WriteOutputFile() {
   parStructMax.value = maxStrain;
   parStructMax.rank = world_rank;
   MPI_Allreduce(MPI_IN_PLACE, &parStructMax, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
-  // maxStrain = parStructMax.value;
 
   parStructMin.value = minStrain;
   parStructMin.rank = world_rank;
   MPI_Allreduce(MPI_IN_PLACE, &parStructMin, 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
-  // minStrain = parStructMin.value;
 
   parStructSMax.value = maxShear;
   parStructSMax.rank = world_rank;
   MPI_Allreduce(MPI_IN_PLACE, &parStructSMax, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
-  // maxShear = parStructSMax.value;
+
+  // Find the gloabl max PSxSR
+  parStructPSxSR.value = maxPSxSR;
+  parStructPSxSR.rank = world_rank;
+  MPI_Allreduce(MPI_IN_PLACE, &parStructPSxSR, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
+
+  // Compute the volume of all parts
+  double volumePart[nPIDglobal];
+  double elementVolume[nelements]; // For MPS computation
+  for (int i = 0; i < nPIDglobal; ++i) {
+    volumePart[i] = 0.0;
+  }
+  computePartVolume(volumePart, elementVolume);
+
+  // Compute Volume with MPS > 15, 30
+  double MPSgt15Volume = 0.0, MPSgt30Volume = 0.0;
+  for (int i = 0; i < nelements; ++i) {
+    if (MPSgt15[i]) {
+      MPSgt15Volume = MPSgt15Volume + elementVolume[i];
+      if (MPSgt30[i]) {
+        MPSgt30Volume = MPSgt30Volume + elementVolume[i];
+      }
+    }
+  }
+  MPI_Allreduce(MPI_IN_PLACE, &MPSgt15Volume, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &MPSgt30Volume, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
   /* Calculate min and max strain location and send to master */
   // Copy max and min strain 
   if (parStructMin.rank == world_rank) {
@@ -1028,23 +1065,41 @@ void WriteOutputFile() {
     MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7299, MPI_COMM_WORLD);
     MPI_Send(&global_eid[shearElem], 1, MPI_INT, 0, 7299, MPI_COMM_WORLD);
   }
-  // Compute the volume of all parts
-  double volumePart[nPIDglobal];
-  for (int i = 0; i < nPIDglobal; ++i) {
-    volumePart[i] = 0.0;
+  if (parStructPSxSR.rank == world_rank) {
+    double maxLocationAndTime[4];
+    for (int i = 0; i < 4; ++i) {
+      maxLocationAndTime[i] = 0.0;
+    }
+    // Compute element coordinates 
+    int nP = eptr[maxElemPSxSR+1]-eptr[maxElemPSxSR];
+    for (int i = eptr[maxElemPSxSR]; i < eptr[maxElemPSxSR+1]; ++i) {
+      maxLocationAndTime[0] += coordinates[connectivity[i]*ndim];
+      maxLocationAndTime[1] += coordinates[connectivity[i]*ndim+1];
+      maxLocationAndTime[2] += coordinates[connectivity[i]*ndim+2];
+    }
+    for (int i = 0; i < ndim; ++i) {
+      maxLocationAndTime[i] = maxLocationAndTime[i]/((double)nP);
+    }
+    maxLocationAndTime[3] = maxTimePSxSR;
+    MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7300, MPI_COMM_WORLD);
+    MPI_Send(&global_eid[maxElemPSxSR], 1, MPI_INT, 0, 7300, MPI_COMM_WORLD);
   }
-  computePartVolume(volumePart);
+
   if (world_rank == 0) {
     double minRecv[4];
     double maxRecv[4];
     double shearRecv[4];
-    int globalIDMax[3];
+    double maxPSxSrRecv[4];
+    int globalIDMax[4];
     MPI_Recv(minRecv, 4, MPI_DOUBLE, parStructMin.rank, 7297, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Recv(&globalIDMax[0], 1, MPI_INT, parStructMin.rank, 7297, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Recv(maxRecv, 4, MPI_DOUBLE, parStructMax.rank, 7298, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Recv(&globalIDMax[1], 1, MPI_INT, parStructMax.rank, 7298, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Recv(shearRecv, 4, MPI_DOUBLE, parStructSMax.rank, 7299, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Recv(&globalIDMax[2], 1, MPI_INT, parStructSMax.rank, 7299, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(maxPSxSrRecv, 4, MPI_DOUBLE, parStructPSxSR.rank, 7300, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(&globalIDMax[3], 1, MPI_INT, parStructPSxSR.rank, 7300, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    // Excluded PID hardcoded in CSDM-15 computation
     int excludePID[2] = {0, 1};
     double totalVolume = 0.0;
     for (int i = 0; i < nPIDglobal; ++i) {
@@ -1081,6 +1136,14 @@ void WriteOutputFile() {
     output["maximum-shear-strain"]["time"] = shearRecv[3];
     output["maximum-shear-strain"]["global-element-id"] = globalIDMax[2];
 
+    vec[0] = maxPSxSrRecv[0];
+    vec[1] = maxPSxSrRecv[1];
+    vec[2] = maxPSxSrRecv[2];
+    output["maximum-PSxSR"]["value"] = parStructPSxSR.value;
+    output["maximum-PSxSR"]["location"] = vec;
+    output["maximum-PSxSR"]["time"] = maxPSxSrRecv[3];
+    output["maximum-PSxSR"]["global-element-id"] = globalIDMax[3];
+
     output["output-file"] = "coarse_brain.pvd";
 
     // Write center of mass co-ordinates in JSON
@@ -1091,6 +1154,10 @@ void WriteOutputFile() {
 
     // Write brain volume in output.json
     output["brain-volume"] = totalVolume;
+
+    // Write CSDM-15 and 30
+    output["csdm-15"] = MPSgt15Volume/totalVolume;
+    output["csdm-30"] = MPSgt30Volume/totalVolume;
 
     Json::StreamWriterBuilder builder;
     builder["commentStyle"] = "None";
@@ -1103,43 +1170,54 @@ void WriteOutputFile() {
 
 void CalculateInjuryCriterions(void) {
   double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
-  double currentStrainMax = 0.0, currentStrainMin = 0.0, currentShearMax = 0.0;
-  int currentMaxElem = 0, currentMinElem = 0, currentShearElem = 0;
+  double PSR, PSxSR;
   for (int i = 0; i < nelements; i++) {
     if (materialID[pid[i]] != 0) {
       CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, \
           &currentStrainMinElem, &currentShearMaxElem);
-      if (currentStrainMax < currentStrainMaxElem) {
-        currentStrainMax = currentStrainMaxElem;
-        currentMaxElem = i;
-      }
-      if (currentStrainMin > currentStrainMinElem) {
-        currentStrainMin = currentStrainMinElem;
-        currentMinElem = i;
-      }
-      if (currentShearMax < currentShearMaxElem) {
-        currentShearMax = currentShearMaxElem;
-        currentShearElem = i;
-      }
-      // calculating max and minimum strain over local elements
-      // Updating max and min time
-      if (currentStrainMax > maxStrain) {
+      if (maxStrain < currentStrainMaxElem) {
+        maxStrain = currentStrainMaxElem;
+        maxElem = i;
         maxT = Time;
-        maxElem = currentMaxElem;
-        maxStrain = currentStrainMax;
       }
-      if (currentStrainMin < minStrain) {
+      if (minStrain > currentStrainMinElem) {
+        minStrain = currentStrainMinElem;
+        minElem = i;
         minT = Time;
-        minElem = currentMinElem;
-        minStrain = currentStrainMin;
       }
-      if (currentShearMax > maxShear) {
+      if (maxShear < currentShearMaxElem) {
+        maxShear = currentShearMaxElem;
+        shearElem = i;
         maxShearT = Time;
-        shearElem = currentShearElem;
-        maxShear = currentShearMax;
       }
-    }   
-  }
+      // Exclude CSF for MPS computation
+      if (materialID[pid[i]] != 1) {
+        // Calculate MPS 15
+        if (!MPSgt15[i]) {
+          if (currentStrainMaxElem > 15.0) {
+            MPSgt15[i] = 1;
+          }
+        }
+        // Calculate MPS 30
+        if (!MPSgt30[i]) {
+          if (currentStrainMaxElem > 30.0) {
+            MPSgt30[i] = 1;
+          }
+        }
+      }
+      // Compute maxPSxSR
+      // Compute principal strain rate using first order backaward distance
+      PSR = (currentStrainMaxElem - PS_Old[i])/dt;
+      // TODO(Anil) : Sould absolute value be used for PSR ?
+      PSxSR = currentStrainMaxElem*PSR; 
+      if (maxPSxSR < PSxSR) {
+        maxPSxSR = PSxSR;
+        maxElemPSxSR = i;
+        maxTimePSxSR = Time;
+      }
+      PS_Old[i] = currentStrainMaxElem;
+    } // Excluding rigid material ID
+  } // For loop over elements
 }
 
 void TransformMesh(const Json::Value& jsonInput) {
