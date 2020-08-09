@@ -1194,13 +1194,13 @@ void CalculateInjuryCriterions(void) {
       if (materialID[pid[i]] != 1) {
         // Calculate MPS 15
         if (!MPSgt15[i]) {
-          if (currentStrainMaxElem > 15.0) {
+          if (currentStrainMaxElem > 0.15) {
             MPSgt15[i] = 1;
           }
         }
         // Calculate MPS 30
         if (!MPSgt30[i]) {
-          if (currentStrainMaxElem > 30.0) {
+          if (currentStrainMaxElem > 0.30) {
             MPSgt30[i] = 1;
           }
         }
