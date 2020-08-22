@@ -5,7 +5,8 @@ sudo: required
 env:
   global:
     - DOCKER_REPO=nsfcareer/femtech
-    - EC2ARCH=znver2
+      # Should use znver2 after updating gcc/ubuntu
+    - EC2ARCH=znver1
 
 language:
   - cpp
