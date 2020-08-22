@@ -5,6 +5,7 @@ sudo: required
 env:
   global:
     - DOCKER_REPO=nsfcareer/femtech
+    - EC2ARCH=znver2
 
 language:
   - cpp
@@ -60,9 +61,9 @@ script:
   - if [ "$TRAVIS_BRANCH" = "develop" ] || [ "$TRAVIS_BRANCH" = "CI" ]; then 
       cd ../../..;
       mkdir builddocker;
-      docker build --build-arg BRANCH=$TRAVIS_BRANCH --pull --cache-from $DOCKER_REPO:develop --target buildFemTech --tag $DOCKER_REPO:develop -f Dockerfile builddocker || travis_terminate 1;
-      docker run --name testFemTech -it --rm $DOCKER_REPO:develop /bin/bash -c "cd /home/ubuntu/FemTech/build/examples/ex5/;bash test_ex5.sh" || travis_terminate 1;
-      docker build --pull --cache-from $DOCKER_REPO:develop --cache-from $DOCKER_REPO:production --tag $DOCKER_REPO:production -f Dockerfile builddocker; 
+      docker build --build-arg BRANCH=$TRAVIS_BRANCH --build-arg PARCH=$EC2ARCH --pull --cache-from $DOCKER_REPO:develop --target buildFemTech --tag $DOCKER_REPO:develop -f Dockerfile builddocker || travis_terminate 1;
+      docker run --name testFemTech -it --rm $DOCKER_REPO:develop /bin/bash -c "cd /home/ubuntu/FemTech/build_native/examples/ex5/;bash test_ex5.sh" || travis_terminate 1;
+      docker build --build-arg BRANCH=$TRAVIS_BRANCH  --build-arg PARCH=$EC2ARCH --pull --cache-from $DOCKER_REPO:develop --cache-from $DOCKER_REPO:production --tag $DOCKER_REPO:production -f Dockerfile builddocker; 
     fi
 
 after_script:
