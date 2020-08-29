@@ -20,6 +20,7 @@ using namespace boost::numeric::odeint;
 void CustomPlot();
 void InitCustomPlot(const Json::Value& jsonInput);
 void InitBoundaryCondition(const Json::Value& jsonInput);
+void InitInjuryCriterion(void);
 void updateBoundaryNeighbour(void);
 void ApplyAccBoundaryConditions();
 int getImpactID(std::string location);
@@ -70,6 +71,11 @@ int *MPSgt15, *MPSgt30; // Variable to store if MPS exceeds 15 and 30
 /* Variables for maximum Principal Strain times Strain Rate */
 double *PS_Old, maxPSxSR, maxTimePSxSR;
 int maxElemPSxSR;
+int nElementsInjury, *elementIDInjury;
+// part ID to exclude from injury computation
+// 0 : Skull, 1 : CSF
+const int injuryExcludePIDCount = 2;
+const int injuryExcludePID[injuryExcludePIDCount] = {0, 1};
 
 /* Variables used to store acceleration values */
 int linAccXSize, linAccYSize, linAccZSize;
@@ -111,11 +117,7 @@ int main(int argc, char **argv) {
   AllocateArrays();
   TransformMesh(simulationJson);
   InitCustomPlot(simulationJson);
-
-  // Allocate variables for injury metrics
-  MPSgt15 = (int*)calloc(nelements, sizeof(int));
-  MPSgt30 = (int*)calloc(nelements, sizeof(int));
-  PS_Old = (double*)malloc(nelements*sizeof(double));
+  InitInjuryCriterion();
 
   // Initial settings for BC evaluations
   // Used if initial velocity and acceleration BC is to be set.
@@ -272,9 +274,11 @@ int main(int argc, char **argv) {
   free1DArray(outputNodeList);
   free1DArray(outputElemList);
   free1DArray(outputNodeRigidDisp);
+  // Free variables used for injury criterions
   free1DArray(MPSgt15);
   free1DArray(MPSgt30);
   free1DArray(PS_Old);
+  free1DArray(elementIDInjury);
 
   if (rankForCustomPlot) {
     MPI_File_close(&outputFilePtr);
@@ -995,11 +999,11 @@ void WriteOutputFile() {
 
   // Compute Volume with MPS > 15, 30
   double MPSgt15Volume = 0.0, MPSgt30Volume = 0.0;
-  for (int i = 0; i < nelements; ++i) {
+  for (int i = 0; i < nElementsInjury; ++i) {
     if (MPSgt15[i]) {
-      MPSgt15Volume = MPSgt15Volume + elementVolume[i];
+      MPSgt15Volume = MPSgt15Volume + elementVolume[elementIDInjury[i]];
       if (MPSgt30[i]) {
-        MPSgt30Volume = MPSgt30Volume + elementVolume[i];
+        MPSgt30Volume = MPSgt30Volume + elementVolume[elementIDInjury[i]];
       }
     }
   }
@@ -1168,56 +1172,91 @@ void WriteOutputFile() {
   }
 }
 
+void InitInjuryCriterion(void) {
+  // Allocate variables for injury metrics
+  nElementsInjury = 0;
+
+  for (int i = 0; i < nelements; i++) {
+    bool include = true;
+    int elementPID = pid[i];
+    for (int j = 0; j < injuryExcludePIDCount; ++j) {
+      if (elementPID == injuryExcludePID[j]) {
+        include = false;
+        break;
+      }
+    }
+    if (include) {
+      nElementsInjury += 1;
+    }
+  }
+  elementIDInjury = (int*)malloc(nElementsInjury*sizeof(int));
+  int count = 0;
+  for (int i = 0; i < nelements; i++) {
+    bool include = true;
+    int elementPID = pid[i];
+    for (int j = 0; j < injuryExcludePIDCount; ++j) {
+      if (elementPID == injuryExcludePID[j]) {
+        include = false;
+        break;
+      }
+    }
+    if (include) {
+      elementIDInjury[count] = i;
+      count += 1;
+    }
+  }
+
+  MPSgt15 = (int*)calloc(nElementsInjury, sizeof(int));
+  MPSgt30 = (int*)calloc(nElementsInjury, sizeof(int));
+  PS_Old = (double*)malloc(nElementsInjury*sizeof(double));
+}
+
 void CalculateInjuryCriterions(void) {
   double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
   double PSR, PSxSR;
-  for (int i = 0; i < nelements; i++) {
-    if (materialID[pid[i]] != 0) {
-      CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, \
-          &currentStrainMinElem, &currentShearMaxElem);
-      if (maxStrain < currentStrainMaxElem) {
-        maxStrain = currentStrainMaxElem;
-        maxElem = i;
-        maxT = Time;
+  for (int j = 0; j < nElementsInjury; j++) {
+    int i = elementIDInjury[j];
+    CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, \
+        &currentStrainMinElem, &currentShearMaxElem);
+    if (maxStrain < currentStrainMaxElem) {
+      maxStrain = currentStrainMaxElem;
+      maxElem = i;
+      maxT = Time;
+    }
+    if (minStrain > currentStrainMinElem) {
+      minStrain = currentStrainMinElem;
+      minElem = i;
+      minT = Time;
+    }
+    if (maxShear < currentShearMaxElem) {
+      maxShear = currentShearMaxElem;
+      shearElem = i;
+      maxShearT = Time;
+    }
+    // Calculate MPS 15
+    if (!MPSgt15[j]) {
+      if (currentStrainMaxElem > 0.15) {
+        MPSgt15[j] = 1;
       }
-      if (minStrain > currentStrainMinElem) {
-        minStrain = currentStrainMinElem;
-        minElem = i;
-        minT = Time;
+    }
+    // Calculate MPS 30
+    if (!MPSgt30[j]) {
+      if (currentStrainMaxElem > 0.30) {
+        MPSgt30[j] = 1;
       }
-      if (maxShear < currentShearMaxElem) {
-        maxShear = currentShearMaxElem;
-        shearElem = i;
-        maxShearT = Time;
-      }
-      // Exclude CSF for MPS computation
-      if (materialID[pid[i]] != 1) {
-        // Calculate MPS 15
-        if (!MPSgt15[i]) {
-          if (currentStrainMaxElem > 0.15) {
-            MPSgt15[i] = 1;
-          }
-        }
-        // Calculate MPS 30
-        if (!MPSgt30[i]) {
-          if (currentStrainMaxElem > 0.30) {
-            MPSgt30[i] = 1;
-          }
-        }
-      }
-      // Compute maxPSxSR
-      // Compute principal strain rate using first order backaward distance
-      PSR = (currentStrainMaxElem - PS_Old[i])/dt;
-      // TODO(Anil) : Sould absolute value be used for PSR ?
-      PSxSR = currentStrainMaxElem*PSR; 
-      if (maxPSxSR < PSxSR) {
-        maxPSxSR = PSxSR;
-        maxElemPSxSR = i;
-        maxTimePSxSR = Time;
-      }
-      PS_Old[i] = currentStrainMaxElem;
-    } // Excluding rigid material ID
-  } // For loop over elements
+    }
+    // Compute maxPSxSR
+    // Compute principal strain rate using first order backaward distance
+    PSR = (currentStrainMaxElem - PS_Old[j])/dt;
+    // TODO(Anil) : Sould absolute value be used for PSR ?
+    PSxSR = currentStrainMaxElem*PSR; 
+    if (maxPSxSR < PSxSR) {
+      maxPSxSR = PSxSR;
+      maxElemPSxSR = i;
+      maxTimePSxSR = Time;
+    }
+    PS_Old[j] = currentStrainMaxElem;
+  } // For loop over elements included for injury
 }
 
 void TransformMesh(const Json::Value& jsonInput) {
