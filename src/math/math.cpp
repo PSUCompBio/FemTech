@@ -1,6 +1,8 @@
 #include "FemTech.h"
 #include "blas.h"
 
+#include <algorithm>
+
 void inverse3x3Matrix(double* mat, double* invMat, double* det) {
   // Mat and invMat are 1d arrays with colum major format for storing matrix
   // Compute matrix determinant
@@ -151,4 +153,41 @@ void quaternionRotate(double *v, double *R, double *Rinv, double* vp) {
   double Rv[4];
   quaternionMultiply(R, v, Rv);
   quaternionMultiply(Rv, Rinv, vp);
+}
+
+double compute95thPercentileValueBruteForce(double* dataArray, int localSize) {
+  // Compute total size
+  int totalSize = 0;
+  double *fullData;
+  int *recvCount, *recvDisplacement;
+  // Calculate the total size
+  MPI_Reduce(&localSize, &totalSize, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+  if (world_rank == 0) {
+    fullData = (double*)malloc(totalSize*sizeof(double));
+    recvCount = (int*)malloc(world_size*sizeof(int));
+    recvDisplacement = (int*)malloc(world_size*sizeof(int));
+  }
+  // Get recv count
+  MPI_Gather(&localSize, 1, MPI_INT, recvCount, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  if (world_rank == 0) {
+    recvDisplacement[0] = 0;
+    for (int i = 1; i < world_size; ++i) {
+      recvDisplacement[i] = recvCount[i-1] + recvDisplacement[i-1];
+    }
+  }
+  // Get full array
+  MPI_Gatherv(dataArray, localSize, MPI_DOUBLE, fullData, recvCount, \
+      recvDisplacement, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  int index95 = (int)(totalSize*0.95)-1; //Runtime error if index95 < 0
+  std::vector<double> fullDataVec(fullData, fullData + totalSize);
+
+  std::nth_element(fullDataVec.begin(), fullDataVec.begin()+index95, fullDataVec.end());
+  double nthElement = fullDataVec[index95];
+
+  if (world_rank == 0) {
+    free(fullData);
+    free(recvCount);
+    free(recvDisplacement);
+  }
+  return nthElement;
 }
