@@ -68,6 +68,7 @@ struct {
 } parStructMax, parStructMin, parStructSMax, parStructPSxSR; 
 /* Variables for other injury metrics */
 int *MPSgt15, *MPSgt30; // Variable to store if MPS exceeds 15 and 30
+int *MPSRgt120, *MPSxSRgt28; // Varible to store if MPSR > 120 s^-1, MPSxSR > 28 s^-1
 /* Variables for maximum Principal Strain times Strain Rate */
 double *PS_Old, maxPSxSR, maxTimePSxSR;
 int maxElemPSxSR;
@@ -279,6 +280,8 @@ int main(int argc, char **argv) {
   free1DArray(MPSgt30);
   free1DArray(PS_Old);
   free1DArray(elementIDInjury);
+  free1DArray(MPSRgt120);
+  free1DArray(MPSxSRgt28);
 
   if (rankForCustomPlot) {
     MPI_File_close(&outputFilePtr);
@@ -999,16 +1002,26 @@ void WriteOutputFile() {
 
   // Compute Volume with MPS > 15, 30
   double MPSgt15Volume = 0.0, MPSgt30Volume = 0.0;
+  double MPSRgt120Volume = 0.0, MPSxSRgt28Volume = 0.0;
   for (int i = 0; i < nElementsInjury; ++i) {
+    double eV = elementVolume[elementIDInjury[i]];
     if (MPSgt15[i]) {
-      MPSgt15Volume = MPSgt15Volume + elementVolume[elementIDInjury[i]];
+      MPSgt15Volume += eV;
       if (MPSgt30[i]) {
-        MPSgt30Volume = MPSgt30Volume + elementVolume[elementIDInjury[i]];
+        MPSgt30Volume += eV;
       }
+    }
+    if (MPSRgt120[i]) {
+      MPSRgt120Volume += eV;
+    }
+    if (MPSxSRgt28[i]) {
+      MPSxSRgt28Volume += eV;
     }
   }
   MPI_Allreduce(MPI_IN_PLACE, &MPSgt15Volume, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   MPI_Allreduce(MPI_IN_PLACE, &MPSgt30Volume, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &MPSRgt120Volume, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, &MPSxSRgt28Volume, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
   /* Calculate min and max strain location and send to master */
   // Copy max and min strain 
@@ -1104,13 +1117,18 @@ void WriteOutputFile() {
     MPI_Recv(maxPSxSrRecv, 4, MPI_DOUBLE, parStructPSxSR.rank, 7300, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     MPI_Recv(&globalIDMax[3], 1, MPI_INT, parStructPSxSR.rank, 7300, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     // Excluded PID hardcoded in CSDM-15 computation
-    int excludePID[2] = {0, 1};
     double totalVolume = 0.0;
     for (int i = 0; i < nPIDglobal; ++i) {
-      if (i == excludePID[0] || i == excludePID[1]) {
-        continue;
+      bool include = true;
+      for (int j = 0; j < injuryExcludePIDCount; ++j) {
+        if (injuryExcludePID[j] == i) {
+          include = false;
+          break;
+        }
       }
-      totalVolume += volumePart[i];
+      if (include) {
+        totalVolume += volumePart[i];
+      }
     }
 
     Json::Value output;
@@ -1162,6 +1180,8 @@ void WriteOutputFile() {
     // Write CSDM-15 and 30
     output["csdm-15"] = MPSgt15Volume/totalVolume;
     output["csdm-30"] = MPSgt30Volume/totalVolume;
+    output["MPSR-120"] = MPSRgt120Volume/totalVolume;
+    output["MPSxSR-28"] = MPSxSRgt28Volume/totalVolume;
 
     Json::StreamWriterBuilder builder;
     builder["commentStyle"] = "None";
@@ -1209,6 +1229,8 @@ void InitInjuryCriterion(void) {
   MPSgt15 = (int*)calloc(nElementsInjury, sizeof(int));
   MPSgt30 = (int*)calloc(nElementsInjury, sizeof(int));
   PS_Old = (double*)malloc(nElementsInjury*sizeof(double));
+  MPSRgt120 = (int*)calloc(nElementsInjury, sizeof(int));
+  MPSxSRgt28 = (int*)calloc(nElementsInjury, sizeof(int));
 }
 
 void CalculateInjuryCriterions(void) {
@@ -1254,6 +1276,18 @@ void CalculateInjuryCriterions(void) {
       maxPSxSR = PSxSR;
       maxElemPSxSR = i;
       maxTimePSxSR = Time;
+    }
+    // Calculate MPSR 120
+    if (!MPSRgt120[j]) {
+      if (PSR > 120.0) {
+        MPSRgt120[j] = 1;
+      }
+    }
+    // Calculate MPSxSR 28
+    if (!MPSxSRgt28[j]) {
+      if (PSxSR > 28.0) {
+        MPSxSRgt28[j] = 1;
+      }
     }
     PS_Old[j] = currentStrainMaxElem;
   } // For loop over elements included for injury
