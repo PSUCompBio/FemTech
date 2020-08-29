@@ -178,13 +178,14 @@ double compute95thPercentileValueBruteForce(double* dataArray, int localSize) {
   // Get full array
   MPI_Gatherv(dataArray, localSize, MPI_DOUBLE, fullData, recvCount, \
       recvDisplacement, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-  int index95 = (int)(totalSize*0.95)-1; //Runtime error if index95 < 0
-  std::vector<double> fullDataVec(fullData, fullData + totalSize);
-
-  std::nth_element(fullDataVec.begin(), fullDataVec.begin()+index95, fullDataVec.end());
-  double nthElement = fullDataVec[index95];
-
+  double nthElement = 0.0;
   if (world_rank == 0) {
+    int index95 = (int)(totalSize*0.95)-1; //Runtime error if index95 < 0
+    std::vector<double> fullDataVec(fullData, fullData + totalSize);
+
+    std::nth_element(fullDataVec.begin(), fullDataVec.begin()+index95, fullDataVec.end());
+    nthElement = fullDataVec[index95];
+
     free(fullData);
     free(recvCount);
     free(recvDisplacement);

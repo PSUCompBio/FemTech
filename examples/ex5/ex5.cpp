@@ -1291,6 +1291,8 @@ void CalculateInjuryCriterions(void) {
     }
     PS_Old[j] = currentStrainMaxElem;
   } // For loop over elements included for injury
+  double MPS95 = compute95thPercentileValueBruteForce(PS_Old, nElementsInjury);
+  FILE_LOG(INFO, "Maximum : %15.9e, 95 percentile %15.9e", maxStrain, MPS95);
 }
 
 void TransformMesh(const Json::Value& jsonInput) {

@@ -91,6 +91,7 @@ void quaternionMultiply(double *q1, double *q2, double *qr);
 void quaternionInverse(double *q, double *qinv);
 void quaternionRotate(double *v, double *R, double* vp);
 void quaternionRotate(double *v, double *R, double *Rinv, double* vp);
+double compute95thPercentileValueBruteForce(double* dataArray, int localSize);
 
 void CheckEnergy(double time, int writeFlag);
 
