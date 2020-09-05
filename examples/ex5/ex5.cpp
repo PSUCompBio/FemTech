@@ -77,6 +77,8 @@ int nElementsInjury, *elementIDInjury;
 // 0 : Skull, 1 : CSF
 const int injuryExcludePIDCount = 2;
 const int injuryExcludePID[injuryExcludePIDCount] = {0, 1};
+double maxMPS95, maxTimeMPS95;
+int *maxElemListMPS95, maxElemCountMPS95;
 
 /* Variables used to store acceleration values */
 int linAccXSize, linAccYSize, linAccZSize;
@@ -282,6 +284,7 @@ int main(int argc, char **argv) {
   free1DArray(elementIDInjury);
   free1DArray(MPSRgt120);
   free1DArray(MPSxSRgt28);
+  free1DArray(maxElemListMPS95);
 
   if (rankForCustomPlot) {
     MPI_File_close(&outputFilePtr);
@@ -1183,6 +1186,10 @@ void WriteOutputFile() {
     output["MPSR-120"] = MPSRgt120Volume/totalVolume;
     output["MPSxSR-28"] = MPSxSRgt28Volume/totalVolume;
 
+    // Write MPS-95
+    output["MPS-95"]["value"] = maxMPS95;
+    output["MPS-95"]["time"] = maxTimeMPS95;
+
     Json::StreamWriterBuilder builder;
     builder["commentStyle"] = "None";
     builder["indentation"] = "  ";
@@ -1231,6 +1238,10 @@ void InitInjuryCriterion(void) {
   PS_Old = (double*)malloc(nElementsInjury*sizeof(double));
   MPSRgt120 = (int*)calloc(nElementsInjury, sizeof(int));
   MPSxSRgt28 = (int*)calloc(nElementsInjury, sizeof(int));
+  maxMPS95 = 0;
+  maxTimeMPS95 = 0;
+  maxElemCountMPS95 = 0;
+  maxElemListMPS95 = NULL;
 }
 
 void CalculateInjuryCriterions(void) {
@@ -1291,8 +1302,36 @@ void CalculateInjuryCriterions(void) {
     }
     PS_Old[j] = currentStrainMaxElem;
   } // For loop over elements included for injury
-  double MPS95 = compute95thPercentileValueBruteForce(PS_Old, nElementsInjury);
-  FILE_LOG(INFO, "Maximum : %15.9e, 95 percentile %15.9e", maxStrain, MPS95);
+
+  // Compute 95 percentile MPS and corresponding element list
+  double MPS95 = compute95thPercentileValue(PS_Old, nElementsInjury);
+  if (MPS95 > maxMPS95) {
+    maxMPS95 = MPS95;
+    maxTimeMPS95 = Time;
+    int count = 0;
+    for (int j = 0; j < nElementsInjury; j++) {
+      if (PS_Old[j] >= maxMPS95) {
+        count = count + 1;
+      }
+    }
+    // re-allocate element list
+    if (count != maxElemCountMPS95) {
+      free1DArray(maxElemListMPS95);
+      if (count == 0) {
+        maxElemListMPS95 = NULL;
+      } else {
+        maxElemListMPS95 = (int*)malloc(sizeof(int)*count);
+      }
+    }
+    maxElemCountMPS95 = count;
+    count = 0;
+    for (int j = 0; j < nElementsInjury; j++) {
+      if (PS_Old[j] >= maxMPS95) {
+        maxElemListMPS95[count] = elementIDInjury[j];
+        count = count + 1;
+      }
+    }
+  }
 }
 
 void TransformMesh(const Json::Value& jsonInput) {
