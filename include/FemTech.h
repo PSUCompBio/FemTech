@@ -36,7 +36,8 @@ void AllocateArrays();
 void Assembly(char *operation);
 void StiffnessElementMatrix(double* Ke, int e);
 void MassElementMatrix(double* Me, int e);
-void WriteVTU(const char* FileName, int step);
+void WriteVTU(const char* FileName, int step, int** intCellData = NULL, \
+    int cellDataCount = 0, const char **cellDataNames = NULL);
 void WritePVD(const char* FileName, int step);
 void FreeArrays();
 void ApplySteadyBoundaryConditions(void);

@@ -79,6 +79,13 @@ const int injuryExcludePIDCount = 2;
 const int injuryExcludePID[injuryExcludePIDCount] = {0, 1};
 double maxMPS95, maxTimeMPS95;
 int *maxElemListMPS95, maxElemCountMPS95;
+// Variables to write injury criterion to Paraview output
+int *mps95Output = NULL, *csdm15Output = NULL, *csdm30Output = NULL;
+int *psr120Output = NULL, *psxsr28Output = NULL;
+const int outputCount = 5;
+int **outputDataArray = NULL;
+const char* outputNames[outputCount] ={"CSDM-15", "CSDM-30", "PSR-120", \
+  "PSxSR-28", "MPS-95"};
 
 /* Variables used to store acceleration values */
 int linAccXSize, linAccYSize, linAccZSize;
@@ -130,7 +137,8 @@ int main(int argc, char **argv) {
   Time = 0.0;
   int plot_counter = 0;
   if (writeField) {
-    WriteVTU(outputFileName.c_str(), plot_counter);
+    WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, \
+        outputCount, outputNames);
     WritePVD(outputFileName.c_str(), plot_counter);
   }
   stepTime[plot_counter] = Time;
@@ -239,7 +247,31 @@ int main(int argc, char **argv) {
         stepTime[plot_counter] = Time;
         if (writeField) {
           FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
-          WriteVTU(outputFileName.c_str(), plot_counter);
+          // Populate output data
+          // MPS 95
+          memset(mps95Output, 0, nelements*sizeof(int));
+          for (int m = 0; m < maxElemCountMPS95; ++m) {
+            int eID = maxElemListMPS95[m];
+            mps95Output[eID] = 1;
+          }
+          // CSDM-15, CSDM-30, PSR-120, PSxSR-28
+          for (int j = 0; j < nElementsInjury; j++) {
+            int eID = elementIDInjury[j];
+            if (MPSgt15[j]) {
+              csdm15Output[eID] = 1;
+              if (MPSgt30[j]) {
+                csdm30Output[eID] = 1;
+              }
+            }
+            if (MPSRgt120[j]) {
+              psr120Output[eID] = 1;
+            }
+            if (MPSxSRgt28[j]) {
+              psxsr28Output[eID] = 1;
+            }
+          }
+          WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, \
+              outputCount, outputNames);
           WritePVD(outputFileName.c_str(), plot_counter);
         }
       }
@@ -285,6 +317,13 @@ int main(int argc, char **argv) {
   free1DArray(MPSRgt120);
   free1DArray(MPSxSRgt28);
   free1DArray(maxElemListMPS95);
+  // Injury criterion output variables
+  free1DArray(mps95Output);
+  free1DArray(csdm15Output);
+  free1DArray(csdm30Output);
+  free1DArray(psr120Output);
+  free1DArray(psxsr28Output);
+  free1DArray(outputDataArray);
 
   if (rankForCustomPlot) {
     MPI_File_close(&outputFilePtr);
@@ -1242,6 +1281,18 @@ void InitInjuryCriterion(void) {
   maxTimeMPS95 = 0;
   maxElemCountMPS95 = 0;
   maxElemListMPS95 = NULL;
+  // Array to output to Paraview
+  outputDataArray = (int**)malloc(outputCount*sizeof(int*)); 
+  // TODO(Anil), remove these arrays and use existing arrays of size
+  // nElementInjury. Will require better design of wrtieVTU.
+  mps95Output = (int*)calloc(nelements, sizeof(int));
+  csdm15Output = (int*)calloc(nelements, sizeof(int));
+  csdm30Output = (int*)calloc(nelements, sizeof(int));
+  psr120Output = (int*)calloc(nelements, sizeof(int));
+  psxsr28Output = (int*)calloc(nelements, sizeof(int));
+  outputDataArray[4] = mps95Output; outputDataArray[0] = csdm15Output;
+  outputDataArray[1] = csdm30Output; outputDataArray[2] = psr120Output;
+  outputDataArray[3] = psxsr28Output;
 }
 
 void CalculateInjuryCriterions(void) {
