@@ -79,6 +79,8 @@ const int injuryExcludePIDCount = 2;
 const int injuryExcludePID[injuryExcludePIDCount] = {0, 1};
 double maxMPS95, maxTimeMPS95;
 int *maxElemListMPS95, maxElemCountMPS95;
+double maxMPSxSR95, maxTimeMPSxSR95, *PSxSRArray;
+int *maxElemListMPSxSR95, maxElemCountMPSxSR95;
 // Variables to write injury criterion to Paraview output
 int *mps95Output = NULL, *csdm15Output = NULL, *csdm30Output = NULL;
 int *psr120Output = NULL, *psxsr28Output = NULL;
@@ -317,6 +319,8 @@ int main(int argc, char **argv) {
   free1DArray(MPSRgt120);
   free1DArray(MPSxSRgt28);
   free1DArray(maxElemListMPS95);
+  free1DArray(maxElemListMPSxSR95);
+  free1DArray(PSxSRArray);
   // Injury criterion output variables
   free1DArray(mps95Output);
   free1DArray(csdm15Output);
@@ -1229,6 +1233,10 @@ void WriteOutputFile() {
     output["MPS-95"]["value"] = maxMPS95;
     output["MPS-95"]["time"] = maxTimeMPS95;
 
+    // Write MPS-95
+    output["MPSxSR-95"]["value"] = maxMPSxSR95;
+    output["MPSxSR-95"]["time"] = maxTimeMPSxSR95;
+
     Json::StreamWriterBuilder builder;
     builder["commentStyle"] = "None";
     builder["indentation"] = "  ";
@@ -1281,6 +1289,11 @@ void InitInjuryCriterion(void) {
   maxTimeMPS95 = 0;
   maxElemCountMPS95 = 0;
   maxElemListMPS95 = NULL;
+  maxMPSxSR95 = 0;
+  maxTimeMPSxSR95 = 0;
+  maxElemCountMPSxSR95 = 0;
+  maxElemListMPSxSR95 = NULL;
+  PSxSRArray = (double*)malloc(nElementsInjury*sizeof(double));
   // Array to output to Paraview
   outputDataArray = (int**)malloc(outputCount*sizeof(int*)); 
   // TODO(Anil), remove these arrays and use existing arrays of size
@@ -1352,6 +1365,7 @@ void CalculateInjuryCriterions(void) {
       }
     }
     PS_Old[j] = currentStrainMaxElem;
+    PSxSRArray[j] = PSxSR;
   } // For loop over elements included for injury
 
   // Compute 95 percentile MPS and corresponding element list
@@ -1379,6 +1393,36 @@ void CalculateInjuryCriterions(void) {
     for (int j = 0; j < nElementsInjury; j++) {
       if (PS_Old[j] >= maxMPS95) {
         maxElemListMPS95[count] = elementIDInjury[j];
+        count = count + 1;
+      }
+    }
+  }
+
+  // Compute 95 percentile MPSxSR and corresponding element list
+  double MPSxSR95 = compute95thPercentileValue(PSxSRArray, nElementsInjury);
+  if (MPSxSR95 > maxMPSxSR95) {
+    maxMPSxSR95 = MPSxSR95;
+    maxTimeMPSxSR95 = Time;
+    int count = 0;
+    for (int j = 0; j < nElementsInjury; j++) {
+      if (PSxSRArray[j] >= maxMPSxSR95) {
+        count = count + 1;
+      }
+    }
+    // re-allocate element list
+    if (count != maxElemCountMPSxSR95) {
+      free1DArray(maxElemListMPSxSR95);
+      if (count == 0) {
+        maxElemListMPSxSR95 = NULL;
+      } else {
+        maxElemListMPSxSR95 = (int*)malloc(sizeof(int)*count);
+      }
+    }
+    maxElemCountMPSxSR95 = count;
+    count = 0;
+    for (int j = 0; j < nElementsInjury; j++) {
+      if (PSxSRArray[j] >= maxMPSxSR95) {
+        maxElemListMPSxSR95[count] = elementIDInjury[j];
         count = count + 1;
       }
     }
