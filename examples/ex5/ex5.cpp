@@ -70,7 +70,7 @@ struct {
 int *MPSgt15, *MPSgt30; // Variable to store if MPS exceeds 15 and 30
 int *MPSRgt120, *MPSxSRgt28; // Varible to store if MPSR > 120 s^-1, MPSxSR > 28 s^-1
 /* Variables for maximum Principal Strain times Strain Rate */
-double *PS_Old, maxPSxSR, maxTimePSxSR;
+double *PS_Old, maxPSxSR = 0.0, maxTimePSxSR = 0.0;
 int maxElemPSxSR;
 int nElementsInjury, *elementIDInjury;
 // part ID to exclude from injury computation
@@ -1285,12 +1285,12 @@ void InitInjuryCriterion(void) {
   PS_Old = (double*)malloc(nElementsInjury*sizeof(double));
   MPSRgt120 = (int*)calloc(nElementsInjury, sizeof(int));
   MPSxSRgt28 = (int*)calloc(nElementsInjury, sizeof(int));
-  maxMPS95 = 0;
-  maxTimeMPS95 = 0;
+  maxMPS95 = 0.0;
+  maxTimeMPS95 = 0.0;
   maxElemCountMPS95 = 0;
   maxElemListMPS95 = NULL;
-  maxMPSxSR95 = 0;
-  maxTimeMPSxSR95 = 0;
+  maxMPSxSR95 = 0.0;
+  maxTimeMPSxSR95 = 0.0;
   maxElemCountMPSxSR95 = 0;
   maxElemListMPSxSR95 = NULL;
   PSxSRArray = (double*)malloc(nElementsInjury*sizeof(double));
@@ -1310,7 +1310,7 @@ void InitInjuryCriterion(void) {
 
 void CalculateInjuryCriterions(void) {
   double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
-  double PSR, PSxSR;
+  double PSR = 0.0, PSxSR = 0.0;
   for (int j = 0; j < nElementsInjury; j++) {
     int i = elementIDInjury[j];
     CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, \
