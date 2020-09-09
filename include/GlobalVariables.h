@@ -15,6 +15,7 @@ static int elemWeight[] = {2, 1, 1};
 
 const double huge = 1e20;
 
+extern std::string uid; /* Simulation unique id */
 extern int nparts;
 extern int nelements;
 extern int nallelements;

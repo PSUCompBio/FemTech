@@ -19,7 +19,8 @@ static bool IsElementSection(char *Line, FILE *File, int *NDimExceptRuleExists =
         if (NDimExceptRuleExists != NULL && strncmp(Line, TITLE_ELEMENT_BEAM, strlen(TITLE_ELEMENT_BEAM)) == 0) {
             *NDimExceptRuleExists = 1;
         }
-        fgets(Line, MAX_FILE_LINE * sizeof(char), File);
+        char* read = fgets(Line, MAX_FILE_LINE * sizeof(char), File);
+        assert(read != NULL);
     }
     return ElementSection;
 }
@@ -48,7 +49,7 @@ bool ReadLsDyna(const char *FileName) {
     // Checking if mesh file can be opened or not
     FILE *File;
     if ((File = fopen(FileName, "rb")) == NULL) {
-        printf("\nERROR( proc %d ): Cannot open input file.\n", world_rank);
+        FILE_LOG_SINGLE(ERROR, "Cannot open input mesh file");
         return false;
     }
 
@@ -73,7 +74,7 @@ bool ReadLsDyna(const char *FileName) {
                 LastValidElemDataLinePos = ftell(File);
             }
             if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
-                printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
+                FILE_LOG_SINGLE(ERROR, "'fseek()' call for LastValidElemDataLinePos failed");
             }
         }
         else if (NodesSectionPos == -1 && IsNodeSection(Line)) {
@@ -124,13 +125,13 @@ bool ReadLsDyna(const char *FileName) {
     if (nallelements == 0 || NodesSectionPos == -1 || (fseeked = fseek(File, ElementsSectionPos, SEEK_SET)) != 0) {
         fclose(File);
         if (nallelements == 0) {
-            printf("\nERROR( proc %d ): No element found. This means input file is empty or contains invalid data.\n", world_rank);
+            FILE_LOG_SINGLE(ERROR, "No element found. This means input file is empty or contains invalid data");
         }
         if (NodesSectionPos == -1) {
-            printf("\nERROR( proc %d ): Node section not found. This means input file is empty or contains invalid data.\n", world_rank);
+            FILE_LOG_SINGLE(ERROR, "Node section not found. This means input file is empty or contains invalid data");
         }
         if (fseeked != 0) {
-            printf("\nERROR( proc %d ): 'fseek()' call for ElementsSectionPos failed.\n", world_rank);
+            FILE_LOG_SINGLE(ERROR, "'fseek()' call for ElementsSectionPos failed");
         }
         return false;
     }
@@ -168,7 +169,7 @@ bool ReadLsDyna(const char *FileName) {
             }
 
             if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
-                printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
+                FILE_LOG_SINGLE(ERROR, "'fseek()' call for LastValidElemDataLinePos failed");
             }
         }
     }
@@ -179,10 +180,10 @@ bool ReadLsDyna(const char *FileName) {
         fclose(File);
         FreeArrays();
         if (ConnectivitySize != eptr[nelements]) {
-            printf("\nERROR( proc %d ): Size of 'eind' array is not vald.\n", world_rank);
+            FILE_LOG_SINGLE(ERROR, "Size of 'eind' array is not vald");
         }
         else {
-            printf("\nERROR( proc %d ): 'fseek()' call failed.\n", world_rank);
+            FILE_LOG_SINGLE(ERROR, "'fseek()' call failed");
         }
         return false;
     }
@@ -233,7 +234,7 @@ bool ReadLsDyna(const char *FileName) {
                         strcpy(ElementType[pi], "T3D2");
                     }
                     else {
-                        printf("\nERROR( proc %d ): Unknown element type \"%d\" in line %s\n", world_rank, N, Line);
+                        FILE_LOG_SINGLE(ERROR, "Unknown element type \"%d\" in line %s", N, Line);
                     }
                     
                     pi = pi + 1;
@@ -251,26 +252,21 @@ bool ReadLsDyna(const char *FileName) {
             }
 
             if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
-                printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
+                FILE_LOG_SINGLE(ERROR, "'fseek()' call for LastValidElemDataLinePos failed");
             }
         }
     }
     assert(pi == nelements);
-    // for (int k = 0; k < 10; ++k) {
-    //   printf("Rank : %d, element global id : %d of From : %d and To : %d\n", world_rank, global_eid[k], From, To);
-    // }
 
     // Checking if we can go to nodes section of mesh file
     if (fseek(File, NodesSectionPos, SEEK_SET) != 0) {
         fclose(File);
         FreeArrays();
-        printf("\nERROR( proc %d ): 'fseek()' call failed.\n", world_rank);
+        FILE_LOG_SINGLE(ERROR, "'fseek()' call failed", world_rank);
         return false;
     }
 
     // Initializing "coordinates" array
-    int compare (const void * a, const void * b);
-    int unique(int *arr, int n);
     int *UniqueConnectivity = (int *)malloc(ConnectivitySize * sizeof(int));
     memcpy(UniqueConnectivity, connectivity, ConnectivitySize * sizeof(int));
     qsort(UniqueConnectivity, ConnectivitySize, sizeof(int), compare);
@@ -315,40 +311,10 @@ bool ReadLsDyna(const char *FileName) {
     // Checking if "coordinates" array is OK
     if (nNodes != ConnectivitySize) {
         FreeArrays();
-        printf("\nERROR( proc %d ): Failed to initialize 'coordinates' array.\n", world_rank);
-        printf("\nnnodes = %d, ConnectivitySize = %d, ndim = %d\n", nNodes, ConnectivitySize, ndim);
+        FILE_LOG_SINGLE(ERROR, "Failed to initialize 'coordinates' array");
+        FILE_LOG_SINGLE(ERROR, "nnodes = %d, ConnectivitySize = %d, ndim = %d", nNodes, ConnectivitySize, ndim);
     }
 
-#if 0
-    // Printing local arrays of processor (this section can be removed)
-    printf("\neptr array in processor %d before partitioning = ", world_rank);
-    for (int i = 0; i <= nelements ; i++) {
-        printf("%d ", eptr[i]);
-    }
-    printf("\n");
-    printf("\neind array in processor %d before partitioning =", world_rank);
-    for (int i = 0; i < nelements; i++) {
-        printf(" (%d)  ", i);
-        for (int j = eptr[i]; j < eptr[i + 1]; j++) {
-            printf("%d ", connectivity[j]);
-        }
-    }
-    printf("\n");
-    printf("\nType/PartID of element in processor %d before partitioning = ", world_rank);
-    for (int i = 0; i < nelements ; i++) {
-        printf("%s/%d  ", ElementType[i], pid[i]);
-    }
-    printf("\n");
-    printf("\nSize of coordinates array in processor %d before partitioning = %d\n", world_rank, nNodes * ndim);
-    printf("\nCoordinates array in processor %d before partitioning =", world_rank);
-    for (int i = 0; i < nNodes; i++) {
-        printf(" (%d)  ", i);
-        for (int j = 0; j < ndim; j++) {
-            printf("%.*f ", 1, coordinates[ndim * i + j]);
-        }
-    }
-    printf("\n");
-#endif
     // Everything is OK for now. Closing the mesh file, returning TRUE.
     fclose(File);
     return nNodes == ConnectivitySize;

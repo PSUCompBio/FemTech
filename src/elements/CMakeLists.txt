@@ -12,3 +12,4 @@ Set(elements_src
     )
 
 add_library(elements OBJECT ${elements_src})
+add_dependencies(elements JsonCpp)

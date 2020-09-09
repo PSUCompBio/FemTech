@@ -1,0 +1,18 @@
+{
+  "uid": "test_p1",
+  "player": {
+    "name" : "harry",
+    "position" : "OL"
+  },
+  "simulation": {
+    "mesh" : "coarse_brain.inp",
+    "linear-acceleration" : [3.0, 1.0, 0.0],
+    "angular-acceleration" : 15.0,
+    "time-peak-acceleration" : 0.2,
+    "maximum-time" : 0.4,
+    "mesh-transformation" : ["-y", "z", "-x"],
+    "head-cg" : [0.0, -0.3308, -0.037],
+    "impact-point" : "front-low",
+    "write-vtu" : false
+  }
+}

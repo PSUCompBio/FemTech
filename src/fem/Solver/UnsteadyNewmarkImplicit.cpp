@@ -38,12 +38,12 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double deltaT, \
   int info;
   dgetrf_(&matSize, &matSize, stiffness, &matSize, pivot, &info); 
   if (info) {
-    printf("LU Decomposition failed with info code %d\n", info);
+    FILE_LOG_SINGLE(ERROR, "LU Decomposition and solution failed with info code %d", info);
   }
 
   for (int n = 1; n < nMax+1; ++n) {
     Time = n*deltaT;
-    printf("\nTime : %.4f\n", Time);
+    FILE_LOG_MASTER(INFO, "Time : %15.9e", Time);
     // Compute the RHS for the current time step
     memcpy(accelerationsOld, accelerations, nDOF*sizeof(double));
     memcpy(displacementsOld, displacements, nDOF*sizeof(double));
@@ -51,7 +51,7 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double deltaT, \
 
     dgetrs_(chn, &matSize, &oneI, stiffness, &matSize, pivot, rhs, &matSize, &info);
     if (info) {
-      printf("Matrix Solution failed during back substitution with info code %d\n", info);
+      FILE_LOG_SINGLE(ERROR, "Matrix Solution failed during back substitution with info code %d", info);
     }
     // Update new accelerations and velocities
     int j = 0;
@@ -66,17 +66,10 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double deltaT, \
       accelerations[i] = a*(displacements[i]-displacementsOld[i])-b*velocities[i]-c*accelerationsOld[i];
       velocities[i] += e*accelerations[i]+d*accelerationsOld[i];
     }
-#ifdef DEBUG
-    if (debug) {
-      printf("DEBUG : Printing Displacement Solution\n");
-      for (int i = 0; i < nNodes; ++i) {
-        for (int k = 0; k < ndim; ++k) {
-          printf("%12.4f", displacements[i*ndim+k]);
-        }
-        printf("\n");
-      }
-    }
-#endif //DEBUG
+
+    FILE_LOGMatrixRM(DEBUGLOGIGNORE, displacements, nNodes, ndim, \
+      "Printing Displacement Solution");
+
     // Write the solution to file
     WriteVTU(name, n);
   }
@@ -94,9 +87,7 @@ void ModifyMassAndStiffnessMatrix() {
       nSpecifiedDispBC += 1;
     }
   }
-#ifdef DEBUG
-  printf("Debug : %d\n", nSpecifiedDispBC);
-#endif //DEBUG
+  FILE_LOG_SINGLE(DEBUGLOG, "Specified Disp BC count : %d", nSpecifiedDispBC);
   // Eliminate columns
   if (nSpecifiedDispBC == 0) {
    return;

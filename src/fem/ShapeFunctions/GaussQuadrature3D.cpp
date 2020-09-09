@@ -11,7 +11,6 @@ void GaussQuadrature3D(int element, int nGaussPoint, double *Chi, double *GaussW
 	!         lint   - Total number of quadrature points
 	!         s(4,*) - Gauss points (1-3) and weights (4)
 	!-----[--.----+----.----+----.-----------------------------------------*/
-   //printf("Rank %d: Guass quadrature for 3D elements!!\n", world_rank);
 
 	// 8-noded hex with 8 integration points
   //  2 x 2 x 2 pt. quadrature

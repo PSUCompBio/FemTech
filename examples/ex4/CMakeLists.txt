@@ -11,6 +11,7 @@ else()
 endif(ENABLE_MPI)
 
 file(COPY 3part-cubes.inp DESTINATION .)
+file(COPY materials.dat DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
 

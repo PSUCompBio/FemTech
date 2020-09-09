@@ -10,7 +10,7 @@ void CreateLinearElasticityCMatrix() {
 	const double E = G*(3.0*lambda+2.0*G)/(lambda+G);
 	const double nu = 0.5*lambda/(lambda+G);
 	if (nu == 0.5) {
-		printf("ERROR : Incompressible solids does not work with current formulation\n");
+		FILE_LOG_SINGLE(ERROR, "Incompressible solids does not work with current formulation");
 	}
 	const double c11 = E*(1.0-nu)/((1.0-2.0*nu)*(1.0+nu));
 	const double c12 = E*nu/((1.0-2.0*nu)*(1.0+nu));

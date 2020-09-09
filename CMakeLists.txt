@@ -16,7 +16,9 @@ endif()
 
 if(${CMAKE_BUILD_TYPE} STREQUAL DEBUG)
   message("Adding Debug flag...")
-  add_compile_definitions(DEBUG)
+  add_definitions(-DDEBUG)
+  # Add compile definition requires cmake 3.12+
+  # add_compile_definitions(DEBUG)
 endif()
 
 #Setting c++11 parameters
@@ -33,7 +35,13 @@ message(STATUS "Install Directory : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Current built type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Current build type flags: ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}")
 # Set additional compiler flags
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=native")
+STRING(TOLOWER "${PROC_ARCH}" PROC_ARCH)
+if (NOT PROC_ARCH)
+  message(STATUS "No processor instruction set selected, default to Native")
+  set(PROC_ARCH "native" CACHE STRING "Instruction set (default native)" FORCE)
+endif()
+
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=${PROC_ARCH} -mtune=${PROC_ARCH}")
 
 # set install rules (windows only)
 if(WIN32)
@@ -129,8 +137,8 @@ include_directories(${source_dir})
 #============================================================================
 # BLAS/Lapack
 #==============================================================================
-find_package(BLAS)
-find_package(LAPACK)
+find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
 if(LAPACK_FOUND)
   message("Found Lapack")
   message("Lapack link library is ${LAPACK_LIBRARIES}")

@@ -1,5 +1,7 @@
 #include "FemTech.h"
 
+#include <string>
+
 double *displacements;
 double *velocities;
 double *velocities_half;
@@ -28,105 +30,106 @@ void AllocateArrays() {
   // Allocate and initialize global displacements
 	displacements=(double*)calloc(nDOF,sizeof(double));
   if (!displacements) {
-    printf("ERROR : Error in allocating displacements array\n");
-    exit(12);
+    FILE_LOG_SINGLE(ERROR, "Error in allocating displacements array");
+    TerminateFemTech(12);
   }
 	//Allocate and initialize global boundary conditions
 	boundary=(int*)calloc(nDOF, sizeof(int));
   if (!boundary) {
-    printf("ERROR : Error in allocating boundary array\n");
-    exit(12);
+    FILE_LOG_SINGLE(ERROR, "Error in allocating boundary array");
+    TerminateFemTech(12);
   }
   if (ImplicitDynamic || ExplicitDynamic) {
     // Velocity and acceleration allocations for unsteady problem
     velocities = (double*)calloc(nDOF, sizeof(double));
     if (!velocities) {
-      printf("ERROR : Error in allocating velocities array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating velocities array");
+      TerminateFemTech(12);
     }
     accelerations = (double*)calloc(nDOF, sizeof(double));
     if (!accelerations) {
-      printf("ERROR : Error in allocating accelerations array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating accelerations array");
+      TerminateFemTech(12);
     }
     velocities_half = (double*)calloc(nDOF, sizeof(double));
     if (!velocities_half) {
-      printf("ERROR : Error in allocating velocities_half array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating velocities_half array");
+      TerminateFemTech(12);
     }
 		displacements_prev = (double*)calloc(nDOF, sizeof(double));
     if (!displacements_prev) {
-      printf("ERROR : Error in allocating displacements_prev array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating displacements_prev array");
+      TerminateFemTech(12);
     }
 		accelerations_prev = (double*)calloc(nDOF, sizeof(double));
     if (!accelerations_prev) {
-      printf("ERROR : Error in allocating accelerations_prev array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating accelerations_prev array");
+      TerminateFemTech(12);
     }
     Eavg = (double*)calloc(nelements*ndim*ndim, sizeof(double));
     if (!Eavg) {
-      printf("ERROR : Error in allocating Eavg array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating Eavg array");
+      TerminateFemTech(12);
     }
 		fe = (double*)calloc(nDOF, sizeof(double)); // External Nodal force vector
     if (!fe) {
-      printf("ERROR : Error in allocating fe array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating fe array");
+      TerminateFemTech(12);
     }
 		fe_prev = (double*)calloc(nDOF, sizeof(double)); // External Nodal force vector at previous timestep
     if (!fe_prev) {
-      printf("ERROR : Error in allocating fe_prev array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating fe_prev array");
+      TerminateFemTech(12);
     }
 		fi = (double*)calloc(nDOF, sizeof(double)); // Internal Nodal force vector
     if (!fi) {
-      printf("ERROR : Error in allocating fi array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating fi array");
+      TerminateFemTech(12);
     }
 		fi_prev = (double*)calloc(nDOF, sizeof(double)); // Internal Nodal force vector at previous timestep
     if (!fi_prev) {
-      printf("ERROR : Error in allocating fi_prev array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating fi_prev array");
+      TerminateFemTech(12);
     }
 		f_net = (double*)calloc(nDOF, sizeof(double)); // Total Nodal force vector
     if (!f_net) {
-      printf("ERROR : Error in allocating f_net array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating f_net array");
+      TerminateFemTech(12);
     }
 		fr_prev = (double*)calloc(nDOF, sizeof(double)); // Reaction Nodal force vector at previous timestep
     if (!fr_prev) {
-      printf("ERROR : Error in allocating fr_prev array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating fr_prev array");
+      TerminateFemTech(12);
     }
 		fr_curr = (double*)calloc(nDOF, sizeof(double));// Reaction Nodal force vector at current timestep
     if (!fr_curr) {
-      printf("ERROR : Error in allocating fr_curr array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating fr_curr array");
+      TerminateFemTech(12);
     }
 		fi_curr = (double*)calloc(nDOF, sizeof(double)); // Internal Nodal force vector at current timestep
     if (!fi_curr) {
-      printf("ERROR : Error in allocating fi_curr array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating fi_curr array");
+      TerminateFemTech(12);
     }
 		f_damp_curr = (double*)calloc(nDOF, sizeof(double)); // Linear Bulk Viscosity Damping Nodal force vector
     if (!f_damp_curr) {
-      printf("ERROR : Error in allocating f_damp_curr array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating f_damp_curr array");
+      TerminateFemTech(12);
     }
 		f_damp_prev = (double*)calloc(nDOF, sizeof(double)); // Linear Bulk Viscosity Damping Nodal force vector at previous timestep
     if (!f_damp_prev) {
-      printf("ERROR : Error in allocating f_damp_prev array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating f_damp_prev array");
+      TerminateFemTech(12);
     }
-    energyFile = fopen("energy.dat", "w");
+    std::string energyFileName = "energy_"+uid+".dat"; 
+    energyFile = fopen(energyFileName.c_str(), "w");
     fprintf(energyFile, "# Energy for FEM\n");
     fprintf(energyFile, "# Time  Winternal   Wexternal   WKE   total\n");
 
     stepTime = (double*)malloc((MAXPLOTSTEPS)*sizeof(double));
     if (!stepTime) {
-      printf("ERROR : Error in allocating stepTime array\n");
-      exit(12);
+      FILE_LOG_SINGLE(ERROR, "Error in allocating stepTime array");
+      TerminateFemTech(12);
     }
     // Allocations for material temporary computation
     // By default initialize mat1 and mat2

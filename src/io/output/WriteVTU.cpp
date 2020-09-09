@@ -1,8 +1,7 @@
 #include "FemTech.h"
 
-static void strip_ext(char *);
-
-void WriteVTU(const char* FileName, int step) {
+void WriteVTU(const char* FileName, int step, int** intCellData /*= NULL*/, \
+    int cellDataCount /*= 0*/, const char **cellDataNames /*= NULL*/) {
   static const int ARR_SIZE = 1000;
 
 	FILE *fp;
@@ -17,9 +16,7 @@ void WriteVTU(const char* FileName, int step) {
 	if (strlen(FileName) < ARR_SIZE) {
 	    strcpy(outfile, FileName);
 	}
-	strip_ext(outfile);
 
-	//printf("\nwrite_VTU partition: %d\n", world_rank);
 	sprintf(s, ".vtu.%04d.%04d",step,world_rank);
   sprintf(paths,"./results/vtu/");
 	sprintf(paths2,"./results/");
@@ -30,19 +27,14 @@ void WriteVTU(const char* FileName, int step) {
   strcat(paths,s);
 
 
-	//printf("\nnew name: %s\n",outfile);
 	fp=fopen(paths,"w");
 
 	fprintf(fp,"<?xml version=\"1.0\"?>\n");
 	fprintf(fp,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n");
 	fprintf(fp,"\t<UnstructuredGrid>\n");
 	fprintf(fp,"\t\t<Piece NumberOfPoints=\"%d\" NumberOfCells=\"%d\">\n",nNodes,nelements);
+
 	// write coordinates
-
-	// Temporary soution for ndim
-	//const int NDim = ndim == 2 ? 3 : ndim;
-	//
-
 	fprintf(fp,"\t\t\t<Points>\n");
 	fprintf(fp,"\t\t\t\t<DataArray type=\"Float64\" NumberOfComponents=\"%d\" format=\"ascii\">\n", ndim);
 	for(i=0;i<nNodes;i++){
@@ -96,8 +88,6 @@ void WriteVTU(const char* FileName, int step) {
 	fprintf(fp, "\t\t\t\t</DataArray>\n");
 	fprintf(fp, "\t\t\t</Cells>\n");
 
-
-
 	/*-----------POINT DATA -----------------*/
 	fprintf(fp, "\t\t\t<PointData>\n");
 	// write displacements
@@ -149,6 +139,12 @@ void WriteVTU(const char* FileName, int step) {
 			fprintf(fp,"\n");
 	}
 	fprintf(fp,"\t\t\t\t</DataArray>\n");
+	// // write Global Node ID
+	// fprintf(fp, "\t\t\t\t<DataArray type=\"Int32\" Name=\"GlobalNID\" format=\"ascii\">\n");
+	// for (i = 0; i < nNodes; i++) {
+	// 	fprintf(fp, "\t\t\t\t\t%d\n", globalNodeID[i]);
+	// }
+	// fprintf(fp, "\t\t\t\t</DataArray>\n");
 
 
 	fprintf(fp, "\t\t\t</PointData>\n");
@@ -186,9 +182,23 @@ void WriteVTU(const char* FileName, int step) {
 		fprintf(fp, "\t\t\t\t\t%d\n", world_rank);
 	}
 	fprintf(fp, "\t\t\t\t</DataArray>\n");
+
+	// Write example specific element data
+  for (int c = 0; c < cellDataCount; ++c) {
+    int *data = intCellData[c];
+    fprintf(fp, "\t\t\t\t<DataArray type=\"Int32\" Name=\"%s\" format=\"ascii\">\n", cellDataNames[c]);
+    for (i = 0; i < nelements; i++) {
+      fprintf(fp, "\t\t\t\t\t%d\n", data[i]);
+    }
+    fprintf(fp, "\t\t\t\t</DataArray>\n");
+  }
+	// // write Global Element ID
+	// fprintf(fp, "\t\t\t\t<DataArray type=\"Int32\" Name=\"GlobalEID\" format=\"ascii\">\n");
+	// for (i = 0; i < nelements; i++) {
+	// 	fprintf(fp, "\t\t\t\t\t%d\n", global_eid[i]);
+	// }
+	// fprintf(fp, "\t\t\t\t</DataArray>\n");
 	fprintf(fp, "\t\t\t</CellData>\n");
-
-
 
 	fprintf(fp,"\t\t</Piece>\n");
 	fprintf(fp,"\t</UnstructuredGrid>\n");
@@ -197,7 +207,6 @@ void WriteVTU(const char* FileName, int step) {
 
 	// Write the pvtu file if you are rank zero and code in parallel
   if (world_rank == 0) {
-	  //printf("\nRank 0 Writing PVTU file\n");
 		sprintf(s, ".%.04d.pvtu",step);
 		strcat(paths2, s);
 		fp=fopen(paths2, "w");
@@ -224,6 +233,7 @@ void WriteVTU(const char* FileName, int step) {
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"Boundary\" "
 							 "NumberOfComponents=\"%d\" ComponentName0=\"X\" ComponentName1=\"Y\" "
 							 "ComponentName2=\"Z\" format=\"ascii\" />\n",ndim);
+		// fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"GlobalNID\"/>\n");
     fprintf(fp,"\t\t</PPointData>\n");
 
 		/*-----------CELL DATA -----------------*/
@@ -237,6 +247,10 @@ void WriteVTU(const char* FileName, int step) {
                     "ComponentName7=\"E23\" ComponentName8=\"E33\" "
                     "format=\"ascii\"/>\n",ndim*ndim);
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"ProcID\"/>\n");
+    for (int c = 0; c < cellDataCount; ++c) {
+      fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"%s\"/>\n", cellDataNames[c]);
+    }
+		// fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"GlobalEID\"/>\n");
     fprintf(fp,"\t\t</PCellData>\n");
     for (i = 0; i < world_size; ++i) {
       fprintf(fp,"\t\t<Piece Source=\"vtu/%s.vtu.%04d.%.4d\"/>\n", outfileP2,step, i);
@@ -246,14 +260,4 @@ void WriteVTU(const char* FileName, int step) {
 		fclose(fp);
   }
 	return;
-}
-//-------------------------------------------------------------------------------------------
-void strip_ext(char *fname){
-    char *end = fname + strlen(fname);
-    while (end > fname && *end != '.' && *end != '\\' && *end != '/') {
-        --end;
-    }
-    if (end > fname && *end == '.') {
-        *end = '\0';
-    }
 }

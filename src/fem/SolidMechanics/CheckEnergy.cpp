@@ -61,14 +61,10 @@ void CheckEnergy(double time, int writeFlag) {
     Wint_n += Wint_n_total;
     Wext_n += Wext_n_total;
     double total = fabs(WKE_Total+Wint_n-Wext_n);
-#ifdef DEBUG
-	if(debug && 1 == 0){
-  	printf("Internal Work : %15.9e\n", Wint_n);
-  	printf("External Work : %15.9e\n", Wext_n);
-    printf("Kinetic Energy : %15.9e\n", WKE_Total);
-    printf("Total Energy : %15.9e\n", total);
-}
-#endif //DEBUG
+  	FILE_LOG_SINGLE(DEBUGLOG, "Internal Work : %15.9e", Wint_n);
+  	FILE_LOG_SINGLE(DEBUGLOG, "External Work : %15.9e", Wext_n);
+    FILE_LOG_SINGLE(DEBUGLOG, "Kinetic Energy : %15.9e", WKE_Total);
+    FILE_LOG_SINGLE(DEBUGLOG, "Total Energy : %15.9e", total);
 
     double max = fabs(Wint_n);
     if (max < fabs(Wext_n)) {
@@ -79,7 +75,7 @@ void CheckEnergy(double time, int writeFlag) {
     }
     const double epsilon = 0.01;
     if (total > epsilon*max) {
-      printf("\nERROR - Energy Violation:  Total = %15.9e, Max = %15.9e, Error%% : %10.2f \n", total, max, total*100.0/max);
+      FILE_LOG_MASTER(WARNING, "Energy Violation. Total = %15.9e, Max = %15.9e, Error\% : %10.2f", total, max, total*100.0/max);
     }
     if (writeFlag == 0) {
       fprintf(energyFile, "%12.6e %12.6e  %12.6e  %12.6e %12.6e\n", time,

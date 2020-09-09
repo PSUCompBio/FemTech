@@ -4,9 +4,8 @@
 void CalculateDeformationGradient(int e, int gp) {
   // following Bonet and Wood; F = xlocal*DN_X in flagshyp
   if ((eptr[e + 1] - eptr[e]) != nShapeFunctions[e]) {
-    printf("Warning from CalculateDeformationGradient.cpp: (eptr[e+1]-eptr[e]) "
-           "!= nShapeFunctions[e])");
-    printf("Check it out, probally a bug in allocation");
+    FILE_LOG_SINGLE(WARNING, "CalculateDeformationGradient.cpp: (eptr[e+1]-eptr[e]) "
+           "!= nShapeFunctions[e])\nCheck it out, probally a bug in allocation");
   }
   double theSum = 0.0;
   for (int i = 0; i < ndim; i++) {
@@ -25,17 +24,7 @@ void CalculateDeformationGradient(int e, int gp) {
     }
   }
 
-#ifdef DEBUG
-  if (debug && 0) {
-    printf("--------F for gauss point %d --------\n", gp);
-    for (int i = 0; i < ndim; i++) {
-      for (int j = 0; j < ndim; j++) {
-        int index = fptr[e] + ndim * ndim * gp + ndim * j + i;
-        printf("%3.3e   ", F[index]);
-      } // loop on j
-      printf("\n");
-    } // loop on i
-  }   // if debug
-#endif //DEBUG
+  FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, &F[fptr[e] + ndim * ndim * gp], ndim, \
+      ndim, "--------F for gauss point %d --------", gp);
   return;
 }

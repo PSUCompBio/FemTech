@@ -1,6 +1,8 @@
 #ifndef FEMTECH_H
 #define FEMTECH_H
 
+#include "json/json.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -8,6 +10,7 @@
 #include <string.h>
 
 #include "GlobalVariables.h"
+#include "parallel_log.h"
 
 #include "mpi.h"
 #include "parmetis.h"
@@ -33,7 +36,8 @@ void AllocateArrays();
 void Assembly(char *operation);
 void StiffnessElementMatrix(double* Ke, int e);
 void MassElementMatrix(double* Me, int e);
-void WriteVTU(const char* FileName, int step);
+void WriteVTU(const char* FileName, int step, int** intCellData = NULL, \
+    int cellDataCount = 0, const char **cellDataNames = NULL);
 void WritePVD(const char* FileName, int step);
 void FreeArrays();
 void ApplySteadyBoundaryConditions(void);
@@ -54,7 +58,7 @@ void CalculateAccelerations();
 void CalculateFR();
 
 void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
-    double *currentStrainMin);
+    double *currentStrainMin, double *currentShearMax);
 void CalculateStrain();
 void CalculateDeformationGradient(int e, int gp);
 void SumOfDeformationGradient(int e, int gp);
@@ -88,6 +92,9 @@ void quaternionMultiply(double *q1, double *q2, double *qr);
 void quaternionInverse(double *q, double *qinv);
 void quaternionRotate(double *v, double *R, double* vp);
 void quaternionRotate(double *v, double *R, double *Rinv, double* vp);
+double compute95thPercentileValueBruteForce(double* dataArray, int localSize);
+double compute95thPercentileValue(double* dataArray, int localSize);
+void test95Percentile(void);
 
 void CheckEnergy(double time, int writeFlag);
 
@@ -108,9 +115,16 @@ void updateMassMatrixNeighbour(void);
 double volumeHexahedron(double *coordinates);
 double areaHexahedronFace(double *coordinates, const int * const index);
 double volumeTetrahedron(double *coordinates);
+void computePartVolume(double *volume, double *elemVolume);
+double calculateVolume(int e);
 
 int compare(const void *a, const void *b);
 int unique(int *arr, int n);
 int coordinateFromGlobalID(int *array, int nodeID, int size, double* coord);
 
+/*Init and finalize femtech */
+Json::Value InitFemTech(int argc, char **argv);
+void InitFemTechWoInput(int argc, char **argv);
+void FinalizeFemTech();
+void TerminateFemTech(int errorCode);
 #endif

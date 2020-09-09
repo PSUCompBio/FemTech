@@ -57,18 +57,10 @@ void MassElementMatrix(double *Me, int e) {
   for (int n = 0; n < mLocalSize; ++n) {
     Me[n] *= rho;
   }
-#ifdef DEBUG
-  // print Me Matrix
-  if (debug && 1==0) {
-    printf("DEBUG : Printing Me (Mass Matrix) for Element %d\n", e);
-    for (int j = 0; j < bColSize; ++j) {
-      for (int k = 0; k < bColSize; ++k) {
-        printf("%.9e\t", Me[j+k*bColSize]);
-      }
-      printf("\n");
-    }
-  }
-#endif //DEBUG
+
+  FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, Me, bColSize, bColSize, \
+      "Printing Mass Matrix for Element %d", e);
+
   free(MeGQ);
   free(N);
   return;
@@ -80,14 +72,7 @@ void LumpMassMatrix(void) {
       mass[j] += mass[j+i*nDOF];
     }
   }
-#ifdef DEBUG
-	if(debug && 1==0){
-	  printf("Lumped Mass\n");
-	  for(int j = 0; j < nDOF; ++j) {
-	    printf("%d  %12.6f\n", j, mass[j]);
-	  }
-	}
-#endif //DEBUG
+  FILE_LOGArraySingle(DEBUGLOGIGNORE, mass, nDOF, "Lumped Mass");
 }
 void updateMassMatrixNeighbour(void) {
   // Update array to send 
@@ -136,22 +121,15 @@ void updateMassMatrixNeighbour(void) {
   }
   free(requestListSend);
   free(requestListRecv);
-#ifdef DEBUG
-	if(debug && 1==0){
-	  printf("Lumped Mass After Exchange\n");
-	  for(int j = 0; j < nDOF; ++j) {
-	    printf("%d  %12.6f\n", j, mass[j]);
-	  }
-	}
-#endif //DEBUG
+  FILE_LOGArraySingle(DEBUGLOGIGNORE, mass, nDOF, "Lumped Mass After Exchange");
 }
 
 void AssembleLumpedMass(void) {
   // Create global mass matrix
   mass = (double*)calloc(nDOF, sizeof(double));
   if (!mass) {
-    printf("ERROR(%d) : Allocation of mass matrix failed\n", world_rank);
-    exit(12);
+    FILE_LOG_SINGLE(ERROR, "Allocation of mass matrix failed");
+    TerminateFemTech(12);
   }
   for (int e = 0; e < nelements; ++e) {
     int bColSize = nShapeFunctions[e]*ndim;
@@ -173,14 +151,7 @@ void AssembleLumpedMass(void) {
     }
     free(Me);
   }
-#ifdef DEBUG
-  if(debug && 1==0){
-    printf("Lumped Mass\n");
-    for(int j = 0; j < nDOF; ++j) {
-      printf("%d  %12.6f\n", j, mass[j]);
-    }
-  }
-#endif //DEBUG
+  FILE_LOGArraySingle(DEBUGLOGIGNORE, mass, nDOF, "Lumped Mass");
   // Include effect of elements on other processors
   updateMassMatrixNeighbour();
 }

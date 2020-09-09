@@ -3,11 +3,7 @@
 #include <stdlib.h>
 
 void StressUpdate(int e, int gp){
-#ifdef DEBUG
-	if(debug && 1==0){
-  	printf("---- Calling Stress Update %d, %d ---\n", e, gp);
-	}
-#endif //DEBUG
+  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "---- Calling Stress Update %d, %d ---", e, gp);
   switch (materialID[pid[e]]) {
     case 0 : // Rigid-body motion
              break;
@@ -26,8 +22,8 @@ void StressUpdate(int e, int gp){
     case 5 : // HGO with isotropic fiber distribution and viscoelasticity
              HGOIsotropicViscoelastic(e, gp);
              break;
-    default : printf("Unknown material type\n");
-              exit(EXIT_FAILURE);
+    default : FILE_LOG_SINGLE(ERROR, "Unknown material type");
+              TerminateFemTech(1);
   }
   return;
 }

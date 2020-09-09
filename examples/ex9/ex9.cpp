@@ -1,31 +1,23 @@
 #include "FemTech.h"
-#include "blas.h"
 
 #include <assert.h>
-
 
 /*Delare Functions*/
 void ApplyBoundaryConditions(double dMax, double tMax);
 void CustomPlot();
 
-/* Global Variables/Parameters  - could be moved to parameters.h file?  */
-int nPlotSteps = 50;
 double Time, dt;
 int nSteps;
-bool ImplicitStatic = false;
-bool ImplicitDynamic = false;
-bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
 
-int main(int argc, char **argv) {
+int nPlotSteps = 50;
+bool ImplicitStatic = false;
+bool ImplicitDynamic = false;
+bool ExplicitDynamic = true;
 
-  // Initialize the MPI environment
-  MPI_Init(NULL, NULL);
-  // Get the number of processes
-  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-  // Get the rank of the process
-  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+int main(int argc, char **argv) {
+  InitFemTechWoInput(argc, argv);
 
   ReadInputFile(argv[1]);
   ReadMaterials();
@@ -34,10 +26,13 @@ int main(int argc, char **argv) {
 
   AllocateArrays();
 
+  std::string meshFile(argv[1]);
+  size_t lastindex = meshFile.find_last_of(".");
+  std::string outputFileName = meshFile.substr(0, lastindex);
   /* Write inital, undeformed configuration*/
   Time = 0.0;
   int plot_counter = 0;
-  WriteVTU(argv[1], plot_counter);
+  WriteVTU(outputFileName.c_str(), plot_counter);
   stepTime[plot_counter] = Time;
   CustomPlot();
 
@@ -98,29 +93,22 @@ int main(int argc, char **argv) {
 
     nSteps = (int)(tMax / dt);
     int nsteps_plot = (int)(nSteps / nPlotSteps);
-
-    if (world_rank == 0) {
-      printf("inital dt = %3.3e, nSteps = %d, nsteps_plot = %d\n", dt, nSteps,
+    FILE_LOG_MASTER(INFO, "initial dt = %3.3e, nSteps = %d, nsteps_plot = %d", dt, nSteps,
             nsteps_plot);
-    }
+
 
     time_step_counter = time_step_counter + 1;
     double t_n = 0.0;
 
-    if (world_rank == 0) {
-      printf(
-          "------------------------------- Loop ----------------------------\n");
-      printf("Time : %f, tmax : %f\n", Time, tMax);
-    }
+    FILE_LOG_MASTER(INFO, "------------------------------- Loop ----------------------------");
+    FILE_LOG_MASTER(INFO, "Time : %15.6e, tmax : %15.6e", Time, tMax);
 
     /* Step-4: Time loop starts....*/
     while (Time < tMax) {
       t_n = Time;
       double t_np1 = Time + dt;
       Time = t_np1; /*Update the time by adding full time step */
-      if (world_rank == 0) {
-        printf("Time : %15.6e, dt=%15.6e, tmax : %15.6e\n", Time, dt, tMax);
-      }
+      FILE_LOG_MASTER(INFO, "Time : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt, tMax);
       double dt_nphalf = dt;                 // equ 6.2.1
       double t_nphalf = 0.5 * (t_np1 + t_n); // equ 6.2.1
 
@@ -170,56 +158,29 @@ int main(int argc, char **argv) {
       if (writeFlag == 0) {
         plot_counter = plot_counter + 1;
         CalculateStrain();
-        printf("------Plot %d: WriteVTU by rank : %d\n", plot_counter, world_rank);
-        WriteVTU(argv[1], plot_counter);
+        FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
+        WriteVTU(outputFileName.c_str(), plot_counter);
         if (plot_counter < MAXPLOTSTEPS) {
           stepTime[plot_counter] = Time;
-          WritePVD(argv[1], plot_counter);
+          WritePVD(outputFileName.c_str(), plot_counter);
         }
         CustomPlot();
 
-#ifdef DEBUG
-        if (debug) {
-          printf("DEBUG : Printing Displacement Solution\n");
-          for (int i = 0; i < nNodes; ++i) {
-            for (int j = 0; j < ndim; ++j) {
-              printf("%15.6E", displacements[i * ndim + j]);
-            }
-            printf("\n");
-          }
-        }
-#endif // DEBUG
+        FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Displacement Solution");
       }
       time_step_counter = time_step_counter + 1;
       dt = ExplicitTimeStepReduction * StableTimeStep();
       // Barrier not a must
       MPI_Barrier(MPI_COMM_WORLD);
     } // end explcit while loop
+    FILE_LOG_MASTER(INFO, "End of Iterative Loop");
 
     // Write out the last time step
     CustomPlot();
   } // end if ExplicitDynamic
-#ifdef DEBUG
-  if (debug) {
-    printf("DEBUG : Printing Displacement Solution\n");
-    for (int i = 0; i < nNodes; ++i) {
-      for (int j = 0; j < ndim; ++j) {
-        printf("%15.6E", displacements[i * ndim + j]);
-      }
-      printf("\n");
-    }
-  }
-#endif // DEBUG
+  FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Final Displacement Solution");
 
-  /* Below are things to do at end of program */
-  // if (world_rank == 0) {
-  //   if (plot_counter < MAXPLOTSTEPS) {
-  //     stepTime[plot_counter] = Time;
-  //     WritePVD(argv[1], plot_counter);
-  //   }
-  // }
-  FreeArrays();
-  MPI_Finalize();
+  FinalizeFemTech();
   return 0;
 }
 
@@ -282,9 +243,7 @@ void ApplyBoundaryConditions(double dMax, double tMax) {
       accelerations[index] = 0.0;
     }
   }
-  if (world_rank == 0) {
-    printf("Applied Disp = %10.5e\n", AppliedDisp);
-  }
+  FILE_LOG_MASTER(INFO, "Time = %10.5E, Applied Disp = %10.5E",Time, AppliedDisp);
   return;
 }
 

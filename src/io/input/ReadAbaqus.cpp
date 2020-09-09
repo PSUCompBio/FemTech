@@ -27,7 +27,7 @@ bool ReadAbaqus(const char *FileName) {
     // Checking if mesh file can be opened or not
     FILE *File;
     if ((File = fopen(FileName, "rb")) == NULL) {
-        printf("\nERROR( proc %d ): Cannot open input file.\n", world_rank);
+        FILE_LOG_SINGLE(ERROR, "Cannot open input mesh file");
         return false;
     }
     
@@ -63,7 +63,7 @@ bool ReadAbaqus(const char *FileName) {
                 LastValidElemDataLinePos = ftell(File);
             }
             if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
-                printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
+                FILE_LOG_SINGLE(ERROR, "'fseek()' call for LastValidElemDataLinePos failed");
             }
         }
         
@@ -78,13 +78,13 @@ bool ReadAbaqus(const char *FileName) {
     if (nallelements == 0 || NodesSectionPos == -1 || (fseeked = fseek(File, ElementsSectionPos, SEEK_SET)) != 0) {
         fclose(File);
         if (nallelements == 0) {
-            printf("\nERROR( proc %d ): No element found. This means input file is empty or contains invalid data.\n", world_rank);
+            FILE_LOG_SINGLE(ERROR, "No element found. This means input file is empty or contains invalid data");
         }
         if (NodesSectionPos == -1) {
-            printf("\nERROR( proc %d ): Node section not found. This means input file is empty or contains invalid data.\n", world_rank);
+            FILE_LOG_SINGLE(ERROR, "Node section not found. This means input file is empty or contains invalid data");
         }
         if (fseeked != 0) {
-            printf("\nERROR( proc %d ): 'fseek()' call for ElementsSectionPos failed.\n", world_rank);
+            FILE_LOG_SINGLE(ERROR, "'fseek()' call for ElementsSectionPos failed");
         }
         return false;
     }
@@ -147,7 +147,7 @@ bool ReadAbaqus(const char *FileName) {
             }
             
             if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
-                printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
+                FILE_LOG_SINGLE(ERROR, "'fseek()' call for LastValidElemDataLinePos failed");
             }
         }
     }
@@ -160,10 +160,10 @@ bool ReadAbaqus(const char *FileName) {
         Free2DimArray((void **)ElSetNames, nelements);
         Free2DimArray((void **)UniqueElSetNames, ElSetsCount);
         if (ConnectivitySize != eptr[nelements]) {
-            printf("\nERROR( proc %d ): Size of 'eind' array is not vald.\n", world_rank);
+            FILE_LOG_SINGLE(ERROR, "Size of 'eind' array is not valid");
         }
         else {
-            printf("\nERROR( proc %d ): 'fseek()' call for ElementsSectionPos failed.\n", world_rank);
+            FILE_LOG_SINGLE(ERROR, "'fseek()' call for ElementsSectionPos failed");
         }
         return false;
     }
@@ -209,26 +209,21 @@ bool ReadAbaqus(const char *FileName) {
             }
             
             if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
-                printf("\nERROR( proc %d ): 'fseek()' call for LastValidElemDataLinePos failed.\n", world_rank);
+                FILE_LOG_SINGLE(ERROR, "'fseek()' call for LastValidElemDataLinePos failed");
             }
         }
     }
     assert(eIndex == nelements);
-    // for (int k = 0; k < 10; ++k) {
-    //   printf("Rank : %d, element global id : %d of From : %d and To : %d\n", world_rank, global_eid[k], From, To);
-    // }
     
     // Checking if we can go to nodes section of mesh file
     if (fseek(File, NodesSectionPos, SEEK_SET) != 0) {
         fclose(File);
         FreeArrays();
-        printf("\nERROR( proc %d ): 'fseek()' call for NodesSectionPos failed.\n", world_rank);
+        FILE_LOG_SINGLE(ERROR, "'fseek()' call for NodesSectionPos failed");
         return false;
     }
        
     // Initializing "coordinates" array
-    int compare (const void * a, const void * b);
-    int unique(int *arr, int n);
     int *UniqueConnectivity = (int *)malloc(ConnectivitySize * sizeof(int));
     memcpy(UniqueConnectivity, connectivity, ConnectivitySize * sizeof(int));
     qsort(UniqueConnectivity, ConnectivitySize, sizeof(int), compare);
@@ -273,8 +268,8 @@ bool ReadAbaqus(const char *FileName) {
     // Checking if "coordinates" array is OK
     if (nNodes != ConnectivitySize) {
         FreeArrays();
-        printf("\nERROR( proc %d ): Failed to initialize 'coordinates' array.\n", world_rank);
-        printf("\nnnodes = %d, ConnectivitySize = %d, ndim = %d\n", nNodes, ConnectivitySize, ndim);
+        FILE_LOG_SINGLE(ERROR, "Failed to initialize 'coordinates' array");
+        FILE_LOG_SINGLE(ERROR, "nnodes = %d, ConnectivitySize = %d, ndim = %d", nNodes, ConnectivitySize, ndim);
     }
     
     fclose(File);
