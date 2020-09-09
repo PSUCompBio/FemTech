@@ -1,6 +1,10 @@
 #include "FemTech.h"
 #include "blas.h"
 
+#include <algorithm>
+#include <vector>
+#include <cstdlib>
+
 void inverse3x3Matrix(double* mat, double* invMat, double* det) {
   // Mat and invMat are 1d arrays with colum major format for storing matrix
   // Compute matrix determinant
@@ -151,4 +155,233 @@ void quaternionRotate(double *v, double *R, double *Rinv, double* vp) {
   double Rv[4];
   quaternionMultiply(R, v, Rv);
   quaternionMultiply(Rv, Rinv, vp);
+}
+
+double compute95thPercentileValueBruteForce(double* dataArray, int localSize) {
+  // Compute total size
+  int totalSize = 0;
+  double *fullData;
+  int *recvCount, *recvDisplacement;
+  // Calculate the total size
+  MPI_Reduce(&localSize, &totalSize, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+  if (world_rank == 0) {
+    fullData = (double*)malloc(totalSize*sizeof(double));
+    recvCount = (int*)malloc(world_size*sizeof(int));
+    recvDisplacement = (int*)malloc(world_size*sizeof(int));
+  }
+  // Get recv count
+  MPI_Gather(&localSize, 1, MPI_INT, recvCount, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  if (world_rank == 0) {
+    recvDisplacement[0] = 0;
+    for (int i = 1; i < world_size; ++i) {
+      recvDisplacement[i] = recvCount[i-1] + recvDisplacement[i-1];
+    }
+  }
+  // Get full array
+  MPI_Gatherv(dataArray, localSize, MPI_DOUBLE, fullData, recvCount, \
+      recvDisplacement, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  double nthElement = 0.0;
+  if (world_rank == 0) {
+    int index95 = (int)(totalSize*0.95)-1; //Runtime error if index95 < 0
+    std::vector<double> fullDataVec(fullData, fullData + totalSize);
+
+    std::nth_element(fullDataVec.begin(), fullDataVec.begin()+index95, fullDataVec.end());
+    nthElement = fullDataVec[index95];
+
+    free(fullData);
+    free(recvCount);
+    free(recvDisplacement);
+  }
+  MPI_Bcast(&nthElement, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  return nthElement;
+}
+
+double computeMedianLocal(double *data, int size) {
+  double median;
+  // convert array to vector
+  std::vector<double> dataVec(data, data + size);
+  int mid = size/2;
+  if (size%2) {
+    // array size even
+    std::nth_element(dataVec.begin(), dataVec.begin()+mid, dataVec.end());
+    std::nth_element(dataVec.begin(), dataVec.begin()+(mid-1), dataVec.end());
+    median = 0.5*(dataVec[mid]+dataVec[mid-1]);
+  } else {
+    // array size odd
+    std::nth_element(dataVec.begin(), dataVec.begin()+mid, dataVec.end());
+    median = dataVec[mid];
+  }
+  return median;
+}
+
+double computeWeightedMedian(double *data, int *weight, int size) {
+  std::vector< std::pair<double, int> > vecPair;
+  double weightSum = 0.0;
+  for (int i = 0; i < size; ++i) {
+    vecPair.push_back(std::make_pair(data[i], weight[i]));
+    weightSum += (double)weight[i];
+  }
+  std::sort(vecPair.begin(), vecPair.end());
+
+  int j = 0;
+  double partialSum = weightSum - (double)weight[0];
+  while(partialSum > weightSum*0.5) {
+    j = j + 1;
+    partialSum = partialSum - (double)weight[j];
+  }
+  return data[j];
+}
+
+double compute95thPercentileValue(double* dataArray, int localSize) {
+  /* Implementation is based on
+  A Note on Parallel Selection on Coarse-Grained Multicomputers
+  E. L. G. Saukasi and S. W. Song Algorithmica (1999) 24:  371–380 */
+  // Copy for use inside loop
+  double *dataArrayLoop = (double*)malloc(localSize*sizeof(double));
+  double *dataArrayLoopCopy = (double*)malloc(localSize*sizeof(double));
+  memcpy(dataArrayLoop, dataArray, localSize*sizeof(double));
+  int localSizeLoop = localSize;
+  // Compute total size
+  int totalSize = 0;
+  MPI_Reduce(&localSize, &totalSize, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+  double k = (int)(0.95*totalSize)-1;
+
+  double *median = NULL;
+  int *sizes = NULL;
+  if (world_rank == 0) {
+    median = (double*)malloc(world_size*sizeof(double));
+    sizes = (int*)malloc(world_size*sizeof(int));
+  }
+
+  int N = totalSize;
+  const int c = 20; // TODO(Anil) tune c for NP = 16
+  double value;
+  while (N < totalSize/(c*world_size)) {
+    // compute median of local data
+    double localMedian = computeMedianLocal(dataArrayLoop, localSizeLoop);
+    // All processors send its median to master
+    MPI_Gather(&localMedian, 1, MPI_DOUBLE, median, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    // All processors send its number of elements to master as weights
+    MPI_Gather(&localSizeLoop, 1, MPI_INT, sizes, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    double weightedMedian;
+    if (world_rank == 0) {
+      // Master computes the weigted median
+      weightedMedian = computeWeightedMedian(median, sizes, world_size);
+    }
+    // Master shares the computed weighted median to all processors
+    MPI_Bcast(&weightedMedian, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    int li = 0, ei = 0, gi = 0;
+    int L = 0, E = 0, G = 0;
+    for (int i = 0; i < localSizeLoop; ++i) {
+      double element = dataArrayLoop[i];
+      if (element < weightedMedian) {
+        li = li + 1;
+      } else {
+        if (element == weightedMedian) {
+          ei = ei + 1;
+        } else {
+          gi = gi + 1;
+        }
+      }
+    }
+    // Share li, ei and gi with master
+    MPI_Allreduce(&li, &L, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&ei, &E, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&gi, &G, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    if (L < k && k <= (L+E)) {
+      value = weightedMedian;
+      break;
+    } else {
+      if (k < L) {
+        N = L;
+        memcpy(dataArrayLoopCopy, dataArrayLoop, sizeof(double)*localSizeLoop);
+        int count = 0;
+        for (int i = 0; i < localSizeLoop; ++i) {
+          if (dataArrayLoopCopy[i] < weightedMedian) {
+            dataArrayLoop[count] = dataArrayLoopCopy[i];
+            count = count + 1;
+          }
+        }
+        localSizeLoop = count;
+      } else {
+        N = G;
+        k = k - (L+E);
+        memcpy(dataArrayLoopCopy, dataArrayLoop, sizeof(double)*localSizeLoop);
+        int count = 0;
+        for (int i = 0; i < localSizeLoop; ++i) {
+          if (dataArrayLoopCopy[i] > weightedMedian) {
+            dataArrayLoop[count] = dataArrayLoopCopy[i];
+            count = count + 1;
+          }
+        }
+        localSizeLoop = count;
+      }
+    }
+  }
+  // Send remaining N elements to master
+  value = compute95thPercentileValueBruteForce(dataArrayLoop, localSizeLoop);
+
+  if (world_rank == 0) {
+    free(median);
+    free(sizes);
+  }
+  free(dataArrayLoop);
+  free(dataArrayLoopCopy);
+  return value;
+}
+
+int compareDouble(const void *a, const void *b) { 
+  double diff = (*(double *)a - *(double *)b); 
+  if (diff < 0) {
+    return -1;
+  } else if (diff > 0) {
+    return 1;
+    } else {
+      return 0;
+    }
+}
+
+void test95Percentile(void) {
+  std::srand(126);
+  int baseSize = 1011;
+  int increment = 20;
+  int count = baseSize*world_size+(increment*(world_size-1)*world_size)/2;
+  double *randArray;
+  int localSize = baseSize + increment*world_rank;
+  double *localArray = (double*)malloc(localSize*sizeof(double));
+  int *sendSize, *sendLocation;
+  if (world_rank == 0) {
+    randArray = (double*)malloc(count*sizeof(double));
+    for (int i = 0; i < count; ++i) {
+      randArray[i] = 2.0*(double)std::rand()/(double)RAND_MAX;
+    }
+    sendSize = (int*)malloc(sizeof(int)*world_size);
+    sendLocation = (int*)malloc(sizeof(int)*world_size);
+    for (int i = 0; i < world_size; ++i) {
+      sendSize[i] = baseSize + increment*i;
+    }
+    sendLocation[0] = 0;
+    for (int i = 1; i < world_size; ++i) {
+      sendLocation[i] = sendLocation[i-1]+sendSize[i-1];
+    }
+  }
+  MPI_Scatterv(randArray, sendSize, sendLocation, MPI_DOUBLE, localArray, localSize, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+  double computed = compute95thPercentileValueBruteForce(localArray, localSize);
+  double computed2 = compute95thPercentileValue(localArray, localSize);
+  double actual = 0;
+  if (world_rank == 0) {
+    std::qsort(randArray, count, sizeof(double), compareDouble);
+    int index95 = (int)(count*0.95-1.0);
+    actual = randArray[index95];
+  }
+  FILE_LOG(INFO, "95 Percentile Test Direct   : computed = %16.9e, actual = %16.9e", computed, actual);
+  FILE_LOG(INFO, "95 Percentile Test Parallel : computed = %16.9e, actual = %16.9e", computed2, actual);
+
+  free(localArray);
+  if (world_rank == 0) {
+    free(randArray);
+    free(sendSize);
+    free(sendLocation);
+  }
 }
