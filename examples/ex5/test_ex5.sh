@@ -10,10 +10,10 @@ cd "$(dirname "$0")"
 testInputFiles=( p1 pt x s )
 # Values of element id expected in the order, max-shear, min-principal,
 # max-principal
-value_p1=( 4185 4185 4185 )
-value_pt=( 4749 16263 4749 )
-value_s=( 6530 12602 6662 )
-value_x=( 4419 9769 9774 )
+value_p1=( 9821 7323 10243 )
+value_pt=( 7963 16263 7960 )
+value_s=( 15186 12602 15186 )
+value_x=( 8050 9769 9774 )
 
 # Run all tests and check output
 for name in "${testInputFiles[@]}"
