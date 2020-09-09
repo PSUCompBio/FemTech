@@ -54,6 +54,7 @@ COPY --from=buildFemTech ["/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/ex5"
   "/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/materials.dat", \
   "/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/coarse_brain.inp", \
   "/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/simulationMovie.py", \
+  "/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/mps95Movie.py", \
   "/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/addGraph.py", \
   "/home/ubuntu/FemTechRun/"]
 
