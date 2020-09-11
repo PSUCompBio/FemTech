@@ -13,13 +13,12 @@
  * material properties of the element. Expected material properties :
  * \rho    = properties(0)
  * \mu     = properties(1)
- * \lambda = properties(2)
+ * K       = properties(2)
  * k_1     = properties(3)
  * k_2     = properties(4)
- * g_1     = properties(5)
- * t_1     = properties(6)
- * g_2     = properties(7)
- * t_2     = properties(8)
+ * n       = properties(5)
+ * g_i     = properties(5+i)
+ * t_i     = properties(6+i)
  * Implementation follows : Kaliske, M. and Rothert, H., 1997. Formulation and 
  * implementation of three-dimensional viscoelasticity at small and finite 
  * strains. Computational Mechanics, 19(3), pp.228-239. */
@@ -33,6 +32,7 @@ void HGOIsotropicViscoelastic(int e, int gp) {
   // Pointer to start of deformation gradient matrix for given element number
   // and Gauss point
   const int index = fptr[e] + ndim * ndim * gp;
+  const int indexViscous = fptrViscous[e] + ndim * ndim * gp;
   double J = detF[detFptr[e] + gp];
   // Get material property ID to read material properties
   const int pideIndex = pid[e]*MAXMATPARAMS;
@@ -40,18 +40,20 @@ void HGOIsotropicViscoelastic(int e, int gp) {
   const double* localProperties = &(properties[pideIndex]);
   // Read material properties
   const double mu = localProperties[1];
-  const double lambda = localProperties[2];
+  const double K = localProperties[2];
   const double k1 = localProperties[3];
   const double k2 = localProperties[4];
   // Kappa = 1/3 for isotropic fiber distribution
   const double kappa = 1.0/3.0;
-  const double g1 = localProperties[5];
-  const double t1 = localProperties[6];
-  const double g2 = localProperties[7];
-  const double t2 = localProperties[8];
+  const int n = int(localProperties[5]); // No of terms in prony series
+  double *gi, *ti;
+  gi = (double*)malloc(n*sizeof(double));
+  ti = (double*)malloc(n*sizeof(double));
+  for (unsigned int i = 0; i < n; ++i) {
+    gi[i] = localProperties[6+i];
+    ti[i] = localProperties[7+i];
+  }
 
-  // Compute the bulk modulus from \lambda and \mu
-  const double K = lambda + 2.0*mu/3.0;
   double * const F_element_gp = &(F[index]);
   // Compute the hydrostatic diagonal contribution to cauchy stress tensor
   const double hydroDiag = 0.5*K*(J*J-1.0)/J; 
@@ -119,22 +121,19 @@ void HGOIsotropicViscoelastic(int e, int gp) {
     Sdev[i] = S[i]-Sic[i];
   }
   // Access histroy dependence
-  double *Hn_1Local = &(Hn_1[index]);
-  double *Hn_2Local = &(Hn_2[index]);
-  double *S0nLocal = &(S0n[index]);
-  // Compute c1i = exp(-dt/t_i) and C2i = g_i (1-exp(-dt/t_i))/(dt/t_i)
-  const double rt1 = dt/t1;
-  const double rt2 = dt/t2;
-  const double c11 = exp(-rt1);
-  const double c12 = exp(-rt2);
-  const double c21 = g1*(1-c11)/rt1;
-  const double c22 = g2*(1-c12)/rt2;
-  // Update H_j^{n+1} = c1j*H_j^n + c2j*[Dev S_0^{n+1} - S_0^n]
-  // Update S^{n+1} = S_0^{n+1} + \sum_j H_j^{n+1}
-  for (int i = 0; i < matSize; ++i) {
-    Hn_1Local[i] = c11*Hn_1Local[i]+c21*(Sdev[i]-S0nLocal[i]);
-    Hn_2Local[i] = c12*Hn_2Local[i]+c22*(Sdev[i]-S0nLocal[i]);
-    S[i] = S[i] + Hn_1Local[i] + Hn_2Local[i];
+  double *S0nLocal = &(S0n[indexViscous]);
+  for (unsigned int i = 0; i < n; ++i) {
+    double *HnLocal = &(Hn[i][indexViscous]);
+    // Compute C1i = exp(-dt/t_i) and C2i = g_i (1-exp(-dt/t_i))/(dt/t_i)
+    const double rt = dt/ti[i];
+    const double c1i = exp(-rt);
+    const double c2i = gi[i]*(1-c1i)/rt;
+    // Update H_j^{n+1} = c1j*H_j^n + c2j*[Dev S_0^{n+1} - S_0^n]
+    // Update S^{n+1} = S_0^{n+1} + \sum_j H_j^{n+1}
+    for (int j = 0; j < matSize; ++j) {
+      HnLocal[j] = c1i*HnLocal[j]+c2i*(Sdev[j]-S0nLocal[j]);
+      S[j] = S[j] + HnLocal[j];
+    }
   }
 
   // Get location of array to store PK2 values
@@ -157,6 +156,8 @@ void HGOIsotropicViscoelastic(int e, int gp) {
   for (int i = 0; i < matSize; ++i) {
     S0nLocal[i] = Sdev[i];
   }
+  free(gi);
+  free(ti);
 
 #ifdef DEBUG
   FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Element ID = %d, gp = %d", e, gp);

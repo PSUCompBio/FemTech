@@ -27,6 +27,7 @@ void FreeArrays() {
 	free1DArray(boundary);
 	free1DArray(velocities_half);
   free1DArray(fe);
+  free1DArray(fe_prev);
   free1DArray(fi);
 	free1DArray(f_net);
 	free1DArray(fr_prev);
@@ -65,11 +66,13 @@ void FreeArrays() {
   free1DArray(fintGQ);
   free1DArray(B);
   // Viscoelastic materials
-  free1DArray(Hn_1);
-  free1DArray(Hn_2);
+  for (unsigned int i = 0; i < nMax; ++i) {
+    free1DArray(Hn[i]);
+  }
+  free1DArray(Hn);
   free1DArray(S0n);
 
-  if (ElementType != NULL){
+  if (ElementType != NULL) {
     for (int i = 0; i < nelements; i++){
         free(ElementType[i]);
     }

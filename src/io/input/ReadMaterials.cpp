@@ -100,25 +100,46 @@ void ReadMaterials() {
       case 5 :// HGO with isotropic fiber distribution with 2 term Prony series for viscoelastic properties
               // properties[0] = density
               // properties[1] = mu
-              // properties[2] = lambda
+              // properties[2] = K
               // properties[3] = k1
               // properties[4] = k2
-              // properties[5] = g1
-              // properties[6] = t1
-              // properties[7] = g2
-              // properties[8] = t2
-              count = fscanf(File, "%lf %lf %lf %lf %lf %lf %lf %lf %lf", &properties[index + 0],
+              // properties[5] = n
+              // properties[6+i] = gi
+              // properties[7+i] = ti
+              count = fscanf(File, "%lf %lf %lf %lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2], 
                       &properties[index + 3], &properties[index + 4],
-                      &properties[index + 5], &properties[index + 6],
-                      &properties[index + 7], &properties[index + 8]);
-              assert(count == 9);
-              // FILE_LOG_SINGLE(DEBUGLOG, "Part %d HGO properties (rho, mu, lambda, k1, k2) = "
-              //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
+                      &properties[index + 5]);
+              assert(count == 6);
+              if (int(properties[index+5]) > 6) {
+                FILE_LOG_SINGLE(ERROR, "Material ID 5, n = %d > 6", int(properties[index+5]));
+                TerminateFemTech(3);
+              }
+              for (int j = 0; j < properties[index+5]; ++j) {
+                count = fscanf(File, "%lf %lf", &properties[index + 6 + j], 
+                    &properties[index + 7 + j]);
+                assert(count == 2);
+              }
+              // FILE_LOG_SINGLE(WARNING, "Part %d HGO properties (rho, mu, K, k1, k2, n) = "
+              //        "%3.3f %3.3f %3.3f %3.3f %3.3f %3.3f\n",
               //         partID, properties[index + 0], properties[index + 1],
               //         properties[index + 2], properties[index + 3], properties[index + 4],
-              //         properties[index + 5], properties[index + 6], properties[index + 7],
-              //         properties[index + 8]);
+              //         properties[index + 5]);
+              break;
+      case 6 :// Viscoelastic material
+              // properties[0] = density
+              // properties[1] = K
+              // properties[2] = G_0
+              // properties[3] = G_\infity
+              // properties[4] = \beta
+              count = fscanf(File, "%lf %lf %lf %lf %lf", &properties[index + 0],
+                      &properties[index + 1], &properties[index + 2], 
+                      &properties[index + 3], &properties[index + 4]);
+              assert(count == 5);
+              // FILE_LOG_SINGLE(DEBUGLOG, "Part %d Viscoelastic properties (rho, K, G_0, G_infinity, beta) = "
+              //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
+              //         partID, properties[index + 0], properties[index + 1],
+              //         properties[index + 2], properties[index + 3], properties[index + 4]);
               break;
       default :FILE_LOG_SINGLE(ERROR, "Material ID for Part %d not found", partID);
                 TerminateFemTech(3);
