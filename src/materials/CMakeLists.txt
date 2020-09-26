@@ -1,6 +1,7 @@
 Set(materials_src
     materials.cpp
 		CompressibleNeoHookean.cpp
+    NeoHookeanAbaqus.cpp
 		StVenantKirchhoff.cpp
     LinearElastic.cpp
     HGOIsotropic.cpp

@@ -10,6 +10,8 @@ double StableTimeStep() {
 
 	for(int i=0;i<nelements;i++){
     isNotRigid = false;
+    // TODO : Remove part that checks rigid part and convert to a one time
+    // pre-processing step
     for (int j = eptr[i]; j < eptr[i+1]; ++j) {
       int index = connectivity[j]*ndim;
       if (!(boundary[index]&boundary[index+1]&boundary[index+2])) {

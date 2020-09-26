@@ -8,7 +8,7 @@ void CustomPlot();
 
 double Time, dt;
 int nSteps;
-double ExplicitTimeStepReduction = 0.8;
+double ExplicitTimeStepReduction = 0.7;
 double FailureTimeStep = 1e-11;
 
 int nPlotSteps = 50;
@@ -158,14 +158,11 @@ int main(int argc, char **argv) {
 
 void ApplyBoundaryConditions(double tMax) {
   double tol = 1e-5;
-  double pressure = 100.0;
-  double area = 0.005*0.005;
-  double unit = pressure*area*0.25;
+  double load = 625.0;
   // Apply Ramped Pressure
-  double rampedUnit = Time*unit/tMax;
+  double rampedUnit = Time*load/tMax;
 
   int index;
-  double total = 0.0;
   for (int i = 0; i < nNodes; i++) {
     // if x value = 0, constrain node to x plane (0-direction)
     index = ndim * i + 0;
@@ -196,10 +193,8 @@ void ApplyBoundaryConditions(double tMax) {
     index = ndim * i + 1;
     if (fabs(coordinates[index] - 0.005) < tol) {
       fe[index] = rampedUnit;
-      total += rampedUnit;
     }
   }
-  FILE_LOG_SINGLE(INFO, "Total pressure : %f", total/(0.005*0.005));
   return;
 }
 

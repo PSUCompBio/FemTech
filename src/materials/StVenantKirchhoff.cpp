@@ -7,9 +7,9 @@
 void StVenantKirchhoff(int e, int gp) {
   if (ndim == 2) {
     // 6 values saved per gauss point for 3d
-    for (int i = 0; i < 3; i++) {
-      int index = pk2ptr[e] + 3 * gp + i;
-    }
+    // for (int i = 0; i < 3; i++) {
+    //   int index = pk2ptr[e] + 3 * gp + i;
+    // }
   }
   if (ndim == 3) {
     int index = fptr[e] + ndim * ndim * gp;

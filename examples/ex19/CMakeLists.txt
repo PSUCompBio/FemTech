@@ -10,7 +10,7 @@ else()
   TARGET_LINK_LIBRARIES(ex19 FemTech)
 endif(ENABLE_MPI)
 
-file(INSTALL 2elements.inp DESTINATION .)
+file(INSTALL 1-elt-cube.k DESTINATION .)
 file(INSTALL materials.dat DESTINATION .)
 file(INSTALL compareResults.py DESTINATION .)
 file(INSTALL gnuplot.script DESTINATION .)

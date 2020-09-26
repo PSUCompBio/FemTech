@@ -8,7 +8,7 @@ void CustomPlot();
 
 double Time, dt;
 int nSteps;
-double ExplicitTimeStepReduction = 0.8;
+double ExplicitTimeStepReduction = 0.6;
 double FailureTimeStep = 1e-11;
 
 int nPlotSteps = 50;
@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
 
     dt = 0.0;
     double tMax = 1.00; // max simulation time in seconds
-    double dMax = 0.007; // max displacment in meters
+    double dMax = 0.002; // max displacment in meters
 
     int time_step_counter = 0;
     /** Central Difference Method - Beta and Gamma */

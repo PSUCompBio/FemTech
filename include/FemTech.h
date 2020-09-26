@@ -72,6 +72,7 @@ void ReadMaterials();
 // Material Models
 void StVenantKirchhoff(int e, int gp);
 void CompressibleNeoHookean(int e, int gp);
+void NeoHookeanAbaqus(int e, int gp);
 void LinearElastic(int e, int gp);
 void HGOIsotropic(int e, int gp);
 void HGOIsotropicViscoelastic(int e, int gp);
