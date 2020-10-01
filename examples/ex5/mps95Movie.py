@@ -103,7 +103,7 @@ else:
 #
 # create a new 'PVD Reader'
 coarse_brain_test_ptpvd = PVDReader(FileName=paraviewFile)
-coarse_brain_test_ptpvd.CellArrays = ['PartID', 'AvgStrain', 'ProcID', 'CSDM-15', 'CSDM-30', 'PSR-120', 'PSxSR-28', 'MPS-95']
+coarse_brain_test_ptpvd.CellArrays = ['PartID', 'AvgStrain', 'ProcID', 'CSDM-5', 'CSDM-10', 'CSDM-15', 'CSDM-30', 'MPSR-120', 'MPSxSR-28', 'MPS-95']
 coarse_brain_test_ptpvd.PointArrays = ['Displacements', 'Accelerations', 'Boundary']
 
 # get animation scene
@@ -199,4 +199,4 @@ renderView1.CameraViewUp = transformedCameraViewUp
 renderView1.CameraParallelScale = defaultCameraParallelScale
 
 # save animation
-SaveAnimation('injury_'+uid+'.png', renderView1, ImageResolution=[1538, 838], FrameWindow=[0, 50])
+SaveAnimation('injury_'+uid+'.png', renderView1, ImageResolution=[1538, 838])
