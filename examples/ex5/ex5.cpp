@@ -1056,12 +1056,13 @@ void WriteOutputFile() {
         maxLocationAndTime[2] += coordinates[connectivity[j]*ndim+2];
       }
       for (int j = 0; j < ndim; ++j) {
-        maxLocationAndTime[i] = maxLocationAndTime[i]/((double)nP);
+        maxLocationAndTime[j] = maxLocationAndTime[j]/((double)nP);
       }
       maxLocationAndTime[3] = maxTime[i];
+      globalElementID = global_eid[elementID];
       if (world_rank != 0) {
         MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7297+i, MPI_COMM_WORLD);
-        MPI_Send(&global_eid[elementID], 1, MPI_INT, 0, 7297+i, MPI_COMM_WORLD);
+        MPI_Send(&globalElementID, 1, MPI_INT, 0, 7297+i, MPI_COMM_WORLD);
       }
     }
     if (world_rank == 0) {
