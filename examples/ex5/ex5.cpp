@@ -58,36 +58,59 @@ int output_size, output_rank;
 double *outputNodeRigidDisp;
 double *outputElemStress;
 
-/* Variables to compute maximim and minimum strain */
-double maxStrain = 0.0, minStrain = 0.0, maxShear = 0.0;
-int maxElem = 0, minElem = 0, shearElem = 0;
-double maxT = 0.0, minT = 0.0, maxShearT = 0.0;
-struct {
-  double value;
-  int   rank;
-} parStructMax, parStructMin, parStructSMax, parStructPSxSR; 
-/* Variables for other injury metrics */
-int *MPSgt15, *MPSgt30; // Variable to store if MPS exceeds 15 and 30
-int *MPSRgt120, *MPSxSRgt28; // Varible to store if MPSR > 120 s^-1, MPSxSR > 28 s^-1
+/* Variables for injury metrics */
+/* Variables to compute maximum quatities over time and space */
+/* 0. Maximum principal strain, 1. Maximum principal shear, 
+ * 2. Maximum principal strain times strain rate
+ * 3. Minimum principal strain
+ * */
+const int maxQuantities = 4; 
+const std::string maxOutput[maxQuantities] = {"principal-max-strain", "maximum-shear-strain", \
+  "maximum-PSxSR", "principal-min-strain"};
+const MPI_Op outputOperator[maxQuantities] = {MPI_MAXLOC, MPI_MAXLOC, MPI_MAXLOC, MPI_MINLOC};
+
+double maxValue[maxQuantities], maxTime[maxQuantities];
+int maxElem[maxQuantities];
+
+/* Percentile variables */
+/* 0. MPS - 95 Percentile
+ * 1. MPSxSR - 95 Percentile
+ */
+const int percentileQuantities = 2;
+int *percentileElements[percentileQuantities];
+double percentileTime[percentileQuantities];
+double percentileValue[percentileQuantities];
+const std::string percentileTag[percentileQuantities] = {"MPS-95", "MPSxSR-95"};
+/* Threshold variables */
+/* 0. MPS > 5 
+ * 1. MPS > 10
+ * 2. MPS > 15
+ * 3. MPS > 30
+ * 4. MPSR > 120 1/s
+ * 5. MPSxSR > 28 1/s
+ */
+const int threshQuantities = 6;
+int *thresholdElements[threshQuantities];
+const std::string thresholdTag[threshQuantities] = {"CSDM-5", "CSDM-10", \
+  "CSDM-15", "CSDM-30", "MPSR-120", "MPSxSR-28"};
+
 /* Variables for maximum Principal Strain times Strain Rate */
-double *PS_Old, maxPSxSR = 0.0, maxTimePSxSR = 0.0;
-int maxElemPSxSR;
-int nElementsInjury, *elementIDInjury;
+double *PS_Old = NULL;
+double *PSxSRArray = NULL;
+
+int nElementsInjury, *elementIDInjury = NULL;
 // part ID to exclude from injury computation
 // 0 : Skull, 1 : CSF
 const int injuryExcludePIDCount = 2;
 const int injuryExcludePID[injuryExcludePIDCount] = {0, 1};
-double maxMPS95, maxTimeMPS95;
-int *maxElemListMPS95, maxElemCountMPS95;
-double maxMPSxSR95, maxTimeMPSxSR95, *PSxSRArray;
-int *maxElemListMPSxSR95, maxElemCountMPSxSR95;
+
 // Variables to write injury criterion to Paraview output
-int *mps95Output = NULL, *csdm15Output = NULL, *csdm30Output = NULL;
-int *psr120Output = NULL, *psxsr28Output = NULL;
-const int outputCount = 5;
-int **outputDataArray = NULL;
-const char* outputNames[outputCount] ={"CSDM-15", "CSDM-30", "PSR-120", \
-  "PSxSR-28", "MPS-95"};
+const int outputCount = 7;
+int *outputDataArray[outputCount];
+const char* outputNames[outputCount] ={"CSDM-5", "CSDM-10", "CSDM-15", \
+  "CSDM-30", "MPSR-120", "MPSxSR-28", "MPS-95"};
+const int csdmCount = 4;
+const double csdmLimits[csdmCount] = {0.05, 0.1, 0.15, 0.3};
 
 /* Variables used to store acceleration values */
 int linAccXSize, linAccYSize, linAccZSize;
@@ -104,6 +127,7 @@ runge_kutta_dopri5<state_type> rk;
 void computeDerivatives(const state_type &y, state_type &ydot, const double t);
 state_type yInt, ydotInt;
 double cm[3];
+std::string outputFileName;
 
 int main(int argc, char **argv) {
   // Initialize FemTech including logfile and MPI
@@ -119,7 +143,7 @@ int main(int argc, char **argv) {
   // Read Input Mesh file and equally partition elements among processes
   ReadInputFile(meshFile.c_str());
   size_t lastindex = meshFile.find_last_of(".");
-  std::string outputFileName = meshFile.substr(0, lastindex) + "_" + uid;
+  outputFileName = meshFile.substr(0, lastindex) + "_" + uid;
   // Read material properties before mesh partition to estimate 
   // material type kernel compute intensity
   ReadMaterials();
@@ -249,29 +273,6 @@ int main(int argc, char **argv) {
         stepTime[plot_counter] = Time;
         if (writeField) {
           FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
-          // Populate output data
-          // MPS 95
-          memset(mps95Output, 0, nelements*sizeof(int));
-          for (int m = 0; m < maxElemCountMPS95; ++m) {
-            int eID = maxElemListMPS95[m];
-            mps95Output[eID] = 1;
-          }
-          // CSDM-15, CSDM-30, PSR-120, PSxSR-28
-          for (int j = 0; j < nElementsInjury; j++) {
-            int eID = elementIDInjury[j];
-            if (MPSgt15[j]) {
-              csdm15Output[eID] = 1;
-              if (MPSgt30[j]) {
-                csdm30Output[eID] = 1;
-              }
-            }
-            if (MPSRgt120[j]) {
-              psr120Output[eID] = 1;
-            }
-            if (MPSxSRgt28[j]) {
-              psxsr28Output[eID] = 1;
-            }
-          }
           WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, \
               outputCount, outputNames);
           WritePVD(outputFileName.c_str(), plot_counter);
@@ -312,22 +313,15 @@ int main(int argc, char **argv) {
   free1DArray(outputElemList);
   free1DArray(outputNodeRigidDisp);
   // Free variables used for injury criterions
-  free1DArray(MPSgt15);
-  free1DArray(MPSgt30);
   free1DArray(PS_Old);
   free1DArray(elementIDInjury);
-  free1DArray(MPSRgt120);
-  free1DArray(MPSxSRgt28);
-  free1DArray(maxElemListMPS95);
-  free1DArray(maxElemListMPSxSR95);
   free1DArray(PSxSRArray);
-  // Injury criterion output variables
-  free1DArray(mps95Output);
-  free1DArray(csdm15Output);
-  free1DArray(csdm30Output);
-  free1DArray(psr120Output);
-  free1DArray(psxsr28Output);
-  free1DArray(outputDataArray);
+  for (int i = 0; i < threshQuantities; ++i) {
+    free1DArray(thresholdElements[i]);
+  }
+  for (int i = 0; i < percentileQuantities; ++i) {
+    free1DArray(percentileElements[i]);
+  }
 
   if (rankForCustomPlot) {
     MPI_File_close(&outputFilePtr);
@@ -1020,23 +1014,73 @@ void computeDerivatives(const state_type &y, state_type &ydot, const double t) {
 }
 
 void WriteOutputFile() {
-  // Find the gloabl min and max strain
-  parStructMax.value = maxStrain;
-  parStructMax.rank = world_rank;
-  MPI_Allreduce(MPI_IN_PLACE, &parStructMax, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
+  Json::Value output;
+  Json::Value vec(Json::arrayValue);
 
-  parStructMin.value = minStrain;
-  parStructMin.rank = world_rank;
-  MPI_Allreduce(MPI_IN_PLACE, &parStructMin, 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
+  // Write basic info that does not require any computation
+  if (world_rank == 0) {
+    output["output-file"] = outputFileName + ".pvd";
 
-  parStructSMax.value = maxShear;
-  parStructSMax.rank = world_rank;
-  MPI_Allreduce(MPI_IN_PLACE, &parStructSMax, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
+    vec.resize(ndim);
+    // Write center of mass co-ordinates in JSON
+    for (int i = 0; i < ndim; ++i) {
+      vec[i] = cm[i];
+    }
+    output["center-of-mass"] = vec;
+  }
+  // Compute and write principal values
+  double maxLocationAndTime[4];
+  int globalElementID;
+  struct {
+    double value;
+    int   rank;
+  } parStructMax; 
 
-  // Find the gloabl max PSxSR
-  parStructPSxSR.value = maxPSxSR;
-  parStructPSxSR.rank = world_rank;
-  MPI_Allreduce(MPI_IN_PLACE, &parStructPSxSR, 1, MPI_DOUBLE_INT, MPI_MAXLOC, MPI_COMM_WORLD);
+  /* Calculate principal min and max strain location and send to master */
+  // Find the gloabl max principal strain
+  for (int i = 0; i < maxQuantities; ++i) {
+    parStructMax.value = maxValue[i];
+    parStructMax.rank = world_rank;
+    MPI_Allreduce(MPI_IN_PLACE, &parStructMax, 1, MPI_DOUBLE_INT, \
+        outputOperator[i], MPI_COMM_WORLD);
+    if (parStructMax.rank == world_rank) {
+      for (int j = 0; j < 4; ++j) {
+        maxLocationAndTime[j] = 0.0;
+      }
+      int elementID = maxElem[i];
+      // Compute element coordinates 
+      int nP = eptr[elementID+1]-eptr[elementID];
+      for (int j = eptr[elementID]; j < eptr[elementID+1]; ++j) {
+        maxLocationAndTime[0] += coordinates[connectivity[j]*ndim];
+        maxLocationAndTime[1] += coordinates[connectivity[j]*ndim+1];
+        maxLocationAndTime[2] += coordinates[connectivity[j]*ndim+2];
+      }
+      for (int j = 0; j < ndim; ++j) {
+        maxLocationAndTime[j] = maxLocationAndTime[j]/((double)nP);
+      }
+      maxLocationAndTime[3] = maxTime[i];
+      globalElementID = global_eid[elementID];
+      if (world_rank != 0) {
+        MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7297+i, MPI_COMM_WORLD);
+        MPI_Send(&globalElementID, 1, MPI_INT, 0, 7297+i, MPI_COMM_WORLD);
+      }
+    }
+    if (world_rank == 0) {
+      if (parStructMax.rank != 0) {
+        MPI_Recv(maxLocationAndTime, 4, MPI_DOUBLE, parStructMax.rank, \
+            7297+i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&globalElementID, 1, MPI_INT, parStructMax.rank, \
+            7297+i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      }
+      for (int j = 0; j < ndim; ++j) {
+        vec[j] = maxLocationAndTime[j];
+      }
+      output[maxOutput[i]]["value"] = parStructMax.value;
+      output[maxOutput[i]]["location"] = vec;
+      output[maxOutput[i]]["time"] = maxLocationAndTime[3];
+      output[maxOutput[i]]["global-element-id"] = globalElementID;
+    } 
+  }
 
   // Compute the volume of all parts
   double volumePart[nPIDglobal];
@@ -1045,124 +1089,39 @@ void WriteOutputFile() {
     volumePart[i] = 0.0;
   }
   computePartVolume(volumePart, elementVolume);
-
-  // Compute Volume with MPS > 15, 30
-  double MPSgt15Volume = 0.0, MPSgt30Volume = 0.0;
-  double MPSRgt120Volume = 0.0, MPSxSRgt28Volume = 0.0;
-  for (int i = 0; i < nElementsInjury; ++i) {
-    double eV = elementVolume[elementIDInjury[i]];
-    if (MPSgt15[i]) {
-      MPSgt15Volume += eV;
-      if (MPSgt30[i]) {
-        MPSgt30Volume += eV;
+  // Compute Volume of threshold quantities
+  double thresholdVolume[threshQuantities];
+  for (int i = 0; i < threshQuantities; ++i) {
+    thresholdVolume[i] = 0.0;
+  }
+  for (int i = 0; i < nelements; ++i) {
+    double eV = elementVolume[i];
+    // CSDM 5, 10, 15, 30 volume computations
+    if (thresholdElements[0][i]) {
+      thresholdVolume[0] += eV;
+      if (thresholdElements[1][i]) {
+        thresholdVolume[1] += eV;
+        if (thresholdElements[2][i]) {
+          thresholdVolume[2] += eV;
+          if (thresholdElements[3][i]) {
+            thresholdVolume[3] += eV;
+          }
+        }
       }
     }
-    if (MPSRgt120[i]) {
-      MPSRgt120Volume += eV;
+    // MPSR > 120 volume 
+    if (thresholdElements[4][i]) {
+      thresholdVolume[4] += eV;
     }
-    if (MPSxSRgt28[i]) {
-      MPSxSRgt28Volume += eV;
+    // MPSxSR > 28 volume
+    if (thresholdElements[5][i]) {
+      thresholdVolume[5] += eV;
     }
   }
-  MPI_Allreduce(MPI_IN_PLACE, &MPSgt15Volume, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(MPI_IN_PLACE, &MPSgt30Volume, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(MPI_IN_PLACE, &MPSRgt120Volume, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-  MPI_Allreduce(MPI_IN_PLACE, &MPSxSRgt28Volume, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-  /* Calculate min and max strain location and send to master */
-  // Copy max and min strain 
-  if (parStructMin.rank == world_rank) {
-    double minLocationAndTime[4];
-    for (int i = 0; i < 4; ++i) {
-      minLocationAndTime[i] = 0.0;
-    }
-    // Compute element coordinates 
-    int nP = eptr[minElem+1]-eptr[minElem];
-    for (int i = eptr[minElem]; i < eptr[minElem+1]; ++i) {
-      minLocationAndTime[0] += coordinates[connectivity[i]*ndim];
-      minLocationAndTime[1] += coordinates[connectivity[i]*ndim+1];
-      minLocationAndTime[2] += coordinates[connectivity[i]*ndim+2];
-    }
-    for (int i = 0; i < ndim; ++i) {
-      minLocationAndTime[i] = minLocationAndTime[i]/((double)nP);
-    }
-    minLocationAndTime[3] = minT;
-    MPI_Send(minLocationAndTime, 4, MPI_DOUBLE, 0, 7297, MPI_COMM_WORLD);
-    MPI_Send(&global_eid[minElem], 1, MPI_INT, 0, 7297, MPI_COMM_WORLD);
-  }
-  if (parStructMax.rank == world_rank) {
-    double maxLocationAndTime[4];
-    for (int i = 0; i < 4; ++i) {
-      maxLocationAndTime[i] = 0.0;
-    }
-    // Compute element coordinates 
-    int nP = eptr[maxElem+1]-eptr[maxElem];
-    for (int i = eptr[maxElem]; i < eptr[maxElem+1]; ++i) {
-      maxLocationAndTime[0] += coordinates[connectivity[i]*ndim];
-      maxLocationAndTime[1] += coordinates[connectivity[i]*ndim+1];
-      maxLocationAndTime[2] += coordinates[connectivity[i]*ndim+2];
-    }
-    for (int i = 0; i < ndim; ++i) {
-      maxLocationAndTime[i] = maxLocationAndTime[i]/((double)nP);
-    }
-    maxLocationAndTime[3] = maxT;
-    MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7298, MPI_COMM_WORLD);
-    MPI_Send(&global_eid[maxElem], 1, MPI_INT, 0, 7298, MPI_COMM_WORLD);
-  }
-  if (parStructSMax.rank == world_rank) {
-    double maxLocationAndTime[4];
-    for (int i = 0; i < 4; ++i) {
-      maxLocationAndTime[i] = 0.0;
-    }
-    // Compute element coordinates 
-    int nP = eptr[shearElem+1]-eptr[shearElem];
-    for (int i = eptr[shearElem]; i < eptr[shearElem+1]; ++i) {
-      maxLocationAndTime[0] += coordinates[connectivity[i]*ndim];
-      maxLocationAndTime[1] += coordinates[connectivity[i]*ndim+1];
-      maxLocationAndTime[2] += coordinates[connectivity[i]*ndim+2];
-    }
-    for (int i = 0; i < ndim; ++i) {
-      maxLocationAndTime[i] = maxLocationAndTime[i]/((double)nP);
-    }
-    maxLocationAndTime[3] = maxShearT;
-    MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7299, MPI_COMM_WORLD);
-    MPI_Send(&global_eid[shearElem], 1, MPI_INT, 0, 7299, MPI_COMM_WORLD);
-  }
-  if (parStructPSxSR.rank == world_rank) {
-    double maxLocationAndTime[4];
-    for (int i = 0; i < 4; ++i) {
-      maxLocationAndTime[i] = 0.0;
-    }
-    // Compute element coordinates 
-    int nP = eptr[maxElemPSxSR+1]-eptr[maxElemPSxSR];
-    for (int i = eptr[maxElemPSxSR]; i < eptr[maxElemPSxSR+1]; ++i) {
-      maxLocationAndTime[0] += coordinates[connectivity[i]*ndim];
-      maxLocationAndTime[1] += coordinates[connectivity[i]*ndim+1];
-      maxLocationAndTime[2] += coordinates[connectivity[i]*ndim+2];
-    }
-    for (int i = 0; i < ndim; ++i) {
-      maxLocationAndTime[i] = maxLocationAndTime[i]/((double)nP);
-    }
-    maxLocationAndTime[3] = maxTimePSxSR;
-    MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7300, MPI_COMM_WORLD);
-    MPI_Send(&global_eid[maxElemPSxSR], 1, MPI_INT, 0, 7300, MPI_COMM_WORLD);
-  }
-
+  // Calculate cumulative volume on all ranks
+  MPI_Allreduce(MPI_IN_PLACE, thresholdVolume, 6, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
   if (world_rank == 0) {
-    double minRecv[4];
-    double maxRecv[4];
-    double shearRecv[4];
-    double maxPSxSrRecv[4];
-    int globalIDMax[4];
-    MPI_Recv(minRecv, 4, MPI_DOUBLE, parStructMin.rank, 7297, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    MPI_Recv(&globalIDMax[0], 1, MPI_INT, parStructMin.rank, 7297, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    MPI_Recv(maxRecv, 4, MPI_DOUBLE, parStructMax.rank, 7298, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    MPI_Recv(&globalIDMax[1], 1, MPI_INT, parStructMax.rank, 7298, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    MPI_Recv(shearRecv, 4, MPI_DOUBLE, parStructSMax.rank, 7299, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    MPI_Recv(&globalIDMax[2], 1, MPI_INT, parStructSMax.rank, 7299, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    MPI_Recv(maxPSxSrRecv, 4, MPI_DOUBLE, parStructPSxSR.rank, 7300, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    MPI_Recv(&globalIDMax[3], 1, MPI_INT, parStructPSxSR.rank, 7300, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    // Excluded PID hardcoded in CSDM-15 computation
+    // Excluded PID hardcoded for CSDM computation
     double totalVolume = 0.0;
     for (int i = 0; i < nPIDglobal; ++i) {
       bool include = true;
@@ -1176,67 +1135,91 @@ void WriteOutputFile() {
         totalVolume += volumePart[i];
       }
     }
-
-    Json::Value output;
-    Json::Value vec(Json::arrayValue);
-
-    vec.append(Json::Value(maxRecv[0]));
-    vec.append(Json::Value(maxRecv[1]));
-    vec.append(Json::Value(maxRecv[2]));
-    output["principal-max-strain"]["value"] = parStructMax.value;
-    output["principal-max-strain"]["location"] = vec;
-    output["principal-max-strain"]["time"] = maxRecv[3];
-    output["principal-max-strain"]["global-element-id"] = globalIDMax[1];
-
-    vec[0] = minRecv[0];
-    vec[1] = minRecv[1];
-    vec[2] = minRecv[2];
-    output["principal-min-strain"]["value"] = parStructMin.value;
-    output["principal-min-strain"]["location"] = vec;
-    output["principal-min-strain"]["time"] = minRecv[3];
-    output["principal-min-strain"]["global-element-id"] = globalIDMax[0];
-
-    vec[0] = shearRecv[0];
-    vec[1] = shearRecv[1];
-    vec[2] = shearRecv[2];
-    output["maximum-shear-strain"]["value"] = parStructSMax.value;
-    output["maximum-shear-strain"]["location"] = vec;
-    output["maximum-shear-strain"]["time"] = shearRecv[3];
-    output["maximum-shear-strain"]["global-element-id"] = globalIDMax[2];
-
-    vec[0] = maxPSxSrRecv[0];
-    vec[1] = maxPSxSrRecv[1];
-    vec[2] = maxPSxSrRecv[2];
-    output["maximum-PSxSR"]["value"] = parStructPSxSR.value;
-    output["maximum-PSxSR"]["location"] = vec;
-    output["maximum-PSxSR"]["time"] = maxPSxSrRecv[3];
-    output["maximum-PSxSR"]["global-element-id"] = globalIDMax[3];
-
-    output["output-file"] = "coarse_brain.pvd";
-
-    // Write center of mass co-ordinates in JSON
-    vec[0] = cm[0];
-    vec[1] = cm[1];
-    vec[2] = cm[2];
-    output["center-of-mass"] = vec;
-
     // Write brain volume in output.json
     output["brain-volume"] = totalVolume;
 
-    // Write CSDM-15 and 30
-    output["csdm-15"] = MPSgt15Volume/totalVolume;
-    output["csdm-30"] = MPSgt30Volume/totalVolume;
-    output["MPSR-120"] = MPSRgt120Volume/totalVolume;
-    output["MPSxSR-28"] = MPSxSRgt28Volume/totalVolume;
+    // Write threshold values
+    for (int i = 0; i < threshQuantities; ++i) {
+      output[thresholdTag[i]]["value"] = thresholdVolume[i]/totalVolume;
+    }
+    // Write percentile values
+    for (int i = 0; i < percentileQuantities; ++i) {
+      output[percentileTag[i]]["value"] = percentileValue[i];
+      output[percentileTag[i]]["time"] = percentileTime[i];
+    }
+  }
+  // Create list to write to output.json
+  const int outputJsonCount = 5;
+  std::string jsonOutputTag[outputJsonCount];
+  int *outputJsonArray[outputJsonCount];
+  for (int i = 0; i < csdmCount; ++i) {
+    jsonOutputTag[i] = thresholdTag[i];
+    outputJsonArray[i] = thresholdElements[i];
+  }
+  jsonOutputTag[csdmCount] = percentileTag[0];
+  outputJsonArray[csdmCount] = percentileElements[0];
 
-    // Write MPS-95
-    output["MPS-95"]["value"] = maxMPS95;
-    output["MPS-95"]["time"] = maxTimeMPS95;
+  int *countPerProc, *cumCountPerProc, *fullElemList;
+  if (world_rank == 0) {
+    countPerProc = (int*)malloc(world_size*sizeof(int));
+    cumCountPerProc = (int*)malloc(world_size*sizeof(int));
+  }
+  for (int i = 0; i < outputJsonCount; ++i) {
+    int* list = outputJsonArray[i];
+    int count = 0;
+    for (int j = 0; j < nelements; ++j) {
+      if (list[j]) {
+        count = count + 1;
+      }
+    }
+    int numElem = count;
+    int *localElemList = (int*)malloc(numElem*sizeof(int));
+    count = 0;
+    if (numElem) {
+      for (int j = 0; j < nelements; ++j) {
+        if (list[j]) {
+          localElemList[count] = global_eid[j];
+          count = count + 1;
+        }
+      }
+    }
+    // Get total count
+    int totalElems = 0;
+    MPI_Allreduce(&numElem, &totalElems, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    // Get recv count
+    MPI_Gather(&numElem, 1, MPI_INT, countPerProc, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-    // Write MPS-95
-    output["MPSxSR-95"]["value"] = maxMPSxSR95;
-    output["MPSxSR-95"]["time"] = maxTimeMPSxSR95;
+    if (world_rank == 0) {
+      fullElemList = (int*)malloc(totalElems*sizeof(int));
+      cumCountPerProc[0] = 0;
+      for (int j = 1; j < world_size; ++j) {
+        cumCountPerProc[j] = countPerProc[j-1] + cumCountPerProc[j-1];
+      }
+    }
+    // Get full array
+    if (totalElems) {
+      MPI_Gatherv(localElemList, numElem, MPI_INT, fullElemList, countPerProc, \
+          cumCountPerProc, MPI_INT, 0, MPI_COMM_WORLD);
+    }
+    if (world_rank == 0) {
+      Json::Value elementList(Json::arrayValue);
+      elementList.resize(totalElems);
+      for (int j = 0; j < totalElems; ++j) {
+        elementList[j] = fullElemList[j];
+      }
+      free(fullElemList);
+      output[jsonOutputTag[i]]["global-element-id"] = elementList;
+    }
+    free(localElemList);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+  if (world_rank == 0) {
+    free(countPerProc);
+    free(cumCountPerProc);
+  }
 
+  // Write output to file
+  if (world_rank == 0) {
     Json::StreamWriterBuilder builder;
     builder["commentStyle"] = "None";
     builder["indentation"] = "  ";
@@ -1247,6 +1230,13 @@ void WriteOutputFile() {
 }
 
 void InitInjuryCriterion(void) {
+  // Set all min and max quantities to zero
+  for (int i = 0; i < maxQuantities; ++i) {
+    maxValue[i] = 0.0;
+    maxTime[i] = 0.0;
+    maxElem[i] = 0;
+  }
+
   // Allocate variables for injury metrics
   nElementsInjury = 0;
 
@@ -1280,66 +1270,55 @@ void InitInjuryCriterion(void) {
     }
   }
 
-  MPSgt15 = (int*)calloc(nElementsInjury, sizeof(int));
-  MPSgt30 = (int*)calloc(nElementsInjury, sizeof(int));
+  for (int i = 0; i < threshQuantities; ++i) {
+    thresholdElements[i] = (int*)calloc(nelements, sizeof(int));
+  }
+  // Write percentile values
+  for (int i = 0; i < percentileQuantities; ++i) {
+    percentileElements[i] = (int*)malloc(nelements*sizeof(int));
+    percentileTime[i] = 0.0;
+    percentileValue[i] = 0.0;
+  }
   PS_Old = (double*)malloc(nElementsInjury*sizeof(double));
-  MPSRgt120 = (int*)calloc(nElementsInjury, sizeof(int));
-  MPSxSRgt28 = (int*)calloc(nElementsInjury, sizeof(int));
-  maxMPS95 = 0.0;
-  maxTimeMPS95 = 0.0;
-  maxElemCountMPS95 = 0;
-  maxElemListMPS95 = NULL;
-  maxMPSxSR95 = 0.0;
-  maxTimeMPSxSR95 = 0.0;
-  maxElemCountMPSxSR95 = 0;
-  maxElemListMPSxSR95 = NULL;
   PSxSRArray = (double*)malloc(nElementsInjury*sizeof(double));
+
   // Array to output to Paraview
-  outputDataArray = (int**)malloc(outputCount*sizeof(int*)); 
-  // TODO(Anil), remove these arrays and use existing arrays of size
-  // nElementInjury. Will require better design of wrtieVTU.
-  mps95Output = (int*)calloc(nelements, sizeof(int));
-  csdm15Output = (int*)calloc(nelements, sizeof(int));
-  csdm30Output = (int*)calloc(nelements, sizeof(int));
-  psr120Output = (int*)calloc(nelements, sizeof(int));
-  psxsr28Output = (int*)calloc(nelements, sizeof(int));
-  outputDataArray[4] = mps95Output; outputDataArray[0] = csdm15Output;
-  outputDataArray[1] = csdm30Output; outputDataArray[2] = psr120Output;
-  outputDataArray[3] = psxsr28Output;
+  // All threshold elements CSDM : 5, 10, 15, 30, MPSR-120, MPSxSR-28
+  for (int i = 0; i < threshQuantities; ++i) {
+    outputDataArray[i] = thresholdElements[i];
+  }
+  outputDataArray[threshQuantities] = percentileElements[0]; // Write MPS-95 to paraview 
 }
 
 void CalculateInjuryCriterions(void) {
   double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
   double PSR = 0.0, PSxSR = 0.0;
+
   for (int j = 0; j < nElementsInjury; j++) {
     int i = elementIDInjury[j];
     CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, \
         &currentStrainMinElem, &currentShearMaxElem);
-    if (maxStrain < currentStrainMaxElem) {
-      maxStrain = currentStrainMaxElem;
-      maxElem = i;
-      maxT = Time;
+    if (maxValue[0] < currentStrainMaxElem) {
+      maxValue[0] = currentStrainMaxElem;
+      maxElem[0] = i;
+      maxTime[0] = Time;
     }
-    if (minStrain > currentStrainMinElem) {
-      minStrain = currentStrainMinElem;
-      minElem = i;
-      minT = Time;
+    if (maxValue[3] > currentStrainMinElem) {
+      maxValue[3] = currentStrainMinElem;
+      maxElem[3] = i;
+      maxTime[3] = Time;
     }
-    if (maxShear < currentShearMaxElem) {
-      maxShear = currentShearMaxElem;
-      shearElem = i;
-      maxShearT = Time;
+    if (maxValue[1] < currentShearMaxElem) {
+      maxValue[1] = currentShearMaxElem;
+      maxElem[1] = i;
+      maxTime[1] = Time;
     }
-    // Calculate MPS 15
-    if (!MPSgt15[j]) {
-      if (currentStrainMaxElem > 0.15) {
-        MPSgt15[j] = 1;
-      }
-    }
-    // Calculate MPS 30
-    if (!MPSgt30[j]) {
-      if (currentStrainMaxElem > 0.30) {
-        MPSgt30[j] = 1;
+    // Update csdm element list
+    for (int k = 0; k < csdmCount; ++k) {
+      if (!thresholdElements[k][i]) {
+        if (currentStrainMaxElem > csdmLimits[k]) {
+          thresholdElements[k][i] = 1;
+        }
       }
     }
     // Compute maxPSxSR
@@ -1347,21 +1326,21 @@ void CalculateInjuryCriterions(void) {
     PSR = (currentStrainMaxElem - PS_Old[j])/dt;
     // TODO(Anil) : Sould absolute value be used for PSR ?
     PSxSR = currentStrainMaxElem*PSR; 
-    if (maxPSxSR < PSxSR) {
-      maxPSxSR = PSxSR;
-      maxElemPSxSR = i;
-      maxTimePSxSR = Time;
+    if (maxValue[2] < PSxSR) {
+      maxValue[2] = PSxSR;
+      maxElem[2] = i;
+      maxTime[2] = Time;
     }
     // Calculate MPSR 120
-    if (!MPSRgt120[j]) {
+    if (!thresholdElements[4][i]) {
       if (PSR > 120.0) {
-        MPSRgt120[j] = 1;
+        thresholdElements[4][i] = 1;
       }
     }
     // Calculate MPSxSR 28
-    if (!MPSxSRgt28[j]) {
+    if (!thresholdElements[5][i]) {
       if (PSxSR > 28.0) {
-        MPSxSRgt28[j] = 1;
+        thresholdElements[5][i] = 1;
       }
     }
     PS_Old[j] = currentStrainMaxElem;
@@ -1370,60 +1349,29 @@ void CalculateInjuryCriterions(void) {
 
   // Compute 95 percentile MPS and corresponding element list
   double MPS95 = compute95thPercentileValue(PS_Old, nElementsInjury);
-  if (MPS95 > maxMPS95) {
-    maxMPS95 = MPS95;
-    maxTimeMPS95 = Time;
-    int count = 0;
+  if (MPS95 > percentileValue[0]) {
+    memset(percentileElements[0], 0, nelements*sizeof(int));
+    percentileValue[0] = MPS95;
+    percentileTime[0] = Time;
     for (int j = 0; j < nElementsInjury; j++) {
-      if (PS_Old[j] >= maxMPS95) {
-        count = count + 1;
-      }
-    }
-    // re-allocate element list
-    if (count != maxElemCountMPS95) {
-      free1DArray(maxElemListMPS95);
-      if (count == 0) {
-        maxElemListMPS95 = NULL;
-      } else {
-        maxElemListMPS95 = (int*)malloc(sizeof(int)*count);
-      }
-    }
-    maxElemCountMPS95 = count;
-    count = 0;
-    for (int j = 0; j < nElementsInjury; j++) {
-      if (PS_Old[j] >= maxMPS95) {
-        maxElemListMPS95[count] = elementIDInjury[j];
-        count = count + 1;
+      if (PS_Old[j] >= MPS95) {
+        const int i = elementIDInjury[j];
+        percentileElements[0][i] = 1;
       }
     }
   }
 
   // Compute 95 percentile MPSxSR and corresponding element list
   double MPSxSR95 = compute95thPercentileValue(PSxSRArray, nElementsInjury);
-  if (MPSxSR95 > maxMPSxSR95) {
-    maxMPSxSR95 = MPSxSR95;
-    maxTimeMPSxSR95 = Time;
+  if (MPSxSR95 > percentileValue[1]) {
+    memset(percentileElements[1], 0, nelements*sizeof(int));
+    percentileValue[1] = MPSxSR95;
+    percentileTime[1] = Time;
     int count = 0;
     for (int j = 0; j < nElementsInjury; j++) {
-      if (PSxSRArray[j] >= maxMPSxSR95) {
-        count = count + 1;
-      }
-    }
-    // re-allocate element list
-    if (count != maxElemCountMPSxSR95) {
-      free1DArray(maxElemListMPSxSR95);
-      if (count == 0) {
-        maxElemListMPSxSR95 = NULL;
-      } else {
-        maxElemListMPSxSR95 = (int*)malloc(sizeof(int)*count);
-      }
-    }
-    maxElemCountMPSxSR95 = count;
-    count = 0;
-    for (int j = 0; j < nElementsInjury; j++) {
-      if (PSxSRArray[j] >= maxMPSxSR95) {
-        maxElemListMPSxSR95[count] = elementIDInjury[j];
-        count = count + 1;
+      if (PSxSRArray[j] >= MPSxSR95) {
+        const int i = elementIDInjury[j];
+        percentileElements[1][i] = 1;
       }
     }
   }
