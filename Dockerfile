@@ -16,7 +16,6 @@ USER ubuntu
 WORKDIR /home/ubuntu
 
 # Setup FemTech
-ADD https://api.github.com/repos/PSUCompBio/FemTech/git/refs/heads/$BRANCH version.json
 RUN git clone --single-branch --branch $BRANCH https://github.com/PSUCompBio/FemTech
 RUN mkdir FemTech/build_native
 RUN cd FemTech/build_native;cmake .. -DEXAMPLES=ON -DEXAMPLE5=ON; make -j 8;
