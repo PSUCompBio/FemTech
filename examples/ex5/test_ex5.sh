@@ -11,9 +11,9 @@ testInputFiles=( p1 pt x s )
 # Values of element id expected in the order, max-shear, min-principal,
 # max-principal
 value_p1=( 9821 7323 10243 )
-value_pt=( 4749 16263 4749 )
+value_pt=( 10223 10223 10223 )
 value_s=( 15186 12602 15186 )
-value_x=( 4419 9769 9774 )
+value_x=( 7740 7740 7740 )
 
 # Run all tests and check output
 for name in "${testInputFiles[@]}"
