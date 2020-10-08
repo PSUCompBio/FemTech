@@ -19,7 +19,7 @@ using namespace boost::numeric::odeint;
 /*Declare Functions*/
 void CustomPlot();
 void InitCustomPlot(const Json::Value& jsonInput);
-void InitBoundaryCondition(const Json::Value& jsonInput);
+double InitBoundaryCondition(const Json::Value& jsonInput);
 void InitInjuryCriterion(void);
 void updateBoundaryNeighbour(void);
 void ApplyAccBoundaryConditions();
@@ -157,10 +157,9 @@ int main(int argc, char **argv) {
 
   // Initial settings for BC evaluations
   // Used if initial velocity and acceleration BC is to be set.
-  InitBoundaryCondition(simulationJson);
+  Time = InitBoundaryCondition(simulationJson);
 
   /* Write inital, undeformed configuration*/
-  Time = 0.0;
   int plot_counter = 0;
   if (writeField) {
     WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, \
@@ -190,7 +189,7 @@ int main(int argc, char **argv) {
   /* Step-3: Calculate accelerations */
   CalculateAccelerations();
 
-  nSteps = (int)(tMax / dt);
+  nSteps = (int)((tMax-Time) / dt);
   int nsteps_plot = (int)(nSteps / nPlotSteps);
   if (nsteps_plot == 0) {
     nsteps_plot = nSteps;
@@ -565,8 +564,9 @@ void CustomPlot() {
   return;
 }
 
-void InitBoundaryCondition(const Json::Value& jsonInput) {
+double InitBoundaryCondition(const Json::Value& jsonInput) {
   static const double gC = 9.81;
+  double startTime = 0.0;
   // Read input JSON for acceleration values
   if (jsonInput["linear-acceleration"].isObject()) { // Use time traces from file
     // Read linear acceleration and angular acceleration time traces
@@ -637,6 +637,7 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
     for (int i = 0; i < angAccZSize; ++i) {
       angAccZt[i] = 0.001*angAccZt[i];
     }
+    startTime = linAccXt[0];
   } else { // Read maximum values from input file
     double accMax[3];
     accMax[0] = gC*jsonInput["linear-acceleration"][0].asDouble();
@@ -891,7 +892,7 @@ void InitBoundaryCondition(const Json::Value& jsonInput) {
       accelerations[index+j] = 0.0;
     }
   }
-  return;
+  return startTime;
 }
 
 void updateBoundaryNeighbour(void) {
