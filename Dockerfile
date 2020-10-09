@@ -55,6 +55,9 @@ COPY --from=buildFemTech ["/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/ex5"
   "/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/simulationMovie.py", \
   "/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/mps95Movie.py", \
   "/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/addGraph.py", \
+  "/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/fine_cellcenters.txt", \
+  "/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/coarse_cellcentres.txt", \
+  "/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/updateOutputJson.py", \
   "/home/ubuntu/FemTechRun/"]
 
 # To create image : docker build --pull --cache-from nsfcareer/femtech:develop --cache-from nsfcareer/femtech:production --tag nsfcareer/femtech:production -f Dockerfile .
