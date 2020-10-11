@@ -4,12 +4,12 @@
 
 #include "json/writer.h"
 
-#include <map>
-#include <string>
-#include <fstream> // For JSON output
-#include <memory> // For JSON output unique pointer
-#include <math.h>
 #include <assert.h>
+#include <fstream> // For JSON output
+#include <map>
+#include <math.h>
+#include <memory> // For JSON output unique pointer
+#include <string>
 
 #include <boost/numeric/odeint.hpp>
 
@@ -18,15 +18,15 @@ using namespace boost::numeric::odeint;
 
 /*Declare Functions*/
 void CustomPlot();
-void InitCustomPlot(const Json::Value& jsonInput);
-double InitBoundaryCondition(const Json::Value& jsonInput);
+void InitCustomPlot(const Json::Value &jsonInput);
+double InitBoundaryCondition(const Json::Value &jsonInput);
 void InitInjuryCriterion(void);
 void updateBoundaryNeighbour(void);
 void ApplyAccBoundaryConditions();
 int getImpactID(std::string location);
 void WriteOutputFile();
 void CalculateInjuryCriterions(void);
-void TransformMesh(const Json::Value& jsonInput);
+void TransformMesh(const Json::Value &jsonInput);
 
 /* Global Variables/Parameters */
 double Time, dt;
@@ -60,14 +60,16 @@ double *outputElemStress;
 
 /* Variables for injury metrics */
 /* Variables to compute maximum quatities over time and space */
-/* 0. Maximum principal strain, 1. Maximum principal shear, 
+/* 0. Maximum principal strain, 1. Maximum principal shear,
  * 2. Maximum principal strain times strain rate
  * 3. Minimum principal strain
  * */
-const int maxQuantities = 4; 
-const std::string maxOutput[maxQuantities] = {"principal-max-strain", "maximum-shear-strain", \
-  "maximum-PSxSR", "principal-min-strain"};
-const MPI_Op outputOperator[maxQuantities] = {MPI_MAXLOC, MPI_MAXLOC, MPI_MAXLOC, MPI_MINLOC};
+const int maxQuantities = 4;
+const std::string maxOutput[maxQuantities] = {
+    "principal-max-strain", "maximum-shear-strain", "maximum-PSxSR",
+    "principal-min-strain"};
+const MPI_Op outputOperator[maxQuantities] = {MPI_MAXLOC, MPI_MAXLOC,
+                                              MPI_MAXLOC, MPI_MINLOC};
 
 double maxValue[maxQuantities], maxTime[maxQuantities];
 int maxElem[maxQuantities];
@@ -82,7 +84,7 @@ double percentileTime[percentileQuantities];
 double percentileValue[percentileQuantities];
 const std::string percentileTag[percentileQuantities] = {"MPS-95", "MPSxSR-95"};
 /* Threshold variables */
-/* 0. MPS > 5 
+/* 0. MPS > 5
  * 1. MPS > 10
  * 2. MPS > 15
  * 3. MPS > 30
@@ -91,8 +93,8 @@ const std::string percentileTag[percentileQuantities] = {"MPS-95", "MPSxSR-95"};
  */
 const int threshQuantities = 6;
 int *thresholdElements[threshQuantities];
-const std::string thresholdTag[threshQuantities] = {"CSDM-5", "CSDM-10", \
-  "CSDM-15", "CSDM-30", "MPSR-120", "MPSxSR-28"};
+const std::string thresholdTag[threshQuantities] = {
+    "CSDM-5", "CSDM-10", "CSDM-15", "CSDM-30", "MPSR-120", "MPSxSR-28"};
 
 /* Variables for maximum Principal Strain times Strain Rate */
 double *PS_Old = NULL;
@@ -107,8 +109,9 @@ const int injuryExcludePID[injuryExcludePIDCount] = {0, 1};
 // Variables to write injury criterion to Paraview output
 const int outputCount = 7;
 int *outputDataArray[outputCount];
-const char* outputNames[outputCount] ={"CSDM-5", "CSDM-10", "CSDM-15", \
-  "CSDM-30", "MPSR-120", "MPSxSR-28", "MPS-95"};
+const char *outputNames[outputCount] = {"CSDM-5",  "CSDM-10",  "CSDM-15",
+                                        "CSDM-30", "MPSR-120", "MPSxSR-28",
+                                        "MPS-95"};
 const int csdmCount = 4;
 const double csdmLimits[csdmCount] = {0.05, 0.1, 0.15, 0.3};
 
@@ -135,7 +138,8 @@ int main(int argc, char **argv) {
   Json::Value simulationJson = inputJson["simulation"];
 
   std::string meshFile = simulationJson["mesh"].asString();
-  tMax = simulationJson["maximum-time"].asDouble()/1000.0; // Convert to seconds
+  tMax =
+      simulationJson["maximum-time"].asDouble() / 1000.0; // Convert to seconds
   if (!simulationJson["write-vtu"].empty()) {
     writeField = simulationJson["write-vtu"].asBool();
   }
@@ -144,7 +148,7 @@ int main(int argc, char **argv) {
   ReadInputFile(meshFile.c_str());
   size_t lastindex = meshFile.find_last_of(".");
   outputFileName = meshFile.substr(0, lastindex) + "_" + uid;
-  // Read material properties before mesh partition to estimate 
+  // Read material properties before mesh partition to estimate
   // material type kernel compute intensity
   ReadMaterials();
 
@@ -162,8 +166,8 @@ int main(int argc, char **argv) {
   /* Write inital, undeformed configuration*/
   int plot_counter = 0;
   if (writeField) {
-    WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, \
-        outputCount, outputNames);
+    WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, outputCount,
+             outputNames);
     WritePVD(outputFileName.c_str(), plot_counter);
   }
   stepTime[plot_counter] = Time;
@@ -189,7 +193,7 @@ int main(int argc, char **argv) {
   /* Step-3: Calculate accelerations */
   CalculateAccelerations();
 
-  nSteps = (int)((tMax-Time) / dt);
+  nSteps = (int)((tMax - Time) / dt);
   int nsteps_plot = (int)(nSteps / nPlotSteps);
   if (nsteps_plot == 0) {
     nsteps_plot = nSteps;
@@ -199,21 +203,22 @@ int main(int argc, char **argv) {
     nsteps_write = nSteps;
   }
 
-  FILE_LOG_MASTER(INFO, "initial dt = %3.3e, nSteps = %d, nsteps_plot = %d", dt, nSteps,
-           nsteps_plot);
+  FILE_LOG_MASTER(INFO, "initial dt = %3.3e, nSteps = %d, nsteps_plot = %d", dt,
+                  nSteps, nsteps_plot);
 
   time_step_counter = time_step_counter + 1;
   double t_n = 0.0;
 
-  FILE_LOG_MASTER(INFO, "------------------------------- Loop ----------------------------");
+  FILE_LOG_MASTER(INFO,
+      "------------------------------- Loop ----------------------------");
   FILE_LOG_MASTER(INFO, "Time : %15.6e, tmax : %15.6e", Time, tMax);
 
   /* Step-4: Time loop starts....*/
   while (Time < tMax) {
     t_n = Time;
     double t_np1 = Time + dt;
-    Time = t_np1; /*Update the time by adding full time step */
-    double dt_nphalf = dt;                 // equ 6.2.1
+    Time = t_np1;          /*Update the time by adding full time step */
+    double dt_nphalf = dt; // equ 6.2.1
     double t_nphalf = 0.5 * (t_np1 + t_n); // equ 6.2.1
 
     /* Step 5 from Belytschko Box 6.1 - Update velocity */
@@ -256,8 +261,8 @@ int main(int argc, char **argv) {
     }
 
     /** Step - 11 Checking* Energy Balance */
-    int writeFlag = time_step_counter%nsteps_plot;
-    int writeFileFlag = time_step_counter%nsteps_write;
+    int writeFlag = time_step_counter % nsteps_plot;
+    int writeFileFlag = time_step_counter % nsteps_write;
     CheckEnergy(Time, writeFlag);
 
     CalculateInjuryCriterions();
@@ -265,19 +270,21 @@ int main(int argc, char **argv) {
       CustomPlot();
     }
     if (writeFlag == 0) {
-      FILE_LOG_MASTER(INFO, "Time : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt, tMax);
+      FILE_LOG_MASTER(INFO, "Time : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt,
+                      tMax);
       plot_counter = plot_counter + 1;
 
       if (plot_counter < MAXPLOTSTEPS) {
         stepTime[plot_counter] = Time;
         if (writeField) {
           FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
-          WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, \
-              outputCount, outputNames);
+          WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray,
+                   outputCount, outputNames);
           WritePVD(outputFileName.c_str(), plot_counter);
         }
       }
-      FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Displacement Solution");
+      FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim,
+                       "Displacement Solution");
     }
     time_step_counter = time_step_counter + 1;
     dt = ExplicitTimeStepReduction * StableTimeStep();
@@ -286,12 +293,13 @@ int main(int argc, char **argv) {
     MPI_Barrier(MPI_COMM_WORLD);
   } // end explcit while loop
   // Write output if last step results not written
-  int writeFileFlag = (time_step_counter-1)%nsteps_write;
+  int writeFileFlag = (time_step_counter - 1) % nsteps_write;
   if (writeFileFlag != 0) {
     CustomPlot();
   }
   FILE_LOG_MASTER(INFO, "End of Iterative Loop");
-  FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Final Displacement Solution");
+  FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim,
+                   "Final Displacement Solution");
 
   WriteOutputFile();
   // Free local boundary condition related arrays
@@ -330,24 +338,36 @@ int main(int argc, char **argv) {
 }
 
 void ApplyAccBoundaryConditions() {
-  double r[4], R[4], Rinv[4], V[4], Vp[4]; //quaternions
-  double omegaR[3], omega[3], omegaOmegaR[3], omegaVel[3], vel[3]; //vectors
+  double r[4], R[4], Rinv[4], V[4], Vp[4]; // quaternions
+  double omegaR[3], omega[3], omegaOmegaR[3], omegaVel[3], vel[3]; // vectors
   double alpha[3], alphaR[3], locV[3];
 
-  rk.do_step(computeDerivatives, yInt, ydotInt, Time-dt, dt);
-  r[0] = 0.0; r[1] = yInt[3]; r[2] = yInt[4]; r[3] = yInt[5];
+  rk.do_step(computeDerivatives, yInt, ydotInt, Time - dt, dt);
+  r[0] = 0.0;
+  r[1] = yInt[3];
+  r[2] = yInt[4];
+  r[3] = yInt[5];
   quaternionExp(r, R); // R = exp(r)
   quaternionInverse(R, Rinv);
-  omega[0] = yInt[0]; omega[1] = yInt[1]; omega[2] = yInt[2];
-  alpha[0] = ydotInt[0]; alpha[1] = ydotInt[1]; alpha[2] = ydotInt[2];
-  vel[0] = yInt[6]; vel[1] = yInt[7]; vel[2] = yInt[8];
+  omega[0] = yInt[0];
+  omega[1] = yInt[1];
+  omega[2] = yInt[2];
+  alpha[0] = ydotInt[0];
+  alpha[1] = ydotInt[1];
+  alpha[2] = ydotInt[2];
+  vel[0] = yInt[6];
+  vel[1] = yInt[7];
+  vel[2] = yInt[8];
 
   for (int i = 0; i < boundarySize; i++) {
     int index = boundaryID[i] * ndim;
     for (int j = 0; j < ndim; ++j) {
       locV[j] = coordinates[index + j];
     }
-    V[0] = 0.0; V[1] = locV[0]; V[2] = locV[1]; V[3] = locV[2];
+    V[0] = 0.0;
+    V[1] = locV[0];
+    V[2] = locV[1];
+    V[3] = locV[2];
     quaternionRotate(V, R, Rinv, Vp); // Vp = RVR^{-1}
     crossProduct(omega, &(Vp[1]), omegaR);
     crossProduct(omega, omegaR, omegaOmegaR);
@@ -355,11 +375,12 @@ void ApplyAccBoundaryConditions() {
     crossProduct(alpha, &(Vp[1]), alphaR);
     for (int j = 0; j < ndim; ++j) {
       // Displacement
-      displacements[index+j] = Vp[j+1] - locV[j] + yInt[9+j];
+      displacements[index + j] = Vp[j + 1] - locV[j] + yInt[9 + j];
       // Velocity
-      velocities[index+j] = omegaR[j] + yInt[6+j];
+      velocities[index + j] = omegaR[j] + yInt[6 + j];
       // Acceleration
-      accelerations[index+j] = 2.0*omegaVel[j] + omegaOmegaR[j] + ydotInt[6+j] + alphaR[j];
+      accelerations[index + j] =
+          2.0 * omegaVel[j] + omegaOmegaR[j] + ydotInt[6 + j] + alphaR[j];
     }
   }
   // Rotate points to plot to obtain their rigid displacements
@@ -370,25 +391,28 @@ void ApplyAccBoundaryConditions() {
       for (int j = 0; j < ndim; ++j) {
         locV[j] = coordinates[index + j];
       }
-      V[0] = 0.0; V[1] = locV[0]; V[2] = locV[1]; V[3] = locV[2];
+      V[0] = 0.0;
+      V[1] = locV[0];
+      V[2] = locV[1];
+      V[3] = locV[2];
       quaternionRotate(V, R, Rinv, Vp); // Vp = RVR^{-1}
       for (int j = 0; j < ndim; ++j) {
         // Displacement
-        outputNodeRigidDisp[index1+j] = Vp[j+1] - locV[j] + yInt[9+j];
+        outputNodeRigidDisp[index1 + j] = Vp[j + 1] - locV[j] + yInt[9 + j];
       }
     }
   }
   return;
 }
 
-void InitCustomPlot(const Json::Value& jsonInput) {
+void InitCustomPlot(const Json::Value &jsonInput) {
   rankForCustomPlot = false;
   if (!jsonInput["output-nodes"].empty()) {
     int outputSize = jsonInput["output-nodes"].size();
-    int *outputNodes = (int*)malloc(outputSize*sizeof(int));
-    int *outputLocalNodes = (int*)malloc(outputSize*sizeof(int));
-    int *containsNode = (int*)calloc(outputSize, sizeof(int));
-    int *containsNodeCum = (int*)calloc(outputSize, sizeof(int));
+    int *outputNodes = (int *)malloc(outputSize * sizeof(int));
+    int *outputLocalNodes = (int *)malloc(outputSize * sizeof(int));
+    int *containsNode = (int *)calloc(outputSize, sizeof(int));
+    int *containsNodeCum = (int *)calloc(outputSize, sizeof(int));
     // Store input node list to array
     jsonToArrayInt(outputNodes, jsonInput["output-nodes"]);
 
@@ -404,13 +428,14 @@ void InitCustomPlot(const Json::Value& jsonInput) {
       }
     }
     // If multiple procs have same node use the lowest rank
-    MPI_Scan(containsNode, containsNodeCum, outputSize, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Scan(containsNode, containsNodeCum, outputSize, MPI_INT, MPI_SUM,
+             MPI_COMM_WORLD);
     for (int i = 0; i < outputSize; ++i) {
       if (containsNode[i] == 1 && containsNodeCum[i] == 1) {
         outputNodeCount = outputNodeCount + 1;
       }
     }
-    outputNodeList = (int*)malloc(outputNodeCount*sizeof(int));
+    outputNodeList = (int *)malloc(outputNodeCount * sizeof(int));
     int currentIndex = 0;
     for (int i = 0; i < outputSize; ++i) {
       if (containsNode[i] == 1 && containsNodeCum[i] == 1) {
@@ -428,14 +453,17 @@ void InitCustomPlot(const Json::Value& jsonInput) {
     free(containsNodeCum);
     for (int i = 0; i < outputNodeCount; ++i) {
       int nodeL = outputNodeList[i];
-      FILE_LOG_SINGLE(INFO, "Node ID : %d (%15.9e, %15.9e, %15.9e)", globalNodeID[nodeL], coordinates[nodeL*ndim], coordinates[nodeL*ndim+1], coordinates[nodeL*ndim+2]);
+      FILE_LOG_SINGLE(INFO, "Node ID : %d (%15.9e, %15.9e, %15.9e)",
+                      globalNodeID[nodeL], coordinates[nodeL * ndim],
+                      coordinates[nodeL * ndim + 1],
+                      coordinates[nodeL * ndim + 2]);
     }
-  }   
+  }
   if (!jsonInput["output-elements"].empty()) {
     int outputSize = jsonInput["output-elements"].size();
-    int *outputElements = (int*)malloc(outputSize*sizeof(int));
-    int *outputLocalElements = (int*)malloc(outputSize*sizeof(int));
-    int *containsElement = (int*)calloc(outputSize, sizeof(int));
+    int *outputElements = (int *)malloc(outputSize * sizeof(int));
+    int *outputLocalElements = (int *)malloc(outputSize * sizeof(int));
+    int *containsElement = (int *)calloc(outputSize, sizeof(int));
     // Store input node list to array
     jsonToArrayInt(outputElements, jsonInput["output-elements"]);
 
@@ -455,7 +483,7 @@ void InitCustomPlot(const Json::Value& jsonInput) {
     }
     if (outputElemCount > 0) {
       rankForCustomPlot = true;
-      outputElemList = (int*)malloc(sizeof(int)*outputElemCount);
+      outputElemList = (int *)malloc(sizeof(int) * outputElemCount);
       int currentIndex = 0;
       for (int i = 0; i < outputSize; ++i) {
         if (containsElement[i]) {
@@ -482,63 +510,75 @@ void InitCustomPlot(const Json::Value& jsonInput) {
     // Get the rank of the process in output communicator
     MPI_Comm_rank(output_comm, &output_rank);
     // Open output file and write header
-    std::string outFileStr = "plot_"+ uid + ".dat";
+    std::string outFileStr = "plot_" + uid + ".dat";
     MPI_Info infoin;
     MPI_Info_create(&infoin);
     MPI_Info_set(infoin, "access_style", "write_once,random");
     const char *outFileName = outFileStr.c_str();
 
     int err;
-    err = MPI_File_open(output_comm, outFileName, MPI_MODE_EXCL|MPI_MODE_WRONLY|MPI_MODE_CREATE, infoin, &outputFilePtr);
+    err = MPI_File_open(output_comm, outFileName,
+                        MPI_MODE_EXCL | MPI_MODE_WRONLY | MPI_MODE_CREATE,
+                        infoin, &outputFilePtr);
     if (err != MPI_SUCCESS) {
       if (output_rank == 0) {
         MPI_File_delete(outFileName, MPI_INFO_NULL);
       }
       MPI_Barrier(output_comm);
-      err = MPI_File_open(output_comm, outFileName, MPI_MODE_EXCL|MPI_MODE_WRONLY|MPI_MODE_CREATE, infoin, &outputFilePtr);
+      err = MPI_File_open(output_comm, outFileName,
+                          MPI_MODE_EXCL | MPI_MODE_WRONLY | MPI_MODE_CREATE,
+                          infoin, &outputFilePtr);
       if (err != MPI_SUCCESS) {
         FILE_LOG_SINGLE(ERROR, "Unable to open file to write co-ordinates");
         TerminateFemTech(10);
       }
     }
-    // Write the header 
-    char *outputHeader = (char*)malloc(sizeof(char)*(10+outputNodeCount*60+outputElemCount*40));
+    // Write the header
+    char *outputHeader = (char *)malloc(
+        sizeof(char) * (10 + outputNodeCount * 60 + outputElemCount * 40));
     outputHeader[0] = 0;
     if (output_rank == 0) {
       sprintf(outputHeader, "#Time");
-    }       
+    }
     for (int i = 0; i < outputNodeCount; ++i) {
       int globalN = globalNodeID[outputNodeList[i]];
-      sprintf(outputHeader, "%s Node%08d-DispX Node%08d-DispY Node%08d-DispZ", outputHeader, globalN, globalN, globalN);
+      sprintf(outputHeader, "%s Node%08d-DispX Node%08d-DispY Node%08d-DispZ",
+              outputHeader, globalN, globalN, globalN);
     }
     for (int i = 0; i < outputElemCount; ++i) {
       int globalE = global_eid[outputElemList[i]];
-      sprintf(outputHeader, "%s Elem%08d-StreP Elem%08d-StreS", outputHeader, globalE, globalE);
+      sprintf(outputHeader, "%s Elem%08d-StreP Elem%08d-StreS", outputHeader,
+              globalE, globalE);
     }
-    if (output_rank == (output_size-1)) {
+    if (output_rank == (output_size - 1)) {
       sprintf(outputHeader, "%s\n", outputHeader);
     }
-    MPI_File_write_ordered(outputFilePtr, outputHeader, strlen(outputHeader), MPI_CHAR, MPI_STATUS_IGNORE);
+    MPI_File_write_ordered(outputFilePtr, outputHeader, strlen(outputHeader),
+                           MPI_CHAR, MPI_STATUS_IGNORE);
     free(outputHeader);
-    outputNodeRigidDisp = (double*)calloc(outputNodeCount*ndim, sizeof(double));
+    outputNodeRigidDisp =
+        (double *)calloc(outputNodeCount * ndim, sizeof(double));
   }
   return;
 }
 
 void CustomPlot() {
   if (rankForCustomPlot) {
-    // Write the output 
-    char *output = (char*)malloc(sizeof(char)*(17+outputNodeCount*51+outputElemCount*34));
+    // Write the output
+    char *output = (char *)malloc(
+        sizeof(char) * (17 + outputNodeCount * 51 + outputElemCount * 34));
     output[0] = 0;
     if (output_rank == 0) {
       sprintf(output, "%15.9e", Time);
-    }       
+    }
     for (int i = 0; i < outputNodeCount; ++i) {
-      unsigned int plotNode = outputNodeList[i]*ndim;
-      unsigned int plotIndex = i*ndim;
-      double xCord = displacements[plotNode]-outputNodeRigidDisp[plotIndex];
-      double yCord = displacements[plotNode+1]-outputNodeRigidDisp[plotIndex+1];
-      double zCord = displacements[plotNode+2]-outputNodeRigidDisp[plotIndex+2];
+      unsigned int plotNode = outputNodeList[i] * ndim;
+      unsigned int plotIndex = i * ndim;
+      double xCord = displacements[plotNode] - outputNodeRigidDisp[plotIndex];
+      double yCord =
+          displacements[plotNode + 1] - outputNodeRigidDisp[plotIndex + 1];
+      double zCord =
+          displacements[plotNode + 2] - outputNodeRigidDisp[plotIndex + 2];
       sprintf(output, "%s %15.9e %15.9e %15.9e", output, xCord, yCord, zCord);
     }
     double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
@@ -546,45 +586,48 @@ void CustomPlot() {
       unsigned int plotElem = outputElemList[i];
       // Recalculation to decouple from Injury criterion
       if (materialID[pid[plotElem]] != 0) {
-        CalculateMaximumPrincipalStrain(plotElem, &currentStrainMaxElem, \
-            &currentStrainMinElem, &currentShearMaxElem);
+        CalculateMaximumPrincipalStrain(plotElem, &currentStrainMaxElem,
+                                        &currentStrainMinElem,
+                                        &currentShearMaxElem);
       } else {
         currentStrainMaxElem = 0.0;
         currentShearMaxElem = 0.0;
       }
-      sprintf(output, "%s %15.9e %15.9e", output, \
-          currentStrainMaxElem, currentShearMaxElem);
+      sprintf(output, "%s %15.9e %15.9e", output, currentStrainMaxElem,
+              currentShearMaxElem);
     }
-    if (output_rank == (output_size-1)) {
+    if (output_rank == (output_size - 1)) {
       sprintf(output, "%s\n", output);
     }
-    MPI_File_write_ordered(outputFilePtr, output, strlen(output), MPI_CHAR, MPI_STATUS_IGNORE);
+    MPI_File_write_ordered(outputFilePtr, output, strlen(output), MPI_CHAR,
+                           MPI_STATUS_IGNORE);
     free(output);
   }
   return;
 }
 
-double InitBoundaryCondition(const Json::Value& jsonInput) {
+double InitBoundaryCondition(const Json::Value &jsonInput) {
   static const double gC = 9.81;
   double startTime = 0.0;
   // Read input JSON for acceleration values
-  if (jsonInput["linear-acceleration"].isObject()) { // Use time traces from file
+  if (jsonInput["linear-acceleration"]
+          .isObject()) { // Use time traces from file
     // Read linear acceleration and angular acceleration time traces
     linAccXSize = jsonInput["linear-acceleration"]["xt"].size();
     int tempSize = jsonInput["linear-acceleration"]["xv"].size();
     assert(tempSize == linAccXSize);
-    linAccXt = (double*)malloc(sizeof(double)*linAccXSize);
-    linAccXv = (double*)malloc(sizeof(double)*linAccXSize);
+    linAccXt = (double *)malloc(sizeof(double) * linAccXSize);
+    linAccXv = (double *)malloc(sizeof(double) * linAccXSize);
     linAccYSize = jsonInput["linear-acceleration"]["yt"].size();
     tempSize = jsonInput["linear-acceleration"]["yv"].size();
     assert(tempSize == linAccYSize);
-    linAccYt = (double*)malloc(sizeof(double)*linAccYSize);
-    linAccYv = (double*)malloc(sizeof(double)*linAccYSize);
+    linAccYt = (double *)malloc(sizeof(double) * linAccYSize);
+    linAccYv = (double *)malloc(sizeof(double) * linAccYSize);
     linAccZSize = jsonInput["linear-acceleration"]["zt"].size();
     tempSize = jsonInput["linear-acceleration"]["zv"].size();
     assert(tempSize == linAccYSize);
-    linAccZt = (double*)malloc(sizeof(double)*linAccZSize);
-    linAccZv = (double*)malloc(sizeof(double)*linAccZSize);
+    linAccZt = (double *)malloc(sizeof(double) * linAccZSize);
+    linAccZv = (double *)malloc(sizeof(double) * linAccZSize);
     jsonToArray(linAccXt, jsonInput["linear-acceleration"]["xt"]);
     jsonToArray(linAccXv, jsonInput["linear-acceleration"]["xv"]);
     jsonToArray(linAccYt, jsonInput["linear-acceleration"]["yt"]);
@@ -595,18 +638,18 @@ double InitBoundaryCondition(const Json::Value& jsonInput) {
     angAccXSize = jsonInput["angular-acceleration"]["xt"].size();
     tempSize = jsonInput["angular-acceleration"]["xv"].size();
     assert(tempSize == angAccXSize);
-    angAccXt = (double*)malloc(sizeof(double)*angAccXSize);
-    angAccXv = (double*)malloc(sizeof(double)*angAccXSize);
+    angAccXt = (double *)malloc(sizeof(double) * angAccXSize);
+    angAccXv = (double *)malloc(sizeof(double) * angAccXSize);
     angAccYSize = jsonInput["angular-acceleration"]["yt"].size();
     tempSize = jsonInput["angular-acceleration"]["yv"].size();
     assert(tempSize == angAccYSize);
-    angAccYt = (double*)malloc(sizeof(double)*angAccYSize);
-    angAccYv = (double*)malloc(sizeof(double)*angAccYSize);
+    angAccYt = (double *)malloc(sizeof(double) * angAccYSize);
+    angAccYv = (double *)malloc(sizeof(double) * angAccYSize);
     angAccZSize = jsonInput["angular-acceleration"]["zt"].size();
     tempSize = jsonInput["angular-acceleration"]["zv"].size();
     assert(tempSize == angAccZSize);
-    angAccZt = (double*)malloc(sizeof(double)*angAccZSize);
-    angAccZv = (double*)malloc(sizeof(double)*angAccZSize);
+    angAccZt = (double *)malloc(sizeof(double) * angAccZSize);
+    angAccZv = (double *)malloc(sizeof(double) * angAccZSize);
     jsonToArray(angAccXt, jsonInput["angular-acceleration"]["xt"]);
     jsonToArray(angAccXv, jsonInput["angular-acceleration"]["xv"]);
     jsonToArray(angAccYt, jsonInput["angular-acceleration"]["yt"]);
@@ -618,43 +661,46 @@ double InitBoundaryCondition(const Json::Value& jsonInput) {
     // Convert time from milli-seconds to seconds
     for (int i = 0; i < linAccXSize; ++i) {
       // linAccXv[i] = gC*linAccXv[i];
-      linAccXt[i] = 0.001*linAccXt[i];
+      linAccXt[i] = 0.001 * linAccXt[i];
     }
     for (int i = 0; i < linAccYSize; ++i) {
       // linAccYv[i] = gC*linAccYv[i];
-      linAccYt[i] = 0.001*linAccYt[i];
+      linAccYt[i] = 0.001 * linAccYt[i];
     }
     for (int i = 0; i < linAccZSize; ++i) {
       // linAccZv[i] = gC*linAccZv[i];
-      linAccZt[i] = 0.001*linAccZt[i];
+      linAccZt[i] = 0.001 * linAccZt[i];
     }
     for (int i = 0; i < angAccXSize; ++i) {
-      angAccXt[i] = 0.001*angAccXt[i];
+      angAccXt[i] = 0.001 * angAccXt[i];
     }
     for (int i = 0; i < angAccYSize; ++i) {
-      angAccYt[i] = 0.001*angAccYt[i];
+      angAccYt[i] = 0.001 * angAccYt[i];
     }
     for (int i = 0; i < angAccZSize; ++i) {
-      angAccZt[i] = 0.001*angAccZt[i];
+      angAccZt[i] = 0.001 * angAccZt[i];
     }
     startTime = linAccXt[0];
   } else { // Read maximum values from input file
     double accMax[3];
-    accMax[0] = gC*jsonInput["linear-acceleration"][0].asDouble();
-    accMax[1] = gC*jsonInput["linear-acceleration"][1].asDouble();
-    accMax[2] = gC*jsonInput["linear-acceleration"][2].asDouble();
-    peakTime = jsonInput["time-peak-acceleration"].asDouble()/1000.0; //Convert to second
-    linAccXSize = 3; linAccYSize = 3; linAccZSize = 3;
-    linAccXt = (double*)calloc(linAccXSize, sizeof(double));
-    linAccXv = (double*)calloc(linAccXSize, sizeof(double));
-    linAccYt = (double*)calloc(linAccYSize, sizeof(double));
-    linAccYv = (double*)calloc(linAccYSize, sizeof(double));
-    linAccZt = (double*)calloc(linAccZSize, sizeof(double));
-    linAccZv = (double*)calloc(linAccZSize, sizeof(double));
+    accMax[0] = gC * jsonInput["linear-acceleration"][0].asDouble();
+    accMax[1] = gC * jsonInput["linear-acceleration"][1].asDouble();
+    accMax[2] = gC * jsonInput["linear-acceleration"][2].asDouble();
+    peakTime = jsonInput["time-peak-acceleration"].asDouble() /
+               1000.0; // Convert to second
+    linAccXSize = 3;
+    linAccYSize = 3;
+    linAccZSize = 3;
+    linAccXt = (double *)calloc(linAccXSize, sizeof(double));
+    linAccXv = (double *)calloc(linAccXSize, sizeof(double));
+    linAccYt = (double *)calloc(linAccYSize, sizeof(double));
+    linAccYv = (double *)calloc(linAccYSize, sizeof(double));
+    linAccZt = (double *)calloc(linAccZSize, sizeof(double));
+    linAccZv = (double *)calloc(linAccZSize, sizeof(double));
     linAccXt[1] = linAccYt[1] = linAccZt[1] = peakTime;
     linAccXt[2] = linAccYt[2] = linAccZt[2] = tMax;
-    linAccXv[1] = accMax[0]; 
-    linAccYv[1] = accMax[1]; 
+    linAccXv[1] = accMax[0];
+    linAccYv[1] = accMax[1];
     linAccZv[1] = accMax[2];
     if (jsonInput["angular-acceleration"].size() == 3) {
       accMax[0] = jsonInput["angular-acceleration"][0].asDouble();
@@ -666,11 +712,12 @@ double InitBoundaryCondition(const Json::Value& jsonInput) {
       // Compute the axis of rotation based on center of mass and impact point
       double impactNodeCoord[3];
       // Find if global node ID is present on the current process
-      int nodeStatus = coordinateFromGlobalID(globalNodeID, impactPointID, nNodes, \
-          impactNodeCoord);
+      int nodeStatus = coordinateFromGlobalID(globalNodeID, impactPointID,
+                                              nNodes, impactNodeCoord);
       // Find lowest rank process with node ID
-      int *nodeWithID = (int*)malloc(world_size*sizeof(int));
-      MPI_Allgather(&nodeStatus, 1, MPI_INT, nodeWithID, 1, MPI_INT, MPI_COMM_WORLD);
+      int *nodeWithID = (int *)malloc(world_size * sizeof(int));
+      MPI_Allgather(&nodeStatus, 1, MPI_INT, nodeWithID, 1, MPI_INT,
+                    MPI_COMM_WORLD);
       int nodeIDGlobal = -1;
       for (int i = 0; i < world_size; ++i) {
         if (nodeWithID[i]) {
@@ -679,38 +726,41 @@ double InitBoundaryCondition(const Json::Value& jsonInput) {
         }
       }
       // Recieve node co-ordinates
-      MPI_Bcast(impactNodeCoord, ndim, MPI_DOUBLE, nodeIDGlobal, MPI_COMM_WORLD);
-      FILE_LOG_MASTER(INFO, "NodeID of impact : %d (%15.9e, %15.9e, %15.9e)", \
-          impactPointID, impactNodeCoord[0], impactNodeCoord[1], \
-          impactNodeCoord[2]);
-      //Compute the axis of rotation
+      MPI_Bcast(impactNodeCoord, ndim, MPI_DOUBLE, nodeIDGlobal,
+                MPI_COMM_WORLD);
+      FILE_LOG_MASTER(INFO, "NodeID of impact : %d (%15.9e, %15.9e, %15.9e)",
+                      impactPointID, impactNodeCoord[0], impactNodeCoord[1],
+                      impactNodeCoord[2]);
+      // Compute the axis of rotation
       double norm = 0.0;
       for (int i = 0; i < ndim; ++i) {
         double ds = impactNodeCoord[i];
         angNormal[i] = ds;
-        norm += ds*ds;
+        norm += ds * ds;
       }
       norm = sqrt(norm);
       for (int i = 0; i < ndim; ++i) {
         angNormal[i] /= norm;
       }
       double angAccMax = jsonInput["angular-acceleration"].asDouble();
-      accMax[0] = angAccMax*angNormal[0];
-      accMax[1] = angAccMax*angNormal[1];
-      accMax[2] = angAccMax*angNormal[2];
+      accMax[0] = angAccMax * angNormal[0];
+      accMax[1] = angAccMax * angNormal[1];
+      accMax[2] = angAccMax * angNormal[2];
       free(nodeWithID);
     }
-    angAccXSize = 3; angAccYSize = 3; angAccZSize = 3;
-    angAccXt = (double*)calloc(angAccXSize, sizeof(double));
-    angAccXv = (double*)calloc(angAccXSize, sizeof(double));
-    angAccYt = (double*)calloc(angAccYSize, sizeof(double));
-    angAccYv = (double*)calloc(angAccYSize, sizeof(double));
-    angAccZt = (double*)calloc(angAccZSize, sizeof(double));
-    angAccZv = (double*)calloc(angAccZSize, sizeof(double));
+    angAccXSize = 3;
+    angAccYSize = 3;
+    angAccZSize = 3;
+    angAccXt = (double *)calloc(angAccXSize, sizeof(double));
+    angAccXv = (double *)calloc(angAccXSize, sizeof(double));
+    angAccYt = (double *)calloc(angAccYSize, sizeof(double));
+    angAccYv = (double *)calloc(angAccYSize, sizeof(double));
+    angAccZt = (double *)calloc(angAccZSize, sizeof(double));
+    angAccZv = (double *)calloc(angAccZSize, sizeof(double));
     angAccXt[1] = angAccYt[1] = angAccZt[1] = peakTime;
     angAccXt[2] = angAccYt[2] = angAccZt[2] = tMax;
-    angAccXv[1] = accMax[0]; 
-    angAccYv[1] = accMax[1]; 
+    angAccXv[1] = accMax[0];
+    angAccYv[1] = accMax[1];
     angAccZv[1] = accMax[2];
   }
   // Convert angular to linear frame
@@ -721,42 +771,55 @@ double InitBoundaryCondition(const Json::Value& jsonInput) {
       index[i] = -10;
       std::string tr = jsonInput["angular-to-linear-frame"][i].asString();
       if (tr.length() == 2) {
-        switch(tr.at(1)) {
-          case 'x' : index[i] = 0;
-                     break;
-          case 'y' : index[i] = 1;
-                     break;
-          case 'z' : index[i] = 2;
-                     break;
-          default : FILE_LOG_MASTER(ERROR, "Transformation has to be x/y/z");
-                    TerminateFemTech(12);
-                    break;
+        switch (tr.at(1)) {
+        case 'x':
+          index[i] = 0;
+          break;
+        case 'y':
+          index[i] = 1;
+          break;
+        case 'z':
+          index[i] = 2;
+          break;
+        default:
+          FILE_LOG_MASTER(ERROR, "Transformation has to be x/y/z");
+          TerminateFemTech(12);
+          break;
         }
-        switch(tr.at(0)) {
-          case '-' : factor[i] = -1;
-                     break;
-          case '+' : factor[i] = 1;
-                     break;
-          default : FILE_LOG_MASTER(ERROR, "Prefix of axis not -/+, check input transformation");
-                    TerminateFemTech(12);
-                    break;
+        switch (tr.at(0)) {
+        case '-':
+          factor[i] = -1;
+          break;
+        case '+':
+          factor[i] = 1;
+          break;
+        default:
+          FILE_LOG_MASTER(ERROR,
+                          "Prefix of axis not -/+, check input transformation");
+          TerminateFemTech(12);
+          break;
         }
       } else {
         if (tr.length() == 1) {
           factor[i] = 1;
-          switch(tr.at(0)) {
-            case 'x' : index[i] = 0;
-                      break;
-            case 'y' : index[i] = 1;
-                      break;
-            case 'z' : index[i] = 2;
-                      break;
-            default : FILE_LOG_MASTER(ERROR, "Transformation has to be x/y/z");
-                      TerminateFemTech(12);
-                      break;
+          switch (tr.at(0)) {
+          case 'x':
+            index[i] = 0;
+            break;
+          case 'y':
+            index[i] = 1;
+            break;
+          case 'z':
+            index[i] = 2;
+            break;
+          default:
+            FILE_LOG_MASTER(ERROR, "Transformation has to be x/y/z");
+            TerminateFemTech(12);
+            break;
           }
         } else {
-          FILE_LOG_MASTER(ERROR, "Error in angular to linear frame transformation. Please check input file");
+          FILE_LOG_MASTER(ERROR, "Error in angular to linear frame "
+                                 "transformation. Please check input file");
           TerminateFemTech(12);
         }
       }
@@ -764,11 +827,14 @@ double InitBoundaryCondition(const Json::Value& jsonInput) {
     // Validate the input
     int indexSum = index[0] + index[1] + index[2];
     if (indexSum != 3) {
-      FILE_LOG_MASTER(ERROR, "Error in angular to linear frame transformation. x, y and z not present");
+      FILE_LOG_MASTER(ERROR, "Error in angular to linear frame transformation. "
+                             "x, y and z not present");
       TerminateFemTech(12);
     }
     if ((index[0] != 0) && (index[1] != 0) && (index[2] != 0)) {
-      FILE_LOG_MASTER(ERROR, "Error in angular to linear frame transformation. x not present");
+      FILE_LOG_MASTER(
+          ERROR,
+          "Error in angular to linear frame transformation. x not present");
       TerminateFemTech(12);
     }
     // Transform all angular acceleration values
@@ -779,27 +845,27 @@ double InitBoundaryCondition(const Json::Value& jsonInput) {
     accSize[index[1]] = angAccYSize;
     accSize[index[2]] = angAccZSize;
     double *angAccTNew[ndim], *angAccVNew[ndim];
-    angAccTNew[0] = (double*)malloc(accSize[0]*sizeof(double));
-    angAccVNew[0] = (double*)malloc(accSize[0]*sizeof(double));
-    angAccTNew[1] = (double*)malloc(accSize[1]*sizeof(double));
-    angAccVNew[1] = (double*)malloc(accSize[1]*sizeof(double));
-    angAccTNew[2] = (double*)malloc(accSize[2]*sizeof(double));
-    angAccVNew[2] = (double*)malloc(accSize[2]*sizeof(double));
+    angAccTNew[0] = (double *)malloc(accSize[0] * sizeof(double));
+    angAccVNew[0] = (double *)malloc(accSize[0] * sizeof(double));
+    angAccTNew[1] = (double *)malloc(accSize[1] * sizeof(double));
+    angAccVNew[1] = (double *)malloc(accSize[1] * sizeof(double));
+    angAccTNew[2] = (double *)malloc(accSize[2] * sizeof(double));
+    angAccVNew[2] = (double *)malloc(accSize[2] * sizeof(double));
 
     int transformedIndex = index[0];
     for (int i = 0; i < angAccXSize; ++i) {
       angAccTNew[transformedIndex][i] = angAccXt[i];
-      angAccVNew[transformedIndex][i] = angAccXv[i]*factor[0];
+      angAccVNew[transformedIndex][i] = angAccXv[i] * factor[0];
     }
     transformedIndex = index[1];
     for (int i = 0; i < angAccYSize; ++i) {
       angAccTNew[transformedIndex][i] = angAccYt[i];
-      angAccVNew[transformedIndex][i] = angAccYv[i]*factor[1];
+      angAccVNew[transformedIndex][i] = angAccYv[i] * factor[1];
     }
     transformedIndex = index[2];
     for (int i = 0; i < angAccZSize; ++i) {
       angAccTNew[transformedIndex][i] = angAccZt[i];
-      angAccVNew[transformedIndex][i] = angAccZv[i]*factor[2];
+      angAccVNew[transformedIndex][i] = angAccZv[i] * factor[2];
     }
 
     angAccXSize = accSize[0];
@@ -887,47 +953,47 @@ double InitBoundaryCondition(const Json::Value& jsonInput) {
   for (int i = 0; i < boundarySize; i++) {
     int index = boundaryID[i] * ndim;
     for (int j = 0; j < ndim; ++j) {
-      displacements[index+j] = 0.0;
-      velocities[index+j] = 0.0;
-      accelerations[index+j] = 0.0;
+      displacements[index + j] = 0.0;
+      velocities[index + j] = 0.0;
+      accelerations[index + j] = 0.0;
     }
   }
   return startTime;
 }
 
 void updateBoundaryNeighbour(void) {
-  int* sendNodeBoundary;
-  int* recvNodeBoundary;
+  int *sendNodeBoundary;
+  int *recvNodeBoundary;
   int totalNodeToSend = sendNeighbourCountCum[sendProcessCount];
-  recvNodeBoundary = (int*)malloc(ndim*totalNodeToSend * sizeof(int));
-  sendNodeBoundary = (int*)malloc(ndim*totalNodeToSend * sizeof(int));
-  // Update array to send 
+  recvNodeBoundary = (int *)malloc(ndim * totalNodeToSend * sizeof(int));
+  sendNodeBoundary = (int *)malloc(ndim * totalNodeToSend * sizeof(int));
+  // Update array to send
   for (int i = 0; i < totalNodeToSend; ++i) {
-    int nodeIndex = ndim*sendNodeIndex[i];
-    sendNodeBoundary[ndim*i] = boundary[nodeIndex];
-    sendNodeBoundary[ndim*i+1] = boundary[nodeIndex+1];
-    sendNodeBoundary[ndim*i+2] = boundary[nodeIndex+2];
+    int nodeIndex = ndim * sendNodeIndex[i];
+    sendNodeBoundary[ndim * i] = boundary[nodeIndex];
+    sendNodeBoundary[ndim * i + 1] = boundary[nodeIndex + 1];
+    sendNodeBoundary[ndim * i + 2] = boundary[nodeIndex + 2];
   }
   // Create send requests
   int boundaryTag = 2798;
   MPI_Request *requestListSend =
-        (MPI_Request *)malloc(sizeof(MPI_Request) * sendProcessCount);
+      (MPI_Request *)malloc(sizeof(MPI_Request) * sendProcessCount);
   for (int i = 0; i < sendProcessCount; ++i) {
     int process = sendProcessID[i];
-    int location = sendNeighbourCountCum[i]*ndim;
-    int size = ndim*sendNeighbourCount[i];
-    MPI_Isend(&(sendNodeBoundary[location]), size, MPI_INT, process, \
-        boundaryTag, MPI_COMM_WORLD, &(requestListSend[i]));
+    int location = sendNeighbourCountCum[i] * ndim;
+    int size = ndim * sendNeighbourCount[i];
+    MPI_Isend(&(sendNodeBoundary[location]), size, MPI_INT, process,
+              boundaryTag, MPI_COMM_WORLD, &(requestListSend[i]));
   }
   // Create recv requests
   MPI_Request *requestListRecv =
-        (MPI_Request *)malloc(sizeof(MPI_Request) * sendProcessCount);
+      (MPI_Request *)malloc(sizeof(MPI_Request) * sendProcessCount);
   for (int i = 0; i < sendProcessCount; ++i) {
     int process = sendProcessID[i];
-    int location = sendNeighbourCountCum[i]*ndim;
-    int size = ndim*sendNeighbourCount[i];
-    MPI_Irecv(&(recvNodeBoundary[location]), size, MPI_INT, process, \
-        boundaryTag, MPI_COMM_WORLD, &(requestListRecv[i]));
+    int location = sendNeighbourCountCum[i] * ndim;
+    int size = ndim * sendNeighbourCount[i];
+    MPI_Irecv(&(recvNodeBoundary[location]), size, MPI_INT, process,
+              boundaryTag, MPI_COMM_WORLD, &(requestListRecv[i]));
   }
   // Wait for completion of all requests
   MPI_Status status;
@@ -939,15 +1005,15 @@ void updateBoundaryNeighbour(void) {
   }
   // Update Mass values
   for (int i = 0; i < totalNodeToSend; ++i) {
-    int nodeIndex = ndim*sendNodeIndex[i];
-    if (recvNodeBoundary[ndim*i]) {
+    int nodeIndex = ndim * sendNodeIndex[i];
+    if (recvNodeBoundary[ndim * i]) {
       boundary[nodeIndex] = 1;
     }
-    if (recvNodeBoundary[ndim*i+1]) {
-      boundary[nodeIndex+1] = 1;
+    if (recvNodeBoundary[ndim * i + 1]) {
+      boundary[nodeIndex + 1] = 1;
     }
-    if (recvNodeBoundary[ndim*i+2]) {
-      boundary[nodeIndex+2] = 1;
+    if (recvNodeBoundary[ndim * i + 2]) {
+      boundary[nodeIndex + 2] = 1;
     }
   }
   free(requestListSend);
@@ -957,15 +1023,16 @@ void updateBoundaryNeighbour(void) {
 }
 
 int getImpactID(std::string location) {
-  const std::map<std::string, int> pointMap{ {"top-right", 5285}, \
-    {"top-left", 1754}, {"front-low", 2576}, {"front-high", 1968}, \
-    {"right-high", 5677}, {"bottom-front", 2576}, {"top-front", 1968}, \
-    {"top-rear", 1874}};
-    if (pointMap.find(location) == pointMap.end() ) {
-      FILE_LOG_SINGLE(ERROR, "Impact location not found, check value of impact-point");
-      TerminateFemTech(11);
-    }
-    return pointMap.at(location);
+  const std::map<std::string, int> pointMap{
+      {"top-right", 5285},  {"top-left", 1754},   {"front-low", 2576},
+      {"front-high", 1968}, {"right-high", 5677}, {"bottom-front", 2576},
+      {"top-front", 1968},  {"top-rear", 1874}};
+  if (pointMap.find(location) == pointMap.end()) {
+    FILE_LOG_SINGLE(ERROR,
+                    "Impact location not found, check value of impact-point");
+    TerminateFemTech(11);
+  }
+  return pointMap.at(location);
 }
 
 void computeDerivatives(const state_type &y, state_type &ydot, const double t) {
@@ -989,27 +1056,33 @@ void computeDerivatives(const state_type &y, state_type &ydot, const double t) {
   // Ref: The integration of angular velocity, Michael Boyle, 2017
   // https://arxiv.org/pdf/1604.08139.pdf
   double r[3];
-  r[0] = y[3]; r[1] = y[4]; r[2] = y[5];
+  r[0] = y[3];
+  r[1] = y[4];
+  r[2] = y[5];
   double *rdot = &(ydot[3]);
-  double rMagnitude = sqrt(r[0]*r[0]+r[1]*r[1]+r[2]*r[2]);
+  double rMagnitude = sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
   if (rMagnitude < 1e-10) {
     // rdot = 0.5*omega
-    rdot[0] = 0.5*y[0]; 
-    rdot[1] = 0.5*y[1]; 
-    rdot[2] = 0.5*y[2]; 
+    rdot[0] = 0.5 * y[0];
+    rdot[1] = 0.5 * y[1];
+    rdot[2] = 0.5 * y[2];
   } else {
-    double rCotR = rMagnitude/tan(rMagnitude);
-    double omega[3]; omega[0] = y[0]; omega[1] = y[1]; omega[2] = y[2];
+    double rCotR = rMagnitude / tan(rMagnitude);
+    double omega[3];
+    omega[0] = y[0];
+    omega[1] = y[1];
+    omega[2] = y[2];
     crossProduct(omega, r, rdot); // compute rdot = omega x r
     // Normalize r by its magnitude
     for (int i = 0; i < 3; ++i) {
-      r[i] = r[i]/rMagnitude;
+      r[i] = r[i] / rMagnitude;
     }
     double rDotOmega = dotProduct3D(r, omega); // compure r.omega/||r||
     for (int i = 0; i < 3; ++i) {
       // Compute 0.5 omegaxr + omega*(0.5||r|| cot(||r||) + (1-||r||cot(||r||))
       // *(r.omega)*r/(2*||r||*||r||)
-      rdot[i] = 0.5*(rdot[i] + rCotR*y[i] + (1.0-rCotR)*rDotOmega*r[i]);
+      rdot[i] =
+          0.5 * (rdot[i] + rCotR * y[i] + (1.0 - rCotR) * rDotOmega * r[i]);
     }
   }
 }
@@ -1034,44 +1107,45 @@ void WriteOutputFile() {
   int globalElementID;
   struct {
     double value;
-    int   rank;
-  } parStructMax; 
+    int rank;
+  } parStructMax;
 
   /* Calculate principal min and max strain location and send to master */
   // Find the gloabl max principal strain
   for (int i = 0; i < maxQuantities; ++i) {
     parStructMax.value = maxValue[i];
     parStructMax.rank = world_rank;
-    MPI_Allreduce(MPI_IN_PLACE, &parStructMax, 1, MPI_DOUBLE_INT, \
-        outputOperator[i], MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, &parStructMax, 1, MPI_DOUBLE_INT,
+                  outputOperator[i], MPI_COMM_WORLD);
     if (parStructMax.rank == world_rank) {
       for (int j = 0; j < 4; ++j) {
         maxLocationAndTime[j] = 0.0;
       }
       int elementID = maxElem[i];
-      // Compute element coordinates 
-      int nP = eptr[elementID+1]-eptr[elementID];
-      for (int j = eptr[elementID]; j < eptr[elementID+1]; ++j) {
-        maxLocationAndTime[0] += coordinates[connectivity[j]*ndim];
-        maxLocationAndTime[1] += coordinates[connectivity[j]*ndim+1];
-        maxLocationAndTime[2] += coordinates[connectivity[j]*ndim+2];
+      // Compute element coordinates
+      int nP = eptr[elementID + 1] - eptr[elementID];
+      for (int j = eptr[elementID]; j < eptr[elementID + 1]; ++j) {
+        maxLocationAndTime[0] += coordinates[connectivity[j] * ndim];
+        maxLocationAndTime[1] += coordinates[connectivity[j] * ndim + 1];
+        maxLocationAndTime[2] += coordinates[connectivity[j] * ndim + 2];
       }
       for (int j = 0; j < ndim; ++j) {
-        maxLocationAndTime[j] = maxLocationAndTime[j]/((double)nP);
+        maxLocationAndTime[j] = maxLocationAndTime[j] / ((double)nP);
       }
       maxLocationAndTime[3] = maxTime[i];
       globalElementID = global_eid[elementID];
       if (world_rank != 0) {
-        MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7297+i, MPI_COMM_WORLD);
-        MPI_Send(&globalElementID, 1, MPI_INT, 0, 7297+i, MPI_COMM_WORLD);
+        MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7297 + i,
+                 MPI_COMM_WORLD);
+        MPI_Send(&globalElementID, 1, MPI_INT, 0, 7297 + i, MPI_COMM_WORLD);
       }
     }
     if (world_rank == 0) {
       if (parStructMax.rank != 0) {
-        MPI_Recv(maxLocationAndTime, 4, MPI_DOUBLE, parStructMax.rank, \
-            7297+i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(&globalElementID, 1, MPI_INT, parStructMax.rank, \
-            7297+i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(maxLocationAndTime, 4, MPI_DOUBLE, parStructMax.rank, 7297 + i,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&globalElementID, 1, MPI_INT, parStructMax.rank, 7297 + i,
+                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       }
       for (int j = 0; j < ndim; ++j) {
         vec[j] = maxLocationAndTime[j];
@@ -1080,7 +1154,7 @@ void WriteOutputFile() {
       output[maxOutput[i]]["location"] = vec;
       output[maxOutput[i]]["time"] = maxLocationAndTime[3];
       output[maxOutput[i]]["global-element-id"] = globalElementID;
-    } 
+    }
   }
 
   // Compute the volume of all parts
@@ -1110,7 +1184,7 @@ void WriteOutputFile() {
         }
       }
     }
-    // MPSR > 120 volume 
+    // MPSR > 120 volume
     if (thresholdElements[4][i]) {
       thresholdVolume[4] += eV;
     }
@@ -1120,7 +1194,8 @@ void WriteOutputFile() {
     }
   }
   // Calculate cumulative volume on all ranks
-  MPI_Allreduce(MPI_IN_PLACE, thresholdVolume, 6, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(MPI_IN_PLACE, thresholdVolume, 6, MPI_DOUBLE, MPI_SUM,
+                MPI_COMM_WORLD);
   if (world_rank == 0) {
     // Excluded PID hardcoded for CSDM computation
     double totalVolume = 0.0;
@@ -1141,7 +1216,7 @@ void WriteOutputFile() {
 
     // Write threshold values
     for (int i = 0; i < threshQuantities; ++i) {
-      output[thresholdTag[i]]["value"] = thresholdVolume[i]/totalVolume;
+      output[thresholdTag[i]]["value"] = thresholdVolume[i] / totalVolume;
     }
     // Write percentile values
     for (int i = 0; i < percentileQuantities; ++i) {
@@ -1162,11 +1237,11 @@ void WriteOutputFile() {
 
   int *countPerProc, *cumCountPerProc, *fullElemList;
   if (world_rank == 0) {
-    countPerProc = (int*)malloc(world_size*sizeof(int));
-    cumCountPerProc = (int*)malloc(world_size*sizeof(int));
+    countPerProc = (int *)malloc(world_size * sizeof(int));
+    cumCountPerProc = (int *)malloc(world_size * sizeof(int));
   }
   for (int i = 0; i < outputJsonCount; ++i) {
-    int* list = outputJsonArray[i];
+    int *list = outputJsonArray[i];
     int count = 0;
     for (int j = 0; j < nelements; ++j) {
       if (list[j]) {
@@ -1174,7 +1249,7 @@ void WriteOutputFile() {
       }
     }
     int numElem = count;
-    int *localElemList = (int*)malloc(numElem*sizeof(int));
+    int *localElemList = (int *)malloc(numElem * sizeof(int));
     count = 0;
     if (numElem) {
       for (int j = 0; j < nelements; ++j) {
@@ -1188,19 +1263,20 @@ void WriteOutputFile() {
     int totalElems = 0;
     MPI_Allreduce(&numElem, &totalElems, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
     // Get recv count
-    MPI_Gather(&numElem, 1, MPI_INT, countPerProc, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gather(&numElem, 1, MPI_INT, countPerProc, 1, MPI_INT, 0,
+               MPI_COMM_WORLD);
 
     if (world_rank == 0) {
-      fullElemList = (int*)malloc(totalElems*sizeof(int));
+      fullElemList = (int *)malloc(totalElems * sizeof(int));
       cumCountPerProc[0] = 0;
       for (int j = 1; j < world_size; ++j) {
-        cumCountPerProc[j] = countPerProc[j-1] + cumCountPerProc[j-1];
+        cumCountPerProc[j] = countPerProc[j - 1] + cumCountPerProc[j - 1];
       }
     }
     // Get full array
     if (totalElems) {
-      MPI_Gatherv(localElemList, numElem, MPI_INT, fullElemList, countPerProc, \
-          cumCountPerProc, MPI_INT, 0, MPI_COMM_WORLD);
+      MPI_Gatherv(localElemList, numElem, MPI_INT, fullElemList, countPerProc,
+                  cumCountPerProc, MPI_INT, 0, MPI_COMM_WORLD);
     }
     if (world_rank == 0) {
       Json::Value elementList(Json::arrayValue);
@@ -1226,7 +1302,7 @@ void WriteOutputFile() {
     builder["indentation"] = "  ";
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
     std::ofstream oFile(uid + "_output.json");
-    writer -> write(output, &oFile);
+    writer->write(output, &oFile);
   }
 }
 
@@ -1254,7 +1330,7 @@ void InitInjuryCriterion(void) {
       nElementsInjury += 1;
     }
   }
-  elementIDInjury = (int*)malloc(nElementsInjury*sizeof(int));
+  elementIDInjury = (int *)malloc(nElementsInjury * sizeof(int));
   int count = 0;
   for (int i = 0; i < nelements; i++) {
     bool include = true;
@@ -1272,23 +1348,24 @@ void InitInjuryCriterion(void) {
   }
 
   for (int i = 0; i < threshQuantities; ++i) {
-    thresholdElements[i] = (int*)calloc(nelements, sizeof(int));
+    thresholdElements[i] = (int *)calloc(nelements, sizeof(int));
   }
   // Write percentile values
   for (int i = 0; i < percentileQuantities; ++i) {
-    percentileElements[i] = (int*)malloc(nelements*sizeof(int));
+    percentileElements[i] = (int *)malloc(nelements * sizeof(int));
     percentileTime[i] = 0.0;
     percentileValue[i] = 0.0;
   }
-  PS_Old = (double*)malloc(nElementsInjury*sizeof(double));
-  PSxSRArray = (double*)malloc(nElementsInjury*sizeof(double));
+  PS_Old = (double *)malloc(nElementsInjury * sizeof(double));
+  PSxSRArray = (double *)malloc(nElementsInjury * sizeof(double));
 
   // Array to output to Paraview
   // All threshold elements CSDM : 5, 10, 15, 30, MPSR-120, MPSxSR-28
   for (int i = 0; i < threshQuantities; ++i) {
     outputDataArray[i] = thresholdElements[i];
   }
-  outputDataArray[threshQuantities] = percentileElements[0]; // Write MPS-95 to paraview 
+  outputDataArray[threshQuantities] =
+      percentileElements[0]; // Write MPS-95 to paraview
 }
 
 void CalculateInjuryCriterions(void) {
@@ -1297,8 +1374,8 @@ void CalculateInjuryCriterions(void) {
 
   for (int j = 0; j < nElementsInjury; j++) {
     int i = elementIDInjury[j];
-    CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, \
-        &currentStrainMinElem, &currentShearMaxElem);
+    CalculateMaximumPrincipalStrain(
+        i, &currentStrainMaxElem, &currentStrainMinElem, &currentShearMaxElem);
     if (maxValue[0] < currentStrainMaxElem) {
       maxValue[0] = currentStrainMaxElem;
       maxElem[0] = i;
@@ -1324,9 +1401,9 @@ void CalculateInjuryCriterions(void) {
     }
     // Compute maxPSxSR
     // Compute principal strain rate using first order backaward distance
-    PSR = (currentStrainMaxElem - PS_Old[j])/dt;
+    PSR = (currentStrainMaxElem - PS_Old[j]) / dt;
     // TODO(Anil) : Sould absolute value be used for PSR ?
-    PSxSR = currentStrainMaxElem*PSR; 
+    PSxSR = currentStrainMaxElem * PSR;
     if (maxValue[2] < PSxSR) {
       maxValue[2] = PSxSR;
       maxElem[2] = i;
@@ -1351,7 +1428,7 @@ void CalculateInjuryCriterions(void) {
   // Compute 95 percentile MPS and corresponding element list
   double MPS95 = compute95thPercentileValue(PS_Old, nElementsInjury);
   if (MPS95 > percentileValue[0]) {
-    memset(percentileElements[0], 0, nelements*sizeof(int));
+    memset(percentileElements[0], 0, nelements * sizeof(int));
     percentileValue[0] = MPS95;
     percentileTime[0] = Time;
     for (int j = 0; j < nElementsInjury; j++) {
@@ -1365,7 +1442,7 @@ void CalculateInjuryCriterions(void) {
   // Compute 95 percentile MPSxSR and corresponding element list
   double MPSxSR95 = compute95thPercentileValue(PSxSRArray, nElementsInjury);
   if (MPSxSR95 > percentileValue[1]) {
-    memset(percentileElements[1], 0, nelements*sizeof(int));
+    memset(percentileElements[1], 0, nelements * sizeof(int));
     percentileValue[1] = MPSxSR95;
     percentileTime[1] = Time;
     int count = 0;
@@ -1378,7 +1455,7 @@ void CalculateInjuryCriterions(void) {
   }
 }
 
-void TransformMesh(const Json::Value& jsonInput) {
+void TransformMesh(const Json::Value &jsonInput) {
   double cordAngularSensor[3];
   // Check if mesh-transformation key is present in the input json file
   // If present transform mesh, otherwise subtract center of mass
@@ -1386,16 +1463,20 @@ void TransformMesh(const Json::Value& jsonInput) {
     cm[0] = jsonInput["head-cg"][0].asDouble();
     cm[1] = jsonInput["head-cg"][1].asDouble();
     cm[2] = jsonInput["head-cg"][2].asDouble();
-    FILE_LOG_MASTER(INFO, "Center of Mass used : (%15.9e, %15.9e, %15.9e)", cm[0], cm[1], cm[2]);
+    FILE_LOG_MASTER(INFO, "Center of Mass used : (%15.9e, %15.9e, %15.9e)",
+                    cm[0], cm[1], cm[2]);
   } else {
     GetBodyCenterofMass(cm);
-    FILE_LOG_MASTER(INFO, "Brain+Skull Center of Mass used : (%15.9e, %15.9e, %15.9e)", cm[0], cm[1], cm[2]);
+    FILE_LOG_MASTER(
+        INFO, "Brain+Skull Center of Mass used : (%15.9e, %15.9e, %15.9e)",
+        cm[0], cm[1], cm[2]);
   }
   if (!jsonInput["angular-sensor-position"].empty()) {
     cordAngularSensor[0] = jsonInput["angular-sensor-position"][0].asDouble();
     cordAngularSensor[1] = jsonInput["angular-sensor-position"][1].asDouble();
     cordAngularSensor[2] = jsonInput["angular-sensor-position"][2].asDouble();
-    FILE_LOG_MASTER(INFO, "Angular sensor data about : (%15.9e, %15.9e, %15.9e)", \
+    FILE_LOG_MASTER(
+        INFO, "Angular sensor data about : (%15.9e, %15.9e, %15.9e)",
         cordAngularSensor[0], cordAngularSensor[1], cordAngularSensor[2]);
   } else {
     for (unsigned int i = 0; i < ndim; ++i) {
@@ -1410,42 +1491,55 @@ void TransformMesh(const Json::Value& jsonInput) {
       index[i] = -10;
       std::string tr = jsonInput["mesh-transformation"][i].asString();
       if (tr.length() == 2) {
-        switch(tr.at(1)) {
-          case 'x' : index[i] = 0;
-                     break;
-          case 'y' : index[i] = 1;
-                     break;
-          case 'z' : index[i] = 2;
-                     break;
-          default : FILE_LOG_MASTER(ERROR, "Mesh transformation has to be x/y/z");
-                    TerminateFemTech(12);
-                    break;
+        switch (tr.at(1)) {
+        case 'x':
+          index[i] = 0;
+          break;
+        case 'y':
+          index[i] = 1;
+          break;
+        case 'z':
+          index[i] = 2;
+          break;
+        default:
+          FILE_LOG_MASTER(ERROR, "Mesh transformation has to be x/y/z");
+          TerminateFemTech(12);
+          break;
         }
-        switch(tr.at(0)) {
-          case '-' : factor[i] = -1;
-                     break;
-          case '+' : factor[i] = 1;
-                     break;
-          default : FILE_LOG_MASTER(ERROR, "Prefix of axis not -/+, check input mesh-transformation");
-                    TerminateFemTech(12);
-                    break;
+        switch (tr.at(0)) {
+        case '-':
+          factor[i] = -1;
+          break;
+        case '+':
+          factor[i] = 1;
+          break;
+        default:
+          FILE_LOG_MASTER(
+              ERROR, "Prefix of axis not -/+, check input mesh-transformation");
+          TerminateFemTech(12);
+          break;
         }
       } else {
         if (tr.length() == 1) {
           factor[i] = 1;
-          switch(tr.at(0)) {
-            case 'x' : index[i] = 0;
-                      break;
-            case 'y' : index[i] = 1;
-                      break;
-            case 'z' : index[i] = 2;
-                      break;
-            default : FILE_LOG_MASTER(ERROR, "Mesh transformation has to be x/y/z");
-                      TerminateFemTech(12);
-                      break;
+          switch (tr.at(0)) {
+          case 'x':
+            index[i] = 0;
+            break;
+          case 'y':
+            index[i] = 1;
+            break;
+          case 'z':
+            index[i] = 2;
+            break;
+          default:
+            FILE_LOG_MASTER(ERROR, "Mesh transformation has to be x/y/z");
+            TerminateFemTech(12);
+            break;
           }
         } else {
-          FILE_LOG_MASTER(ERROR, "Error in mesh transformation. Please check input file");
+          FILE_LOG_MASTER(
+              ERROR, "Error in mesh transformation. Please check input file");
           TerminateFemTech(12);
         }
       }
@@ -1453,7 +1547,8 @@ void TransformMesh(const Json::Value& jsonInput) {
     // Validate the input
     int indexSum = index[0] + index[1] + index[2];
     if (indexSum != 3) {
-      FILE_LOG_MASTER(ERROR, "Error in mesh transformation. x, y and z not present");
+      FILE_LOG_MASTER(ERROR,
+                      "Error in mesh transformation. x, y and z not present");
       TerminateFemTech(12);
     }
     if ((index[0] != 0) && (index[1] != 0) && (index[2] != 0)) {
@@ -1465,7 +1560,7 @@ void TransformMesh(const Json::Value& jsonInput) {
     // Transform center of mass based on the transformation
     for (int i = 0; i < ndim; ++i) {
       int transformedIndex = index[i];
-      coordTemp[transformedIndex] = cm[i]*factor[i];
+      coordTemp[transformedIndex] = cm[i] * factor[i];
     }
     // Assign cm array with transformed co-ordinates
     for (int i = 0; i < ndim; ++i) {
@@ -1474,7 +1569,7 @@ void TransformMesh(const Json::Value& jsonInput) {
     // Transform angular sensor position
     for (int i = 0; i < ndim; ++i) {
       int transformedIndex = index[i];
-      coordTemp[transformedIndex] = cordAngularSensor[i]*factor[i];
+      coordTemp[transformedIndex] = cordAngularSensor[i] * factor[i];
     }
     for (int i = 0; i < ndim; ++i) {
       cordAngularSensor[i] = coordTemp[i];
@@ -1484,10 +1579,10 @@ void TransformMesh(const Json::Value& jsonInput) {
     for (int j = 0; j < nNodes; ++j) {
       for (int i = 0; i < ndim; ++i) {
         int transformedIndex = index[i];
-        coordTemp[transformedIndex] = coordinates[i + ndim*j]*factor[i];
+        coordTemp[transformedIndex] = coordinates[i + ndim * j] * factor[i];
       }
       for (int i = 0; i < ndim; ++i) {
-        coordinates[i + ndim*j] = coordTemp[i] - cordAngularSensor[i];
+        coordinates[i + ndim * j] = coordTemp[i] - cordAngularSensor[i];
       }
     }
     // Get center of mass wrt angular sensor position
@@ -1498,7 +1593,8 @@ void TransformMesh(const Json::Value& jsonInput) {
     // Subtract angular sensor position from co-ordinates
     for (int j = 0; j < nNodes; ++j) {
       for (int i = 0; i < ndim; ++i) {
-        coordinates[i + ndim*j] = coordinates[i + ndim*j] - cordAngularSensor[i];
+        coordinates[i + ndim * j] =
+            coordinates[i + ndim * j] - cordAngularSensor[i];
       }
     }
     // Get center of mass wrt angular sensor position
