@@ -1,7 +1,12 @@
 #include "FemTech.h"
 
+#include <assert.h>
+
 void WriteVTU(const char* FileName, int step, int** intCellData /*= NULL*/, \
-    int cellDataCount /*= 0*/, const char **cellDataNames /*= NULL*/) {
+    int cellDataCount /*= 0*/, const char **cellDataNames /*= NULL*/, \
+    int *mapping /* = NULL*/, int mapCount /*= 0*/, \
+    double **dpCellData /*= NULL*/, int dpDataCount /*= 0*/, \
+    const char **dpDataNames /*= NULL*/) {
   static const int ARR_SIZE = 1000;
 
 	FILE *fp;
@@ -187,9 +192,32 @@ void WriteVTU(const char* FileName, int step, int** intCellData /*= NULL*/, \
   for (int c = 0; c < cellDataCount; ++c) {
     int *data = intCellData[c];
     fprintf(fp, "\t\t\t\t<DataArray type=\"Int32\" Name=\"%s\" format=\"ascii\">\n", cellDataNames[c]);
+    int count = 0;
     for (i = 0; i < nelements; i++) {
-      fprintf(fp, "\t\t\t\t\t%d\n", data[i]);
+      if(i == mapping[count]) {
+        fprintf(fp, "\t\t\t\t\t%d\n", data[count]);
+        count = count + 1;
+      } else {
+        fprintf(fp, "\t\t\t\t\t%d\n", 0);
+      }
     }
+    assert(count == mapCount);
+    fprintf(fp, "\t\t\t\t</DataArray>\n");
+  }
+	// Write example specific double element data
+  for (int c = 0; c < dpDataCount; ++c) {
+    double *data = dpCellData[c];
+    fprintf(fp, "\t\t\t\t<DataArray type=\"Float64\" Name=\"%s\" format=\"ascii\">\n", dpDataNames[c]);
+    int count = 0;
+    for (i = 0; i < nelements; i++) {
+      if(i == mapping[count]) {
+        fprintf(fp, "\t\t\t\t\t%10.8e\n", data[count]);
+        count = count + 1;
+      } else {
+        fprintf(fp, "\t\t\t\t\t%10.8e\n", 0.0);
+      }
+    }
+    assert(count == mapCount);
     fprintf(fp, "\t\t\t\t</DataArray>\n");
   }
 	// // write Global Element ID
@@ -249,6 +277,9 @@ void WriteVTU(const char* FileName, int step, int** intCellData /*= NULL*/, \
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"ProcID\"/>\n");
     for (int c = 0; c < cellDataCount; ++c) {
       fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"%s\"/>\n", cellDataNames[c]);
+    }
+    for (int c = 0; c < dpDataCount; ++c) {
+      fprintf(fp,"\t\t\t<PDataArray type=\"Float64\" Name=\"%s\"/>\n", dpDataNames[c]);
     }
 		// fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"GlobalEID\"/>\n");
     fprintf(fp,"\t\t</PCellData>\n");

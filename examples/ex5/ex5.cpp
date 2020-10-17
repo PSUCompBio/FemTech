@@ -112,6 +112,10 @@ int *outputDataArray[outputCount];
 const char *outputNames[outputCount] = {"CSDM-5",  "CSDM-10",  "CSDM-15",
                                         "CSDM-30", "MPSR-120", "MPSxSR-28",
                                         "MPS-95"};
+const int outputDoubleCount = 1;
+double *outputDoubleArray[outputDoubleCount];
+const char *outputDoubleNames[outputDoubleCount] = {"MPS-95-Value"};
+
 const int csdmCount = 4;
 const double csdmLimits[csdmCount] = {0.05, 0.1, 0.15, 0.3};
 
@@ -167,7 +171,8 @@ int main(int argc, char **argv) {
   int plot_counter = 0;
   if (writeField) {
     WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, outputCount,
-             outputNames);
+             outputNames, elementIDInjury, nElementsInjury, outputDoubleArray, 
+             outputDoubleCount, outputDoubleNames);
     WritePVD(outputFileName.c_str(), plot_counter);
   }
   stepTime[plot_counter] = Time;
@@ -278,8 +283,9 @@ int main(int argc, char **argv) {
         stepTime[plot_counter] = Time;
         if (writeField) {
           FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
-          WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray,
-                   outputCount, outputNames);
+          WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, outputCount,
+                  outputNames, elementIDInjury, nElementsInjury, outputDoubleArray, 
+                  outputDoubleCount, outputDoubleNames);
           WritePVD(outputFileName.c_str(), plot_counter);
         }
       }
@@ -1169,8 +1175,9 @@ void WriteOutputFile() {
   for (int i = 0; i < threshQuantities; ++i) {
     thresholdVolume[i] = 0.0;
   }
-  for (int i = 0; i < nelements; ++i) {
-    double eV = elementVolume[i];
+  for (int i = 0; i < nElementsInjury; ++i) {
+    int e = elementIDInjury[i];
+    double eV = elementVolume[e];
     // CSDM 5, 10, 15, 30 volume computations
     if (thresholdElements[0][i]) {
       thresholdVolume[0] += eV;
@@ -1232,6 +1239,7 @@ void WriteOutputFile() {
     jsonOutputTag[i] = thresholdTag[i];
     outputJsonArray[i] = thresholdElements[i];
   }
+  // Write MPS-95 elements
   jsonOutputTag[csdmCount] = percentileTag[0];
   outputJsonArray[csdmCount] = percentileElements[0];
 
@@ -1243,7 +1251,7 @@ void WriteOutputFile() {
   for (int i = 0; i < outputJsonCount; ++i) {
     int *list = outputJsonArray[i];
     int count = 0;
-    for (int j = 0; j < nelements; ++j) {
+    for (int j = 0; j < nElementsInjury; ++j) {
       if (list[j]) {
         count = count + 1;
       }
@@ -1252,9 +1260,10 @@ void WriteOutputFile() {
     int *localElemList = (int *)malloc(numElem * sizeof(int));
     count = 0;
     if (numElem) {
-      for (int j = 0; j < nelements; ++j) {
+      for (int j = 0; j < nElementsInjury; ++j) {
         if (list[j]) {
-          localElemList[count] = global_eid[j];
+          int e = elementIDInjury[j];
+          localElemList[count] = global_eid[e];
           count = count + 1;
         }
       }
@@ -1348,11 +1357,11 @@ void InitInjuryCriterion(void) {
   }
 
   for (int i = 0; i < threshQuantities; ++i) {
-    thresholdElements[i] = (int *)calloc(nelements, sizeof(int));
+    thresholdElements[i] = (int *)calloc(nElementsInjury, sizeof(int));
   }
   // Write percentile values
   for (int i = 0; i < percentileQuantities; ++i) {
-    percentileElements[i] = (int *)malloc(nelements * sizeof(int));
+    percentileElements[i] = (int *)malloc(nElementsInjury * sizeof(int));
     percentileTime[i] = 0.0;
     percentileValue[i] = 0.0;
   }
@@ -1364,8 +1373,15 @@ void InitInjuryCriterion(void) {
   for (int i = 0; i < threshQuantities; ++i) {
     outputDataArray[i] = thresholdElements[i];
   }
-  outputDataArray[threshQuantities] =
-      percentileElements[0]; // Write MPS-95 to paraview
+  // for (int i = 0; i < percentileQuantities; ++i) {
+  //   outputDataArray[threshQuantities + i] =
+  //       percentileElements[i]; 
+  // }
+  outputDataArray[threshQuantities] = 
+    percentileElements[0]; // Write MPS-95 to paraview
+  // Percentile Values
+  // Write MPS-95-Value
+  outputDoubleArray[0] = PS_Old;
 }
 
 void CalculateInjuryCriterions(void) {
@@ -1393,9 +1409,9 @@ void CalculateInjuryCriterions(void) {
     }
     // Update csdm element list
     for (int k = 0; k < csdmCount; ++k) {
-      if (!thresholdElements[k][i]) {
+      if (!thresholdElements[k][j]) {
         if (currentStrainMaxElem > csdmLimits[k]) {
-          thresholdElements[k][i] = 1;
+          thresholdElements[k][j] = 1;
         }
       }
     }
@@ -1410,15 +1426,15 @@ void CalculateInjuryCriterions(void) {
       maxTime[2] = Time;
     }
     // Calculate MPSR 120
-    if (!thresholdElements[4][i]) {
+    if (!thresholdElements[csdmCount][j]) {
       if (PSR > 120.0) {
-        thresholdElements[4][i] = 1;
+        thresholdElements[csdmCount][j] = 1;
       }
     }
     // Calculate MPSxSR 28
-    if (!thresholdElements[5][i]) {
+    if (!thresholdElements[csdmCount + 1][j]) {
       if (PSxSR > 28.0) {
-        thresholdElements[5][i] = 1;
+        thresholdElements[csdmCount + 1][j] = 1;
       }
     }
     PS_Old[j] = currentStrainMaxElem;
@@ -1428,13 +1444,12 @@ void CalculateInjuryCriterions(void) {
   // Compute 95 percentile MPS and corresponding element list
   double MPS95 = compute95thPercentileValue(PS_Old, nElementsInjury);
   if (MPS95 > percentileValue[0]) {
-    memset(percentileElements[0], 0, nelements * sizeof(int));
+    memset(percentileElements[0], 0, nElementsInjury * sizeof(int));
     percentileValue[0] = MPS95;
     percentileTime[0] = Time;
     for (int j = 0; j < nElementsInjury; j++) {
       if (PS_Old[j] >= MPS95) {
-        const int i = elementIDInjury[j];
-        percentileElements[0][i] = 1;
+        percentileElements[0][j] = 1;
       }
     }
   }
@@ -1442,14 +1457,13 @@ void CalculateInjuryCriterions(void) {
   // Compute 95 percentile MPSxSR and corresponding element list
   double MPSxSR95 = compute95thPercentileValue(PSxSRArray, nElementsInjury);
   if (MPSxSR95 > percentileValue[1]) {
-    memset(percentileElements[1], 0, nelements * sizeof(int));
+    memset(percentileElements[1], 0, nElementsInjury * sizeof(int));
     percentileValue[1] = MPSxSR95;
     percentileTime[1] = Time;
     int count = 0;
     for (int j = 0; j < nElementsInjury; j++) {
       if (PSxSRArray[j] >= MPSxSR95) {
-        const int i = elementIDInjury[j];
-        percentileElements[1][i] = 1;
+        percentileElements[1][j] = 1;
       }
     }
   }
