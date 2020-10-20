@@ -243,9 +243,9 @@ double compute95thPercentileValue(double* dataArray, int localSize) {
   int localSizeLoop = localSize;
   // Compute total size
   int totalSize = 0;
-  MPI_Reduce(&localSize, &totalSize, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Allreduce(&localSize, &totalSize, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-  double k = (int)(0.95*totalSize)-1;
+  int k = (int)(0.95*totalSize)-1;
 
   double *median = NULL;
   int *sizes = NULL;

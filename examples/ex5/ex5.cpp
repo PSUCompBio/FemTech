@@ -100,7 +100,7 @@ const std::string thresholdTag[threshQuantities] = {
 double *PS_Old = NULL;
 double *PSxSRArray = NULL;
 
-int nElementsInjury, *elementIDInjury = NULL;
+int nElementsInjury = 0, *elementIDInjury = NULL;
 // part ID to exclude from injury computation
 // 0 : Skull, 1 : CSF
 const int injuryExcludePIDCount = 2;
@@ -1323,9 +1323,6 @@ void InitInjuryCriterion(void) {
     maxElem[i] = 0;
   }
 
-  // Allocate variables for injury metrics
-  nElementsInjury = 0;
-
   for (int i = 0; i < nelements; i++) {
     bool include = true;
     int elementPID = pid[i];
@@ -1361,12 +1358,12 @@ void InitInjuryCriterion(void) {
   }
   // Write percentile values
   for (int i = 0; i < percentileQuantities; ++i) {
-    percentileElements[i] = (int *)malloc(nElementsInjury * sizeof(int));
+    percentileElements[i] = (int *)calloc(nElementsInjury, sizeof(int));
     percentileTime[i] = 0.0;
     percentileValue[i] = 0.0;
   }
-  PS_Old = (double *)malloc(nElementsInjury * sizeof(double));
-  PSxSRArray = (double *)malloc(nElementsInjury * sizeof(double));
+  PS_Old = (double *)calloc(nElementsInjury, sizeof(double));
+  PSxSRArray = (double *)calloc(nElementsInjury, sizeof(double));
 
   // Array to output to Paraview
   // All threshold elements CSDM : 5, 10, 15, 30, MPSR-120, MPSxSR-28

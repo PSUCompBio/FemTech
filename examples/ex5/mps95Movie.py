@@ -103,7 +103,9 @@ else:
 #
 # create a new 'PVD Reader'
 coarse_brain_test_ptpvd = PVDReader(FileName=paraviewFile)
-coarse_brain_test_ptpvd.CellArrays = ['PartID', 'AvgStrain', 'ProcID', 'CSDM-5', 'CSDM-10', 'CSDM-15', 'CSDM-30', 'MPSR-120', 'MPSxSR-28', 'MPS-95']
+coarse_brain_test_ptpvd.CellArrays = ['PartID', 'AvgStrain', 'ProcID', 'CSDM-5',
+        'CSDM-10', 'CSDM-15', 'CSDM-30', 'MPSR-120', 'MPSxSR-28', 'MPS-95',
+        'MPS-95-Value']
 coarse_brain_test_ptpvd.PointArrays = ['Displacements', 'Accelerations', 'Boundary']
 
 # get animation scene
@@ -160,7 +162,7 @@ threshold2Display = Show(threshold2, renderView1, 'UnstructuredGridRepresentatio
 threshold2Display.Representation = 'Surface'
 threshold2Display.ColorArrayName = ['CELLS', 'PartID']
 # set scalar coloring
-ColorBy(threshold2Display, ('CELLS', 'PartID'))
+ColorBy(threshold2Display, ('CELLS', 'MPS-95-Value'))
 
 # show color bar/color legend
 threshold2Display.SetScalarBarVisibility(renderView1, True)

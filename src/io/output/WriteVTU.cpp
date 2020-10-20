@@ -251,7 +251,7 @@ void WriteVTU(const char* FileName, int step, int** intCellData /*= NULL*/, \
     fprintf(fp,"\t\t</PCells>\n");
 
 		/*-----------POINT DATA -----------------*/
-		fprintf(fp,"\t\t<PPointData  Vectors=\"Displacements Accelerations\" >\n");
+		fprintf(fp,"\t\t<PPointData  Vectors=\"Displacements Accelerations Boundary\" >\n");
 		fprintf(fp,"\t\t\t<PDataArray type=\"Float64\" Name=\"Displacements\" "
                "NumberOfComponents=\"%d\" ComponentName0=\"X\" ComponentName1=\"Y\" "
                "ComponentName2=\"Z\" format=\"ascii\" />\n",ndim);
@@ -265,7 +265,15 @@ void WriteVTU(const char* FileName, int step, int** intCellData /*= NULL*/, \
     fprintf(fp,"\t\t</PPointData>\n");
 
 		/*-----------CELL DATA -----------------*/
-  	fprintf(fp,"\t\t<PCellData Scalars=\"PartID\" Tensors=\"AvgStrain\">\n");
+  	fprintf(fp,"\t\t<PCellData Scalars=\"PartID ProcID");
+    for (int c = 0; c < cellDataCount; ++c) {
+      fprintf(fp," %s", cellDataNames[c]);
+    }
+    for (int c = 0; c < dpDataCount; ++c) {
+      fprintf(fp," %s", dpDataNames[c]);
+    }
+  	fprintf(fp,"\" Tensors=\"AvgStrain\">\n");
+
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"PartID\"/>\n");
     fprintf(fp,"\t\t\t<PDataArray type=\"Float64\" Name=\"AvgStrain\" "
                     "NumberOfComponents=\"%d\" ComponentName0=\"E11\" "
