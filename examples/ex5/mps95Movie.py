@@ -115,38 +115,28 @@ renderView1 = GetActiveViewOrCreate('RenderView')
 # uncomment following to set a specific view size
 renderView1.ViewSize = [1538, 838]
 
-# get color transfer function/color map for 'PartID'
-partIDLUT = GetColorTransferFunction('PartID')
 
 # update animation scene based on data timesteps
 animationScene1.UpdateAnimationUsingDataTimeSteps()
 
 # create a new 'Threshold'
 threshold1 = Threshold(Input=coarse_brain_test_ptpvd)
-threshold1.Scalars = ['POINTS', 'PartID']
-threshold1.ThresholdRange = [2.0, 9.0]
 
 # show data in view
 threshold1Display = Show(threshold1, renderView1, 'UnstructuredGridRepresentation')
 
 Hide(coarse_brain_test_ptpvd, renderView1)
 
-# show color bar/color legend
-threshold1Display.SetScalarBarVisibility(renderView1, True)
-# hide color bar/color legend
-threshold1Display.SetScalarBarVisibility(renderView1, False)
-
-# turn off scalar coloring
-ColorBy(threshold1Display, None)
-
-# Hide the scalar bar for this color map if no visible data is colored by it.
-HideScalarBarIfNotNeeded(partIDLUT, renderView1)
+threshold1Display.Representation = 'Surface'
+threshold1Display.ColorArrayName = [None, '']
 
 # change solid color
 threshold1Display.AmbientColor = [0.0, 0.6666666666666666, 1.0]
 threshold1Display.DiffuseColor = [0.0, 0.6666666666666666, 1.0]
 
 # Properties modified on threshold1Display
+threshold1.Scalars = ['POINTS', 'PartID']
+threshold1.ThresholdRange = [2.0, 9.0]
 threshold1Display.Opacity = 0.1
 
 # create a new 'Threshold'
@@ -160,14 +150,19 @@ threshold2Display = Show(threshold2, renderView1, 'UnstructuredGridRepresentatio
 
 # trace defaults for the display properties.
 threshold2Display.Representation = 'Surface'
-threshold2Display.ColorArrayName = ['CELLS', 'PartID']
+threshold2Display.ColorArrayName = [None, '']
+
+animationScene1.GoToLast()
 # set scalar coloring
 ColorBy(threshold2Display, ('CELLS', 'MPS-95-Value'))
 
+threshold2Display.RescaleTransferFunctionToDataRange(True, False)
 # show color bar/color legend
 threshold2Display.SetScalarBarVisibility(renderView1, True)
 
 # Apply a preset using its name. Note this may not work as expected when presets have duplicate names.
+# get color transfer function/color map for 'PartID'
+partIDLUT = GetColorTransferFunction('MPS95Value')
 partIDLUT.ApplyPreset('Viridis (matplotlib)', True)
 
 # get color legend/bar for partIDLUT in view renderView1
@@ -183,6 +178,7 @@ partIDLUTColorBar.LabelFontFamily = 'Times'
 partIDLUTColorBar.LabelFontSize = 14
 partIDLUTColorBar.AutomaticLabelFormat = 1
 partIDLUTColorBar.AddRangeLabels = 0
+partIDLUTColorBar.Title = 'MPS'
 
 annotateTime1 = AnnotateTime()
 annotateTimeFilter1 = AnnotateTimeFilter(Input=annotateTime1)
