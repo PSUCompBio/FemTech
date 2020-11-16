@@ -1,5 +1,6 @@
 #include "FemTech.h"
 #include "blas.h"
+#include "lapack.h"
 
 #include <algorithm>
 #include <vector>
@@ -384,4 +385,9 @@ void test95Percentile(void) {
     free(sendSize);
     free(sendLocation);
   }
+}
+
+// Computes mat = mat + \alpha*(x*x^T)
+void dyadic(const double* const vector, const double preFactor, double * const mat) {
+  dger_(&ndim, &ndim, &preFactor, vector, &oneI, vector, &oneI, mat, &ndim);
 }

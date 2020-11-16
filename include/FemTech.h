@@ -78,6 +78,7 @@ void CompressibleNeoHookean(int e, int gp);
 void LinearElastic(int e, int gp);
 void HGOIsotropic(int e, int gp);
 void HGOIsotropicViscoelastic(int e, int gp);
+void Ogden(int e, int gp);
 
 void inverse3x3Matrix(double* mat, double* invMat, double* det);
 //void MultiplyMatrices(double* a, double* b, int sizeM, double* result);
@@ -97,6 +98,7 @@ void quaternionRotate(double *v, double *R, double *Rinv, double* vp);
 double compute95thPercentileValueBruteForce(double* dataArray, int localSize);
 double compute95thPercentileValue(double* dataArray, int localSize);
 void test95Percentile(void);
+void dyadic(const double* const, const double, double * const);
 
 void CheckEnergy(double time, int writeFlag);
 

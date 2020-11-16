@@ -40,6 +40,7 @@ void ReadMaterials() {
     count = fscanf(File, "%d", &materialID[partID]);
     assert(count == 1);
     int index = partID * MAXMATPARAMS;
+    int nTerms = 0;
     switch (materialID[partID]) {
       case 0 :// Rigid body
               // properties[0] = density
@@ -119,6 +120,26 @@ void ReadMaterials() {
               //         properties[index + 2], properties[index + 3], properties[index + 4],
               //         properties[index + 5], properties[index + 6], properties[index + 7],
               //         properties[index + 8]);
+              break;
+      case 7 :// Ogden model with max N = 3
+              // properties[0] = density
+              // properties[1] = K
+              // properties[2] = nOgden : number of terms in ogden series (max 3)
+              // properties[3+2*i] = \alpha_i
+              // properties[4+2*i] = \mu_i
+              count = fscanf(File, "%lf %lf %lf", &properties[index + 0],
+                      &properties[index + 1], &properties[index + 2]);
+              assert(count == 3);
+              nTerms = static_cast<int>(properties[index+2]);
+              if (nTerms > 3) {
+                FILE_LOG_SINGLE(ERROR, "Material ID 7 (Ogden), Number of Terms = %d > 3", nTerms);
+                TerminateFemTech(3);
+              }
+              for (int j = 0; j < nTerms; ++j) {
+                count = fscanf(File, "%lf %lf", &properties[index + 3 + 2*j],
+                    &properties[index + 4 + 2*j]);
+                assert(count == 2);
+              }
               break;
       default :FILE_LOG_SINGLE(ERROR, "Material ID for Part %d not found", partID);
                 TerminateFemTech(3);
