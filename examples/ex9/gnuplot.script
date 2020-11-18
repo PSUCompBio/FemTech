@@ -48,7 +48,7 @@ set key left top
 set key font ",18"
 set term pngcairo dashed notransparent size 1200,960 dashlength .4
 set output "plot.png"
-plot "abaqus/abaqus.rpt" every ::4 using 1:11 ls 3 title "ABAQUS DispX", \
-     "abaqus/abaqus.rpt" every ::4 using 1:12 ls 4 title "ABAQUS DispY", \
+plot "1-elt-ogden-2.txt" using 1:2 ls 3 title "LS-DYNA DispX", \
+     "1-elt-ogden-2.txt" using 1:3 ls 4 title "LS-DYNA DispY", \
 		 "plot.dat" using 1:2 ls 1 title "FEMTECH DispX",  \
 		 "plot.dat" using 1:3 ls 2 title "FEMTECH DispY"
