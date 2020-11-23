@@ -242,8 +242,10 @@ void ShapeFunctions() {
   B = (double*)malloc(Bsize*sizeof(double));
   // Allocate arrays specific to viscoelastic material
   // Check if viscoelastic material is used 
+  // TODO(Anil) : This allocation can be made only for elements with
+  // Viscoelastic properties, currently all elements are used
   for (int i = 0; i < nPIDglobal; ++i) {
-    if (materialID[i] == 5) {
+    if (materialID[i] == 5 || materialID[i] == 8) {
       // Allocated and set to zero for first time step
       Hn_1 = (double *)calloc(F_counter, sizeof(double));
       Hn_2 = (double *)calloc(F_counter, sizeof(double));

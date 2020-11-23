@@ -1,9 +1,9 @@
 #include <map>
 #include <string>
 
-/* Currently HGO Isotropic model uses 5 properties + 4 properties for
+/* Currently Ogden model uses 9 properties + 13 properties for
  * viscoelastic properties*/
-static const int MAXMATPARAMS = 9; /* maximum number of material parameters stored for each element */
+static const int MAXMATPARAMS = 22; /* maximum number of material parameters stored for each element */
 static const int MAXINTERNALVARS = 5; /* max internal variables per gauss point */
 static const int MAXPLOTSTEPS = 1000; /* maximum plot output steps */
 static const int MAXOGDEN = 3; /* maximum terms for Ogden material model */
