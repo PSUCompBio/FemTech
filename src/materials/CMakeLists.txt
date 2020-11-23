@@ -6,6 +6,7 @@ Set(materials_src
     HGOIsotropic.cpp
     HGOIsotropicViscoelastic.cpp
     Ogden.cpp
+    Viscoelastic.cpp
     )
 
 add_library(materials OBJECT ${materials_src})

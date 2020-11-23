@@ -124,5 +124,7 @@ extern double* mat4;
 extern double *fintGQ;
 extern double *B;
 // Variables to store stress history in viscoelastic materials
-extern double *Hn_1, *Hn_2;
+extern double **Hn;
 extern double* S0n;
+extern int *fptrViscous;
+extern int nMax;
