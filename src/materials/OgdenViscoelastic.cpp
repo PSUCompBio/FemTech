@@ -17,7 +17,7 @@
  * MAXMATPARAMS = 4+2*(N_{Ogden}+N_{Prony}) = 22
  * */
 
-void Ogden(int e, int gp) {
+void OgdenViscoelastic(int e, int gp) {
   if (ndim == 2) {
     FILE_LOG_SINGLE(ERROR, "Plane Strain implementation yet to be done");
     TerminateFemTech(3);
@@ -34,6 +34,15 @@ void Ogden(int e, int gp) {
   // Read material properties
   const double K = localProperties[1];
   const int nTerm = static_cast<int>(localProperties[2]);
+  const int nPronyLocal = int(localProperties[3+nTerm*2]); // No of terms in prony series
+  // TODO(Anil) convert local allocations to one time global
+  double *gi, *ti;
+  gi = (double*)malloc(nPronyLocal*sizeof(double));
+  ti = (double*)malloc(nPronyLocal*sizeof(double));
+  for (unsigned int i = 0; i < nPronyLocal; ++i) {
+    gi[i] = localProperties[4+2*(i+nTerm)];
+    ti[i] = localProperties[5+2*(i+nTerm)];
+  }
 
   double * const F_element_gp = &(F[index]);
   // Use temp storage mat1 for Finverse
@@ -45,7 +54,7 @@ void Ogden(int e, int gp) {
   // Compute B = FF^T and compute its eigen values
   dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
         F_element_gp, &ndim, &zero, Bmat, &ndim);
-  double matSize = ndim * ndim;
+  const unsigned int matSize = ndim * ndim;
   // Compute eigen values and eigenvectors of B
   int nEigen;
   double cEigenValue[ndim];
@@ -112,22 +121,21 @@ void Ogden(int e, int gp) {
     Sdev[i] = S[i]-Sic[i];
   }
   // Access histroy dependence
-  double *Hn_1Local = &(Hn_1[index]);
-  double *Hn_2Local = &(Hn_2[index]);
-  double *S0nLocal = &(S0n[index]);
-  // Compute c1i = exp(-dt/t_i) and C2i = g_i (1-exp(-dt/t_i))/(dt/t_i)
-  const double rt1 = dt/t1;
-  const double rt2 = dt/t2;
-  const double c11 = exp(-rt1);
-  const double c12 = exp(-rt2);
-  const double c21 = g1*(1-c11)/rt1;
-  const double c22 = g2*(1-c12)/rt2;
-  // Update H_j^{n+1} = c1j*H_j^n + c2j*[Dev S_0^{n+1} - S_0^n]
-  // Update S^{n+1} = S_0^{n+1} + \sum_j H_j^{n+1}
-  for (int i = 0; i < matSize; ++i) {
-    Hn_1Local[i] = c11*Hn_1Local[i]+c21*(Sdev[i]-S0nLocal[i]);
-    Hn_2Local[i] = c12*Hn_2Local[i]+c22*(Sdev[i]-S0nLocal[i]);
-    S[i] = S[i] + Hn_1Local[i] + Hn_2Local[i];
+  double *S0nLocal = S0n[e];
+  double *elemH = Hn[e];
+  double *HnLocal = &(elemH[gp*matSize*nPronyLocal]);
+  for (unsigned int i = 0; i < nPronyLocal; ++i) {
+    double *HnI = &(HnLocal[i*matSize]);
+    // Compute C1i = exp(-dt/t_i) and C2i = g_i (1-exp(-dt/t_i))/(dt/t_i)
+    const double rt = dt/ti[i];
+    const double c1i = exp(-rt);
+    const double c2i = gi[i]*(1-c1i)/rt;
+    // Update H_j^{n+1} = c1j*H_j^n + c2j*[Dev S_0^{n+1} - S_0^n]
+    // Update S^{n+1} = S_0^{n+1} + \sum_j H_j^{n+1}
+    for (int j = 0; j < matSize; ++j) {
+      HnI[j] = c1i*HnI[j]+c2i*(Sdev[j]-S0nLocal[j]);
+      S[j] = S[j] + HnI[j];
+    }
   }
 
   // Get location of array to store PK2 values
@@ -145,6 +153,13 @@ void Ogden(int e, int gp) {
   pk2Local[4] = S[6];
   // in voigt notation, sigma12
   pk2Local[5] = S[3];
+
+  // Update deviatoric part of S_0 for next time step
+  for (int i = 0; i < matSize; ++i) {
+    S0nLocal[i] = Sdev[i];
+  }
+  free(gi);
+  free(ti);
 
 #ifdef DEBUG
   FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Element ID = %d, gp = %d", e, gp);

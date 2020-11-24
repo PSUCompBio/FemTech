@@ -28,6 +28,9 @@ void StressUpdate(int e, int gp){
     case 7 : // Ogden
              Ogden(e, gp);
              break;
+    case 8 : // Ogden Viscoelastic
+             OgdenViscoelastic(e, gp);
+             break;
     default : FILE_LOG_SINGLE(ERROR, "Unknown material type");
               TerminateFemTech(1);
   }

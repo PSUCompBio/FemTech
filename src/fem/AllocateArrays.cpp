@@ -136,7 +136,7 @@ void AllocateArrays() {
     // If HGO, Linear Elastic or Ogden material model present, allocate mat3 and mat4
     int matCount = 2;
     for (int i = 0; i < nPIDglobal; ++i) {
-      if (materialID[i] == 3 || materialID[i] == 4 || materialID[i] == 5 || materialID[i] == 7) {
+      if (materialID[i] == 3 || materialID[i] == 4 || materialID[i] == 5 || materialID[i] == 7 || materialID[i] == 8) {
         matCount = 4;
         break;
       }    

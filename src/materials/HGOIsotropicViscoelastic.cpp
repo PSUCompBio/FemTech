@@ -17,8 +17,8 @@
  * k_1     = properties(3)
  * k_2     = properties(4)
  * n       = properties(5)
- * g_i     = properties(5+i)
- * t_i     = properties(6+i)
+ * g_i     = properties(6+2*i)
+ * t_i     = properties(7+2*i)
  * Implementation follows : Kaliske, M. and Rothert, H., 1997. Formulation and 
  * implementation of three-dimensional viscoelasticity at small and finite 
  * strains. Computational Mechanics, 19(3), pp.228-239. */
@@ -32,7 +32,6 @@ void HGOIsotropicViscoelastic(int e, int gp) {
   // Pointer to start of deformation gradient matrix for given element number
   // and Gauss point
   const int index = fptr[e] + ndim * ndim * gp;
-  const int indexViscous = fptrViscous[e] + ndim * ndim * gp;
   double J = detF[detFptr[e] + gp];
   // Get material property ID to read material properties
   const int pideIndex = pid[e]*MAXMATPARAMS;
@@ -45,20 +44,21 @@ void HGOIsotropicViscoelastic(int e, int gp) {
   const double k2 = localProperties[4];
   // Kappa = 1/3 for isotropic fiber distribution
   const double kappa = 1.0/3.0;
-  const int n = int(localProperties[5]); // No of terms in prony series
+  const int nPronyLocal = int(localProperties[5]); // No of terms in prony series
+  // TODO(Anil) convert local allocations to one time global
   double *gi, *ti;
-  gi = (double*)malloc(n*sizeof(double));
-  ti = (double*)malloc(n*sizeof(double));
-  for (unsigned int i = 0; i < n; ++i) {
-    gi[i] = localProperties[6+i];
-    ti[i] = localProperties[7+i];
+  gi = (double*)malloc(nPronyLocal*sizeof(double));
+  ti = (double*)malloc(nPronyLocal*sizeof(double));
+  for (unsigned int i = 0; i < nPronyLocal; ++i) {
+    gi[i] = localProperties[6+2*i];
+    ti[i] = localProperties[7+2*i];
   }
 
   double * const F_element_gp = &(F[index]);
   // Compute the hydrostatic diagonal contribution to cauchy stress tensor
   const double hydroDiag = 0.5*K*(J*J-1.0)/J; 
   // Compute the left elastic Cauchy-Green tensor B = F*F^T
-  double matSize = ndim * ndim;
+  const unsigned int matSize = ndim * ndim;
   double *Bmat = mat1;
   dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
         F_element_gp, &ndim, &zero, Bmat, &ndim);
@@ -121,9 +121,11 @@ void HGOIsotropicViscoelastic(int e, int gp) {
     Sdev[i] = S[i]-Sic[i];
   }
   // Access histroy dependence
-  double *S0nLocal = &(S0n[indexViscous]);
-  for (unsigned int i = 0; i < n; ++i) {
-    double *HnLocal = &(Hn[i][indexViscous]);
+  double *S0nLocal = S0n[e];
+  double *elemH = Hn[e];
+  double *HnLocal = &(elemH[gp*matSize*nPronyLocal]);
+  for (unsigned int i = 0; i < nPronyLocal; ++i) {
+    double *HnI = &(HnLocal[i*matSize]);
     // Compute C1i = exp(-dt/t_i) and C2i = g_i (1-exp(-dt/t_i))/(dt/t_i)
     const double rt = dt/ti[i];
     const double c1i = exp(-rt);
@@ -131,8 +133,8 @@ void HGOIsotropicViscoelastic(int e, int gp) {
     // Update H_j^{n+1} = c1j*H_j^n + c2j*[Dev S_0^{n+1} - S_0^n]
     // Update S^{n+1} = S_0^{n+1} + \sum_j H_j^{n+1}
     for (int j = 0; j < matSize; ++j) {
-      HnLocal[j] = c1i*HnLocal[j]+c2i*(Sdev[j]-S0nLocal[j]);
-      S[j] = S[j] + HnLocal[j];
+      HnI[j] = c1i*HnI[j]+c2i*(Sdev[j]-S0nLocal[j]);
+      S[j] = S[j] + HnI[j];
     }
   }
 

@@ -1,6 +1,7 @@
 #include "FemTech.h"
 
 #include <assert.h>
+#include <fenv.h>
 
 /*Delare Functions*/
 void ApplyBoundaryConditions(double dMax, double tMax);
@@ -17,6 +18,7 @@ bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 
 int main(int argc, char **argv) {
+  feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   InitFemTechWoInput(argc, argv);
 
   ReadInputFile(argv[1]);

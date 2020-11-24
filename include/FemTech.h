@@ -79,6 +79,7 @@ void LinearElastic(int e, int gp);
 void HGOIsotropic(int e, int gp);
 void HGOIsotropicViscoelastic(int e, int gp);
 void Ogden(int e, int gp);
+void OgdenViscoelastic(int e, int gp);
 void Viscoelastic(int e, int gp);
 
 void inverse3x3Matrix(double* mat, double* invMat, double* det);

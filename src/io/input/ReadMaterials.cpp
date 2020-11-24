@@ -41,7 +41,7 @@ void ReadMaterials() {
     assert(count == 1);
     int index = partID * MAXMATPARAMS;
     int nTerms = 0;
-    int nProny = 0;
+    int nPronyL = 0;
     switch (materialID[partID]) {
       case 0 :// Rigid body
               // properties[0] = density
@@ -106,8 +106,8 @@ void ReadMaterials() {
               // properties[3] = k1
               // properties[4] = k2
               // properties[5] = n
-              // properties[6+i] = gi
-              // properties[7+i] = ti
+              // properties[6+2*i] = gi
+              // properties[7+2*i] = ti
               count = fscanf(File, "%lf %lf %lf %lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2], 
                       &properties[index + 3], &properties[index + 4],
@@ -118,8 +118,8 @@ void ReadMaterials() {
                 TerminateFemTech(3);
               }
               for (int j = 0; j < properties[index+5]; ++j) {
-                count = fscanf(File, "%lf %lf", &properties[index + 6 + j], 
-                    &properties[index + 7 + j]);
+                count = fscanf(File, "%lf %lf", &properties[index + 6 + 2*j], 
+                    &properties[index + 7 + 2*j]);
                 assert(count == 2);
               }
               // FILE_LOG_SINGLE(WARNING, "Part %d HGO properties (rho, mu, K, k1, k2, n) = "
@@ -169,9 +169,9 @@ void ReadMaterials() {
               * N_{Ogden} = properties(2), maximum value of 3
               * \alpha_i  = properties(3+2*i) i = 0 to N_{Ogden}-1
               * \mu_i     = properties(4+2*i) i = 0 to N_{Ogden}-1
-              * N_{Prony} = properties(3+N_{prony}*2), maximum value of 6
-              * g_i       = properties(4+2*N_{prony}+2*j) j = 0 to N_{Prony}-1
-              * \tau_i    = properties(5+2*N_{prony}+2*j) j = 0 to N_{Prony}-1
+              * N_{Prony} = properties(3+N_{Ogden}*2), maximum value of 6
+              * g_j       = properties(4+2*N_{Ogden}+2*j) j = 0 to N_{Prony}-1
+              * \tau_j    = properties(5+2*N_{Ogden}+2*j) j = 0 to N_{Prony}-1
               * MAXMATPARAMS = 4+2*(N_{Ogden}+N_{Prony}) = 22
               * */
               count = fscanf(File, "%lf %lf %lf", &properties[index + 0],
@@ -189,8 +189,8 @@ void ReadMaterials() {
               }
               count = fscanf(File, "%lf", &properties[index + 3 + 2*nTerms]);
               assert(count == 1);
-              nProny = static_cast<int>(properties[index+3+2*nTerms]);
-              for (int j = 0; j < nProny; ++j) {
+              nPronyL = static_cast<int>(properties[index+3+2*nTerms]);
+              for (int j = 0; j < nPronyL; ++j) {
                 count = fscanf(File, "%lf %lf", &properties[index + 4 + 2*nTerms + 2*j],
                     &properties[index + 5 + 2*nTerms + 2*j]);
                 assert(count == 2);

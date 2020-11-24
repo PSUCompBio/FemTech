@@ -8,9 +8,9 @@
  * Expected material properties :
  * \rho      = properties(0)
  * K         = properties(1)
- * N_{ogden} = properties(2)
- * \alpha_i  = properties(3+2*i) i = 0 to N_{ogden}
- * \mu_i     = properties(4+2*i) i = 0 to N_{ogden}
+ * N_{Ogden} = properties(2), maximum value of 3
+ * \alpha_i  = properties(3+2*i) i = 0 to N_{Ogden}-1
+ * \mu_i     = properties(4+2*i) i = 0 to N_{Ogden}-1
  * */
 
 void Ogden(int e, int gp) {
@@ -41,7 +41,7 @@ void Ogden(int e, int gp) {
   // Compute B = FF^T and compute its eigen values
   dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
         F_element_gp, &ndim, &zero, Bmat, &ndim);
-  double matSize = ndim * ndim;
+  const unsigned int matSize = ndim * ndim;
   // Compute eigen values and eigenvectors of B
   int nEigen;
   double cEigenValue[ndim];
@@ -66,9 +66,9 @@ void Ogden(int e, int gp) {
   dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim,
            cEigenVector, &ndim, &zero, basisVec, &ndim);
 
-  double *Smat = mat4;
+  double *S = mat4;
   for (int i = 0; i < matSize; ++i) {
-    Smat[i] = 0.0;
+    S[i] = 0.0;
   }
   const double hydro = K*(J-1.0); 
   double eigenPower[ndim];
@@ -87,24 +87,24 @@ void Ogden(int e, int gp) {
       preFactor = mu*(eigenPower[i]-eigenSum);
     }
     preFactor += hydro;
-    dyadic(&basisVec[3*i], preFactor, Smat);
+    dyadic(&basisVec[3*i], preFactor, S);
   }
 
   // Get location of array to store PK2 values
   double * pk2Local = &(pk2[pk2ptr[e]+6*gp]);
 	// 6 values saved per gauss point for 3d
 	// in voigt notation, sigma11
-  pk2Local[0] = Smat[0];
+  pk2Local[0] = S[0];
   // in voigt notation, sigma22
-  pk2Local[1] = Smat[4];
+  pk2Local[1] = S[4];
   // in voigt notation, sigma33
-  pk2Local[2] = Smat[8];
+  pk2Local[2] = S[8];
   // in voigt notation, sigma23
-  pk2Local[3] = Smat[7];
+  pk2Local[3] = S[7];
   // in voigt notation, sigma13
-  pk2Local[4] = Smat[6];
+  pk2Local[4] = S[6];
   // in voigt notation, sigma12
-  pk2Local[5] = Smat[3];
+  pk2Local[5] = S[3];
 
 #ifdef DEBUG
   FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Element ID = %d, gp = %d", e, gp);

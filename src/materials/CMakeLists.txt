@@ -6,6 +6,7 @@ Set(materials_src
     HGOIsotropic.cpp
     HGOIsotropicViscoelastic.cpp
     Ogden.cpp
+    OgdenViscoelastic.cpp
     Viscoelastic.cpp
     )
 
