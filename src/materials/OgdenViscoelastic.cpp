@@ -118,7 +118,8 @@ void OgdenViscoelastic(int e, int gp) {
   }
   // FILE_LOGMatrix(WARNING, Sdev, ndim, ndim, "Sdev mat\n");
   // Access histroy dependence
-  double *S0nLocal = S0n[e];
+  double *elemS = S0n[e];
+  double *S0nLocal = &(elemS[gp*matSize]);
   double *elemH = Hn[e];
   double *HnLocal = &(elemH[gp*matSize*nPronyLocal]);
   for (unsigned int i = 0; i < nPronyLocal; ++i) {
