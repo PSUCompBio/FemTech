@@ -27,9 +27,29 @@ double *gaussWeights;
 
 double *fintGQ;
 double *B;
-double *Hn_1, *Hn_2, *S0n; 
+double **Hn, **S0n;
+int *nProny; // To store number of terms in viscous Prony Series
 
 void ShapeFunctions() {
+  nProny = (int *)calloc(nelements, sizeof(int));
+  for (int i = 0; i < nelements; ++i) {
+    const int j = pid[i];
+    if (materialID[j] == 5) {
+      nProny[i] = properties[MAXMATPARAMS*j+5];
+    }
+    if (materialID[j] == 8) {
+      const int nOgden = properties[MAXMATPARAMS*j+2];
+      nProny[i] = properties[MAXMATPARAMS*j+2*nOgden+3];
+    }
+  }
+  bool viscoElastic = false;
+  for (int i = 0; i < nelements; ++i) {
+    if (nProny[i]) {
+      viscoElastic = true;
+      break;
+    }
+  }
+
   // Global Array - keeps track of how many gauss points there are
   // per element.
   GaussPoints = (int *)malloc(nelements * sizeof(int));
@@ -68,7 +88,17 @@ void ShapeFunctions() {
 	pk2ptr[0]=0;
 	detFptr[0]=0;
 
+  if (viscoElastic) {
+    Hn = (double**)malloc(nelements*sizeof(double*));
+    S0n = (double**)malloc(nelements*sizeof(double*));
+  } else {
+    Hn = NULL;
+    S0n = NULL;
+  }
+
   for (int i = 0; i < nelements; i++) {
+    // Check if element is viscous
+    const int viscousCount = nProny[i];
     if (strcmp(ElementType[i], "C3D8") == 0) {
       //GuassPoints per element
       gpCount = 8;
@@ -98,6 +128,17 @@ void ShapeFunctions() {
       // we need a way to reference F as well (An fptr). Note F is not symmetric.
 	    // Also this counter will be used (as well as fptr) for detF, InvF, b and E.
 			F_counter += 72;
+      if (viscousCount) {
+        const int F_counterViscous = 72;
+        S0n[i] = (double*)calloc(F_counterViscous, sizeof(double));
+        // Allocate nProny number of Hn matrix
+        Hn[i] = (double*)calloc(F_counterViscous*viscousCount, sizeof(double));
+      } else {
+        if (viscoElastic) {
+          Hn[i] = NULL;
+          S0n[i] = NULL;
+        }
+      }
 
 			//the next counter is for the PK2 stress array
 			//there is a PK2 stress tensor stored at each gauss point
@@ -131,6 +172,18 @@ void ShapeFunctions() {
       counter += 4;
       dshp_counter += 12;
 			F_counter += 9;
+      if (viscousCount) {
+        const int F_counterViscous = 9;
+        S0n[i] = (double*)calloc(F_counterViscous, sizeof(double));
+        // Allocate nProny number of Hn matrix
+        Hn[i] = (double*)calloc(F_counterViscous*viscousCount, sizeof(double));
+      } else {
+        if (viscoElastic) {
+          Hn[i] = NULL;
+          S0n[i] = NULL;
+        }
+      }
+
 			pk2_counter += 6; // six positions for 3D, it is symmetric
 			detF_counter +=1;
 			internals_counter += MAXINTERNALVARS * GaussPoints[i];
@@ -150,6 +203,17 @@ void ShapeFunctions() {
       counter += nShapeFunctions[i]*gpCount;
       dshp_counter += (ndim * nShapeFunctions[i] * gpCount);
 			F_counter += (ndim*ndim*gpCount);
+      if (viscousCount) {
+        const int F_counterViscous = ndim*ndim*gpCount;
+        S0n[i] = (double*)calloc(F_counterViscous, sizeof(double));
+        // Allocate nProny number of Hn matrix
+        Hn[i] = (double*)calloc(F_counterViscous*viscousCount, sizeof(double));
+      } else {
+        if (viscoElastic) {
+          Hn[i] = NULL;
+          S0n[i] = NULL;
+        }
+      }
 			pk2_counter += 6; // six positions for 3D, it is symmetric
 			detF_counter += gpCount; // detF stored only at gauss point
 			internals_counter += MAXINTERNALVARS * GaussPoints[i];
@@ -162,7 +226,6 @@ void ShapeFunctions() {
 		pk2ptr[i+1] = pk2_counter;
 		detFptr[i+1] = detF_counter;
 		InternalsPtr[i+1]=internals_counter;
-
   } // loop on i, nelements
 
   // for debugging purposes
@@ -240,16 +303,5 @@ void ShapeFunctions() {
   int Bsize = bColSize*cSize;
   fintGQ = (double*)malloc(bColSize*sizeof(double));
   B = (double*)malloc(Bsize*sizeof(double));
-  // Allocate arrays specific to viscoelastic material
-  // Check if viscoelastic material is used 
-  for (int i = 0; i < nPIDglobal; ++i) {
-    if (materialID[i] == 5) {
-      // Allocated and set to zero for first time step
-      Hn_1 = (double *)calloc(F_counter, sizeof(double));
-      Hn_2 = (double *)calloc(F_counter, sizeof(double));
-      S0n = (double *)calloc(F_counter, sizeof(double));
-      break;
-    }
-  }
   return;
 }

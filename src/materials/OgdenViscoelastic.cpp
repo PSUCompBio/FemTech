@@ -1,29 +1,23 @@
 #include "FemTech.h"
 #include "blas.h"
+#include "lapack.h"
 
 #include <stdlib.h>
 
-/* Implements the three-dimensional Holzapfel-Gasser-Ogden Model with isotropic
- * fiber distribution (\kappa = \frac{1}{3}). Details of this implementation can
- * be found in HGOIsotropic function. Here on top of the HGO model, 
- * viscoelasticity is included for the shear compnents of the stress tensor.
- * Computes the second Piola-Kirchhoff stress tensor in Voigt notation. 
- * Input to the function is the eleemnt ID and the Gauss Quadrature point
- * number. Using the input the deformation gradient is loaded along with the
- * material properties of the element. Expected material properties :
- * \rho    = properties(0)
- * \mu     = properties(1)
- * K       = properties(2)
- * k_1     = properties(3)
- * k_2     = properties(4)
- * n       = properties(5)
- * g_i     = properties(6+2*i)
- * t_i     = properties(7+2*i)
- * Implementation follows : Kaliske, M. and Rothert, H., 1997. Formulation and 
- * implementation of three-dimensional viscoelasticity at small and finite 
- * strains. Computational Mechanics, 19(3), pp.228-239. */
+/* Implements the Ogden Model
+ * Expected material properties :
+ * \rho      = properties(0)
+ * K         = properties(1)
+ * N_{Ogden} = properties(2), maximum value of 3
+ * \alpha_i  = properties(3+2*i) i = 0 to N_{Ogden}-1
+ * \mu_i     = properties(4+2*i) i = 0 to N_{Ogden}-1
+ * N_{Prony} = properties(3+N_{Ogden}*2), maximum value of 6
+ * g_i       = properties(4+2*N_{Ogden}+2*j) j = 0 to N_{Prony}-1
+ * \tau_i    = properties(5+2*N_{Ogden}+2*j) j = 0 to N_{Prony}-1
+ * MAXMATPARAMS = 4+2*(N_{Ogden}+N_{Prony}) = 22
+ * */
 
-void HGOIsotropicViscoelastic(int e, int gp) {
+void OgdenViscoelastic(int e, int gp) {
   if (ndim == 2) {
     FILE_LOG_SINGLE(ERROR, "Plane Strain implementation yet to be done");
     TerminateFemTech(3);
@@ -38,73 +32,74 @@ void HGOIsotropicViscoelastic(int e, int gp) {
   // Get location of array with material properties of the element
   const double* localProperties = &(properties[pideIndex]);
   // Read material properties
-  const double mu = localProperties[1];
-  const double K = localProperties[2];
-  const double k1 = localProperties[3];
-  const double k2 = localProperties[4];
-  // Kappa = 1/3 for isotropic fiber distribution
-  const double kappa = 1.0/3.0;
-  const int nPronyLocal = int(localProperties[5]); // No of terms in prony series
+  const double K = localProperties[1];
+  const int nTerm = static_cast<int>(localProperties[2]);
+  const int nPronyLocal = int(localProperties[3+nTerm*2]); // No of terms in prony series
   // TODO(Anil) convert local allocations to one time global
   double *gi, *ti;
   gi = (double*)malloc(nPronyLocal*sizeof(double));
   ti = (double*)malloc(nPronyLocal*sizeof(double));
   for (unsigned int i = 0; i < nPronyLocal; ++i) {
-    gi[i] = localProperties[6+2*i];
-    ti[i] = localProperties[7+2*i];
+    gi[i] = localProperties[4+2*(i+nTerm)];
+    ti[i] = localProperties[5+2*(i+nTerm)];
   }
 
   double * const F_element_gp = &(F[index]);
-  // Compute the hydrostatic diagonal contribution to cauchy stress tensor
-  const double hydroDiag = 0.5*K*(J*J-1.0)/J; 
-  // Compute the left elastic Cauchy-Green tensor B = F*F^T
-  const unsigned int matSize = ndim * ndim;
-  double *Bmat = mat1;
+  // Use temp storage mat1 for Finverse
+  double *fInv = mat1;
+  // Compute F inverse
+  InverseF(e, gp, fInv);
+  // Use temp storage 2 for storing Bmat
+  double *Bmat = mat2;
+  // Compute B = FF^T and compute its eigen values
   dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
         F_element_gp, &ndim, &zero, Bmat, &ndim);
-  // Compute trace of B
-  const double traceB = Bmat[0] + Bmat[4] + Bmat[8];
-  // Calculate first invarient of the isochoric Cauchy-Green deformation tensor
-  const double Jm23 = pow(J, -2.0/3.0);
-  const double I1 = Jm23*traceB;
-  // Compute E_\alpha
-  const double E_alpha = kappa*(I1-3.0);
-  double fiberPrefactor = 0.0;
-  if (E_alpha > 0.0) {
-    fiberPrefactor = 2.0*k1*exp(k2*E_alpha*E_alpha)*E_alpha*kappa;
+  const unsigned int matSize = ndim * ndim;
+  // Compute eigen values and eigenvectors of B
+  int nEigen;
+  double cEigenValue[ndim];
+  double dWork[workSize];
+  dsyev_(jobzV, uploU, &ndim, Bmat, &ndim, cEigenValue, dWork, &workSize, &info);
+  // Compute sqrt of lambda and multiply by J^{-1/3}
+  const double Jm13 = pow(J, -1.0/3.0);
+  for (int i = 0; i < ndim; ++i) {
+    cEigenValue[i] = sqrt(cEigenValue[i])*Jm13;
   }
-  const double totalPrefactor = (mu + fiberPrefactor)/J;
-  // Compute deviatoric part of isochoric left elastic Cauchy-Green tensor
-  // \overline{B}^d_{ij} = J^{-2/3}(B_{ij}-B_{kk} \delta_{ij}/3)
-  const double traceBby3 = traceB/3.0;
-  Bmat[0] = Bmat[0] - traceBby3;
-  Bmat[4] = Bmat[4] - traceBby3;
-  Bmat[8] = Bmat[8] - traceBby3;
-  for (int i = 0; i < matSize; ++i) {
-    Bmat[i] = Bmat[i]*Jm23*totalPrefactor;
-  }
-  // Bmat now stores \sigma_d
-  // Storing sigma to Bmat
-  Bmat[0] += hydroDiag;
-  Bmat[4] += hydroDiag;
-  Bmat[8] += hydroDiag;
-
-  // Compute pk2 : S = J F^{-1} \sigma  F^{-T}
-  double *fInv = mat2;
-  double *STemp = mat3;
-  double *S = mat4;
-  InverseF(e, gp, fInv);
-  // Compute F^{-1}*\sigma
+  // Compute F^-1(cEigenVector)
+  // Each column of basisVec points to F^{-1}*e where e is the eigen vector of B
+  // matrix
+  double *basisVec = mat3;
   dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim,
-           Bmat, &ndim, &zero, STemp, &ndim);
-  // Compute J F^{-1}*\sigma F^{-T}
-  dgemm_(chn, chy, &ndim, &ndim, &ndim, &J, STemp, &ndim,
-           fInv, &ndim, &zero, S, &ndim);
-  // Compute the right elastic Cauchy-Green tensor C = F^T*F
-  // Reuse temperory variable mat1 to compute C
-  double *Cmat = mat1;
+           Bmat, &ndim, &zero, basisVec, &ndim);
+
+  double *S = mat4;
+  for (int i = 0; i < matSize; ++i) {
+    S[i] = 0.0;
+  }
+  const double hydro = K*(J-1.0); 
+  double eigenPower[ndim];
+  for (int i = 0; i < ndim; ++i) {
+    double preFactor = 0.0;
+    for (int j = 0; j < nTerm; ++j) {
+      double alpha = localProperties[3+j*2];
+      double mu = localProperties[4+j*2];
+      double eigenSum = 0.0;
+      for (int k = 0; k < ndim; ++k) {
+        const double t1 = pow(cEigenValue[k], alpha);
+        eigenPower[k] = t1;
+        eigenSum = eigenSum + t1;
+      }
+      eigenSum = eigenSum/(-3.0);
+      preFactor = mu*(eigenPower[i]-eigenSum);
+    }
+    preFactor += hydro;
+    dyadic(&basisVec[3*i], preFactor, S);
+  }
+  // FILE_LOGMatrix(WARNING, S, ndim, ndim, "Before viscoelaticty\n");
+  double *Cmat = mat2;
   dgemm_(chy, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
         F_element_gp, &ndim, &zero, Cmat, &ndim);
+  // FILE_LOGMatrix(WARNING, Cmat, ndim, ndim, "C mat\n");
   // compute the double dot product C:S
   double SddC = 0.0;
   for (int i = 0; i < matSize; ++i) {
@@ -116,10 +111,12 @@ void HGOIsotropicViscoelastic(int e, int gp) {
   double* Sic = mat3; // Reuse mat3 for storing isochoric part of S
   dgemm_(chn, chy, &ndim, &ndim, &ndim, &SddC, fInv, &ndim,
         fInv, &ndim, &zero, Sic, &ndim);
+  // FILE_LOGMatrix(WARNING, Sic, ndim, ndim, "Sic mat\n");
   double *Sdev = mat1; // Reuse mat1 to store deviatoric part of S
   for (int i = 0; i < matSize; ++i) {
     Sdev[i] = S[i]-Sic[i];
   }
+  // FILE_LOGMatrix(WARNING, Sdev, ndim, ndim, "Sdev mat\n");
   // Access histroy dependence
   double *elemS = S0n[e];
   double *S0nLocal = &(elemS[gp*matSize]);
@@ -138,6 +135,7 @@ void HGOIsotropicViscoelastic(int e, int gp) {
       S[j] = S[j] + HnI[j];
     }
   }
+  // FILE_LOGMatrix(WARNING, S, ndim, ndim, "S Visco mat\n");
 
   // Get location of array to store PK2 values
   double * pk2Local = &(pk2[pk2ptr[e]+6*gp]);

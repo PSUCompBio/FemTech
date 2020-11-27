@@ -65,11 +65,17 @@ void FreeArrays() {
   free1DArray(fintGQ);
   free1DArray(B);
   // Viscoelastic materials
-  free1DArray(Hn_1);
-  free1DArray(Hn_2);
-  free1DArray(S0n);
+  if (Hn) {
+    for (unsigned int i = 0; i < nelements; ++i) {
+      free1DArray(Hn[i]);
+      free1DArray(S0n[i]);
+    }
+    free1DArray(Hn);
+    free1DArray(S0n);
+  }
+  free1DArray(nProny);
 
-  if (ElementType != NULL){
+  if (ElementType != NULL) {
     for (int i = 0; i < nelements; i++){
         free(ElementType[i]);
     }
