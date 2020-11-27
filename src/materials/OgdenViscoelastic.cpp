@@ -58,15 +58,8 @@ void OgdenViscoelastic(int e, int gp) {
   // Compute eigen values and eigenvectors of B
   int nEigen;
   double cEigenValue[ndim];
-  double cEigenVector[ndim*ndim];
-  int dWorkN = ndim*30;
-  int iWorkN = 15*ndim;
-  double dWork[dWorkN];
-  int iWork[iWorkN];
-  int iSuppZ[2*ndim];
-  dsyevr_(jobzV, rangeA, uploU, &ndim, Bmat, &ndim, &dStart, &dStart, \
-      &iStart, &iStart, &eigenTol, &nEigen, cEigenValue, cEigenVector, \
-      &ndim, iSuppZ, dWork, &dWorkN, iWork, &iWorkN, &info);
+  double dWork[workSize];
+  dsyev_(jobzV, uploU, &ndim, Bmat, &ndim, cEigenValue, dWork, &workSize, &info);
   // Compute sqrt of lambda and multiply by J^{-1/3}
   const double Jm13 = pow(J, -1.0/3.0);
   for (int i = 0; i < ndim; ++i) {
@@ -77,7 +70,7 @@ void OgdenViscoelastic(int e, int gp) {
   // matrix
   double *basisVec = mat3;
   dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim,
-           cEigenVector, &ndim, &zero, basisVec, &ndim);
+           Bmat, &ndim, &zero, basisVec, &ndim);
 
   double *S = mat4;
   for (int i = 0; i < matSize; ++i) {
@@ -102,9 +95,11 @@ void OgdenViscoelastic(int e, int gp) {
     preFactor += hydro;
     dyadic(&basisVec[3*i], preFactor, S);
   }
+  // FILE_LOGMatrix(WARNING, S, ndim, ndim, "Before viscoelaticty\n");
   double *Cmat = mat2;
   dgemm_(chy, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
         F_element_gp, &ndim, &zero, Cmat, &ndim);
+  // FILE_LOGMatrix(WARNING, Cmat, ndim, ndim, "C mat\n");
   // compute the double dot product C:S
   double SddC = 0.0;
   for (int i = 0; i < matSize; ++i) {
@@ -116,10 +111,12 @@ void OgdenViscoelastic(int e, int gp) {
   double* Sic = mat3; // Reuse mat3 for storing isochoric part of S
   dgemm_(chn, chy, &ndim, &ndim, &ndim, &SddC, fInv, &ndim,
         fInv, &ndim, &zero, Sic, &ndim);
+  // FILE_LOGMatrix(WARNING, Sic, ndim, ndim, "Sic mat\n");
   double *Sdev = mat1; // Reuse mat1 to store deviatoric part of S
   for (int i = 0; i < matSize; ++i) {
     Sdev[i] = S[i]-Sic[i];
   }
+  // FILE_LOGMatrix(WARNING, Sdev, ndim, ndim, "Sdev mat\n");
   // Access histroy dependence
   double *S0nLocal = S0n[e];
   double *elemH = Hn[e];
@@ -137,6 +134,7 @@ void OgdenViscoelastic(int e, int gp) {
       S[j] = S[j] + HnI[j];
     }
   }
+  // FILE_LOGMatrix(WARNING, S, ndim, ndim, "S Visco mat\n");
 
   // Get location of array to store PK2 values
   double * pk2Local = &(pk2[pk2ptr[e]+6*gp]);

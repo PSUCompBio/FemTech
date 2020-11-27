@@ -91,6 +91,9 @@ void ShapeFunctions() {
   if (viscoElastic) {
     Hn = (double**)malloc(nelements*sizeof(double*));
     S0n = (double**)malloc(nelements*sizeof(double*));
+  } else {
+    Hn = NULL;
+    S0n = NULL;
   }
 
   for (int i = 0; i < nelements; i++) {
@@ -127,9 +130,14 @@ void ShapeFunctions() {
 			F_counter += 72;
       if (viscousCount) {
         const int F_counterViscous = 72;
-        S0n[i] = (double*)malloc(F_counterViscous*sizeof(double));
+        S0n[i] = (double*)calloc(F_counterViscous, sizeof(double));
         // Allocate nProny number of Hn matrix
-        Hn[i] = (double*)malloc(F_counterViscous*viscousCount*sizeof(double));
+        Hn[i] = (double*)calloc(F_counterViscous*viscousCount, sizeof(double));
+      } else {
+        if (viscoElastic) {
+          Hn[i] = NULL;
+          S0n[i] = NULL;
+        }
       }
 
 			//the next counter is for the PK2 stress array
@@ -166,9 +174,14 @@ void ShapeFunctions() {
 			F_counter += 9;
       if (viscousCount) {
         const int F_counterViscous = 9;
-        S0n[i] = (double*)malloc(F_counterViscous*sizeof(double));
+        S0n[i] = (double*)calloc(F_counterViscous, sizeof(double));
         // Allocate nProny number of Hn matrix
-        Hn[i] = (double*)malloc(F_counterViscous*viscousCount*sizeof(double));
+        Hn[i] = (double*)calloc(F_counterViscous*viscousCount, sizeof(double));
+      } else {
+        if (viscoElastic) {
+          Hn[i] = NULL;
+          S0n[i] = NULL;
+        }
       }
 
 			pk2_counter += 6; // six positions for 3D, it is symmetric
@@ -192,9 +205,14 @@ void ShapeFunctions() {
 			F_counter += (ndim*ndim*gpCount);
       if (viscousCount) {
         const int F_counterViscous = ndim*ndim*gpCount;
-        S0n[i] = (double*)malloc(F_counterViscous*sizeof(double));
+        S0n[i] = (double*)calloc(F_counterViscous, sizeof(double));
         // Allocate nProny number of Hn matrix
-        Hn[i] = (double*)malloc(F_counterViscous*viscousCount*sizeof(double));
+        Hn[i] = (double*)calloc(F_counterViscous*viscousCount, sizeof(double));
+      } else {
+        if (viscoElastic) {
+          Hn[i] = NULL;
+          S0n[i] = NULL;
+        }
       }
 			pk2_counter += 6; // six positions for 3D, it is symmetric
 			detF_counter += gpCount; // detF stored only at gauss point

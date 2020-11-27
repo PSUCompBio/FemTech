@@ -3,15 +3,16 @@
 
 // Variables for blas
 static const char* jobzV = (char*)"V";
-static const char* rangeA = (char*)"A";
 static const char* uploU = (char*)"U";
-static const double dStart = 0;
-static const int iStart = 0;
-static const double eigenTol = 1e-12;
+// static const double eigenTol = -1;
 static int info;
+static const int workSize = 102;
 
 extern "C" {
  /* DSYEVR prototype */
+ extern void dsyev_(const char* const jobz, const char* const uplo, 
+     const int* const n, double* const a, const int* const lda,
+     double* const w, double* work, const int* const lwork, int* const info );
  extern void dsyevr_(const char* const jobz, const char* const range, 
      const char* const uplo, const int* const n, double* const a, 
      const int* const lda, const double* const vl, const double* const vu, 

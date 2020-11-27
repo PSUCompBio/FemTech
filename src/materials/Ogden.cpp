@@ -43,17 +43,9 @@ void Ogden(int e, int gp) {
         F_element_gp, &ndim, &zero, Bmat, &ndim);
   const unsigned int matSize = ndim * ndim;
   // Compute eigen values and eigenvectors of B
-  int nEigen;
   double cEigenValue[ndim];
-  double cEigenVector[ndim*ndim];
-  int dWorkN = ndim*30;
-  int iWorkN = 15*ndim;
-  double dWork[dWorkN];
-  int iWork[iWorkN];
-  int iSuppZ[2*ndim];
-  dsyevr_(jobzV, rangeA, uploU, &ndim, Bmat, &ndim, &dStart, &dStart, \
-      &iStart, &iStart, &eigenTol, &nEigen, cEigenValue, cEigenVector, \
-      &ndim, iSuppZ, dWork, &dWorkN, iWork, &iWorkN, &info);
+  double dWork[workSize];
+  dsyev_(jobzV, uploU, &ndim, Bmat, &ndim, cEigenValue, dWork, &workSize, &info);
   // Compute sqrt of lambda and multiply by J^{-1/3}
   const double Jm13 = pow(J, -1.0/3.0);
   for (int i = 0; i < ndim; ++i) {
@@ -64,7 +56,7 @@ void Ogden(int e, int gp) {
   // matrix
   double *basisVec = mat3;
   dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim,
-           cEigenVector, &ndim, &zero, basisVec, &ndim);
+           Bmat, &ndim, &zero, basisVec, &ndim);
 
   double *S = mat4;
   for (int i = 0; i < matSize; ++i) {
