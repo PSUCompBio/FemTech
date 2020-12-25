@@ -10,9 +10,36 @@ jsonOutputFile = uid + '_output.json'
 linearAcc = inputJson['simulation']['linear-acceleration']
 angularAcc = inputJson['simulation']['angular-acceleration']
 
-if 'xt' in linearAcc:
+# Check if time array is present, common for all accelerations 
+if 'time-all' in inputJson['simulation']:
     maxG = np.max(np.sqrt(np.array(linearAcc['xv'])**2+np.array(linearAcc['yv'])**2+np.array(linearAcc['zv'])**2))/9.81
     maxT = np.max(np.sqrt(np.array(angularAcc['xv'])**2+np.array(angularAcc['yv'])**2+np.array(angularAcc['zv'])**2))
+elif 'xt' in linearAcc: # If all sensor values have corresponding time arrays
+    # If they are equal compute maximum directly, else interpolate and compute
+    if (np.array_equal(np.array(linearAcc['xt']), np.array(linearAcc['yt'])) 
+            and np.array_equal(np.array(linearAcc['xt']), np.array(linearAcc['zt']))):
+        maxG = np.max(np.sqrt(np.array(linearAcc['xv'])**2+np.array(linearAcc['yv'])**2+np.array(linearAcc['zv'])**2))/9.81
+    else:
+        nCount = 5*max([len(linearAcc['xt']), len(linearAcc['yt']), len(linearAcc['zt'])])
+        tmin = min(linearAcc['xt'][0], linearAcc['yt'][0], linearAcc['zt'][0])
+        tmax = min(linearAcc['xt'][-1], linearAcc['yt'][-1], linearAcc['zt'][-1])
+        tInter = np.linspace(tmin, tmax, nCount)
+        xV = np.interp(tInter, linearAcc['xt'], linearAcc['xv'])
+        yV = np.interp(tInter, linearAcc['yt'], linearAcc['yv'])
+        zV = np.interp(tInter, linearAcc['zt'], linearAcc['zv'])
+        maxG = np.max(np.sqrt(xV**2+yV**2+zV**2))/9.81
+    if (np.array_equal(np.array(angularAcc['xt']), np.array(angularAcc['yt']))
+            and np.array_equal(np.array(angularAcc['xt']), np.array(angularAcc['zt']))):
+        maxT = np.max(np.sqrt(np.array(angularAcc['xv'])**2+np.array(angularAcc['yv'])**2+np.array(angularAcc['zv'])**2))
+    else:
+        nCount = 5*max([len(angularAcc['xt']), len(angularAcc['yt']), len(angularAcc['zt'])])
+        tmin = min(angularAcc['xt'][0], angularAcc['yt'][0], angularAcc['zt'][0])
+        tmax = min(angularAcc['xt'][-1], angularAcc['yt'][-1], angularAcc['zt'][-1])
+        tInter = np.linspace(tmin, tmax, nCount)
+        xV = np.interp(tInter, angularAcc['xt'], angularAcc['xv'])
+        yV = np.interp(tInter, angularAcc['yt'], angularAcc['yv'])
+        zV = np.interp(tInter, angularAcc['zt'], angularAcc['zv'])
+        maxT = np.max(np.sqrt(xV**2+yV**2+zV**2))
 else:
     maxG = np.sqrt(np.array(linearAcc[0])**2+np.array(linearAcc[1])**2+np.array(linearAcc[2])**2)
     if isinstance(angularAcc, list):
