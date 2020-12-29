@@ -20,12 +20,12 @@ using namespace boost::numeric::odeint;
 void CustomPlot();
 void InitCustomPlot(const Json::Value &jsonInput);
 double InitBoundaryCondition(const Json::Value &jsonInput);
-void InitInjuryCriterion(void);
+void InitInjuryCriteria(void);
 void updateBoundaryNeighbour(void);
 void ApplyAccBoundaryConditions();
 int getImpactID(std::string location);
 void WriteOutputFile();
-void CalculateInjuryCriterions(void);
+void CalculateInjuryCriteria(void);
 void TransformMesh(const Json::Value &jsonInput);
 
 /* Global Variables/Parameters */
@@ -47,6 +47,7 @@ int *boundaryID = NULL;
 int boundarySize;
 double peakTime, tMax;
 bool writeField = true;
+bool computeInjuryFlag = true;
 /* Global variables for output */
 int *outputNodeList;
 int outputNodeCount = 0;
@@ -142,10 +143,13 @@ int main(int argc, char **argv) {
   Json::Value simulationJson = inputJson["simulation"];
 
   std::string meshFile = simulationJson["mesh"].asString();
-  tMax =
-      simulationJson["maximum-time"].asDouble() / 1000.0; // Convert to seconds
+  // Convert maximum time to seconds
+  tMax = simulationJson["maximum-time"].asDouble() / 1000.0;
   if (!simulationJson["write-vtu"].empty()) {
     writeField = simulationJson["write-vtu"].asBool();
+  }
+  if (!simulationJson["compute-injury-criteria"].empty()) {
+    computeInjuryFlag = simulationJson["compute-injury-criteria"].asBool();
   }
   FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
   // Read Input Mesh file and equally partition elements among processes
@@ -161,7 +165,9 @@ int main(int argc, char **argv) {
   AllocateArrays();
   TransformMesh(simulationJson);
   InitCustomPlot(simulationJson);
-  InitInjuryCriterion();
+  if (computeInjuryFlag) {
+    InitInjuryCriteria();
+  }
 
   // Initial settings for BC evaluations
   // Used if initial velocity and acceleration BC is to be set.
@@ -170,9 +176,13 @@ int main(int argc, char **argv) {
   /* Write inital, undeformed configuration*/
   int plot_counter = 0;
   if (writeField) {
-    WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, outputCount,
-             outputNames, elementIDInjury, nElementsInjury, outputDoubleArray, 
-             outputDoubleCount, outputDoubleNames);
+    if (computeInjuryFlag) {
+      WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, outputCount,
+              outputNames, elementIDInjury, nElementsInjury, outputDoubleArray, 
+              outputDoubleCount, outputDoubleNames);
+    } else {
+      WriteVTU(outputFileName.c_str(), plot_counter);
+    }
     WritePVD(outputFileName.c_str(), plot_counter);
   }
   stepTime[plot_counter] = Time;
@@ -270,7 +280,9 @@ int main(int argc, char **argv) {
     int writeFileFlag = time_step_counter % nsteps_write;
     CheckEnergy(Time, writeFlag);
 
-    CalculateInjuryCriterions();
+    if (computeInjuryFlag) {
+      CalculateInjuryCriteria();
+    }
     if (writeFileFlag == 0) {
       CustomPlot();
     }
@@ -283,9 +295,13 @@ int main(int argc, char **argv) {
         stepTime[plot_counter] = Time;
         if (writeField) {
           FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
-          WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, outputCount,
-                  outputNames, elementIDInjury, nElementsInjury, outputDoubleArray, 
-                  outputDoubleCount, outputDoubleNames);
+          if (computeInjuryFlag) {
+            WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, outputCount,
+                    outputNames, elementIDInjury, nElementsInjury, outputDoubleArray, 
+                    outputDoubleCount, outputDoubleNames);
+          } else {
+            WriteVTU(outputFileName.c_str(), plot_counter);
+          }
           WritePVD(outputFileName.c_str(), plot_counter);
         }
       }
@@ -325,7 +341,7 @@ int main(int argc, char **argv) {
   free1DArray(outputNodeList);
   free1DArray(outputElemList);
   free1DArray(outputNodeRigidDisp);
-  // Free variables used for injury criterions
+  // Free variables used for injury criteria
   free1DArray(PS_Old);
   free1DArray(elementIDInjury);
   free1DArray(PSxSRArray);
@@ -590,7 +606,7 @@ void CustomPlot() {
     double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
     for (int i = 0; i < outputElemCount; ++i) {
       unsigned int plotElem = outputElemList[i];
-      // Recalculation to decouple from Injury criterion
+      // Recalculation to decouple from Injury criteria
       if (materialID[pid[plotElem]] != 0) {
         CalculateMaximumPrincipalStrain(plotElem, &currentStrainMaxElem,
                                         &currentStrainMinElem,
@@ -618,50 +634,97 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
   // Read input JSON for acceleration values
   if (jsonInput["linear-acceleration"]
           .isObject()) { // Use time traces from file
-    // Read linear acceleration and angular acceleration time traces
-    linAccXSize = jsonInput["linear-acceleration"]["xt"].size();
-    int tempSize = jsonInput["linear-acceleration"]["xv"].size();
-    assert(tempSize == linAccXSize);
-    linAccXt = (double *)malloc(sizeof(double) * linAccXSize);
-    linAccXv = (double *)malloc(sizeof(double) * linAccXSize);
-    linAccYSize = jsonInput["linear-acceleration"]["yt"].size();
-    tempSize = jsonInput["linear-acceleration"]["yv"].size();
-    assert(tempSize == linAccYSize);
-    linAccYt = (double *)malloc(sizeof(double) * linAccYSize);
-    linAccYv = (double *)malloc(sizeof(double) * linAccYSize);
-    linAccZSize = jsonInput["linear-acceleration"]["zt"].size();
-    tempSize = jsonInput["linear-acceleration"]["zv"].size();
-    assert(tempSize == linAccYSize);
-    linAccZt = (double *)malloc(sizeof(double) * linAccZSize);
-    linAccZv = (double *)malloc(sizeof(double) * linAccZSize);
-    jsonToArray(linAccXt, jsonInput["linear-acceleration"]["xt"]);
-    jsonToArray(linAccXv, jsonInput["linear-acceleration"]["xv"]);
-    jsonToArray(linAccYt, jsonInput["linear-acceleration"]["yt"]);
-    jsonToArray(linAccYv, jsonInput["linear-acceleration"]["yv"]);
-    jsonToArray(linAccZt, jsonInput["linear-acceleration"]["zt"]);
-    jsonToArray(linAccZv, jsonInput["linear-acceleration"]["zv"]);
+    // If time array is common
+    if (!jsonInput["time-all"].empty()) {
+      unsigned int timeSize = 0;
+      timeSize = jsonInput["time-all"].size();
+      linAccXSize = jsonInput["linear-acceleration"]["xv"].size();
+      assert(linAccXSize == timeSize);
+      linAccYSize = jsonInput["linear-acceleration"]["yv"].size();
+      assert(linAccYSize == timeSize);
+      linAccZSize = jsonInput["linear-acceleration"]["zv"].size();
+      assert(linAccZSize == timeSize);
 
-    angAccXSize = jsonInput["angular-acceleration"]["xt"].size();
-    tempSize = jsonInput["angular-acceleration"]["xv"].size();
-    assert(tempSize == angAccXSize);
-    angAccXt = (double *)malloc(sizeof(double) * angAccXSize);
-    angAccXv = (double *)malloc(sizeof(double) * angAccXSize);
-    angAccYSize = jsonInput["angular-acceleration"]["yt"].size();
-    tempSize = jsonInput["angular-acceleration"]["yv"].size();
-    assert(tempSize == angAccYSize);
-    angAccYt = (double *)malloc(sizeof(double) * angAccYSize);
-    angAccYv = (double *)malloc(sizeof(double) * angAccYSize);
-    angAccZSize = jsonInput["angular-acceleration"]["zt"].size();
-    tempSize = jsonInput["angular-acceleration"]["zv"].size();
-    assert(tempSize == angAccZSize);
-    angAccZt = (double *)malloc(sizeof(double) * angAccZSize);
-    angAccZv = (double *)malloc(sizeof(double) * angAccZSize);
-    jsonToArray(angAccXt, jsonInput["angular-acceleration"]["xt"]);
-    jsonToArray(angAccXv, jsonInput["angular-acceleration"]["xv"]);
-    jsonToArray(angAccYt, jsonInput["angular-acceleration"]["yt"]);
-    jsonToArray(angAccYv, jsonInput["angular-acceleration"]["yv"]);
-    jsonToArray(angAccZt, jsonInput["angular-acceleration"]["zt"]);
-    jsonToArray(angAccZv, jsonInput["angular-acceleration"]["zv"]);
+      linAccXt = (double *)malloc(sizeof(double) * linAccXSize);
+      linAccXv = (double *)malloc(sizeof(double) * linAccXSize);
+      linAccYt = (double *)malloc(sizeof(double) * linAccYSize);
+      linAccYv = (double *)malloc(sizeof(double) * linAccYSize);
+      linAccZt = (double *)malloc(sizeof(double) * linAccZSize);
+      linAccZv = (double *)malloc(sizeof(double) * linAccZSize);
+
+      jsonToArray(linAccXt, jsonInput["time-all"]);
+      jsonToArray(linAccXv, jsonInput["linear-acceleration"]["xv"]);
+      jsonToArray(linAccYv, jsonInput["linear-acceleration"]["yv"]);
+      jsonToArray(linAccZv, jsonInput["linear-acceleration"]["zv"]);
+      memcpy(linAccYt, linAccXt, timeSize*sizeof(double));
+      memcpy(linAccZt, linAccXt, timeSize*sizeof(double));
+
+      angAccXSize = jsonInput["angular-acceleration"]["xv"].size();
+      assert(timeSize == angAccXSize);
+      angAccYSize = jsonInput["angular-acceleration"]["yv"].size();
+      assert(timeSize == angAccYSize);
+      angAccZSize = jsonInput["angular-acceleration"]["zv"].size();
+      assert(timeSize == angAccZSize);
+
+      angAccXt = (double *)malloc(sizeof(double) * angAccXSize);
+      angAccXv = (double *)malloc(sizeof(double) * angAccXSize);
+      angAccYt = (double *)malloc(sizeof(double) * angAccYSize);
+      angAccYv = (double *)malloc(sizeof(double) * angAccYSize);
+      angAccZt = (double *)malloc(sizeof(double) * angAccZSize);
+      angAccZv = (double *)malloc(sizeof(double) * angAccZSize);
+
+      jsonToArray(angAccXv, jsonInput["angular-acceleration"]["xv"]);
+      jsonToArray(angAccYv, jsonInput["angular-acceleration"]["yv"]);
+      jsonToArray(angAccZv, jsonInput["angular-acceleration"]["zv"]);
+      memcpy(angAccXt, linAccXt, timeSize*sizeof(double));
+      memcpy(angAccYt, linAccXt, timeSize*sizeof(double));
+      memcpy(angAccZt, linAccXt, timeSize*sizeof(double));
+    } else {
+      // Read linear acceleration and angular acceleration time traces
+      linAccXSize = jsonInput["linear-acceleration"]["xt"].size();
+      int tempSize = jsonInput["linear-acceleration"]["xv"].size();
+      assert(tempSize == linAccXSize);
+      linAccXt = (double *)malloc(sizeof(double) * linAccXSize);
+      linAccXv = (double *)malloc(sizeof(double) * linAccXSize);
+      linAccYSize = jsonInput["linear-acceleration"]["yt"].size();
+      tempSize = jsonInput["linear-acceleration"]["yv"].size();
+      assert(tempSize == linAccYSize);
+      linAccYt = (double *)malloc(sizeof(double) * linAccYSize);
+      linAccYv = (double *)malloc(sizeof(double) * linAccYSize);
+      linAccZSize = jsonInput["linear-acceleration"]["zt"].size();
+      tempSize = jsonInput["linear-acceleration"]["zv"].size();
+      assert(tempSize == linAccYSize);
+      linAccZt = (double *)malloc(sizeof(double) * linAccZSize);
+      linAccZv = (double *)malloc(sizeof(double) * linAccZSize);
+      jsonToArray(linAccXt, jsonInput["linear-acceleration"]["xt"]);
+      jsonToArray(linAccXv, jsonInput["linear-acceleration"]["xv"]);
+      jsonToArray(linAccYt, jsonInput["linear-acceleration"]["yt"]);
+      jsonToArray(linAccYv, jsonInput["linear-acceleration"]["yv"]);
+      jsonToArray(linAccZt, jsonInput["linear-acceleration"]["zt"]);
+      jsonToArray(linAccZv, jsonInput["linear-acceleration"]["zv"]);
+
+      angAccXSize = jsonInput["angular-acceleration"]["xt"].size();
+      tempSize = jsonInput["angular-acceleration"]["xv"].size();
+      assert(tempSize == angAccXSize);
+      angAccXt = (double *)malloc(sizeof(double) * angAccXSize);
+      angAccXv = (double *)malloc(sizeof(double) * angAccXSize);
+      angAccYSize = jsonInput["angular-acceleration"]["yt"].size();
+      tempSize = jsonInput["angular-acceleration"]["yv"].size();
+      assert(tempSize == angAccYSize);
+      angAccYt = (double *)malloc(sizeof(double) * angAccYSize);
+      angAccYv = (double *)malloc(sizeof(double) * angAccYSize);
+      angAccZSize = jsonInput["angular-acceleration"]["zt"].size();
+      tempSize = jsonInput["angular-acceleration"]["zv"].size();
+      assert(tempSize == angAccZSize);
+      angAccZt = (double *)malloc(sizeof(double) * angAccZSize);
+      angAccZv = (double *)malloc(sizeof(double) * angAccZSize);
+      jsonToArray(angAccXt, jsonInput["angular-acceleration"]["xt"]);
+      jsonToArray(angAccXv, jsonInput["angular-acceleration"]["xv"]);
+      jsonToArray(angAccYt, jsonInput["angular-acceleration"]["yt"]);
+      jsonToArray(angAccYv, jsonInput["angular-acceleration"]["yv"]);
+      jsonToArray(angAccZt, jsonInput["angular-acceleration"]["zt"]);
+      jsonToArray(angAccZv, jsonInput["angular-acceleration"]["zv"]);
+    }
 
     // Convert linear accelerations from g force to m/s^2
     // Convert time from milli-seconds to seconds
@@ -1108,200 +1171,202 @@ void WriteOutputFile() {
     }
     output["center-of-mass"] = vec;
   }
-  // Compute and write principal values
-  double maxLocationAndTime[4];
-  int globalElementID;
-  struct {
-    double value;
-    int rank;
-  } parStructMax;
+  if (computeInjuryFlag) {
+    // Compute and write principal values
+    double maxLocationAndTime[4];
+    int globalElementID;
+    struct {
+      double value;
+      int rank;
+    } parStructMax;
 
-  /* Calculate principal min and max strain location and send to master */
-  // Find the gloabl max principal strain
-  for (int i = 0; i < maxQuantities; ++i) {
-    parStructMax.value = maxValue[i];
-    parStructMax.rank = world_rank;
-    MPI_Allreduce(MPI_IN_PLACE, &parStructMax, 1, MPI_DOUBLE_INT,
-                  outputOperator[i], MPI_COMM_WORLD);
-    if (parStructMax.rank == world_rank) {
-      for (int j = 0; j < 4; ++j) {
-        maxLocationAndTime[j] = 0.0;
+    /* Calculate principal min and max strain location and send to master */
+    // Find the gloabl max principal strain
+    for (int i = 0; i < maxQuantities; ++i) {
+      parStructMax.value = maxValue[i];
+      parStructMax.rank = world_rank;
+      MPI_Allreduce(MPI_IN_PLACE, &parStructMax, 1, MPI_DOUBLE_INT,
+                    outputOperator[i], MPI_COMM_WORLD);
+      if (parStructMax.rank == world_rank) {
+        for (int j = 0; j < 4; ++j) {
+          maxLocationAndTime[j] = 0.0;
+        }
+        int elementID = maxElem[i];
+        // Compute element coordinates
+        int nP = eptr[elementID + 1] - eptr[elementID];
+        for (int j = eptr[elementID]; j < eptr[elementID + 1]; ++j) {
+          maxLocationAndTime[0] += coordinates[connectivity[j] * ndim];
+          maxLocationAndTime[1] += coordinates[connectivity[j] * ndim + 1];
+          maxLocationAndTime[2] += coordinates[connectivity[j] * ndim + 2];
+        }
+        for (int j = 0; j < ndim; ++j) {
+          maxLocationAndTime[j] = maxLocationAndTime[j] / ((double)nP);
+        }
+        maxLocationAndTime[3] = maxTime[i];
+        globalElementID = global_eid[elementID];
+        if (world_rank != 0) {
+          MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7297 + i,
+                  MPI_COMM_WORLD);
+          MPI_Send(&globalElementID, 1, MPI_INT, 0, 7297 + i, MPI_COMM_WORLD);
+        }
       }
-      int elementID = maxElem[i];
-      // Compute element coordinates
-      int nP = eptr[elementID + 1] - eptr[elementID];
-      for (int j = eptr[elementID]; j < eptr[elementID + 1]; ++j) {
-        maxLocationAndTime[0] += coordinates[connectivity[j] * ndim];
-        maxLocationAndTime[1] += coordinates[connectivity[j] * ndim + 1];
-        maxLocationAndTime[2] += coordinates[connectivity[j] * ndim + 2];
-      }
-      for (int j = 0; j < ndim; ++j) {
-        maxLocationAndTime[j] = maxLocationAndTime[j] / ((double)nP);
-      }
-      maxLocationAndTime[3] = maxTime[i];
-      globalElementID = global_eid[elementID];
-      if (world_rank != 0) {
-        MPI_Send(maxLocationAndTime, 4, MPI_DOUBLE, 0, 7297 + i,
-                 MPI_COMM_WORLD);
-        MPI_Send(&globalElementID, 1, MPI_INT, 0, 7297 + i, MPI_COMM_WORLD);
+      if (world_rank == 0) {
+        if (parStructMax.rank != 0) {
+          MPI_Recv(maxLocationAndTime, 4, MPI_DOUBLE, parStructMax.rank, 7297 + i,
+                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+          MPI_Recv(&globalElementID, 1, MPI_INT, parStructMax.rank, 7297 + i,
+                  MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        }
+        for (int j = 0; j < ndim; ++j) {
+          vec[j] = maxLocationAndTime[j];
+        }
+        output[maxOutput[i]]["value"] = parStructMax.value;
+        output[maxOutput[i]]["location"] = vec;
+        output[maxOutput[i]]["time"] = maxLocationAndTime[3];
+        output[maxOutput[i]]["global-element-id"] = globalElementID;
       }
     }
-    if (world_rank == 0) {
-      if (parStructMax.rank != 0) {
-        MPI_Recv(maxLocationAndTime, 4, MPI_DOUBLE, parStructMax.rank, 7297 + i,
-                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        MPI_Recv(&globalElementID, 1, MPI_INT, parStructMax.rank, 7297 + i,
-                 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-      }
-      for (int j = 0; j < ndim; ++j) {
-        vec[j] = maxLocationAndTime[j];
-      }
-      output[maxOutput[i]]["value"] = parStructMax.value;
-      output[maxOutput[i]]["location"] = vec;
-      output[maxOutput[i]]["time"] = maxLocationAndTime[3];
-      output[maxOutput[i]]["global-element-id"] = globalElementID;
-    }
-  }
 
-  // Compute the volume of all parts
-  double volumePart[nPIDglobal];
-  double elementVolume[nelements]; // For MPS computation
-  for (int i = 0; i < nPIDglobal; ++i) {
-    volumePart[i] = 0.0;
-  }
-  computePartVolume(volumePart, elementVolume);
-  // Compute Volume of threshold quantities
-  double thresholdVolume[threshQuantities];
-  for (int i = 0; i < threshQuantities; ++i) {
-    thresholdVolume[i] = 0.0;
-  }
-  for (int i = 0; i < nElementsInjury; ++i) {
-    int e = elementIDInjury[i];
-    double eV = elementVolume[e];
-    // CSDM 5, 10, 15, 30 volume computations
-    if (thresholdElements[0][i]) {
-      thresholdVolume[0] += eV;
-      if (thresholdElements[1][i]) {
-        thresholdVolume[1] += eV;
-        if (thresholdElements[2][i]) {
-          thresholdVolume[2] += eV;
-          if (thresholdElements[3][i]) {
-            thresholdVolume[3] += eV;
+    // Compute the volume of all parts
+    double volumePart[nPIDglobal];
+    double elementVolume[nelements]; // For MPS computation
+    for (int i = 0; i < nPIDglobal; ++i) {
+      volumePart[i] = 0.0;
+    }
+    computePartVolume(volumePart, elementVolume);
+    // Compute Volume of threshold quantities
+    double thresholdVolume[threshQuantities];
+    for (int i = 0; i < threshQuantities; ++i) {
+      thresholdVolume[i] = 0.0;
+    }
+    for (int i = 0; i < nElementsInjury; ++i) {
+      int e = elementIDInjury[i];
+      double eV = elementVolume[e];
+      // CSDM 5, 10, 15, 30 volume computations
+      if (thresholdElements[0][i]) {
+        thresholdVolume[0] += eV;
+        if (thresholdElements[1][i]) {
+          thresholdVolume[1] += eV;
+          if (thresholdElements[2][i]) {
+            thresholdVolume[2] += eV;
+            if (thresholdElements[3][i]) {
+              thresholdVolume[3] += eV;
+            }
           }
         }
       }
+      // MPSR > 120 volume
+      if (thresholdElements[4][i]) {
+        thresholdVolume[4] += eV;
+      }
+      // MPSxSR > 28 volume
+      if (thresholdElements[5][i]) {
+        thresholdVolume[5] += eV;
+      }
     }
-    // MPSR > 120 volume
-    if (thresholdElements[4][i]) {
-      thresholdVolume[4] += eV;
-    }
-    // MPSxSR > 28 volume
-    if (thresholdElements[5][i]) {
-      thresholdVolume[5] += eV;
-    }
-  }
-  // Calculate cumulative volume on all ranks
-  MPI_Allreduce(MPI_IN_PLACE, thresholdVolume, 6, MPI_DOUBLE, MPI_SUM,
-                MPI_COMM_WORLD);
-  if (world_rank == 0) {
-    // Excluded PID hardcoded for CSDM computation
-    double totalVolume = 0.0;
-    for (int i = 0; i < nPIDglobal; ++i) {
-      bool include = true;
-      for (int j = 0; j < injuryExcludePIDCount; ++j) {
-        if (injuryExcludePID[j] == i) {
-          include = false;
-          break;
+    // Calculate cumulative volume on all ranks
+    MPI_Allreduce(MPI_IN_PLACE, thresholdVolume, 6, MPI_DOUBLE, MPI_SUM,
+                  MPI_COMM_WORLD);
+    if (world_rank == 0) {
+      // Excluded PID hardcoded for CSDM computation
+      double totalVolume = 0.0;
+      for (int i = 0; i < nPIDglobal; ++i) {
+        bool include = true;
+        for (int j = 0; j < injuryExcludePIDCount; ++j) {
+          if (injuryExcludePID[j] == i) {
+            include = false;
+            break;
+          }
+        }
+        if (include) {
+          totalVolume += volumePart[i];
         }
       }
-      if (include) {
-        totalVolume += volumePart[i];
+      // Write brain volume in output.json
+      output["brain-volume"] = totalVolume;
+
+      // Write threshold values
+      for (int i = 0; i < threshQuantities; ++i) {
+        output[thresholdTag[i]]["value"] = thresholdVolume[i] / totalVolume;
+      }
+      // Write percentile values
+      for (int i = 0; i < percentileQuantities; ++i) {
+        output[percentileTag[i]]["value"] = percentileValue[i];
+        output[percentileTag[i]]["time"] = percentileTime[i];
       }
     }
-    // Write brain volume in output.json
-    output["brain-volume"] = totalVolume;
+    // Create list to write to output.json
+    const int outputJsonCount = 5;
+    std::string jsonOutputTag[outputJsonCount];
+    int *outputJsonArray[outputJsonCount];
+    for (int i = 0; i < csdmCount; ++i) {
+      jsonOutputTag[i] = thresholdTag[i];
+      outputJsonArray[i] = thresholdElements[i];
+    }
+    // Write MPS-95 elements
+    jsonOutputTag[csdmCount] = percentileTag[0];
+    outputJsonArray[csdmCount] = percentileElements[0];
 
-    // Write threshold values
-    for (int i = 0; i < threshQuantities; ++i) {
-      output[thresholdTag[i]]["value"] = thresholdVolume[i] / totalVolume;
+    int *countPerProc, *cumCountPerProc, *fullElemList;
+    if (world_rank == 0) {
+      countPerProc = (int *)malloc(world_size * sizeof(int));
+      cumCountPerProc = (int *)malloc(world_size * sizeof(int));
     }
-    // Write percentile values
-    for (int i = 0; i < percentileQuantities; ++i) {
-      output[percentileTag[i]]["value"] = percentileValue[i];
-      output[percentileTag[i]]["time"] = percentileTime[i];
-    }
-  }
-  // Create list to write to output.json
-  const int outputJsonCount = 5;
-  std::string jsonOutputTag[outputJsonCount];
-  int *outputJsonArray[outputJsonCount];
-  for (int i = 0; i < csdmCount; ++i) {
-    jsonOutputTag[i] = thresholdTag[i];
-    outputJsonArray[i] = thresholdElements[i];
-  }
-  // Write MPS-95 elements
-  jsonOutputTag[csdmCount] = percentileTag[0];
-  outputJsonArray[csdmCount] = percentileElements[0];
-
-  int *countPerProc, *cumCountPerProc, *fullElemList;
-  if (world_rank == 0) {
-    countPerProc = (int *)malloc(world_size * sizeof(int));
-    cumCountPerProc = (int *)malloc(world_size * sizeof(int));
-  }
-  for (int i = 0; i < outputJsonCount; ++i) {
-    int *list = outputJsonArray[i];
-    int count = 0;
-    for (int j = 0; j < nElementsInjury; ++j) {
-      if (list[j]) {
-        count = count + 1;
-      }
-    }
-    int numElem = count;
-    int *localElemList = (int *)malloc(numElem * sizeof(int));
-    count = 0;
-    if (numElem) {
+    for (int i = 0; i < outputJsonCount; ++i) {
+      int *list = outputJsonArray[i];
+      int count = 0;
       for (int j = 0; j < nElementsInjury; ++j) {
         if (list[j]) {
-          int e = elementIDInjury[j];
-          localElemList[count] = global_eid[e];
           count = count + 1;
         }
       }
-    }
-    // Get total count
-    int totalElems = 0;
-    MPI_Allreduce(&numElem, &totalElems, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-    // Get recv count
-    MPI_Gather(&numElem, 1, MPI_INT, countPerProc, 1, MPI_INT, 0,
-               MPI_COMM_WORLD);
+      int numElem = count;
+      int *localElemList = (int *)malloc(numElem * sizeof(int));
+      count = 0;
+      if (numElem) {
+        for (int j = 0; j < nElementsInjury; ++j) {
+          if (list[j]) {
+            int e = elementIDInjury[j];
+            localElemList[count] = global_eid[e];
+            count = count + 1;
+          }
+        }
+      }
+      // Get total count
+      int totalElems = 0;
+      MPI_Allreduce(&numElem, &totalElems, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      // Get recv count
+      MPI_Gather(&numElem, 1, MPI_INT, countPerProc, 1, MPI_INT, 0,
+                MPI_COMM_WORLD);
 
-    if (world_rank == 0) {
-      fullElemList = (int *)malloc(totalElems * sizeof(int));
-      cumCountPerProc[0] = 0;
-      for (int j = 1; j < world_size; ++j) {
-        cumCountPerProc[j] = countPerProc[j - 1] + cumCountPerProc[j - 1];
+      if (world_rank == 0) {
+        fullElemList = (int *)malloc(totalElems * sizeof(int));
+        cumCountPerProc[0] = 0;
+        for (int j = 1; j < world_size; ++j) {
+          cumCountPerProc[j] = countPerProc[j - 1] + cumCountPerProc[j - 1];
+        }
       }
-    }
-    // Get full array
-    if (totalElems) {
-      MPI_Gatherv(localElemList, numElem, MPI_INT, fullElemList, countPerProc,
-                  cumCountPerProc, MPI_INT, 0, MPI_COMM_WORLD);
+      // Get full array
+      if (totalElems) {
+        MPI_Gatherv(localElemList, numElem, MPI_INT, fullElemList, countPerProc,
+                    cumCountPerProc, MPI_INT, 0, MPI_COMM_WORLD);
+      }
+      if (world_rank == 0) {
+        Json::Value elementList(Json::arrayValue);
+        elementList.resize(totalElems);
+        for (int j = 0; j < totalElems; ++j) {
+          elementList[j] = fullElemList[j];
+        }
+        free(fullElemList);
+        output[jsonOutputTag[i]]["global-element-id"] = elementList;
+      }
+      free(localElemList);
+      MPI_Barrier(MPI_COMM_WORLD);
     }
     if (world_rank == 0) {
-      Json::Value elementList(Json::arrayValue);
-      elementList.resize(totalElems);
-      for (int j = 0; j < totalElems; ++j) {
-        elementList[j] = fullElemList[j];
-      }
-      free(fullElemList);
-      output[jsonOutputTag[i]]["global-element-id"] = elementList;
+      free(countPerProc);
+      free(cumCountPerProc);
     }
-    free(localElemList);
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-  if (world_rank == 0) {
-    free(countPerProc);
-    free(cumCountPerProc);
   }
 
   // Write output to file
@@ -1315,7 +1380,7 @@ void WriteOutputFile() {
   }
 }
 
-void InitInjuryCriterion(void) {
+void InitInjuryCriteria(void) {
   // Set all min and max quantities to zero
   for (int i = 0; i < maxQuantities; ++i) {
     maxValue[i] = 0.0;
@@ -1381,7 +1446,7 @@ void InitInjuryCriterion(void) {
   outputDoubleArray[0] = PS_Old;
 }
 
-void CalculateInjuryCriterions(void) {
+void CalculateInjuryCriteria(void) {
   double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
   double PSR = 0.0, PSxSR = 0.0;
 

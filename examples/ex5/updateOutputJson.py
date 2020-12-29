@@ -3,6 +3,8 @@ import json
 import linecache
 import numpy as np
 
+import csv
+
 jsonInputFile = sys.argv[1]
 inputJson = json.loads(open(jsonInputFile).read())
 uid = inputJson["uid"]
@@ -48,45 +50,94 @@ else:
         maxT = np.fabs(angularAcc)
 
 outputJson = json.loads(open(jsonOutputFile).read())
-meshType = outputJson["output-file"].split('_')[0]
-cellDataFile = meshType + '_cellcentres.txt'
 
-# Part list 
-partList = ["msc", "stem", "cerebellum", "frontal", "parietal", "occipital",
-        "temporal"]
+if (not 'compute-injury-criteria' in inputJson['simulation']) or inputJson['simulation']['compute-injury-criteria']:
+    meshType = outputJson["output-file"].split('_')[0]
+    cellDataFile = meshType + '_cellcentres.txt'
 
-# Populate region from cell centres file
-maxInjuryMetrics = ["principal-max-strain", "principal-min-strain",
-        "maximum-shear-strain", "maximum-PSxSR"];
-threshInjuryMetrics = ["CSDM-10", "CSDM-15", "CSDM-30", "CSDM-5", 
-        "MPS-95"];
+    # Part list 
+    partList = ["msc", "stem", "cerebellum", "frontal", "parietal", "occipital",
+            "temporal"]
 
-# Loop over metric with single element output
-for metric in maxInjuryMetrics:
-    maxLocation = int(outputJson[metric]["global-element-id"])
-    maxLine = linecache.getline(cellDataFile, maxLocation).split()
-    outputJson[metric]["brain-region"] = maxLine[4]
-    # overwrite location with femtech-reference co-ordinate
-    outputJson[metric]["location"] = \
-            [float(maxLine[1]), float(maxLine[2]), float(maxLine[3])]
-    outputJson[metric].pop("global-element-id", None)
+    # Populate region from cell centres file
+    maxInjuryMetrics = ["principal-max-strain", "principal-min-strain",
+            "maximum-shear-strain", "maximum-PSxSR"];
+    threshInjuryMetrics = ["CSDM-10", "CSDM-15", "CSDM-30", "CSDM-5", 
+            "MPS-95"];
 
-# Loop over metric with multiple element output
-for metric in threshInjuryMetrics:
-    maxLocation = outputJson[metric]["global-element-id"]
-    for part in partList:
-        outputJson[metric][part] = []
-    for loc in maxLocation:
-        maxLine = linecache.getline(cellDataFile, int(loc)).split()
-        outputJson[metric][maxLine[4]].append([float(maxLine[1]), \
-                float(maxLine[2]), float(maxLine[3])])
-    outputJson[metric].pop("global-element-id", None)
+    # Loop over metric with single element output
+    for metric in maxInjuryMetrics:
+        maxLocation = int(outputJson[metric]["global-element-id"])
+        maxLine = linecache.getline(cellDataFile, maxLocation).split()
+        outputJson[metric]["brain-region"] = maxLine[4]
+        # overwrite location with femtech-reference co-ordinate
+        outputJson[metric]["location"] = \
+                [float(maxLine[1]), float(maxLine[2]), float(maxLine[3])]
+        outputJson[metric].pop("global-element-id", None)
+
+    # Loop over metric with multiple element output
+    for metric in threshInjuryMetrics:
+        maxLocation = outputJson[metric]["global-element-id"]
+        for part in partList:
+            outputJson[metric][part] = []
+        for loc in maxLocation:
+            maxLine = linecache.getline(cellDataFile, int(loc)).split()
+            outputJson[metric][maxLine[4]].append([float(maxLine[1]), \
+                    float(maxLine[2]), float(maxLine[3])])
+        outputJson[metric].pop("global-element-id", None)
 
 # Add max quantities 
 outputJson["max-linear-acc-g"] = maxG
 outputJson["max-angular-acc-rads2"] = maxT
 
+if 'output-nodes' in inputJson['simulation'] or 'output-elements' in inputJson['simulation']:
+    # Open plot column file 
+    plotFile = 'plot_' + uid + '.dat'
+    with open(plotFile, "r") as csv_file:
+        csv_reader = csv.DictReader(csv_file, delimiter=' ')
+        # Get count to pre-allocate arrays
+        nRow = sum(1 for _ in csv_reader)
+        # Read the time arrays
+        time = np.zeros(nRow)
+        csv_file.seek(0)
+        # Go to next item to skip header
+        next(csv_reader)
+        for n, row in enumerate(csv_reader):
+            time[n] = row['#Time']
+        outputJson['plot'] = {}
+        outputJson['plot']['time'] = time.tolist()
+        # Read all the nodes
+        xVal = np.zeros(nRow)
+        yVal = np.zeros(nRow)
+        zVal = np.zeros(nRow)
+        for n, node in enumerate(inputJson['simulation']['output-nodes']):
+            nodeStr = 'Node'+'%08d'%node+'-Disp'
+            csv_file.seek(0)
+            # Go to next item to skip header
+            next(csv_reader)
+            for i, row in enumerate(csv_reader):
+                xVal[i] = row[nodeStr+'X']
+                yVal[i] = row[nodeStr+'Y']
+                zVal[i] = row[nodeStr+'Z']
+            outputJson['plot']['nodal-displacement-'+str(n)] = {}
+            outputJson['plot']['nodal-displacement-'+str(n)]['x'] = xVal.tolist();
+            outputJson['plot']['nodal-displacement-'+str(n)]['y'] = yVal.tolist();
+            outputJson['plot']['nodal-displacement-'+str(n)]['z'] = zVal.tolist();
+        for n, element in enumerate(inputJson['simulation']['output-elements']):
+            elemStr = 'Elem'+'%08d'%element+'-Stre'
+            csv_file.seek(0)
+            # Go to next item to skip header
+            next(csv_reader)
+            for i, row in enumerate(csv_reader):
+                xVal[i] = row[elemStr+'P']
+                yVal[i] = row[elemStr+'S']
+            outputJson['plot']['element-stress-'+str(n)] = {}
+            outputJson['plot']['element-stress-'+str(n)]['principal'] = xVal.tolist();
+            outputJson['plot']['element-stress-'+str(n)]['shear'] = yVal.tolist();
+
+# print(outputJson)
 # jstr = json.dumps(outputJson, indent = 2, sort_keys=False)
 # print(jstr)
+# jsonOutputFile = uid + '_output_modified.json'
 with open(jsonOutputFile, 'w') as outfile:
     json.dump(outputJson, outfile, indent = 2, sort_keys=False)
