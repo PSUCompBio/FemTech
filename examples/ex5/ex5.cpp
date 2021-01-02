@@ -27,6 +27,7 @@ int getImpactID(std::string location);
 void WriteOutputFile();
 void CalculateInjuryCriteria(void);
 void TransformMesh(const Json::Value &jsonInput);
+void WriteMPS(void);
 
 /* Global Variables/Parameters */
 double Time, dt;
@@ -100,6 +101,8 @@ const std::string thresholdTag[threshQuantities] = {
 /* Variables for maximum Principal Strain times Strain Rate */
 double *PS_Old = NULL;
 double *PSxSRArray = NULL;
+/* Store MPS of each element */
+double *elementMPS = NULL;
 
 int nElementsInjury = 0, *elementIDInjury = NULL;
 // part ID to exclude from injury computation
@@ -324,6 +327,8 @@ int main(int argc, char **argv) {
                    "Final Displacement Solution");
 
   WriteOutputFile();
+  WriteMPS();
+
   // Free local boundary condition related arrays
   free1DArray(boundaryID);
   free1DArray(linAccXt);
@@ -351,6 +356,7 @@ int main(int argc, char **argv) {
   for (int i = 0; i < percentileQuantities; ++i) {
     free1DArray(percentileElements[i]);
   }
+  free1DArray(elementMPS);
 
   if (rankForCustomPlot) {
     MPI_File_close(&outputFilePtr);
@@ -1378,6 +1384,7 @@ void WriteOutputFile() {
     std::ofstream oFile(uid + "_output.json");
     writer->write(output, &oFile);
   }
+  FILE_LOG_MASTER(INFO, "Json output file written");
 }
 
 void InitInjuryCriteria(void) {
@@ -1429,6 +1436,7 @@ void InitInjuryCriteria(void) {
   }
   PS_Old = (double *)calloc(nElementsInjury, sizeof(double));
   PSxSRArray = (double *)calloc(nElementsInjury, sizeof(double));
+  elementMPS = (double *)calloc(nelements, sizeof(double));
 
   // Array to output to Paraview
   // All threshold elements CSDM : 5, 10, 15, 30, MPSR-120, MPSxSR-28
@@ -1501,6 +1509,9 @@ void CalculateInjuryCriteria(void) {
     }
     PS_Old[j] = currentStrainMaxElem;
     PSxSRArray[j] = PSxSR;
+    if (currentStrainMaxElem > elementMPS[i]) {
+      elementMPS[i] = currentStrainMaxElem;
+    }
   } // For loop over elements included for injury
 
   // Compute 95 percentile MPS and corresponding element list
@@ -1680,4 +1691,38 @@ void TransformMesh(const Json::Value &jsonInput) {
   }
   // Ensure rest of the code is executed after the mesh transformation
   MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void WriteMPS(void) {
+  MPI_File mpsFilePtr;
+  MPI_Info infoin;
+  MPI_Info_create(&infoin);
+  MPI_Info_set(infoin, "access_style", "write_once,random");
+  char fileName[] = "MPSfile.dat";
+
+  int err;
+  err = MPI_File_open(MPI_COMM_WORLD, fileName, MPI_MODE_EXCL|MPI_MODE_WRONLY|MPI_MODE_CREATE, infoin, &mpsFilePtr);
+  if (err != MPI_SUCCESS) {
+    if (world_rank == 0) {
+      MPI_File_delete(fileName, MPI_INFO_NULL);
+    }
+    err = MPI_File_open(MPI_COMM_WORLD, fileName, MPI_MODE_EXCL|MPI_MODE_WRONLY|MPI_MODE_CREATE, infoin, &mpsFilePtr);
+    if (err != MPI_SUCCESS) {
+      FILE_LOG_SINGLE(ERROR, "Unable to open MPS file");
+      return;
+    }
+  }
+
+  char s1[25*nelements] = {0};
+  char s2[25] = {0};
+  for (unsigned int i = 0; i < nelements; ++i) {
+    sprintf(s2, "%06d, %.9e\n", global_eid[i], elementMPS[i]);
+    strcat(s1, s2);
+  }
+  // FILE_LOG(ERROR, "String : %s, Size : %d", s1, strlen(s1));
+  MPI_File_write_ordered(mpsFilePtr, s1, strlen(s1), MPI_CHAR, MPI_STATUS_IGNORE);
+
+  MPI_File_close(&mpsFilePtr);
+  FILE_LOG_MASTER(INFO, "MPS values written to file");
+  return;
 }
