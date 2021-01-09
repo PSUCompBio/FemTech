@@ -1,6 +1,7 @@
 #include "FemTech.h"
 #include "jsonfuncs.h"
 #include "utilities.h"
+#include "gitbranch.h"
 
 #include "json/writer.h"
 
@@ -327,7 +328,9 @@ int main(int argc, char **argv) {
                    "Final Displacement Solution");
 
   WriteOutputFile();
-  WriteMPS();
+  if (computeInjuryFlag) {
+    WriteMPS();
+  }
 
   // Free local boundary condition related arrays
   free1DArray(boundaryID);
@@ -1176,6 +1179,8 @@ void WriteOutputFile() {
       vec[i] = cm[i];
     }
     output["center-of-mass"] = vec;
+    output["code-branch"] = GIT_BRANCH;
+    output["code-version"] = GIT_COMMIT_HASH;
   }
   if (computeInjuryFlag) {
     // Compute and write principal values
