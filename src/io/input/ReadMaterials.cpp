@@ -133,15 +133,17 @@ void ReadMaterials() {
               // properties[1] = K
               // properties[2] = G_0
               // properties[3] = G_\infity
-              // properties[4] = \beta
+              // properties[4] = \beta 
               count = fscanf(File, "%lf %lf %lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2], 
                       &properties[index + 3], &properties[index + 4]);
               assert(count == 5);
-              // FILE_LOG_SINGLE(DEBUGLOG, "Part %d Viscoelastic properties (rho, K, G_0, G_infinity, beta) = "
+              // FILE_LOG_SINGLE(WARNING, "Part %d Viscoelastic properties (rho, K, G_0, G_infinity, beta) = "
               //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
               //         partID, properties[index + 0], properties[index + 1],
               //         properties[index + 2], properties[index + 3], properties[index + 4]);
+              // Convert \beta to \tau
+              // properties[index+4] = 1.0/properties[index+4];
               break;
       case 7 :// Ogden model with max N = 3
               // properties[0] = density

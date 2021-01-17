@@ -41,6 +41,9 @@ void ShapeFunctions() {
       const int nOgden = properties[MAXMATPARAMS*j+2];
       nProny[i] = properties[MAXMATPARAMS*j+2*nOgden+3];
     }
+    if (materialID[j] == 6) {
+      nProny[i] = 1;
+    }
   }
   bool viscoElastic = false;
   for (int i = 0; i < nelements; ++i) {

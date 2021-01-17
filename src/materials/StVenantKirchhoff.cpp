@@ -18,7 +18,7 @@ void StVenantKirchhoff(int e, int gp) {
     double lambda = properties[MAXMATPARAMS * pide + 2];
 
     // Compute Green-Lagrange Tensor: E= (1/2)*(F^T*F - I)
-    double matSize = ndim * ndim;
+    const unsigned int matSize = ndim * ndim;
     double *E = mat1;
     double *F_element_gp = &(F[index]);
     double half = 0.5;
@@ -38,6 +38,8 @@ void StVenantKirchhoff(int e, int gp) {
     S[0] += lambda * traceE;
     S[4] += lambda * traceE;
     S[8] += lambda * traceE;
+
+    FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, S, 3, 3, "Gauss Point : %d, S", gp);
 
     // 6 values saved per gauss point for 3d
     // in voigt notation, sigma11

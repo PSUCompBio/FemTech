@@ -134,9 +134,10 @@ void AllocateArrays() {
     // Allocations for material temporary computation
     // By default initialize mat1 and mat2
     // If HGO, Linear Elastic or Ogden material model present, allocate mat3 and mat4
+    // 4 temp mats for Maxwell-Viscoelastic with 1 term : Material ID 6
     int matCount = 2;
     for (int i = 0; i < nPIDglobal; ++i) {
-      if (materialID[i] == 3 || materialID[i] == 4 || materialID[i] == 5 || materialID[i] == 7 || materialID[i] == 8) {
+      if (materialID[i] == 3 || materialID[i] == 4 || materialID[i] == 5 || materialID[i] == 6 || materialID[i] == 7 || materialID[i] == 8) {
         matCount = 4;
         break;
       }    

@@ -23,7 +23,7 @@ void LinearElastic(int e, int gp) {
     // section 3.2
 
     // Compute strain \epsilon = 0.5*(F+F^T)-I
-    double matSize = ndim * ndim;
+    const unsigned int matSize = ndim * ndim;
     double *eps = mat1;
     double *F_element_gp = &(F[index]);
     // trace(\epsilon) = trace(F)-3

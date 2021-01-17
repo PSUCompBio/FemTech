@@ -1,7 +1,4 @@
-0 8 1040 2.1e9 2 10.1 53.8 -12.9 -120.4 6 0.768587 1e-6 0.1873432 1e-5 0.01489138 1e-4 0.019214683 1e-3 2.4018354e-4 1e-2 7.205506e-3 0.1
-
-# 0 7 1040 9.996667e5 2 10.1 53.8 -12.9 -120.4
-
+0 6 1040 558.47e6 1.66e3 9.28e2 16.95
 
 # form of file
 # partID (starting at 0), material ID (goes with consitutive model), ...
@@ -14,5 +11,6 @@
 # mat ID 4 - HGO Isotropic               : density mu lambda k1 k2
 # mat ID 5 - HGO Isotropic + Viscoelasticity  : density mu_0 lambda k1 k2 g1 t1 g2 t2
 # g1 t1 and g2 t2 are pairs of 2 term Prony series
+# mat ID 6 - Visco Elastic               : density K mu_0 mu_\infity \beta
 # mat ID 7 - Ogden : density K N alpha_1 mu_1..alpha_N mu_N
 # mat ID 8 - Ogden : density K N alpha_1 mu_1..alpha_N mu_N M g_1 t_1...g_M t_M
