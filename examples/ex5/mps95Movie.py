@@ -12,7 +12,7 @@ import numpy as np
 
 jsonFile = sys.argv[1]
 inputJson = json.loads(open(jsonFile).read())
-uid = inputJson["uid"]
+uid = inputJson["event_id"]
 simulationJson = inputJson["simulation"]
 meshFile = simulationJson["mesh"]
 mesh = os.path.splitext(meshFile)[0]

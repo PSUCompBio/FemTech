@@ -20,7 +20,7 @@ for name in "${testInputFiles[@]}"
 do
   input_filename="input_test_${name}.json"
 	echo "Input file name : ${input_filename}"
-  uid=`cat ${input_filename}|jq -r .'["uid"]'`
+  uid=`cat ${input_filename}|jq -r .'["event_id"]'`
   output_filename="${uid}_output.json"
   eval expectedVal=( \${value_$name[@]} )
   # Delete output file if it exists

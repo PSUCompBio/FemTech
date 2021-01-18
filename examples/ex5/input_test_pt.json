@@ -1,5 +1,5 @@
 {
-  "uid": "test_pt",
+  "event_id": "test_pt",
   "player": {
     "name" : "harry",
     "position" : "OL"

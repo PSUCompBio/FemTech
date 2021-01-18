@@ -8,7 +8,7 @@ import csv
 # Code assumes maximum-time is set to the last value of the time array
 jsonInputFile = sys.argv[1]
 inputJson = json.loads(open(jsonInputFile).read())
-uid = inputJson["uid"]
+uid = inputJson["event_id"]
 jsonOutputFile = uid + '_output.json'
 linearAcc = inputJson['simulation']['linear-acceleration']
 angularAcc = inputJson['simulation']['angular-acceleration']
