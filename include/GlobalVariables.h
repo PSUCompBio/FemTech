@@ -10,14 +10,15 @@ static int MAXPLOTSTEPS = 1000; /* maximum plot output steps */
    ID */
 static int materialWeight[] = {1, 10, 10, 10, 15, 20};
 /* Weights based on element type 0 = C3D8, 1 = C3D4, 2 = T3D2 */
-static std::map<std::string, int> elemID = {{"C3D8", 0}, {"C3D4", 1}, {"T3D2", 2}};
-static int elemWeight[] = {2, 1, 1};
+static std::map<std::string, int> elemID = {{"C3D8", 0}, {"C3D4", 1}, {"T3D2", 2}, {"S4", 3}};
+static int elemWeight[] = {2, 1, 1, 1};
 
 const double huge = 1e20;
 
 extern std::string uid; /* Simulation unique id */
 extern int nparts;
 extern int nelements;
+extern int nshell;
 extern int nallelements;
 extern int nNodes;
 extern int ndim;
@@ -30,6 +31,7 @@ extern double ExplicitTimeStepReduction;
 extern double FailureTimeStep;
 
 extern double *coordinates;
+extern double *hatcoordinates;
 extern int *connectivity;
 extern int *globalNodeID; /*Stores global node ID for computing axis of rotation */
 extern int *GaussPoints;	/*holds how many guass points per element*/
@@ -38,6 +40,8 @@ extern int *dsptr;			/*deriviative of shp functions pointer array - helps step t
 extern int *gpPtr;			/*gauss point pointer - helps step through detJ and gaussWeights*/
 extern int *fptr; /*deformation gradient pointer - helps step through F array */
 extern int *pk2ptr; /*counter array for iterating through PK2 stress */
+extern int *cauchyshellptr; /*counter array for iterating through cauchy stress in shell*/
+extern int *HGshellptr; /*counter array for iterating through hourglassing stress in shell*/
 extern int *nShapeFunctions;/*number of shp functions per element */
 extern double *shp;			/*shape functions*/
 extern double *dshp;		/*derivatives of shape functions*/
@@ -49,6 +53,13 @@ extern double *mass;        /*mass matrix*/
 extern double *stiffness;        /*stiffness matrix*/
 extern double *rhs;              /*to store rhs matrix equation (implicit) */
 extern char **ElementType;	/* element type, e.g. C3D8 */
+extern int *ShellID; /*stores the ids of only shell elements*/
+extern double *Thickness; /*stores shell thickness*/
+extern double *corotationalx;
+extern double *corotationaly;
+extern double *corotationalz;
+extern double *areashell;
+extern double *Bshell;
 
 extern double *C; /*Stores C matrix for isotropic elastic material */
 extern double *gaussWeights;
@@ -62,10 +73,15 @@ extern int *boundary;
 /* Variables required for unsteady problem */
 extern double *velocities;
 extern double * velocities_half;
+extern double * hat_velocities_half;
 extern double *accelerations;
 extern bool ImplicitStatic;
 extern bool ImplicitDynamic;
 extern bool ExplicitDynamic;
+
+extern double * gamma_half;
+extern double * hg_strainrate;
+//extern int * h;
 
 extern double *fe; /*external forces for current step - used in engery calculation*/
 extern double *fe_prev; /*external forces for previous step - used in engery calculation*/
@@ -83,7 +99,12 @@ extern double *F; /* deformation graident tensor array */
 extern double *detF; /*determinate of F for all gauss points */
 extern double *invF; /*Inverse of F for all gauss points */
 extern double *pk2; /*PK2 Stress */
+extern double *cauchyshell; /*cauchy stress in shell elements*/
+extern double *cauchyshell_prev; /*previous cauchy stress in shell elements*/
+extern double *HGshell; /*hourglass stress in shell elements*/
+extern double *HGshell_prev; /*previous hourglass stress in shell elements*/
 extern double *Eavg; /*Green Lagrange Strain Tensor Averaged */
+extern double * hat_velocitystrain_half;
 
 extern int *materialID; /* material id for each element */
 extern double *properties; /* holds material parameters for each element */

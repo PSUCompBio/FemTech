@@ -22,6 +22,8 @@ int StrCmpCI(const char *str1, const char *str2) {
 static void Free2DimArray(void **Array, const int Size);
 static bool IsNodeSection(char *Line, FILE *File);
 static bool IsElementSection(char *Line, FILE *File, char *Type = NULL, char *ElSetName = NULL);
+static bool ShellSection(char *Line, FILE *File, char *Type = NULL, char *ElSetName = NULL);
+static double ShellThickness(char *Line, FILE *File, char *ShellSet, double thickness);
 //-------------------------------------------------------------------------------------------
 bool ReadAbaqus(const char *FileName) {
     // Checking if mesh file can be opened or not
@@ -30,12 +32,14 @@ bool ReadAbaqus(const char *FileName) {
         FILE_LOG_SINGLE(ERROR, "Cannot open input mesh file");
         return false;
     }
-    
+
     // Counting number of elements in elements section, number of nodes in nodes section of mesh file
     // And fixing elements and nodes sections' positions in the file
     const char *Delim = ", \t";
     char Line[MAX_FILE_LINE];
     int ElSetsCount = 0;
+    nshell = 0;
+    bool shellcheck = false;
     long ElementsSectionPos = -1, NodesSectionPos = -1, CurrentPos = ftell(File);
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (NodesSectionPos == -1 && IsNodeSection(Line, File)) {
@@ -48,30 +52,37 @@ bool ReadAbaqus(const char *FileName) {
                 }
             }
         }
-        
+
         if (IsElementSection(Line, File)) {
             if (ElementsSectionPos == -1) {
                 ElementsSectionPos = CurrentPos;
             }
             long LastValidElemDataLinePos = -1;
             ElSetsCount++;
+            shellcheck = false;
+            if(ShellSection(Line, File)){
+              shellcheck = true;          //check if element is s4
+            }
             while (fgets(Line, sizeof(Line), File) != NULL) {
                 if (LineToArray(true, false, 2, 0, Line, Delim) == 0) {
                     break;
                 }
                 nallelements++;
+                if(shellcheck){
+                  nshell++; //adding to total shell elements
+                }
                 LastValidElemDataLinePos = ftell(File);
             }
             if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
                 FILE_LOG_SINGLE(ERROR, "'fseek()' call for LastValidElemDataLinePos failed");
             }
         }
-        
+
         if (ElementsSectionPos == -1) {
             CurrentPos = ftell(File);
         }
     }
-    
+
     // Checking if elements and nodes were found in mesh file
     // And checking if we can be back to elements section in the file
     int fseeked = 0;
@@ -98,21 +109,28 @@ bool ReadAbaqus(const char *FileName) {
     // Fixing range of lines (in elements section of mesh file) from which processor will read its own elements
     const int From = world_rank * (nallelements / world_size);
     const int To = From + nelements - 1;
-    
+
     // Creating and initializing "eptr" and "ElementType" array, and determining size of "connectivity" array
     const int ELSETNAME_SIZE = 80;
     ElementType = (char **)malloc(nelements * sizeof(char *));
+    ShellID = (int *)malloc(nshell * sizeof(int ));   //global shell ID
+    Thickness = (double *)malloc(nshell * sizeof(double ));   //shell thickness
+    char **ShellSet = (char **)malloc(nshell * sizeof(char *));  //shell set name
     char **ElSetNames = (char **)malloc(nelements * sizeof(char *));
     for (int i = 0; i < nelements; i++) {
         ElementType[i] = (char *)calloc(MAX_ELEMENT_TYPE_SIZE, sizeof(char));
         ElSetNames[i] = (char *)calloc(ELSETNAME_SIZE, sizeof(char));
+    }
+    for (int i = 0; i < nshell; i++) {
+        ShellSet[i] = (char *)calloc(ELSETNAME_SIZE, sizeof(char));
     }
     char **UniqueElSetNames = (char **)malloc(ElSetsCount * sizeof(char *));
     for (int i = 0; i < ElSetsCount; i++) {
         UniqueElSetNames[i] = (char *)calloc(ELSETNAME_SIZE, sizeof(char));
     }
     eptr = (int *)calloc(nelements + 1, sizeof(int));
-    int i = 0, j = 0, pi = 0, ConnectivitySize = 0, UniqueElSetsCount = 0;
+    int i = 0, j = 0, pi = 0, sid = 0, ConnectivitySize = 0, UniqueElSetsCount = 0;
+    double thick = 0.0;
     char Type[MAX_FILE_LINE] = {0}, ElSetName[MAX_FILE_LINE] = {0};
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (IsElementSection(Line, File, Type, ElSetName)) {
@@ -128,6 +146,7 @@ bool ReadAbaqus(const char *FileName) {
             }
 
             long LastValidElemDataLinePos = -1;
+            long ShellPos = -1;
             while (fgets(Line, sizeof(Line), File) != NULL) {
                 const int n = LineToArray(true, false, 2, 0, Line, Delim);
                 if (n == 0) {
@@ -139,13 +158,22 @@ bool ReadAbaqus(const char *FileName) {
                     ConnectivitySize = ConnectivitySize + n;
                     Type[MAX_ELEMENT_TYPE_SIZE - 1] = 0;
                     strcpy(ElementType[pi], Type);
+                    if(strcmp(Type, "S4") == 0 )
+                      {
+                        ShellID[sid] = i;
+                        strcpy(ShellSet[sid], ElSetName);
+                        ShellPos = ftell(File);
+                        Thickness[sid] = ShellThickness(Line, File, ShellSet[sid], thick);
+                        fseek(File, ShellPos, SEEK_SET);
+                        sid++;
+                      }
                     strcpy(ElSetNames[pi], ElSetName);
                     pi = pi + 1;
                 }
                 i = i + 1;
                 LastValidElemDataLinePos = ftell(File);
             }
-            
+
             if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
                 FILE_LOG_SINGLE(ERROR, "'fseek()' call for LastValidElemDataLinePos failed");
             }
@@ -177,6 +205,7 @@ bool ReadAbaqus(const char *FileName) {
             }
         }
     }
+    Free2DimArray((void **)ShellSet, nshell);
     Free2DimArray((void **)ElSetNames, nelements);
     Free2DimArray((void **)UniqueElSetNames, ElSetsCount);
 
@@ -207,14 +236,14 @@ bool ReadAbaqus(const char *FileName) {
                 i = i + 1;
                 LastValidElemDataLinePos = ftell(File);
             }
-            
+
             if (fseek(File, LastValidElemDataLinePos, SEEK_SET) != 0) {
                 FILE_LOG_SINGLE(ERROR, "'fseek()' call for LastValidElemDataLinePos failed");
             }
         }
     }
     assert(eIndex == nelements);
-    
+
     // Checking if we can go to nodes section of mesh file
     if (fseek(File, NodesSectionPos, SEEK_SET) != 0) {
         fclose(File);
@@ -222,7 +251,7 @@ bool ReadAbaqus(const char *FileName) {
         FILE_LOG_SINGLE(ERROR, "'fseek()' call for NodesSectionPos failed");
         return false;
     }
-       
+
     // Initializing "coordinates" array
     int *UniqueConnectivity = (int *)malloc(ConnectivitySize * sizeof(int));
     memcpy(UniqueConnectivity, connectivity, ConnectivitySize * sizeof(int));
@@ -264,14 +293,14 @@ bool ReadAbaqus(const char *FileName) {
     }
     free(UniqueConnCoordinates);
     free(UniqueConnectivity);
-    
+
     // Checking if "coordinates" array is OK
     if (nNodes != ConnectivitySize) {
         FreeArrays();
         FILE_LOG_SINGLE(ERROR, "Failed to initialize 'coordinates' array");
         FILE_LOG_SINGLE(ERROR, "nnodes = %d, ConnectivitySize = %d, ndim = %d", nNodes, ConnectivitySize, ndim);
     }
-    
+
     fclose(File);
     return nNodes == ConnectivitySize;
 }
@@ -280,7 +309,7 @@ static char **LineToTokens(const char *Line, int *Size) {
     char **Result = NULL;
     char StrToken[MAX_FILE_LINE];
     int Count;
-    
+
     for (int n = 0; n < 2; n++) {
         StrToken[0] = 0;
         Count = 0;
@@ -410,3 +439,34 @@ static bool IsElementSection(char *Line, FILE *File, char *Type, char *ElSetName
     Free2DimArray((void **)Tokens, Size);
     return Result;
 }
+//-------------------------------------------------------------------------------------------
+static bool ShellSection(char *Line, FILE *File, char *Type, char *ShellSet) {
+    bool Result = false;
+    int Size;
+    char **Tokens = LineToTokens(Line, &Size);
+    if (Size > 2) {
+      Result = strcmp(Tokens[0], "*") == 0 && StrCmpCI(Tokens[1], "ELEMENT") == 0 && strcmp(Tokens[2], ",") == 0 && StrCmpCI(Tokens[5], "S4") == 0;
+    }
+    Free2DimArray((void **)Tokens, Size);
+    return Result;
+  }
+  //-------------------------------------------------------------------------------------------
+static double ShellThickness(char *Line, FILE *File, char *ShellSet, double thickness) {
+      char *temp;
+      int Size;
+      char **Tokens;
+      while (fgets(Line, MAX_FILE_LINE * sizeof(char), File) != NULL) {
+        Tokens = LineToTokens(Line, &Size);
+        if (strcmp(Tokens[0], "*") == 0 && StrCmpCI(Tokens[1], "SHELL") == 0 && StrCmpCI(Tokens[2], "SECTION") == 0 && StrCmpCI(Tokens[6], ShellSet) == 0) {
+          if (fgets(Line, MAX_FILE_LINE * sizeof(char), File) != NULL) {
+              Free2DimArray((void **)Tokens, Size);
+              Tokens = LineToTokens(Line, &Size);
+              temp = strcat(Tokens[0], Tokens[1]);
+          thickness = atof(strcat(temp, Tokens[2]));
+        }
+      Free2DimArray((void **)Tokens, Size);
+    }
+  }
+  return thickness;
+}
+//-------------------------------------------------------------------------------------------

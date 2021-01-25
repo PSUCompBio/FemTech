@@ -22,7 +22,7 @@ int main(int argc, char **argv){
 
   // Initialize the output log file
   initLog(logFile.c_str());
-	
+
 	ReadInputFile(argv[1]);
   ReadMaterials();
 	PartitionMesh();

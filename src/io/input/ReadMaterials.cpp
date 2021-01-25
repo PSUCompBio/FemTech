@@ -11,7 +11,7 @@ void ReadMaterials() {
   if ((File = fopen("materials.dat", "r")) == NULL) {
     FILE_LOG_SINGLE(ERROR, "Cannot open materials.dat file");
     TerminateFemTech(3);
-  } 
+  }
   int partID;
   FILE_LOG(INFO, "Number of parts = %d", nPIDglobal);
   bool *checkFullRead = (bool*)malloc(nPIDglobal*sizeof(bool));
@@ -89,7 +89,7 @@ void ReadMaterials() {
               // properties[3] = k1
               // properties[4] = k2
               count = fscanf(File, "%lf %lf %lf %lf %lf", &properties[index + 0],
-                      &properties[index + 1], &properties[index + 2], 
+                      &properties[index + 1], &properties[index + 2],
                       &properties[index + 3], &properties[index + 4]);
               assert(count == 5);
               // FILE_LOG_SINGLE(DEBUGLOG, "Part %d HGO properties (rho, mu, lambda, k1, k2) = "
@@ -107,7 +107,7 @@ void ReadMaterials() {
               // properties[6+i] = gi
               // properties[7+i] = ti
               count = fscanf(File, "%lf %lf %lf %lf %lf %lf", &properties[index + 0],
-                      &properties[index + 1], &properties[index + 2], 
+                      &properties[index + 1], &properties[index + 2],
                       &properties[index + 3], &properties[index + 4],
                       &properties[index + 5]);
               assert(count == 6);
@@ -116,7 +116,7 @@ void ReadMaterials() {
                 TerminateFemTech(3);
               }
               for (int j = 0; j < properties[index+5]; ++j) {
-                count = fscanf(File, "%lf %lf", &properties[index + 6 + j], 
+                count = fscanf(File, "%lf %lf", &properties[index + 6 + j],
                     &properties[index + 7 + j]);
                 assert(count == 2);
               }
@@ -133,7 +133,7 @@ void ReadMaterials() {
               // properties[3] = G_\infity
               // properties[4] = \beta
               count = fscanf(File, "%lf %lf %lf %lf %lf", &properties[index + 0],
-                      &properties[index + 1], &properties[index + 2], 
+                      &properties[index + 1], &properties[index + 2],
                       &properties[index + 3], &properties[index + 4]);
               assert(count == 5);
               // FILE_LOG_SINGLE(DEBUGLOG, "Part %d Viscoelastic properties (rho, K, G_0, G_infinity, beta) = "

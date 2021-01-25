@@ -26,6 +26,13 @@ void GetForce_3D() {
 				//CalculateDeformationGradient(i, j);
         // TerminateFemTech(1);
 			}else{
+        if(strcmp(ElementType[i], "S4") == 0){
+          StressUpdate(i, j);
+          HourglassStress(i, j);
+          ShellInternalForceUpdate(i,j,fintLocal);
+  				//CalculateDeformationGradient(i, j);
+          // TerminateFemTech(1);
+  			}else{
 	      // calculate F^n
 				CalculateDeformationGradient(i, j);
 	      // Calculate Determinant of F
@@ -33,7 +40,8 @@ void GetForce_3D() {
 	      // Calculate sigma^n
 				StressUpdate(i, j);
 			  InternalForceUpdate(i, j, fintLocal);
-			} // else
+			 } // else
+     } //else
 		} //loop on gauss points
     // Move Local internal for to global force
     for (int k = 0; k < nNodesL; ++k) {

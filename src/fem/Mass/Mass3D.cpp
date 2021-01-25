@@ -44,7 +44,18 @@ void MassElementMatrix(double *Me, int e) {
     // TODO(Anil) Gauss weights and det J product can be combined in shape
     // function
     int wIndex = gpPtr[e]+k;
-    const double preFactor = gaussWeights[wIndex]*detJacobian[wIndex];
+    double preFactor = gaussWeights[wIndex]*detJacobian[wIndex];
+    if(strcmp(ElementType[e], "S4")==0)
+      {
+        double thickness;
+        for(int i=0; i<nshell; i++)
+          {if(ShellID[i]==e)
+            {thickness = Thickness[i];     //better way to do this?
+            break;}
+          }
+        preFactor *= thickness;
+      }
+
     // Me = \Sum_j w_j (N^T*N Det(J))_j
     // Add contribution of current Gauss point to elemental mass matrix
     for (int n = 0; n < mLocalSize; ++n) {
@@ -75,7 +86,7 @@ void LumpMassMatrix(void) {
   FILE_LOGArraySingle(DEBUGLOGIGNORE, mass, nDOF, "Lumped Mass");
 }
 void updateMassMatrixNeighbour(void) {
-  // Update array to send 
+  // Update array to send
   int totalNodeToSend = sendNeighbourCountCum[sendProcessCount];
   for (int i = 0; i < totalNodeToSend; ++i) {
     int nodeIndex = ndim*sendNodeIndex[i];

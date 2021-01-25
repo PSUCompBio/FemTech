@@ -104,5 +104,15 @@ void GaussQuadrature3D(int element, int nGaussPoint, double *Chi, double *GaussW
 
 	}
 
+  // 4 noded shell element with one integration point
+	if (strcmp(ElementType[element], "S4") == 0 && nGaussPoint == 1) {
+		/*integration point 1*/
+		Chi[0 * ndim + 0] = 0;
+		Chi[0 * ndim + 1] = 0;
+
+		GaussWeights[0] = 4.0;
+
+	}
+
    return;
 }

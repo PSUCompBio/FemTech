@@ -22,7 +22,7 @@ double CalculateCharacteristicLength_C3D8(int e) {
     FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Element %d, Side %d Area : %12.6f", e, i, faceArea);
     if (faceArea > areaMax) {
       areaMax = faceArea;
-    } 
+    }
   }
 
   FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Element %d max Area : %12.6f", e, areaMax);

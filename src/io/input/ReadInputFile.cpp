@@ -15,6 +15,9 @@ int *eptr;
 int *pid;
 int *global_eid;
 char **ElementType;
+int nshell = 0;
+double *Thickness;
+int *ShellID;
 int nPIDglobal = 0;
 int nPID = 0;
 

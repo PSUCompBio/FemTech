@@ -11,11 +11,24 @@ void LinearElastic(int e, int gp) {
 			int index = pk2ptr[e]+3*gp+i;
 		}
 	}
-	if(ndim == 3){
+	if(strcmp(ElementType[e], "S4")==0){
+		// 6 values saved per gauss point for 3d
+
+		double mu = properties[MAXMATPARAMS * pid[e] + 1];
+		double lambda = properties[MAXMATPARAMS * pid[e] + 2];
+		for(int i=0; i<3; i++){
+			cauchyshell_prev[cauchyshellptr[e]+3*gp+i]=cauchyshell[cauchyshellptr[e]+3*gp+i];
+		}
+		cauchyshell[cauchyshellptr[e]+3*gp+0] = cauchyshell_prev[cauchyshellptr[e]+3*gp+0] + dt*((lambda+2*mu)*hat_velocities_half[cauchyshellptr[e]+3*gp+0] + lambda*hat_velocities_half[cauchyshellptr[e]+3*gp+1]);
+		cauchyshell[cauchyshellptr[e]+3*gp+1] = cauchyshell_prev[cauchyshellptr[e]+3*gp+1] + dt*(lambda*hat_velocities_half[cauchyshellptr[e]+3*gp+0] + (lambda+2*mu)*hat_velocities_half[cauchyshellptr[e]+3*gp+1]);
+		cauchyshell[cauchyshellptr[e]+3*gp+2] = cauchyshell_prev[cauchyshellptr[e]+3*gp+2] + dt*(mu*hat_velocities_half[cauchyshellptr[e]+3*gp+2]);
+		//printf("%f %f\n", cauchyshell[cauchyshellptr[e]+3*gp+0], dt);
+	}
+	if(ndim == 3 && strcmp(ElementType[e], "S4")!=0){
     int index = fptr[e] + ndim * ndim * gp;
     int index2 = detFptr[e] + gp;
     int pide = pid[e];
-    double mu = properties[MAXMATPARAMS * pide + 1];    
+    double mu = properties[MAXMATPARAMS * pide + 1];
     double lambda = properties[MAXMATPARAMS * pide + 2];
     double J = detF[index2];
     // Computation based on
@@ -47,7 +60,7 @@ void LinearElastic(int e, int gp) {
     P[4] += lambda * trEps;
     P[8] += lambda * trEps;
 
-    // Compute pk2 : S = F^{-1} P 
+    // Compute pk2 : S = F^{-1} P
     double *fInv = mat3;
     double *S = mat4;
     InverseF(e, gp, fInv);

@@ -90,6 +90,9 @@ void WriteVTU(const char* FileName, int step) {
 		else if (strcmp(ElementType[i], "T3D2") == 0){
 			fprintf(fp, "\t\t\t\t\t%d\n", 3);
 		}
+    else if (strcmp(ElementType[i], "S4") == 0){
+			fprintf(fp, "\t\t\t\t\t%d\n", 9);
+		}
 	}
 	fprintf(fp, "\t\t\t\t</DataArray>\n");
 	fprintf(fp, "\t\t\t</Cells>\n");

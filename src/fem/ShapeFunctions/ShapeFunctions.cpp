@@ -17,7 +17,13 @@ double *F; // deformation gradient array, F
 double *detF; // inverse of deformation gradient array
 double *invF; // inverse of deformation gradient array
 double *pk2; // PK2 Stress
+double *cauchyshell; // cauchy shell Stress
+double *cauchyshell_prev; // cauchy shell previous Stress
+double *HGshell; // Hourglass shell Stress
+double *HGshell_prev; // Hourglass shell previous Stress
 int *pk2ptr; // pointer for iterating through PK2 stress.
+int *cauchyshellptr; // pointer for iterating through cauchy shell stress.
+int *HGshellptr; // pointer for iterating through hourglass shell stress.
 int *detFptr; //pointer for iterating through detF array.
 int *InternalsPtr; // pointer for iteratign through internals array
 double *internals; /*internal variables for history dependent models */
@@ -61,6 +67,8 @@ void ShapeFunctions() {
   gpPtr = (int *)malloc((nelements+1) * sizeof(int));
   fptr = (int *)malloc((nelements+1) * sizeof(int));
 	pk2ptr = (int *)malloc((nelements+1) * sizeof(int));
+  cauchyshellptr = (int *)malloc((nshell+1) * sizeof(int));
+  HGshellptr = (int *)malloc((nshell+1) * sizeof(int));
 	detFptr = (int *)malloc((nelements+1) * sizeof(int));
 	InternalsPtr = (int *)malloc((nelements+1) * sizeof(int));
   fptrViscous = (int *)malloc((nelements+1) * sizeof(int));
@@ -70,6 +78,8 @@ void ShapeFunctions() {
   int gpCount = 0; // counter for gaupp points
 	int F_counter = 0; //counter for storage of deformation gradient, F
   int pk2_counter = 0; //counter for storage of PK2 stress.
+  int cauchyshell_counter = 0; //counter for storage of cauchy stess in shell elements
+  int HGshell_counter = 0; //counter for storage of hourglass stess in shell elements
 	int detF_counter = 0; // counter for storage of detF for each element.
 	int internals_counter = 0; //counter for storage of internals for each gauss point.
 
@@ -80,6 +90,8 @@ void ShapeFunctions() {
   gpPtr[0] = 0;
 	fptr[0]=0;
 	pk2ptr[0]=0;
+  cauchyshellptr[0]=0;
+  HGshellptr[0]=0;
 	detFptr[0]=0;
 	fptrViscous[0]=0;
 
@@ -183,12 +195,39 @@ void ShapeFunctions() {
 			detF_counter += gpCount; // detF stored only at gauss point
 			internals_counter += MAXINTERNALVARS * GaussPoints[i];
     }
+    if (strcmp(ElementType[i], "S4") == 0) {
+      gpCount = 1; // only one gauss point
+      nShapeFunctions[i] = 4;
+      // same arguments as above
+      // counter = counter + nShapeFunctions[i]*GaussPoints[i];
+      // dshp_counter = dshp_counter + (ndim * nShapeFunctions[i]*GaussPoints[i]);
+      // F_counter = ndim*ndim*ngausspoint = 3*3*1
+      //pk2_counter = 6*1 = 6
+      counter += 4;
+      dshp_counter += 8;
+      F_counter += 9;
+      if (viscousElement) {
+        F_counterViscous += 9;
+      }
+      pk2_counter += 3; // three positions for 2D, it is symmetric
+      cauchyshell_counter += 3;
+      cauchyshell_counter += 2;
+      detF_counter +=1;
+      internals_counter += MAXINTERNALVARS * GaussPoints[i];
+      // gpCount = 4;
+      // nShapeFunctions[i] = 4;
+      // counter += 16;
+      // dshp_counter += 48;
+    }
+
     GaussPoints[i] = gpCount;
     gptr[i + 1] = counter;
     dsptr[i + 1] = dshp_counter;
     gpPtr[i + 1] = gpPtr[i]+gpCount;
     fptr[i+1] = F_counter;
 		pk2ptr[i+1] = pk2_counter;
+    cauchyshellptr[i+1] = cauchyshell_counter;
+    HGshellptr[i+1] = HGshell_counter;
 		detFptr[i+1] = detF_counter;
 		InternalsPtr[i+1]=internals_counter;
     fptrViscous[i+1] = F_counterViscous;
@@ -232,6 +271,10 @@ void ShapeFunctions() {
 	/*  size of PK2 stress is 6 values for each gauss point
 	  	the PK2 stress is symmetric */
 	pk2 = (double *)calloc(pk2_counter, sizeof(double));
+  cauchyshell = (double *)calloc(cauchyshell_counter, sizeof(double));
+  cauchyshell_prev = (double *)calloc(cauchyshell_counter, sizeof(double));
+  HGshell = (double *)calloc(HGshell_counter, sizeof(double));
+  HGshell_prev = (double *)calloc(HGshell_counter, sizeof(double));
 
   // Depending on element type call correct shape function library
   for (int i = 0; i < nelements; i++) {
@@ -253,6 +296,10 @@ void ShapeFunctions() {
           GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
           ShapeFunction_T3D2(i, k, Chi, detJacobianLocal);
       }
+      if (strcmp(ElementType[i], "S4") == 0) {
+          GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
+          ShapeFunction_S4(i, k, Chi, detJacobianLocal);
+      }
     }
     free(Chi);
   }// loop on nelements
@@ -271,7 +318,7 @@ void ShapeFunctions() {
   fintGQ = (double*)malloc(bColSize*sizeof(double));
   B = (double*)malloc(Bsize*sizeof(double));
   // Allocate arrays specific to viscoelastic material
-  // Check if viscoelastic material is used 
+  // Check if viscoelastic material is used
   if (nMax) {
     // FILE_LOG(WARNING, "Maximum prony series size = %d", nMax);
     Hn = (double**)malloc(nMax*sizeof(double));

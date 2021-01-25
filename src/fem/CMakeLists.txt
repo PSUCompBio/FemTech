@@ -4,6 +4,7 @@ Set(fem_src
 		AllocateArrays.cpp
 		ShapeFunctions/ShapeFunctions.cpp
 		ShapeFunctions/GaussQuadrature3D.cpp
+		ShapeFunctions/ShapeFunction_S4.cpp
 		ShapeFunctions/ShapeFunction_C3D8.cpp
 		ShapeFunctions/ShapeFunction_C3D4.cpp
 		ShapeFunctions/ShapeFunction_T3D2.cpp
@@ -18,6 +19,7 @@ Set(fem_src
 		SolidMechanics/CalculateFR.cpp
 		SolidMechanics/StressUpdate.cpp
 		SolidMechanics/InternalForceUpdate.cpp
+		SolidMechanics/ShellInternalForceUpdate.cpp
 		SolidMechanics/TrussStressForceUpdate.cpp
     SolidMechanics/CheckEnergy.cpp
     )

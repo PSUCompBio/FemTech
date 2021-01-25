@@ -26,12 +26,16 @@ void ReadInputFile(const char *FileName);
 void PartitionMesh();
 void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWeights);
 void ShapeFunctions();
+void ShapeFunction_S4(int e, int gp, double *Chi, double *detJ);
 void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ);
 void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ);
 void ShapeFunction_T3D2(int e, int gp, double *Chi, double *detJ);
 void CreateLinearElasticityCMatrix();
 void ReadBoundaryCondition(void);
 void AllocateArrays();
+void CorotationalSystem();
+void CorotationalSystemTransform();
+void ShellArea();
 
 void Assembly(char *operation);
 void StiffnessElementMatrix(double* Ke, int e);
@@ -62,10 +66,14 @@ void CalculateStrain();
 void CalculateDeformationGradient(int e, int gp);
 void SumOfDeformationGradient(int e, int gp);
 void StrainDisplacementMatrix(int e, int gp, int nI, double *B);
+void ShellBMatrix();
+void ShellHourglassing();
+void HourglassStress(int e, int gp);
 void StressUpdate(int e, int gp);
 void DeterminateF(int e, int gp);
 void InverseF(int e, int gp, double *fInv);
 void InternalForceUpdate(int e, int gp, double *force);
+void ShellInternalForceUpdate(int e, int gp, double *force);
 void TrussStressForceUpdate(int e, int gp, double *force);
 void ReadMaterials();
 
@@ -100,6 +108,7 @@ void CheckEnergy(double time, int writeFlag);
 double CalculateCharacteristicLength(int e);
 double CalculateCharacteristicLength_C3D4(int e);
 double CalculateCharacteristicLength_C3D8(int e);
+double CalculateCharacteristicLength_S4(int e);
 
 /* Functions to calculate center of mass */
 void GetBodyCenterofMass(double *cm);
@@ -113,6 +122,7 @@ void updateMassMatrixNeighbour(void);
 double volumeHexahedron(double *coordinates);
 double areaHexahedronFace(double *coordinates, const int * const index);
 double volumeTetrahedron(double *coordinates);
+double shellsidelength(double *coordinates, const int * const index);
 
 int compare(const void *a, const void *b);
 int unique(int *arr, int n);

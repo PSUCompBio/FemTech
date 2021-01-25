@@ -54,8 +54,8 @@ double areaHexahedronFace(double *Lcoordinates, const int * const index) {
     for (int j = 0; j < 2; ++j) {
       double v1[3], v2[3];
       for (int k = 0; k < 3; ++k) {
-        v1[k] = q[j]*centerD[k]+c1[k]; 
-        v2[k] = q[i]*centerD[k]+c2[k]; 
+        v1[k] = q[j]*centerD[k]+c1[k];
+        v2[k] = q[i]*centerD[k]+c2[k];
       }
       area += normOfCrossProduct(v1, v2);
     }
@@ -73,4 +73,14 @@ double volumeTetrahedron(double *Lcoordinates) {
   }
   volume = fabs(tripleProduct(a, b, c))/6.0;
   return volume;
+}
+
+double shellsidelength(double *Lcoordinates, const int * const index) {
+  // Points are assumed in order
+  // Store the points from index
+  double *p1 = &(Lcoordinates[3*index[0]]);
+  double *p2 = &(Lcoordinates[3*index[1]]);
+  double length;
+  length = sqrt(pow((p1[0]-p2[0]),2)+pow((p1[1]-p2[1]),2)+pow((p1[2]-p2[2]),2));
+  return length;
 }

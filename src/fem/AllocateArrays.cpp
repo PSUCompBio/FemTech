@@ -22,6 +22,17 @@ double *accelerations_prev;
 double *stepTime;
 // Used to compute stress by files in materials folder
 double *mat1, *mat2, *mat3, *mat4;
+//for shell elements
+double* hatcoordinates;
+double *areashell;
+double* hat_velocities_half;
+double* corotationalx;
+double* corotationaly;
+double* corotationalz;
+double* gamma_half;
+double* hg_strainrate;
+double* Bshell;
+double* hat_velocitystrain_half;
 
 int *boundary;
 FILE *energyFile;
@@ -121,7 +132,7 @@ void AllocateArrays() {
       FILE_LOG_SINGLE(ERROR, "Error in allocating f_damp_prev array");
       TerminateFemTech(12);
     }
-    std::string energyFileName = "energy_"+uid+".dat"; 
+    std::string energyFileName = "energy_"+uid+".dat";
     energyFile = fopen(energyFileName.c_str(), "w");
     fprintf(energyFile, "# Energy for FEM\n");
     fprintf(energyFile, "# Time  Winternal   Wexternal   WKE   total\n");
@@ -139,7 +150,7 @@ void AllocateArrays() {
       if (materialID[i] == 3 || materialID[i] == 4 || materialID[i] == 5) {
         matCount = 4;
         break;
-      }    
+      }
     }
     const int matSize = ndim*ndim;
     mat1 = (double*)malloc(matSize*sizeof(double));
@@ -148,6 +159,59 @@ void AllocateArrays() {
       mat3 = (double*)malloc(matSize*sizeof(double));
       mat4 = (double*)malloc(matSize*sizeof(double));
     }
-  }
+		if(nshell>0)
+			{
+				corotationalx=(double*)calloc(nshell*3,sizeof(double));
+				if (!corotationalx) {
+					FILE_LOG_SINGLE(ERROR, "Error in allocating corotational X direction vector");
+					TerminateFemTech(12);
+				}
+				corotationaly=(double*)calloc(nshell*3,sizeof(double));
+				if (!corotationaly) {
+					FILE_LOG_SINGLE(ERROR, "Error in allocating corotational Y direction vector");
+					TerminateFemTech(12);
+				}
+				corotationalz=(double*)calloc(nshell*3,sizeof(double));
+				if (!corotationalz) {
+					FILE_LOG_SINGLE(ERROR, "Error in allocating corotational Z direction vector");
+					TerminateFemTech(12);
+				}
+				areashell = (double*)calloc(nshell,sizeof(double));
+				if (!areashell) {
+					FILE_LOG_SINGLE(ERROR, "Error in allocating shell area");
+					TerminateFemTech(12);
+				}
+				hatcoordinates=(double*)calloc(nDOF,sizeof(double));
+				if (!hatcoordinates) {
+					FILE_LOG_SINGLE(ERROR, "Error in allocating corotational coordinates");
+					TerminateFemTech(12);
+				}
+				hat_velocities_half=(double*)calloc(nDOF,sizeof(double));
+				if (!hat_velocities_half) {
+					FILE_LOG_SINGLE(ERROR, "Error in allocating corotational velocities");
+					TerminateFemTech(12);
+				}
+				gamma_half=(double*)calloc(nshell*4,sizeof(double));
+				if (!gamma_half) {
+					FILE_LOG_SINGLE(ERROR, "Error in allocating hourglassing strain");
+					TerminateFemTech(12);
+				}
+				hg_strainrate=(double*)calloc(nshell*2,sizeof(double));
+				if (!hg_strainrate) {
+					FILE_LOG_SINGLE(ERROR, "Error in allocating hourglassing strain rate");
+					TerminateFemTech(12);
+				}
+				hat_velocitystrain_half=(double*)calloc(nshell*ndim,sizeof(double));
+				if (!hat_velocitystrain_half) {
+					FILE_LOG_SINGLE(ERROR, "Error in allocating corotational velocity strain");
+					TerminateFemTech(12);
+				}
+				Bshell = (double*)calloc(nshell,8*sizeof(double));
+				if (!Bshell) {
+					FILE_LOG_SINGLE(ERROR, "Error in allocating shell strain displacement matrix");
+					TerminateFemTech(12);
+				}
+			}
+	}
 	return;
 }
