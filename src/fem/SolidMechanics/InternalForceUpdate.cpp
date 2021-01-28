@@ -10,6 +10,7 @@ void InternalForceUpdate(int e, int gp, double *force) {
     B[k] = 0.0;
   }
   // Calculate B matrix for each shape function
+  ShapeFunction_C3D8_UL_Update(e,gp,&(detJacobian[gpPtr[e]]));
   for (int k = 0; k < nNodesL; ++k) {
     StrainDisplacementMatrix(e, gp, k, &(B[6*ndim*k]));
   }
@@ -20,7 +21,7 @@ void InternalForceUpdate(int e, int gp, double *force) {
   // Add to fint
   int wIndex = gpPtr[e]+gp;
   // Following Belytschko equation 4.9.22
-  const double preFactor = gaussWeights[wIndex]*detJacobian[wIndex];
+  const double preFactor = gaussWeights[wIndex]*detJacobian[gpPtr[e]];
   for (int k = 0; k < bColSize; ++k) {
     force[k] += preFactor*fintGQ[k];
   }

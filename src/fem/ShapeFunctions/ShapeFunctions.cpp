@@ -275,7 +275,7 @@ void ShapeFunctions() {
       // 3D 8-noded hex shape function routine
       if (strcmp(ElementType[i], "C3D8") == 0) {
           GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
-          ShapeFunction_C3D8(i, k, Chi, detJacobianLocal);
+          ShapeFunction_C3D8_UL(i, k, Chi, detJacobianLocal);
       }
       // 3D 4-noded tet shape function routine
       if (strcmp(ElementType[i], "C3D4") == 0) {

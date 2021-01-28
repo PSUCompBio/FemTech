@@ -1,0 +1,18 @@
+{
+  "event_id": "harry_s0JiuaYff",
+  "player": {
+    "name" : "harry",
+    "position" : "OL"
+  },
+  "simulation": {
+    "mesh" : "coarse_brain.inp",
+    "linear-acceleration" : [30.0, 0.0, 0.0],
+    "angular-acceleration" : [1500.0, 100.0, 1000.0],
+    "time-peak-acceleration" : 20.0,
+    "maximum-time" : 40.0,
+    "mesh-transformation" : ["-y", "z", "-x"],
+    "head-cg" : [0.0, -0.3308, -0.037],
+    "angular-sensor-position" : [0.025, -0.281, -0.089757],
+    "impact-point" : "front-low"
+  }
+}

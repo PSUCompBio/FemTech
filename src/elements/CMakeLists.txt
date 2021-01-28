@@ -2,6 +2,7 @@ Set(elements_src
     Elements.cpp
 		ElementCalculations/CalculateDeformationGradient.cpp
 		ElementCalculations/StrainDisplacementMatrix.cpp
+    ElementCalculations/StrainDisplacementMatrix_UL.cpp
     CharacteristicLength/CalculateCharacteristicLength.cpp
     CharacteristicLength/CalculateCharacteristicLength_C3D4.cpp
     CharacteristicLength/CalculateCharacteristicLength_C3D8.cpp

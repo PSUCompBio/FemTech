@@ -1,0 +1,43 @@
+SET(ex21_src ex21.cpp)
+
+ADD_EXECUTABLE(ex21 ${ex21_src})
+ADD_DEPENDENCIES(ex21 JsonCpp)
+
+if(ENABLE_MPI)
+  LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/third-party/parmetis-4.0.3/libparmetis)
+  TARGET_LINK_LIBRARIES(ex21 FemTech parmetis  ${lapackblas_libraries} jsoncpp)
+else()
+  LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
+  TARGET_LINK_LIBRARIES(ex21 FemTech)
+endif(ENABLE_MPI)
+
+file(INSTALL brain.inp DESTINATION .)
+file(INSTALL coarse_brain.inp DESTINATION .)
+file(INSTALL 1-elt-cube.k DESTINATION .)
+file(INSTALL materials.dat DESTINATION .)
+file(INSTALL input.json DESTINATION .)
+file(INSTALL input_test_p1.json DESTINATION .)
+file(INSTALL input_test_pt.json DESTINATION .)
+file(INSTALL input_test_s.json DESTINATION .)
+file(INSTALL input_test_x.json DESTINATION .)
+file(INSTALL coarse_cellcentres.txt DESTINATION .)
+file(INSTALL fine_cellcentres.txt DESTINATION .)
+file(INSTALL updateOutputJson.py DESTINATION .)
+file(INSTALL gnuplot.script DESTINATION .)
+file(INSTALL gnuplotEnergy.script DESTINATION .)
+file(INSTALL README.md DESTINATION .)
+file(INSTALL simulationMovie.py DESTINATION .)
+file(INSTALL mps95Movie.py DESTINATION .)
+file(INSTALL addGraph.py DESTINATION .)
+file(INSTALL test_ex21.sh DESTINATION .)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
+
+# Define debugger options when working with windows & visual studio generator
+# We set them here but could be passed as options if required
+# We use a template for the same, replacing the options we need
+if(WIN32 AND MSVC)
+	set( DEBUG_COMMAND "C:\\Program Files\\Microsoft MPI\\Bin\\mpiexec.exe" )
+	set( DEBUG_COMMAND_ARGUMENTS "-n 2 \"$(TargetPath)\" brain.inp" )
+	configure_file( template.vcxproj.user.in ${CMAKE_BINARY_DIR}/examples/ex21/ex21.vcxproj.user @ONLY )
+endif()

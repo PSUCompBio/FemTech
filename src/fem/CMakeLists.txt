@@ -5,6 +5,8 @@ Set(fem_src
 		ShapeFunctions/ShapeFunctions.cpp
 		ShapeFunctions/GaussQuadrature3D.cpp
 		ShapeFunctions/ShapeFunction_C3D8.cpp
+		ShapeFunctions/ShapeFunction_C3D8_UL.cpp
+		ShapeFunctions/ShapeFunction_C3D8_UL_Update.cpp
 		ShapeFunctions/ShapeFunction_C3D4.cpp
 		ShapeFunctions/ShapeFunction_T3D2.cpp
 		Mass/Mass3D.cpp
