@@ -73,7 +73,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 	// I don't like it.
 	// The redeclaration needs to find memory and will cut down
 	// on speed.
-	double xs[ndim*ndim];
+	double xs[ndim2];
   int index = eptr[e];
 	for (int j = 0; j < ndim; j++) {
 		xs[0+j*ndim] = (coordinates[ndim*connectivity[index+1] + j] - coordinates[ndim*connectivity[index+0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 1 + 0]
@@ -98,6 +98,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
   detJ[gp] = det;
 
   // Transform derivatives to global co-ordinates
+  // And store in B0 for updated Lagrangian formulation
   double c1, c2, c3;
   int baseIndex;
 
@@ -114,12 +115,12 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 	  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Shape fn        : %d, %12.6f, %12.6f, %12.6f", i, \
         dshp[baseIndex], dshp[baseIndex+1], dshp[baseIndex+2]);
 
-    dshp[baseIndex] = c1;
-    dshp[baseIndex+1] = c2;
-    dshp[baseIndex+2] = c3;
+    B0[baseIndex] = c1;
+    B0[baseIndex+1] = c2;
+    B0[baseIndex+2] = c3;
 
     FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Shape fn Global : %d, %12.6f, %12.6f, %12.6f", \
-        i, dshp[baseIndex], dshp[baseIndex+1], dshp[baseIndex+2]);
+        i, B0[baseIndex], B0[baseIndex+1], B0[baseIndex+2]);
   }
 
   FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, xs, ndim, ndim, "---- XS Matrix ----")

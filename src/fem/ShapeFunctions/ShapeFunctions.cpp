@@ -29,6 +29,7 @@ double *fintGQ;
 double *B;
 double **Hn, **S0n;
 int *nProny; // To store number of terms in viscous Prony Series
+double *B0;
 
 void ShapeFunctions() {
   nProny = (int *)calloc(nelements, sizeof(int));
@@ -265,6 +266,10 @@ void ShapeFunctions() {
 	/*  size of PK2 stress is 6 values for each gauss point
 	  	the PK2 stress is symmetric */
 	pk2 = (double *)calloc(pk2_counter, sizeof(double));
+  dshp = (double *)calloc(dshp_counter, sizeof(double));
+  // B0 : Store derivative of shape functions with respect to initial material
+  // coordinates
+  B0 = (double *)calloc(dshp_counter, sizeof(double));
 
   // Depending on element type call correct shape function library
   for (int i = 0; i < nelements; i++) {

@@ -133,4 +133,9 @@ Json::Value InitFemTech(int argc, char **argv);
 void InitFemTechWoInput(int argc, char **argv);
 void FinalizeFemTech();
 void TerminateFemTech(int errorCode);
+
+/* Functions for updated Lagrangian formulation */
+void CalculateF_XiAndInverse(int e, int gp);
+void ComputeH(int e, int gp, double *H);
+void InternalForceUpdateUL(int e, int gp, double *force);
 #endif

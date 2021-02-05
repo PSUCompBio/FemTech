@@ -27,6 +27,8 @@ extern int nPID, nPIDglobal; /* Local and global number of unique parts*/
 extern int world_rank;
 extern int world_size;
 
+extern int ndim2; // To store ndim*ndim, a widely used constant
+
 extern double ExplicitTimeStepReduction;
 extern double FailureTimeStep;
 
@@ -127,3 +129,8 @@ extern double *B;
 extern double **Hn;
 extern double **S0n;
 extern int *nProny;
+
+// Variables required for updated Lagrangian formulation
+extern double *F_Xi, *F_XiInverse, J_Xi;
+extern double *sigma_n; // To store stress in Voigot notation for updated Lagrangian
+extern double *B0; // Store dN_I/dX_j. Used for H computation

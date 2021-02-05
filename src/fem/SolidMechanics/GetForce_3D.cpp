@@ -25,14 +25,21 @@ void GetForce_3D() {
 				TrussStressForceUpdate(i,j,fintLocal);
 				//CalculateDeformationGradient(i, j);
         // TerminateFemTech(1);
-			}else{
-	      // calculate F^n
-				CalculateDeformationGradient(i, j);
-	      // Calculate Determinant of F
-				DeterminateF(i, j);
-	      // Calculate sigma^n
+			} else {
+	      // // calculate F^n
+				// CalculateDeformationGradient(i, j);
+	      // // Calculate Determinant of F
+				// DeterminateF(i, j);
+	      // // Calculate sigma^n
+				// StressUpdate(i, j);
+			  // InternalForceUpdate(i, j, fintLocal);
+
+        /* Updated Lagrangian approach */
+        // Calculate F_Xi^n
+        CalculateF_XiAndInverse(i, j);
+        // Calculate sigma^n
 				StressUpdate(i, j);
-			  InternalForceUpdate(i, j, fintLocal);
+			  InternalForceUpdateUL(i, j, fintLocal);
 			} // else
 		} //loop on gauss points
     // Move Local internal for to global force

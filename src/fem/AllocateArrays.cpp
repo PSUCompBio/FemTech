@@ -26,6 +26,10 @@ double *mat1, *mat2, *mat3, *mat4;
 int *boundary;
 FILE *energyFile;
 
+int ndim2;
+double *F_Xi, *F_XiInverse, J_Xi;
+double *sigma_n;
+
 void AllocateArrays() {
   // Allocate and initialize global displacements
 	displacements=(double*)calloc(nDOF,sizeof(double));
@@ -149,5 +153,11 @@ void AllocateArrays() {
       mat4 = (double*)malloc(matSize*sizeof(double));
     }
   }
+  /* Precompute and store constantly used sub expressions */
+  ndim2 = ndim*ndim;
+  /* Store variables required for updated lagrangian computation */
+  F_Xi = (double*)malloc(ndim2*sizeof(double));
+  F_XiInverse = (double*)malloc(ndim2*sizeof(double));
+  sigma_n = (double*)malloc((ndim*(ndim+1)/2)*sizeof(double));
 	return;
 }
