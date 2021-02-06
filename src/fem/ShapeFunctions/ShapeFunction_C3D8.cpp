@@ -73,6 +73,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 	// I don't like it.
 	// The redeclaration needs to find memory and will cut down
 	// on speed.
+  // xs = dX_j/dXi_k = X_Ij*dN_I/dXi_k
 	double xs[ndim2];
   int index = eptr[e];
 	for (int j = 0; j < ndim; j++) {
@@ -91,6 +92,11 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 			       + (coordinates[ndim*connectivity[index+6] + j] - coordinates[ndim*connectivity[index+2] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 2]
 			       + (coordinates[ndim*connectivity[index+7] + j] - coordinates[ndim*connectivity[index+3] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 7 + 2];
 	}
+  // const int indexT = fptr[e] + ndim * ndim * gp;
+  // double *F_Xi_0_egp = &(F_Xi_0[indexT]);
+  // for (unsigned int i = 0; i < ndim2; ++i) {
+  //   F_Xi_0_egp[i] = xs[i];
+  // }
 
   double det, J_Inv[9];
 

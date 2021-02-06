@@ -91,4 +91,6 @@ void FreeArrays() {
   free1DArray(F_XiInverse);
   free1DArray(sigma_n);
   free1DArray(B0);
+  // Temperory test variables
+  // free1DArray(F_Xi_0);
 }

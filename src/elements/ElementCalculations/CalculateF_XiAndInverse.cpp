@@ -30,8 +30,29 @@ void CalculateF_XiAndInverse(int e, int gp) {
 
   FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, F_Xi, ndim, \
       ndim, "--------F_Xi for gauss point %d --------", gp);
-
+  // double *FTest = (double*)malloc(ndim2*sizeof(double));
+  // const int indexT = fptr[e] + ndim * ndim * gp;
+  // double *F_element_gp = &(F[indexT]);
+  // double *F_Xi_0_egp = &(F_Xi_0[indexT]);
+  // dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
+  //          F_Xi_0_egp, &ndim, &zero, FTest, &ndim);
+  // for (unsigned int i = 0; i < ndim2; ++i) {
+  //   FTest[i] -= F_Xi[i];
+  // }
+  // FILE_LOGMatrix_SINGLE(WARNING, FTest, ndim, \
+  //     ndim, "--------F_Test for gauss point %d --------", gp);
+  // FILE_LOGMatrix_SINGLE(WARNING, F_element_gp, ndim, \
+  //     ndim, "--------F for gauss point %d --------", gp);
+  // FILE_LOGMatrix_SINGLE(WARNING, F_Xi_0_egp, ndim, \
+  //     ndim, "--------F_Xi_0 for gauss point %d --------", gp);
+  // FILE_LOGMatrix_SINGLE(WARNING, F_Xi, ndim, \
+  //     ndim, "--------F_Xi for gauss point %d --------", gp);
   // Compute the matrix inverse
   inverse3x3Matrix(F_Xi, F_XiInverse, &J_Xi);
+  // dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, F_Xi, &ndim,
+  //          F_XiInverse, &ndim, &zero, FTest, &ndim);
+  // FILE_LOGMatrix_SINGLE(WARNING, FTest, ndim, \
+  //     ndim, "--------F_Xi*Inverse for gauss point %d --------", gp);
+  // free(FTest);
   return;
 }

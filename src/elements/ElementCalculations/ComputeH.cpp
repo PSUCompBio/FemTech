@@ -22,4 +22,18 @@ void ComputeH(int e, int gp, double *H) {
       H[i+j*ndim] = Hij;
     }
   }
+  // double *FTest = (double*)malloc(ndim2*sizeof(double));
+  // const int indexT = fptr[e] + ndim * ndim * gp;
+  // double *F_element_gp = &(F[indexT]);
+  // for (unsigned int i = 0; i < ndim2; ++i) {
+  //   FTest[i] = H[i];
+  // }
+  // FTest[0] = FTest[0] + 1.0;
+  // FTest[4] = FTest[4] + 1.0;
+  // FTest[8] = FTest[8] + 1.0;
+  // for (unsigned int i = 0; i < ndim2; ++i) {
+  //   FTest[i] -= F_element_gp[i];
+  // }
+  // FILE_LOGMatrix_SINGLE(WARNING, FTest, ndim, \
+  //     ndim, "--------H_Test for gauss point %d --------", gp);
 }

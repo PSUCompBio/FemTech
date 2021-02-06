@@ -26,7 +26,7 @@ void LinearElastic(int e, int gp) {
 
     // Compute strain \epsilon = 0.5*(F+F^T)-I
     // This can be written as \epsilon = 0.5*(H+H^T)
-    double *sigma_e = mat2; // Reuse mat2 for epsilon computation
+    double *sigma_e = mat2; // Reuse mat2 for sigma computation
     // trace(\epsilon) = trace(F)-3 = trace(H)
     const double trEpsLambda = lambda*(H[0]+H[4]+H[8]);
     // \sigma = \lambda tr(\epsilon) I + 2 \mu \epsilon
@@ -39,8 +39,8 @@ void LinearElastic(int e, int gp) {
       }
     }
     sigma_e[0] = sigma_e[0] + trEpsLambda;
-    sigma_e[4] = sigma_e[0] + trEpsLambda;
-    sigma_e[8] = sigma_e[0] + trEpsLambda;
+    sigma_e[4] = sigma_e[4] + trEpsLambda;
+    sigma_e[8] = sigma_e[8] + trEpsLambda;
 
 		// 6 values saved per gauss point for 3d
 		// in voigt notation, sigma11

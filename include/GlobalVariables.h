@@ -134,3 +134,5 @@ extern int *nProny;
 extern double *F_Xi, *F_XiInverse, J_Xi;
 extern double *sigma_n; // To store stress in Voigot notation for updated Lagrangian
 extern double *B0; // Store dN_I/dX_j. Used for H computation
+// Temperory variables to test updated lagrangian
+// extern double *F_Xi_0;

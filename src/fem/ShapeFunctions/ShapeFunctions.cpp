@@ -31,6 +31,8 @@ double **Hn, **S0n;
 int *nProny; // To store number of terms in viscous Prony Series
 double *B0;
 
+// double *F_Xi_0;
+
 void ShapeFunctions() {
   nProny = (int *)calloc(nelements, sizeof(int));
   for (int i = 0; i < nelements; ++i) {
@@ -250,6 +252,7 @@ void ShapeFunctions() {
   /* set size of deformation gradient, F array -
 		it holds F for all gauss points in all elemnts */
   F = (double *)calloc(F_counter, sizeof(double));
+  // F_Xi_0 = (double *)calloc(F_counter, sizeof(double));
   detF = (double *)calloc(detF_counter, sizeof(double));
 	invF = (double *)calloc(F_counter, sizeof(double));
   // Inititalize F to identity matrix
