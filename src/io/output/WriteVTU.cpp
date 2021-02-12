@@ -83,6 +83,9 @@ void WriteVTU(const char* FileName, int step, int** intCellData /*= NULL*/, \
 		if( strcmp(ElementType[i], "C3D8") == 0){
 			fprintf(fp,"\t\t\t\t\t%d\n",12);
 		}
+    if( strcmp(ElementType[i], "C3D8R") == 0){
+      fprintf(fp,"\t\t\t\t\t%d\n",12);
+    }
 		else if (strcmp(ElementType[i], "C3D4") == 0){
 			fprintf(fp, "\t\t\t\t\t%d\n", 10);
 		}

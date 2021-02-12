@@ -16,6 +16,7 @@ option (EXAMPLE15  "3D course brain model - lsdyna k format based off of simon m
 option (EXAMPLE16  "6-elements per direction hex model - abaqus inp format" OFF)
 option (EXAMPLE17  "Plate Impact problem of Valerie Martin - abaqus inp format" OFF)
 option (EXAMPLE18  "Full Brain model validation" OFF)
+option (EXAMPLE21  "Constant Stress Element" OFF)
 option (Benchmarking-Parallel  "Parallel-Benchmarks" OFF)
 
 if (EXAMPLE1)
@@ -91,6 +92,10 @@ endif (EXAMPLE17)
 if (EXAMPLE18)
 	add_subdirectory(ex18)
 endif (EXAMPLE18)
+
+if (EXAMPLE21)
+	add_subdirectory(ex21)
+endif (EXAMPLE21)
 
 if (Benchmarking-Parallel)
 	add_subdirectory(Benchmarking-Parallel)

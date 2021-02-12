@@ -11,8 +11,8 @@ static const int MAXOGDEN = 3; /* maximum terms for Ogden material model */
    ID */
 static const int materialWeight[] = {1, 10, 10, 10, 15, 20, 10, 20, 20};
 /* Weights based on element type 0 = C3D8, 1 = C3D4, 2 = T3D2 */
-static const std::map<std::string, int> elemID = {{"C3D8", 0}, {"C3D4", 1}, {"T3D2", 2}};
-static const int elemWeight[] = {2, 1, 1};
+static const std::map<std::string, int> elemID = {{"C3D8", 0}, {"C3D4", 1}, {"T3D2", 2}, {"C3D8R", 3}};
+static const int elemWeight[] = {2, 1, 1, 1};
 
 const double huge = 1e20;
 
