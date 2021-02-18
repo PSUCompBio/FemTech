@@ -43,12 +43,12 @@ set xlabel "Time (s)" offset 0,-2 font ",28"
 set ylabel "Displacement (m)" offset -4,0 font ",28"
 
 # set location of legend
-set key left top
+set key right top
 # set font size of legend
 set key font ",18"
 set term pngcairo dashed notransparent size 1200,960 dashlength .4
 set output "plot.png"
-plot "ls-dyna/1-elt-ogden-3.txt" using 1:2 ls 3 title "LS-DYNA DispX", \
-     "ls-dyna/1-elt-ogden-3.txt" using 1:3 ls 4 title "LS-DYNA DispY", \
+plot "ls-dyna/Case2Disp.txt" using 1:2 ls 3 title "LS-DYNA DispX", \
+     "ls-dyna/Case2Disp.txt" using 1:3 ls 4 title "LS-DYNA DispY", \
 		 "plot.dat" using 1:2 ls 1 title "FEMTECH DispX",  \
 		 "plot.dat" using 1:3 ls 2 title "FEMTECH DispY"

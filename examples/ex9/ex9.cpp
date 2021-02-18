@@ -196,7 +196,15 @@ void ApplyBoundaryConditions(double dMax, double tMax) {
     if (Time < 0.2) {
       AppliedDisp = Time * (dMax / 0.2);
     } else {
-      AppliedDisp = dMax;
+      if (Time < 0.5) {
+        AppliedDisp = dMax;
+      } else {
+        if (Time < 0.7) {
+          AppliedDisp = dMax - (Time-0.5)*dMax/0.2;
+        } else {
+          AppliedDisp = 0;
+        }
+      }
     }
   } else if (ImplicitStatic) {
     AppliedDisp = dMax;
