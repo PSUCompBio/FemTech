@@ -138,20 +138,18 @@ void AllocateArrays() {
     // Allocations for material temporary computation
     // By default initialize mat1 and mat2
     // If HGO, Linear Elastic or Ogden material model present, allocate mat3 and mat4
-    int matCount = 2;
-    for (int i = 0; i < nPIDglobal; ++i) {
-      if (materialID[i] == 3 || materialID[i] == 4 || materialID[i] == 5 || materialID[i] == 7 || materialID[i] == 8) {
-        matCount = 4;
-        break;
-      }    
-    }
+    // int matCount = 2;
+    // for (int i = 0; i < nPIDglobal; ++i) {
+    //   if (materialID[i] == 3 || materialID[i] == 4 || materialID[i] == 5 || materialID[i] == 7 || materialID[i] == 8) {
+    //     matCount = 4;
+    //     break;
+    //   }    
+    // }
     const int matSize = ndim*ndim;
     mat1 = (double*)malloc(matSize*sizeof(double));
     mat2 = (double*)malloc(matSize*sizeof(double));
-    if (matCount == 4) {
-      mat3 = (double*)malloc(matSize*sizeof(double));
-      mat4 = (double*)malloc(matSize*sizeof(double));
-    }
+    mat3 = (double*)malloc(matSize*sizeof(double));
+    mat4 = (double*)malloc(matSize*sizeof(double));
   }
   /* Precompute and store constantly used sub expressions */
   ndim2 = ndim*ndim;

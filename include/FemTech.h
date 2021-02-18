@@ -80,9 +80,10 @@ void HGOIsotropic(int e, int gp);
 void HGOIsotropicViscoelastic(int e, int gp);
 void Ogden(int e, int gp);
 void OgdenViscoelastic(int e, int gp);
-void Viscoelastic(int e, int gp);
+void lsDynaKMEquivalent(int e, int gp);
 
 void inverse3x3Matrix(double* mat, double* invMat, double* det);
+double det3x3Matrix(double* mat);
 //void MultiplyMatrices(double* a, double* b, int sizeM, double* result);
 double tripleProduct(double* s, double* a, double* b);
 double normOfCrossProduct(double *a, double *b);

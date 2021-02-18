@@ -40,6 +40,9 @@ void ShapeFunctions() {
     if (materialID[j] == 5) {
       nProny[i] = properties[MAXMATPARAMS*j+5];
     }
+    if (materialID[j] == 6) {
+      nProny[i] = 1;
+    }
     if (materialID[j] == 8) {
       const int nOgden = properties[MAXMATPARAMS*j+2];
       nProny[i] = properties[MAXMATPARAMS*j+2*nOgden+3];

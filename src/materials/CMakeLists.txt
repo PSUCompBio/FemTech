@@ -7,7 +7,7 @@ Set(materials_src
     HGOIsotropicViscoelastic.cpp
     Ogden.cpp
     OgdenViscoelastic.cpp
-    Viscoelastic.cpp
+    lsDynaKMEquivalent.cpp
     )
 
 add_library(materials OBJECT ${materials_src})
