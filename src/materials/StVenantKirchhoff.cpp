@@ -12,10 +12,10 @@ void StVenantKirchhoff(int e, int gp) {
     }
   }
   if (ndim == 3) {
-    int index = fptr[e] + ndim * ndim * gp;
     int pide = pid[e];
     double mu = properties[MAXMATPARAMS * pide + 1];    
     double lambda = properties[MAXMATPARAMS * pide + 2];
+    const unsigned int index = fptr[e] + ndim * ndim * gp;
 
     // Compute Green-Lagrange Tensor: E= (1/2)*(F^T*F - I)
     // Compute Green-Lagrange Tensor: E= (1/2)*(H + H^T + H^T*H)
@@ -45,15 +45,18 @@ void StVenantKirchhoff(int e, int gp) {
     S[4] += lambda * traceE;
     S[8] += lambda * traceE;
     
-    // Store F in H
-    // F = H + I
-    H[0] = H[0] + 1.0;
-    H[4] = H[4] + 1.0;
-    H[8] = H[8] + 1.0;
+    // Compute and store F = H + I
+    double * const F_element_gp = &(F[index]);
+    for (unsigned int i = 0; i < ndim2; ++i) {
+      F_element_gp[i] = H[i];
+    }
+    F_element_gp[0] = F_element_gp[0] + 1.0;
+    F_element_gp[4] = F_element_gp[4] + 1.0;
+    F_element_gp[8] = F_element_gp[8] + 1.0;
 
     double *sigmaTemp = mat4;
     double *sigma = mat2;
-    double Jinv = 1.0/det3x3Matrix(H);
+    double Jinv = 1.0/det3x3Matrix(F_element_gp);
     // Compute F S F^T
     dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, H, &ndim,
            S, &ndim, &zero, sigmaTemp, &ndim);

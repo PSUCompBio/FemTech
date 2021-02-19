@@ -15,6 +15,7 @@ void CompressibleNeoHookean(int e, int gp){
     int pide = pid[e];
     double mu = properties[MAXMATPARAMS * pide + 1];
     double lambda = properties[MAXMATPARAMS * pide + 2];
+    const unsigned int index = fptr[e] + ndim * ndim * gp;
 
 		//From Bonet and Wood - Flagshyp
 		//mu              = properties(2);
@@ -40,13 +41,16 @@ void CompressibleNeoHookean(int e, int gp){
     // Compute H H^T and add to bmI
     dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, H, &ndim,
            H, &ndim, &one, bmI, &ndim);
-    // Store F in H
-    // F = H + I
-    H[0] = H[0] + 1.0;
-    H[4] = H[4] + 1.0;
-    H[8] = H[8] + 1.0;
+    // Compute and store F = H + I
+    double * const F_element_gp = &(F[index]);
+    for (unsigned int i = 0; i < ndim2; ++i) {
+      F_element_gp[i] = H[i];
+    }
+    F_element_gp[0] = F_element_gp[0] + 1.0;
+    F_element_gp[4] = F_element_gp[4] + 1.0;
+    F_element_gp[8] = F_element_gp[8] + 1.0;
     // J = det(F)
-    const double J = det3x3Matrix(H);
+    const double J = det3x3Matrix(F_element_gp);
     const double factor1 = mu/J;
     const double factor2 = lambda*log(J)/J;
 

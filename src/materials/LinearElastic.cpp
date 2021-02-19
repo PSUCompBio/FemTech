@@ -15,6 +15,7 @@ void LinearElastic(int e, int gp) {
     int pide = pid[e];
     double mu = properties[MAXMATPARAMS * pide + 1];    
     double lambda = properties[MAXMATPARAMS * pide + 2];
+    const unsigned int index = fptr[e] + ndim * ndim * gp;
     // Computation based on
     // http://run.usc.edu/femdefo/sifakis-courseNotes-TheoryAndDiscretization.pdf
     // section 3.2
@@ -41,6 +42,15 @@ void LinearElastic(int e, int gp) {
     sigma_e[0] = sigma_e[0] + trEpsLambda;
     sigma_e[4] = sigma_e[4] + trEpsLambda;
     sigma_e[8] = sigma_e[8] + trEpsLambda;
+
+    // Compute and store F = H + I
+    double * const F_element_gp = &(F[index]);
+    for (unsigned int i = 0; i < ndim2; ++i) {
+      F_element_gp[i] = H[i];
+    }
+    F_element_gp[0] = F_element_gp[0] + 1.0;
+    F_element_gp[4] = F_element_gp[4] + 1.0;
+    F_element_gp[8] = F_element_gp[8] + 1.0;
 
 		// 6 values saved per gauss point for 3d
 		// in voigt notation, sigma11

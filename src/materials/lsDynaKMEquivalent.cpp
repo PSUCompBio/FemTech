@@ -28,10 +28,12 @@ void lsDynaKMEquivalent(int e, int gp) {
 	}
 	if(ndim == 3) {
     const unsigned int pideOffset = MAXMATPARAMS*pid[e];
-    double mu = properties[pideOffset + 2];
-    double lambda = properties[pideOffset + 1];
-    double g_1 = properties[pideOffset + 3];
-    double beta_1 = properties[pideOffset + 4];
+    const double mu = properties[pideOffset + 2];
+    const double lambda = properties[pideOffset + 1];
+    const double g_1 = properties[pideOffset + 3];
+    const double beta_1 = properties[pideOffset + 4];
+
+    const unsigned int index = fptr[e] + ndim * ndim * gp;
 
 		//From Bonet and Wood - Flagshyp
 		//Cauchy          = (mu/J)*(b - cons.I) + (lambda/J)*log(J)*cons.I;
@@ -52,13 +54,16 @@ void lsDynaKMEquivalent(int e, int gp) {
     // Compute H H^T and add to bmI
     dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, H, &ndim,
            H, &ndim, &one, bmI, &ndim);
-    // Store F in H
-    // F = H + I
-    H[0] = H[0] + 1.0;
-    H[4] = H[4] + 1.0;
-    H[8] = H[8] + 1.0;
+    // Compute and store F = H + I
+    double * const F_element_gp = &(F[index]);
+    for (unsigned int i = 0; i < ndim2; ++i) {
+      F_element_gp[i] = H[i];
+    }
+    F_element_gp[0] = F_element_gp[0] + 1.0;
+    F_element_gp[4] = F_element_gp[4] + 1.0;
+    F_element_gp[8] = F_element_gp[8] + 1.0;
     // J = det(F)
-    const double J = det3x3Matrix(H);
+    const double J = det3x3Matrix(F_element_gp);
     const double factor1 = mu/J;
     const double factor2 = lambda*log(J)/J;
 
