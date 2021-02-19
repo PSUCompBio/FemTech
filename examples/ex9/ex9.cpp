@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
 
     dt = 0.0;
     double tMax = 1.00; // max simulation time in seconds
-    double dMax = 0.007; // max displacment in meters
+    double dMax = 0.005; // max displacment in meters
 
     int time_step_counter = 0;
     /** Central Difference Method - Beta and Gamma */
@@ -193,7 +193,43 @@ void ApplyBoundaryConditions(double dMax, double tMax) {
 
   // Apply Ramped Displacment
   if (ExplicitDynamic || ImplicitDynamic) {
-    AppliedDisp = Time * (dMax / tMax);
+    if (Time < 0.1) {
+      AppliedDisp = Time * (dMax / 0.1);
+    } else {
+      if (Time < 0.2) {
+        AppliedDisp = dMax;
+      } else {
+        if (Time < 0.3) {
+          AppliedDisp = dMax - (Time-0.2)*dMax/0.1;
+        } else {
+          if (Time < 0.4) {
+            AppliedDisp = 0;
+          } else {
+            if (Time < 0.5) {
+              AppliedDisp = (Time-0.4) * (dMax / 0.1);
+            } else {
+              if (Time < 0.6) {
+                AppliedDisp = dMax;
+              } else {
+                if (Time < 0.7) {
+                  AppliedDisp = dMax - (Time-0.6)*dMax/0.1;
+                } else {
+                  if (Time < 0.8) {
+                    AppliedDisp = 0;
+                  } else {
+                    if (Time < 0.9) {
+                      AppliedDisp = (Time-0.8) * (dMax / 0.1);
+                    } else {
+                      AppliedDisp = dMax;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   } else if (ImplicitStatic) {
     AppliedDisp = dMax;
   }

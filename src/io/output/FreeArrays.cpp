@@ -86,4 +86,11 @@ void FreeArrays() {
   if (world_rank == 0) {
     fclose(energyFile);
   }
+  // Free arrays used by Updated Lagrangian Formulation
+  free1DArray(F_Xi);
+  free1DArray(F_XiInverse);
+  free1DArray(sigma_n);
+  free1DArray(B0);
+  // Temperory test variables
+  // free1DArray(F_Xi_0);
 }

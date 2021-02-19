@@ -28,6 +28,13 @@ void inverse3x3Matrix(double* mat, double* invMat, double* det) {
   (*det) = detLocal;
 }
 
+double det3x3Matrix(double* mat) {
+  double det = mat[0] * (mat[4] * mat[8] - mat[5] * mat[7]) -
+               mat[3] * (mat[1] * mat[8] - mat[7] * mat[2]) +
+               mat[6] * (mat[1] * mat[5] - mat[4] * mat[2]);
+  return det;
+}
+
 double normOfCrossProduct(double *a, double *b) {
   double z = a[0]*b[1]-a[1]*b[0];
   if (ndim == 3) {

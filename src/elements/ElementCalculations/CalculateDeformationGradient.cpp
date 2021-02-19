@@ -18,7 +18,7 @@ void CalculateDeformationGradient(int e, int gp) {
         int index2 = dsptr[e] + gp * GaussPoints[e] * ndim + k * ndim + j;
         theSum = theSum + (coordinates[ndim * node_a + i] +
                            displacements[ndim * node_a + i]) *
-                              dshp[index2];
+                              B0[index2];
       } // loop on k
       F[index] = theSum;
     }

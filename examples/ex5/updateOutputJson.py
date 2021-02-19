@@ -158,6 +158,11 @@ if 'output-nodes' in inputJson['simulation'] or 'output-elements' in inputJson['
             outputJson['plot']['element-stress-'+str(n)]['principal'] = xVal.tolist();
             outputJson['plot']['element-stress-'+str(n)]['shear'] = yVal.tolist();
 
+if 'impact-time' in inputJson:
+    outputJson['impact-time'] = inputJson['impact-time']
+if 'impact-date' in inputJson:
+    outputJson['impact-date'] = inputJson['impact-date']
+
 # print(outputJson)
 # jstr = json.dumps(outputJson, indent = 2, sort_keys=False)
 # print(jstr)

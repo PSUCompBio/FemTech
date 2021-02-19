@@ -29,6 +29,9 @@ double *fintGQ;
 double *B;
 double **Hn, **S0n;
 int *nProny; // To store number of terms in viscous Prony Series
+double *B0;
+
+// double *F_Xi_0;
 
 void ShapeFunctions() {
   nProny = (int *)calloc(nelements, sizeof(int));
@@ -36,6 +39,9 @@ void ShapeFunctions() {
     const int j = pid[i];
     if (materialID[j] == 5) {
       nProny[i] = properties[MAXMATPARAMS*j+5];
+    }
+    if (materialID[j] == 6) {
+      nProny[i] = 1;
     }
     if (materialID[j] == 8) {
       const int nOgden = properties[MAXMATPARAMS*j+2];
@@ -249,6 +255,7 @@ void ShapeFunctions() {
   /* set size of deformation gradient, F array -
 		it holds F for all gauss points in all elemnts */
   F = (double *)calloc(F_counter, sizeof(double));
+  // F_Xi_0 = (double *)calloc(F_counter, sizeof(double));
   detF = (double *)calloc(detF_counter, sizeof(double));
 	invF = (double *)calloc(F_counter, sizeof(double));
   // Inititalize F to identity matrix
@@ -265,6 +272,10 @@ void ShapeFunctions() {
 	/*  size of PK2 stress is 6 values for each gauss point
 	  	the PK2 stress is symmetric */
 	pk2 = (double *)calloc(pk2_counter, sizeof(double));
+  dshp = (double *)calloc(dshp_counter, sizeof(double));
+  // B0 : Store derivative of shape functions with respect to initial material
+  // coordinates
+  B0 = (double *)calloc(dshp_counter, sizeof(double));
 
   // Depending on element type call correct shape function library
   for (int i = 0; i < nelements; i++) {
