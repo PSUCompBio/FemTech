@@ -3,6 +3,7 @@ Set(elements_src
 		ElementCalculations/CalculateDeformationGradient.cpp
     ElementCalculations/CalculateF_XiAndInverse.cpp
     ElementCalculations/ComputeH.cpp
+    ElementCalculations/ComputeHG.cpp
 		ElementCalculations/StrainDisplacementMatrix.cpp
     CharacteristicLength/CalculateCharacteristicLength.cpp
     CharacteristicLength/CalculateCharacteristicLength_C3D4.cpp

@@ -236,7 +236,7 @@ bool ReadLsDyna(const char *FileName) {
                     else {
                         FILE_LOG_SINGLE(ERROR, "Unknown element type \"%d\" in line %s", N, Line);
                     }
-                    
+
                     pi = pi + 1;
 
                     for (int j1 = 0; j1 < nn; j1++) {

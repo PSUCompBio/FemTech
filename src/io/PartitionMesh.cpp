@@ -472,9 +472,9 @@ int coordinateFromGlobalID(int *array, int nodeID, int size, double* coord) {
     FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Value at position : %d or %d", *position, array[location]);
     FILE_LOG_SINGLE(DEBUGLOGIGNORE, "NodeID : %d (location = %d)", nodeID, location);
     location *= 3;
-    coord[0] = coordinates[location]; 
-    coord[1] = coordinates[location+1]; 
-    coord[2] = coordinates[location+2]; 
+    coord[0] = coordinates[location];
+    coord[1] = coordinates[location+1];
+    coord[2] = coordinates[location+2];
     FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Coordinates : %f, %f, %f", coord[0], coord[1], coord[2]);
     return 1;
   } else {
