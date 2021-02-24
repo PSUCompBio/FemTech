@@ -13,6 +13,10 @@
     "mesh-transformation" : ["-y", "z", "-x"],
     "head-cg" : [0.0, -0.3308, -0.037],
     "angular-sensor-position" : [0.025, -0.281, -0.089757],
-    "impact-point" : "front-low"
+    "impact-point" : "front-low",
+    "material-properties" : [{"part-id" : 0, "material-id" : 0, "rho" : 1500},
+      {"part-id" : [1, 2, 3, 4, 5, 6, 7, 8, 9], 
+        "material-id" : 6, "rho" : 1040, "K" : 558.47e6, "GI" : 928, 
+        "G0" : 1.66e3, "beta" : 16.95}]
   }
 }
