@@ -102,8 +102,9 @@ const std::string thresholdTag[threshQuantities] = {
 /* Variables for maximum Principal Strain times Strain Rate */
 double *PS_Old = NULL;
 double *PSxSRArray = NULL;
-/* Store MPS of each element */
+/* Store MPS, volume of each element */
 double *elementMPS = NULL;
+double *initialVolume = NULL;
 
 int nElementsInjury = 0, *elementIDInjury = NULL;
 // part ID to exclude from injury computation
@@ -314,6 +315,7 @@ int main(int argc, char **argv) {
     }
     time_step_counter = time_step_counter + 1;
     dt = ExplicitTimeStepReduction * StableTimeStep();
+    // FILE_LOG_MASTER(INFO, "dt = %15.6e, Time = %15.6e", dt, Time);
 
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);
@@ -360,6 +362,7 @@ int main(int argc, char **argv) {
     free1DArray(percentileElements[i]);
   }
   free1DArray(elementMPS);
+  free1DArray(initialVolume);
 
   if (rankForCustomPlot) {
     MPI_File_close(&outputFilePtr);
@@ -1442,6 +1445,7 @@ void InitInjuryCriteria(void) {
   PS_Old = (double *)calloc(nElementsInjury, sizeof(double));
   PSxSRArray = (double *)calloc(nElementsInjury, sizeof(double));
   elementMPS = (double *)calloc(nelements, sizeof(double));
+  initialVolume = (double *)calloc(nelements, sizeof(double));
 
   // Array to output to Paraview
   // All threshold elements CSDM : 5, 10, 15, 30, MPSR-120, MPSxSR-28
@@ -1457,6 +1461,13 @@ void InitInjuryCriteria(void) {
   // Percentile Values
   // Write MPS-95-Value
   outputDoubleArray[0] = PS_Old;
+
+  // Compute the initial volume of elements for MPS file
+  double volumePart[nPIDglobal];
+  for (int i = 0; i < nPIDglobal; ++i) {
+    volumePart[i] = 0.0;
+  }
+  computePartVolume(volumePart, initialVolume);
 }
 
 void CalculateInjuryCriteria(void) {
@@ -1718,14 +1729,15 @@ void WriteMPS(void) {
     }
   }
 
-  char s1[25*nelements] = {0};
-  char s2[25] = {0};
+  const unsigned int lineSize = 39;
+  char s2[lineSize] = {0};
+  unsigned int offset = 0;
+
   for (unsigned int i = 0; i < nelements; ++i) {
-    sprintf(s2, "%06d, %.9e\n", global_eid[i], elementMPS[i]);
-    strcat(s1, s2);
+    offset = (global_eid[i]-1)*lineSize;
+    sprintf(s2, "%06d, %14.5e, %14.5e\n", global_eid[i], elementMPS[i], initialVolume[i]);
+    MPI_File_write_at(mpsFilePtr, offset, s2, lineSize, MPI_CHAR, MPI_STATUS_IGNORE);
   }
-  // FILE_LOG(ERROR, "String : %s, Size : %d", s1, strlen(s1));
-  MPI_File_write_ordered(mpsFilePtr, s1, strlen(s1), MPI_CHAR, MPI_STATUS_IGNORE);
 
   MPI_File_close(&mpsFilePtr);
   FILE_LOG_MASTER(INFO, "MPS values written to file");
