@@ -36,10 +36,12 @@ void FreeArrays() {
 	free1DArray(f_damp_curr);
 	free1DArray(displacements_prev);
   free1DArray(F);
-	free1DArray(pk2);
-	free1DArray(pk2ptr);
+	// free1DArray(pk2);
+	// free1DArray(pk2ptr);
 	free1DArray(materialID);
 	free1DArray(properties);
+	free1DArray(waveSpeed);
+	free1DArray(viscoElasticPart);
 	free1DArray(detF);
 	free1DArray(invF);
 	free1DArray(Eavg);
@@ -90,6 +92,7 @@ void FreeArrays() {
   free1DArray(F_Xi);
   free1DArray(F_XiInverse);
   free1DArray(sigma_n);
+  free1DArray(sigmaptr);
   free1DArray(B0);
   // Temperory test variables
   // free1DArray(F_Xi_0);

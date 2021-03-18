@@ -19,10 +19,17 @@ void InternalForceUpdateUL(int e, int gp, double *force) {
       dshp[indexShp+1]*F_XiInverse[4] + dshp[indexShp +2]*F_XiInverse[7];
     const double dN_Ibydz = dshp[indexShp]*F_XiInverse[2] + 
       dshp[indexShp+1]*F_XiInverse[5] + dshp[indexShp +2]*F_XiInverse[8];
+
     // Compute f_iI = dN_I/dx_j*sigma_{ji}
-    const double fxI = dN_Ibydx*sigma_n[0]+dN_Ibydy*sigma_n[5]+dN_Ibydz*sigma_n[4];
-    const double fyI = dN_Ibydx*sigma_n[5]+dN_Ibydy*sigma_n[1]+dN_Ibydz*sigma_n[3];
-    const double fzI = dN_Ibydx*sigma_n[4]+dN_Ibydy*sigma_n[3]+dN_Ibydz*sigma_n[2];
+    // Get location of Cauchy values
+    double * sigma_nLocal = &(sigma_n[sigmaptr[e]+6*gp]);
+
+    const double fxI = dN_Ibydx*sigma_nLocal[0]+\
+                       dN_Ibydy*sigma_nLocal[5]+dN_Ibydz*sigma_nLocal[4];
+    const double fyI = dN_Ibydx*sigma_nLocal[5]+\
+                       dN_Ibydy*sigma_nLocal[1]+dN_Ibydz*sigma_nLocal[3];
+    const double fzI = dN_Ibydx*sigma_nLocal[4]+\
+                       dN_Ibydy*sigma_nLocal[3]+dN_Ibydz*sigma_nLocal[2];
     const unsigned int forceIndex = I*ndim;
     // Add to fint
     force[forceIndex] += preFactor*fxI;

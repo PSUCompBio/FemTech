@@ -33,6 +33,7 @@ bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
+double MaxTimeStep = 1e-5;
 int nPlotSteps = 50;
 
 /* Global variables used only in this file */

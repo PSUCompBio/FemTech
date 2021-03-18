@@ -8,6 +8,7 @@ Set(materials_src
     Ogden.cpp
     OgdenViscoelastic.cpp
     lsDynaKMEquivalent.cpp
+    CalculateWaveSpeed.cpp
     )
 
 add_library(materials OBJECT ${materials_src})

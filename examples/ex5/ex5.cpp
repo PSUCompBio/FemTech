@@ -31,13 +31,14 @@ void TransformMesh(const Json::Value &jsonInput);
 void WriteMPS(void);
 
 /* Global Variables/Parameters */
-double Time, dt;
+double Time = 0.0, dt;
 int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
-double FailureTimeStep = 5e-8; // Set for max runtime of around 5 hrs on aws
+double FailureTimeStep = 1e-8; // Set for max runtime of around 5 hrs on aws
+double MaxTimeStep = 1e-5;
 int nPlotSteps = 50;
 int nWriteSteps = 2000;
 
@@ -315,7 +316,7 @@ int main(int argc, char **argv) {
     }
     time_step_counter = time_step_counter + 1;
     dt = ExplicitTimeStepReduction * StableTimeStep();
-    // FILE_LOG_MASTER(INFO, "dt = %15.6e, Time = %15.6e", dt, Time);
+    FILE_LOG_MASTER(INFO, "dt = %15.6e, Time = %15.6e", dt, Time);
 
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);

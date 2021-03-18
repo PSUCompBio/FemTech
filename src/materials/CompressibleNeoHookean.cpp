@@ -2,15 +2,9 @@
 #include "blas.h"
 
 // plane strain or three-dimensional compressible neo-Hookean
-// Evaluates the PK2 stress tensor
+// Evaluates the Cauchy stress tensor
 
 void CompressibleNeoHookean(int e, int gp){
-	if(ndim == 2){
-		// 6 values saved per gauss point for 3d
-		for(int i=0;i<3;i++){
-			int index = pk2[e]+3*gp+i;
-		}
-	}
 	if(ndim == 3){
     int pide = pid[e];
     double mu = properties[MAXMATPARAMS * pide + 1];
@@ -20,8 +14,6 @@ void CompressibleNeoHookean(int e, int gp){
 		//From Bonet and Wood - Flagshyp
 		//mu              = properties(2);
 		//lambda          = properties(3);
-		//J               = kinematics.J;
-		//b               = kinematics.b;
 		//Cauchy          = (mu/J)*(b - cons.I) + (lambda/J)*log(J)*cons.I;
     //C = F^T F
     // Bonet and Wood Equation 5.28
@@ -62,19 +54,21 @@ void CompressibleNeoHookean(int e, int gp){
     sigma_e[4] = sigma_e[4] + factor2;
     sigma_e[8] = sigma_e[8] + factor2;
 
+    // Get location of array to store Cauchy values
+    double * sigma_nLocal = &(sigma_n[sigmaptr[e]+6*gp]);
 		// 6 values saved per gauss point for 3d
 		// in voigt notation, sigma11
-    sigma_n[0] = sigma_e[0];
+    sigma_nLocal[0] = sigma_e[0];
     // in voigt notation, sigma22
-    sigma_n[1] = sigma_e[4];
+    sigma_nLocal[1] = sigma_e[4];
     // in voigt notation, sigma33
-    sigma_n[2] = sigma_e[8];
+    sigma_nLocal[2] = sigma_e[8];
     // in voigt notation, sigma23
-    sigma_n[3] = sigma_e[7];
+    sigma_nLocal[3] = sigma_e[7];
     // in voigt notation, sigma13
-    sigma_n[4] = sigma_e[6];
+    sigma_nLocal[4] = sigma_e[6];
     // in voigt notation, sigma12
-    sigma_n[5] = sigma_e[3];
+    sigma_nLocal[5] = sigma_e[3];
 	}
 	return;
 }

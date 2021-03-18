@@ -139,21 +139,22 @@ void HGOIsotropicViscoelastic(int e, int gp) {
     }
   }
 
-  // Get location of array to store PK2 values
-  double * pk2Local = &(pk2[pk2ptr[e]+6*gp]);
-	// 6 values saved per gauss point for 3d
-	// in voigt notation, sigma11
-  pk2Local[0] = S[0];
+  // TODO (NEED UPDATE from PK2 to Cauchy)
+  // Get location of array to store Cauchy values
+  double * sigma_nLocal = &(sigma_n[sigmaptr[e]+6*gp]);
+  // 6 values saved per gauss point for 3d
+  // in voigt notation, sigma11
+  sigma_nLocal[0] = S[0];
   // in voigt notation, sigma22
-  pk2Local[1] = S[4];
+  sigma_nLocal[1] = S[4];
   // in voigt notation, sigma33
-  pk2Local[2] = S[8];
+  sigma_nLocal[2] = S[8];
   // in voigt notation, sigma23
-  pk2Local[3] = S[7];
+  sigma_nLocal[3] = S[7];
   // in voigt notation, sigma13
-  pk2Local[4] = S[6];
+  sigma_nLocal[4] = S[6];
   // in voigt notation, sigma12
-  pk2Local[5] = S[3];
+  sigma_nLocal[5] = S[3];
 
   // Update deviatoric part of S_0 for next time step
   for (int i = 0; i < matSize; ++i) {
@@ -165,8 +166,8 @@ void HGOIsotropicViscoelastic(int e, int gp) {
 #ifdef DEBUG
   FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Element ID = %d, gp = %d", e, gp);
   for(int i=0;i<6;i++){
-    int indexD = pk2ptr[e]+6*gp+i;
-    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "PK2[%d] = %10.6e", indexD, pk2[indexD]);
+    int indexD = sigmaptr[e]+6*gp+i;
+    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Sigma[%d] = %10.6e", indexD, sigma_n[indexD]);
   }
 #endif //DEBUG
 }

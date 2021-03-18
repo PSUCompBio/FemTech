@@ -4,6 +4,8 @@
 
 int *materialID;
 double *properties;
+double *waveSpeed;
+bool *viscoElasticPart;
 
 void ReadMaterials() {
   /* Function to be called only after reading the mesh */
@@ -32,6 +34,7 @@ void ReadMaterials() {
     FILE_LOG_SINGLE(ERROR, "Error in allocating properties array");
     TerminateFemTech(12);
   }
+  viscoElasticPart=(bool*)malloc(nPIDglobal*sizeof(bool));
 
   for (int i = 0; i < nPIDglobal; i++) {
     int count;
@@ -47,6 +50,7 @@ void ReadMaterials() {
               // properties[0] = density
               count = fscanf(File, "%lf", &properties[index + 0]);
               assert(count == 1);
+              viscoElasticPart[partID] = false;
               break;
       case 1 ://Compressible Neohookean
               // properties[0] = density
@@ -55,6 +59,7 @@ void ReadMaterials() {
               count = fscanf(File, "%lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2]);
               assert(count == 3);
+              viscoElasticPart[partID] = false;
               // FILE_LOG_SINGLE(DEBUGLOG, "Part %d Compressible NeoHookean properties (rho, mu, "
               //        "lambda) = %3.3f %3.3f %3.3f\n",
               //         partID, properties[index + 0], properties[index + 1],
@@ -66,6 +71,7 @@ void ReadMaterials() {
               // properties[2] = lambda
               count = fscanf(File, "%lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2]);
+              viscoElasticPart[partID] = false;
               assert(count == 3);
               // FILE_LOG_SINGLE(DEBUGLOG, "element %d St. Venant-Kirchhoff properties (rho, mu, lambda) = "
               //        "%3.3f %3.3f %3.3f\n",
@@ -78,6 +84,7 @@ void ReadMaterials() {
               // properties[2] = lambda
               count = fscanf(File, "%lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2]);
+              viscoElasticPart[partID] = false;
               assert(count == 3);
               // FILE_LOG_SINGLE(DEBUGLOG, "element %d Linear Elastic properties (rho, mu, lambda) = "
               //        "%3.3f %3.3f %3.3f\n",
@@ -93,6 +100,7 @@ void ReadMaterials() {
               count = fscanf(File, "%lf %lf %lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2], 
                       &properties[index + 3], &properties[index + 4]);
+              viscoElasticPart[partID] = false;
               assert(count == 5);
               // FILE_LOG_SINGLE(DEBUGLOG, "Part %d HGO properties (rho, mu, lambda, k1, k2) = "
               //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
@@ -122,6 +130,7 @@ void ReadMaterials() {
                     &properties[index + 7 + 2*j]);
                 assert(count == 2);
               }
+              viscoElasticPart[partID] = true;
               // FILE_LOG_SINGLE(WARNING, "Part %d HGO properties (rho, mu, K, k1, k2, n) = "
               //        "%3.3f %3.3f %3.3f %3.3f %3.3f %3.3f\n",
               //         partID, properties[index + 0], properties[index + 1],
@@ -141,11 +150,12 @@ void ReadMaterials() {
               // Convert G_0 to prony series equivalent g_1 : 
               // g_1 = (G_0 - / G_\infity)/G_\infity = (G_0/G_\infity -1 )
               // Store in properties[3]
-              properties[3] = properties[3]/properties[2] - 1.0;
+              properties[index+3] = properties[index+3]/properties[index+2] - 1.0;
               // Convert properties[1], K to \lambda
               // \lambda = K - 2G/3
-              properties[1] = properties[1] - 2.0*properties[2]/3.0;
-              // FILE_LOG_SINGLE(DEBUGLOG, "Part %d Viscoelastic properties (rho, K, G_0, G_infinity, beta) = "
+              properties[index+1] = properties[index+1] - 2.0*properties[index+2]/3.0;
+              viscoElasticPart[partID] = true;
+              // FILE_LOG_SINGLE(WARNING, "Part %d Viscoelastic properties (rho, K, G_0, G_infinity, beta) = "
               //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
               //         partID, properties[index + 0], properties[index + 1],
               //         properties[index + 2], properties[index + 3], properties[index + 4]);
@@ -169,6 +179,7 @@ void ReadMaterials() {
                     &properties[index + 4 + 2*j]);
                 assert(count == 2);
               }
+              viscoElasticPart[partID] = false;
               break;
       case 8 :// Ogden Viscoelastic model with max N = 3, max N Prony = 6
               /* \rho      = properties(0)
@@ -202,6 +213,7 @@ void ReadMaterials() {
                     &properties[index + 5 + 2*nTerms + 2*j]);
                 assert(count == 2);
               }
+              viscoElasticPart[partID] = true;
               break;
       default :FILE_LOG_SINGLE(ERROR, "Material ID for Part %d not found", partID);
                 TerminateFemTech(3);
@@ -217,5 +229,10 @@ void ReadMaterials() {
     }
   }
   free(checkFullRead);
+  // Compute wave speeds and store for all materials
+	waveSpeed = (double*)malloc(nPIDglobal*sizeof(double));
+  for (int i = 0; i < nPIDglobal; ++i) {
+    waveSpeed[i] = CalculateWaveSpeed(i);
+  }
   return;
 }

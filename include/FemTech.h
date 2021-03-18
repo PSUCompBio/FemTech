@@ -81,6 +81,7 @@ void HGOIsotropicViscoelastic(int e, int gp);
 void Ogden(int e, int gp);
 void OgdenViscoelastic(int e, int gp);
 void lsDynaKMEquivalent(int e, int gp);
+double CalculateWaveSpeed(const unsigned int partID);
 
 void inverse3x3Matrix(double* mat, double* invMat, double* det);
 double det3x3Matrix(double* mat);

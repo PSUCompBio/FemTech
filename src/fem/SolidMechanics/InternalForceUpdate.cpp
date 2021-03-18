@@ -13,7 +13,7 @@ void InternalForceUpdate(int e, int gp, double *force) {
   for (int k = 0; k < nNodesL; ++k) {
     StrainDisplacementMatrix(e, gp, k, &(B[6*ndim*k]));
   }
-  double* sigma = &(pk2[pk2ptr[e]+6*gp]);
+  double* sigma = &(sigma_n[sigmaptr[e]+6*gp]);
   // Compute B^T*sigma^n
   dgemv_(chy, &cSize, &bColSize, &one, B, &cSize, sigma, \
       &oneI, &zero, fintGQ, &oneI);
