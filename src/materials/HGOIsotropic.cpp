@@ -46,7 +46,7 @@ void HGOIsotropic(int e, int gp) {
   // Compute the hydrostatic diagonal contribution to cauchy stress tensor
   const double hydroDiag = 0.5*K*(J*J-1.0)/J; 
   // Compute the left elastic Cauchy-Green tensor B = F*F^T
-  double matSize = ndim * ndim;
+  const unsigned int matSize = ndim * ndim;
   double *Bmat = mat1;
   dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
         F_element_gp, &ndim, &zero, Bmat, &ndim);

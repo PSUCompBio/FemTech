@@ -140,9 +140,9 @@ void ReadMaterials() {
       case 6 :// lsDyna KM Equivalent material
               // properties[0] = density
               // properties[1] = K
-              // properties[2] = G_\infity
-              // properties[3] = G_0
-              // properties[4] = \beta
+              // properties[2] = G_0
+              // properties[3] = G_\infity
+              // properties[4] = \beta 
               count = fscanf(File, "%lf %lf %lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2], 
                       &properties[index + 3], &properties[index + 4]);
@@ -159,6 +159,8 @@ void ReadMaterials() {
               //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
               //         partID, properties[index + 0], properties[index + 1],
               //         properties[index + 2], properties[index + 3], properties[index + 4]);
+              // Convert \beta to \tau
+              // properties[index+4] = 1.0/properties[index+4];
               break;
       case 7 :// Ogden model with max N = 3
               // properties[0] = density

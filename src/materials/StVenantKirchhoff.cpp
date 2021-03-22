@@ -11,7 +11,6 @@ void StVenantKirchhoff(int e, int gp) {
     double lambda = properties[MAXMATPARAMS * pide + 2];
     const unsigned int index = fptr[e] + ndim * ndim * gp;
 
-    // Compute Green-Lagrange Tensor: E= (1/2)*(F^T*F - I)
     // Compute Green-Lagrange Tensor: E= (1/2)*(H + H^T + H^T*H)
     double *H = mat1;
     ComputeH(e, gp, H);
