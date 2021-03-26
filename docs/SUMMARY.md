@@ -23,9 +23,6 @@
     * [StrainDisplacement.cpp](fem/solid-mechanics/straindisplacement.cpp.md)
   * [Shape Functions](fem/shape-functions/README.md)
     * [Untitled](fem/shape-functions/untitled.md)
-* [Elements](elements/README.md)
-  * [C3D8 - 8 node hex](elements/c3d8-8-node-hex.md)
-  * [C3D4 - 4 node tet](elements/c3d4-4-node-tet.md)
 
 ## Materials
 
@@ -38,4 +35,10 @@
   * [BLAS/LAPACK](external-programs/blas-lapack.md)
   * [VTK](external-programs/vtk.md)
 * [Benchmarking](benchmarking.md)
+
+## Elements <a id="elements-1"></a>
+
+* [C3D8 - 8 node hex](elements-1/c3d8-8-node-hex.md)
+* [C3D4 - 4 node tet](elements-1/c3d4-4-node-tet.md)
+* [Untitled](elements-1/untitled.md)
 
