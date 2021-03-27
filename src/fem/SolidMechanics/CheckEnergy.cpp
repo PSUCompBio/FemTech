@@ -1,6 +1,6 @@
 #include "FemTech.h"
 
-void CheckEnergy(double time, int writeFlag) {
+void CheckEnergy(double time, bool writeFlag) {
   static double Wint_n = 0.0;
   static double Wext_n = 0.0;
 
@@ -77,7 +77,7 @@ void CheckEnergy(double time, int writeFlag) {
     if (total > epsilon*max) {
       FILE_LOG_MASTER(WARNING, "Energy Violation. Total = %15.9e, Max = %15.9e, Error\% : %10.2f", total, max, total*100.0/max);
     }
-    if (writeFlag == 0) {
+    if (writeFlag) {
       fprintf(energyFile, "%12.6e %12.6e  %12.6e  %12.6e %12.6e\n", time,
               Wint_n, Wext_n, WKE_Total, total);
     }

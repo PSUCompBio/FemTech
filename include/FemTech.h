@@ -62,6 +62,7 @@ void CalculateFR();
 void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
     double *currentStrainMin, double *currentShearMax);
 void CalculateStrain();
+void CalculateElementStress(unsigned int e, double* stress);
 void CalculateDeformationGradient(int e, int gp);
 void SumOfDeformationGradient(int e, int gp);
 void StrainDisplacementMatrix(int e, int gp, int nI, double *B);
@@ -104,7 +105,7 @@ double compute95thPercentileValue(double* dataArray, int localSize);
 void test95Percentile(void);
 void dyadic(const double* const, const double, double * const);
 
-void CheckEnergy(double time, int writeFlag);
+void CheckEnergy(double time, bool writeFlag);
 
 /* Functions to calculate characteristic lengths */
 double CalculateCharacteristicLength(int e);

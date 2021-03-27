@@ -9,11 +9,11 @@ void CustomPlot();
 
 double Time, dt;
 int nSteps;
-double ExplicitTimeStepReduction = 0.8;
+double ExplicitTimeStepReduction = 0.6;
 double FailureTimeStep = 1e-11;
-double MaxTimeStep = 1e-5;
+double MaxTimeStep = 1e-1;
 
-int nPlotSteps = 50;
+int nPlotSteps = 1000;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
@@ -71,14 +71,13 @@ int main(int argc, char **argv) {
     // Dynamic Explcit solution using....
 
     dt = 0.0;
-    double tMax = 1.00; // max simulation time in seconds
-    double dMax = 0.005; // max displacment in meters
+    double tMax = 1.00;  // max simulation time in seconds
+    double dMax = 0.007; // max displacment in meters
 
     int time_step_counter = 0;
     /** Central Difference Method - Beta and Gamma */
     // double beta = 0;
     // double gamma = 0.5;
-
     ShapeFunctions();
     /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
     AssembleLumpedMass();
@@ -95,23 +94,36 @@ int main(int argc, char **argv) {
     CalculateAccelerations();
 
     nSteps = (int)(tMax / dt);
+    double dtPlot = tMax/double(nPlotSteps);
+    double nextPlotTime = dtPlot;
     int nsteps_plot = (int)(nSteps / nPlotSteps);
-    FILE_LOG_MASTER(INFO, "initial dt = %3.3e, nSteps = %d, nsteps_plot = %d", dt, nSteps,
-            nsteps_plot);
-
+    FILE_LOG_MASTER(INFO, "initial dt = %3.3e, nSteps = %d, nsteps_plot = %d",
+                    dt, nSteps, nsteps_plot);
 
     time_step_counter = time_step_counter + 1;
     double t_n = 0.0;
 
-    FILE_LOG_MASTER(INFO, "------------------------------- Loop ----------------------------");
+    FILE_LOG_MASTER(INFO,
+        "------------------------------- Loop ----------------------------");
     FILE_LOG_MASTER(INFO, "Time : %15.6e, tmax : %15.6e", Time, tMax);
+
+    bool writeFlag = false;
 
     /* Step-4: Time loop starts....*/
     while (Time < tMax) {
       t_n = Time;
       double t_np1 = Time + dt;
+      if (t_np1 > nextPlotTime) {
+        // Adjust dt to plot at specific time steps
+        t_np1 = nextPlotTime;
+        dt = nextPlotTime - Time;
+        // Update next plot time step
+        nextPlotTime = nextPlotTime + dtPlot;
+        writeFlag = true;
+      }
       Time = t_np1; /*Update the time by adding full time step */
-      FILE_LOG_MASTER(INFO, "Time : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt, tMax);
+      FILE_LOG_MASTER(INFO, "Time : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt,
+                      tMax);
       double dt_nphalf = dt;                 // equ 6.2.1
       double t_nphalf = 0.5 * (t_np1 + t_n); // equ 6.2.1
 
@@ -155,11 +167,11 @@ int main(int argc, char **argv) {
       }
 
       /** Step - 11 Checking* Energy Balance */
-      int writeFlag = time_step_counter%nsteps_plot;
       CheckEnergy(Time, writeFlag);
-
-      CustomPlot();
-      if (writeFlag == 0) {
+      
+      // int writeFlag = time_step_counter % nsteps_plot;
+      if (writeFlag) {
+        CustomPlot();
         plot_counter = plot_counter + 1;
         CalculateStrain();
         FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
@@ -168,9 +180,10 @@ int main(int argc, char **argv) {
           stepTime[plot_counter] = Time;
           WritePVD(outputFileName.c_str(), plot_counter);
         }
-        // CustomPlot();
 
-        FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Displacement Solution");
+        FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim,
+                         "Displacement Solution");
+        writeFlag = false;
       }
       time_step_counter = time_step_counter + 1;
       dt = ExplicitTimeStepReduction * StableTimeStep();
@@ -180,9 +193,10 @@ int main(int argc, char **argv) {
     FILE_LOG_MASTER(INFO, "End of Iterative Loop");
 
     // Write out the last time step
-    CustomPlot();
+    // CustomPlot();
   } // end if ExplicitDynamic
-  FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Final Displacement Solution");
+  FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim,
+                   "Final Displacement Solution");
 
   FinalizeFemTech();
   return 0;
@@ -280,12 +294,13 @@ void ApplyBoundaryConditions(double dMax, double tMax) {
       // CalculateDisplacement to get current increment out
       //  displacment to be applied.
       displacements[index] = AppliedDisp;
-      velocities[index] = dMax/tMax;
+      velocities[index] = dMax / tMax;
       // For energy computations
       accelerations[index] = 0.0;
     }
   }
-  FILE_LOG_MASTER(INFO, "Time = %10.5E, Applied Disp = %10.5E",Time, AppliedDisp);
+  FILE_LOG_MASTER(INFO, "Time = %10.5E, Applied Disp = %10.5E", Time,
+                  AppliedDisp);
   return;
 }
 
@@ -299,9 +314,11 @@ void CustomPlot() {
   if (fabs(Time - 0.0) < 1e-16) {
     datFile = fopen("plot.dat", "w");
     fprintf(datFile, "# Results for Node ?\n");
-    fprintf(datFile, "# Time  DispX    DispY   DispZ\n");
-    fprintf(datFile, "%11.5e %11.5e  %11.5e  %11.5e\n", 0.0, 0.0, 0.0, 0.0);
-
+    fprintf(datFile, "# Time  DispX  DispY  DispZ  SigmaXX  SigmaYY  SigmaZZ  "
+                     "SigmaXY  Sigma XZ  SigmaYZ\n");
+    fprintf(datFile, "%13.5e  %13.5e  %13.5e  %13.5e  %13.5e  %13.5e  %13.5e  "
+            "%13.5e  %13.5e  %13.5e\n", 
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   } else {
     datFile = fopen("plot.dat", "a");
     for (int i = 0; i < nNodes; i++) {
@@ -309,13 +326,19 @@ void CustomPlot() {
           fabs(coordinates[ndim * i + y] - 0.005) < tol &&
           fabs(coordinates[ndim * i + z] - 0.005) < tol) {
 
-        fprintf(datFile, "%11.5e %11.5e  %11.5e  %11.5e\n", Time,
+        fprintf(datFile, "%13.5e  %13.5e  %13.5e  %13.5e  ", Time,
                 displacements[ndim * i + x], displacements[ndim * i + y],
                 displacements[ndim * i + z]);
       }
     }
+    // Compute Cauchy stress for the element
+    double stressElem[6];
+    CalculateElementStress(0, stressElem);
+    // Print all six stress components of 1st element stress
+    fprintf(datFile, "%13.5e  %13.5e  %13.5e  %13.5e  %13.5e  %13.5e\n",
+            stressElem[0], stressElem[1], stressElem[2], stressElem[6],
+            stressElem[4], stressElem[2]);
   }
-
   fclose(datFile);
   return;
 }

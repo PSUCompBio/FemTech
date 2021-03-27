@@ -22,17 +22,6 @@ void CompressibleNeoHookean(int e, int gp){
     // (b-I) = (H + H^T + H*H^T)
     double *H = mat1;
     ComputeH(e, gp, H);
-    double *bmI = mat2;
-    // Compute (H+H^T)
-    for (int i = 0; i < ndim; ++i) {
-      for (int j = 0; j < ndim; ++j) {
-        const int indexL = j + i*ndim;
-        bmI[indexL] = (H[indexL]+H[i+j*ndim]);
-      }
-    }
-    // Compute H H^T and add to bmI
-    dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, H, &ndim,
-           H, &ndim, &one, bmI, &ndim);
     // Compute and store F = H + I
     double * const F_element_gp = &(F[index]);
     for (unsigned int i = 0; i < ndim2; ++i) {
@@ -41,6 +30,16 @@ void CompressibleNeoHookean(int e, int gp){
     F_element_gp[0] = F_element_gp[0] + 1.0;
     F_element_gp[4] = F_element_gp[4] + 1.0;
     F_element_gp[8] = F_element_gp[8] + 1.0;
+
+    double *b = mat2;
+    // Compute F F^T and store to b 
+    dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
+           F_element_gp, &ndim, &zero, b, &ndim);
+    // Compute b - I
+    b[0] = b[0] - 1.0;
+    b[4] = b[4] - 1.0;
+    b[8] = b[8] - 1.0;
+
     // J = det(F)
     const double J = det3x3Matrix(F_element_gp);
     const double factor1 = mu/J;
@@ -48,7 +47,7 @@ void CompressibleNeoHookean(int e, int gp){
 
     double *sigma_e = mat3;
     for (unsigned int i = 0; i < ndim2; ++i) {
-      sigma_e[i] = factor1*bmI[i];
+      sigma_e[i] = factor1*b[i];
     }
     sigma_e[0] = sigma_e[0] + factor2;
     sigma_e[4] = sigma_e[4] + factor2;
