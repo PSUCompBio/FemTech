@@ -18,7 +18,7 @@ bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 
 int main(int argc, char **argv) {
-  feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+//  feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   InitFemTechWoInput(argc, argv);
 
   ReadInputFile(argv[1]);
@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
 
     dt = 0.0;
     double tMax = 1.00; // max simulation time in seconds
-    double dMax = 0.007; // max displacment in meters
+    double dMax = 0.005; // max displacment in meters
 
     int time_step_counter = 0;
     /** Central Difference Method - Beta and Gamma */
@@ -193,7 +193,7 @@ void ApplyBoundaryConditions(double dMax, double tMax) {
 
   // Apply Ramped Displacment
   if (ExplicitDynamic || ImplicitDynamic) {
-    AppliedDisp = Time * (dMax / tMax);
+      AppliedDisp = Time * (dMax / tMax);
   } else if (ImplicitStatic) {
     AppliedDisp = dMax;
   }

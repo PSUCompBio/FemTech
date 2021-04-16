@@ -128,16 +128,23 @@ void ReadMaterials() {
               //         properties[index + 2], properties[index + 3], properties[index + 4],
               //         properties[index + 5]);
               break;
-      case 6 :// Viscoelastic material
+      case 6 :// lsDyna KM Equivalent material
               // properties[0] = density
               // properties[1] = K
-              // properties[2] = G_0
-              // properties[3] = G_\infity
+              // properties[2] = G_\infity
+              // properties[3] = G_0
               // properties[4] = \beta
               count = fscanf(File, "%lf %lf %lf %lf %lf", &properties[index + 0],
                       &properties[index + 1], &properties[index + 2],
                       &properties[index + 3], &properties[index + 4]);
               assert(count == 5);
+              // Convert G_0 to prony series equivalent g_1 :
+              // g_1 = (G_0 - / G_\infity)/G_\infity = (G_0/G_\infity -1 )
+              // Store in properties[3]
+              properties[3] = properties[3]/properties[2] - 1.0;
+              // Convert properties[1], K to \lambda
+              // \lambda = K - 2G/3
+              properties[1] = properties[1] - 2.0*properties[2]/3.0;
               // FILE_LOG_SINGLE(DEBUGLOG, "Part %d Viscoelastic properties (rho, K, G_0, G_infinity, beta) = "
               //        "%3.3f %3.3f %3.3f %3.3f %3.3f\n",
               //         partID, properties[index + 0], properties[index + 1],

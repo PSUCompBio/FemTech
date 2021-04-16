@@ -30,8 +30,15 @@ void Ogden(int e, int gp) {
   // Read material properties
   const double K = localProperties[1];
   const int nTerm = static_cast<int>(localProperties[2]);
-
+  double *H = mat1;
+  ComputeH(e, gp, H);
   double * const F_element_gp = &(F[index]);
+  for (unsigned int i = 0; i < ndim2; ++i) {
+    F_element_gp[i] = H[i];
+  }
+  F_element_gp[0] = F_element_gp[0] + 1.0;
+  F_element_gp[4] = F_element_gp[4] + 1.0;
+  F_element_gp[8] = F_element_gp[8] + 1.0;
   // Use temp storage mat1 for Finverse
   double *fInv = mat1;
   // Compute F inverse
@@ -62,7 +69,7 @@ void Ogden(int e, int gp) {
   for (int i = 0; i < matSize; ++i) {
     S[i] = 0.0;
   }
-  const double hydro = K*(J-1.0); 
+  const double hydro = K*(J-1.0);
   double eigenPower[ndim];
   for (int i = 0; i < ndim; ++i) {
     double preFactor = 0.0;
@@ -82,22 +89,31 @@ void Ogden(int e, int gp) {
     dyadic(&basisVec[3*i], preFactor, S);
   }
 
+
+  double Jinv = 1.0/det3x3Matrix(F_element_gp);
+  double *sigmaTemp = mat4;
+  double *sigma = mat2;
+  dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, H, &ndim,
+         S, &ndim, &zero, sigmaTemp, &ndim);
+  printf("%.10f %.10f %.10f %.10f %.10f %.10f\n", H[0], H[1], H[2], H[3], sigmaTemp[4], sigmaTemp[5]);   
+  dgemm_(chn, chy, &ndim, &ndim, &ndim, &Jinv, sigmaTemp, &ndim,
+         H, &ndim, &zero, sigma, &ndim);
   // Get location of array to store PK2 values
   double * pk2Local = &(pk2[pk2ptr[e]+6*gp]);
 	// 6 values saved per gauss point for 3d
 	// in voigt notation, sigma11
-  pk2Local[0] = S[0];
+  sigma_n[0] = sigma[0];
   // in voigt notation, sigma22
-  pk2Local[1] = S[4];
+  sigma_n[1] = sigma[4];
   // in voigt notation, sigma33
-  pk2Local[2] = S[8];
+  sigma_n[2] = sigma[8];
   // in voigt notation, sigma23
-  pk2Local[3] = S[7];
+  sigma_n[3] = sigma[7];
   // in voigt notation, sigma13
-  pk2Local[4] = S[6];
+  sigma_n[4] = sigma[6];
   // in voigt notation, sigma12
-  pk2Local[5] = S[3];
-
+  sigma_n[5] = sigma[3];
+//printf("%.10f %.10f %.10f %.10f %.10f %.10f\n", sigma_n[0], sigma_n[1], sigma_n[2], sigma_n[3], sigma_n[4], sigma_n[5]);
 #ifdef DEBUG
   FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Element ID = %d, gp = %d", e, gp);
   for(int i=0;i<6;i++){

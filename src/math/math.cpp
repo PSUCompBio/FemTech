@@ -28,6 +28,13 @@ void inverse3x3Matrix(double* mat, double* invMat, double* det) {
   (*det) = detLocal;
 }
 
+double det3x3Matrix(double* mat) {
+  double det = mat[0] * (mat[4] * mat[8] - mat[5] * mat[7]) -
+               mat[3] * (mat[1] * mat[8] - mat[7] * mat[2]) +
+               mat[6] * (mat[1] * mat[5] - mat[4] * mat[2]);
+  return det;
+}
+
 double normOfCrossProduct(double *a, double *b) {
   double z = a[0]*b[1]-a[1]*b[0];
   if (ndim == 3) {
@@ -141,7 +148,7 @@ void quaternionMultiply(double *q1, double *q2, double *qr) {
 
 void quaternionInverse(double *q, double *qinv) {
   double norm = q[0]*q[0]+q[1]*q[1]+q[2]*q[2]+q[3]*q[3];
-  qinv[0] = q[0]/norm; qinv[1] = -q[1]/norm; 
+  qinv[0] = q[0]/norm; qinv[1] = -q[1]/norm;
   qinv[2] = -q[2]/norm; qinv[3] = -q[3]/norm;
 }
 
@@ -332,8 +339,8 @@ double compute95thPercentileValue(double* dataArray, int localSize) {
   return value;
 }
 
-int compareDouble(const void *a, const void *b) { 
-  double diff = (*(double *)a - *(double *)b); 
+int compareDouble(const void *a, const void *b) {
+  double diff = (*(double *)a - *(double *)b);
   if (diff < 0) {
     return -1;
   } else if (diff > 0) {

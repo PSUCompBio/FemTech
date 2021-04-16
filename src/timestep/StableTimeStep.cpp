@@ -23,7 +23,7 @@ double StableTimeStep() {
         dtMin = dtElem;
         // minElementID = i;
       }
-    } 
+    }
     // else {
     //   elemSkipped = elemSkipped + 1;
     // }

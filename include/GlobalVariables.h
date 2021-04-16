@@ -57,6 +57,8 @@ extern double *C; /*Stores C matrix for isotropic elastic material */
 extern double *gaussWeights;
 extern double *detJacobian;
 
+extern int countstress;
+
 /* For BC */
 extern int nSpecifiedDispBC;
 

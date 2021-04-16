@@ -4,9 +4,9 @@
 // plane strain or three-dimensional compressible neo-Hookean
 // Evaluates the PK2 stress tensor
 
-void CompressibleNeoHookean(int e, int gp){
-//	FILE *fp;
-//	fp=fopen("stress.txt","a");
+void CompressibleNeoHookeanAbaqus(int e, int gp){
+	FILE *fp;
+	fp=fopen("stress.txt","a");
 	if(ndim == 2){
 		// 6 values saved per gauss point for 3d
 		for(int i=0;i<3;i++){
@@ -18,20 +18,18 @@ void CompressibleNeoHookean(int e, int gp){
     double mu = properties[MAXMATPARAMS * pide + 1];
     double lambda = properties[MAXMATPARAMS * pide + 2];
 
-		//From Bonet and Wood - Flagshyp
+		//From Abaqus
 		//mu              = properties(2);
 		//lambda          = properties(3);
 		//J               = kinematics.J;
 		//b               = kinematics.b;
-		//Cauchy          = (mu/J)*(b - cons.I) + (lambda/J)*log(J)*cons.I;
-    //C = F^T F
-    // Bonet and Wood Equation 5.28
-		//S          = mu*(I - C^{-1}) + lambda*ln(J)*C^{-1};
+    //B = F F^T
+		//sigma          = (B - trace(B)*I/3)*mu/J^(5/3) + K*(J-1)*I;
 
-    // (b-I) = (H + H^T + H*H^T)
     double *H = mat1;
     ComputeH(e, gp, H);
     double *bmI = mat2;
+		double temp1, temp2, temp3;
     // Compute (H+H^T)
     for (int i = 0; i < ndim; ++i) {
       for (int j = 0; j < ndim; ++j) {
@@ -42,15 +40,30 @@ void CompressibleNeoHookean(int e, int gp){
     // Compute H H^T and add to bmI
     dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, H, &ndim,
            H, &ndim, &one, bmI, &ndim);
+		bmI[0] = bmI[0] + 1.0;
+		bmI[4] = bmI[4] + 1.0;
+		bmI[8] = bmI[8] + 1.0;
     // Store F in H
     // F = H + I
-    H[0] = H[0] + 1.0;
+//		printf("%.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f\n", H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7], H[8], Time);
+
+		H[0] = H[0] + 1.0;
     H[4] = H[4] + 1.0;
     H[8] = H[8] + 1.0;
-    // J = det(F)
-    const double J = det3x3Matrix(H);
-    const double factor1 = mu/J;
-    const double factor2 = lambda*log(J)/J;
+	//	if(e==0)
+	//		printf("%.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f\n", H[0], H[1], H[2], H[3], H[4], H[5], H[6], H[7], H[8], Time);
+
+		temp1 = bmI[0] - (bmI[0]+bmI[4]+bmI[8])/3.0;
+		temp2 = bmI[4] - (bmI[0]+bmI[4]+bmI[8])/3.0;
+		temp3 = bmI[8] - (bmI[0]+bmI[4]+bmI[8])/3.0;
+		bmI[0]=temp1;
+		bmI[4]=temp2;
+		bmI[8]=temp3;
+
+	 // J = det(F)
+    double J = det3x3Matrix(H);
+    const double factor1 = mu/pow(J, 5.0/3.0);
+    const double factor2 = (lambda+2*mu/3)*(J-1);
 
     double *sigma_e = mat3;
     for (unsigned int i = 0; i < ndim2; ++i) {
@@ -74,11 +87,9 @@ void CompressibleNeoHookean(int e, int gp){
     sigma_n[4] = sigma_e[6];
     // in voigt notation, sigma12
     sigma_n[5] = sigma_e[3];
-		//if(countstress%5000==0)
-		{
-	//					 	fprintf(fp,"%.10f	%.10f %.10f %.10f %.10f %.10f %.10f\n", sigma_n[0], sigma_n[1], sigma_n[2], sigma_n[3], sigma_n[4], sigma_n[5], Time);
-					}
-		}
-//		fclose(fp);
+				fprintf(fp,"%.10f	%.10f %.10f %.10f %.10f %.10f %.10f\n", sigma_n[0], sigma_n[1], sigma_n[2], sigma_n[3], sigma_n[4], sigma_n[5], Time);
+	//fprintf(fp, "%.10f %.10f\n", J , dt);
+				}
+						fclose(fp);
 	return;
 }

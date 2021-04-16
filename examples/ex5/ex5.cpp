@@ -38,7 +38,7 @@ bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 5e-8; // Set for max runtime of around 5 hrs on aws
-int nPlotSteps = 50;
+int nPlotSteps = 5;
 int nWriteSteps = 2000;
 
 /* Global variables used only in this file */
@@ -148,6 +148,8 @@ int main(int argc, char **argv) {
 
   std::string meshFile = simulationJson["mesh"].asString();
   // Convert maximum time to seconds
+  for(int i=0; i<nelements; i++)
+    strcpy(ElementType[i], "C3D8R");
   tMax = simulationJson["maximum-time"].asDouble() / 1000.0;
   if (!simulationJson["write-vtu"].empty()) {
     writeField = simulationJson["write-vtu"].asBool();
@@ -162,6 +164,8 @@ int main(int argc, char **argv) {
   outputFileName = meshFile.substr(0, lastindex) + "_" + uid;
   // Read material properties before mesh partition to estimate
   // material type kernel compute intensity
+  //for(int i=0; i<nelements; i++)
+  //  strcpy(ElementType[i], "C3D8R");
   ReadMaterials();
 
   PartitionMesh();
@@ -182,7 +186,7 @@ int main(int argc, char **argv) {
   if (writeField) {
     if (computeInjuryFlag) {
       WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, outputCount,
-              outputNames, elementIDInjury, nElementsInjury, outputDoubleArray, 
+              outputNames, elementIDInjury, nElementsInjury, outputDoubleArray,
               outputDoubleCount, outputDoubleNames);
     } else {
       WriteVTU(outputFileName.c_str(), plot_counter);
@@ -301,7 +305,7 @@ int main(int argc, char **argv) {
           FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
           if (computeInjuryFlag) {
             WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, outputCount,
-                    outputNames, elementIDInjury, nElementsInjury, outputDoubleArray, 
+                    outputNames, elementIDInjury, nElementsInjury, outputDoubleArray,
                     outputDoubleCount, outputDoubleNames);
           } else {
             WriteVTU(outputFileName.c_str(), plot_counter);
@@ -1450,9 +1454,9 @@ void InitInjuryCriteria(void) {
   }
   // for (int i = 0; i < percentileQuantities; ++i) {
   //   outputDataArray[threshQuantities + i] =
-  //       percentileElements[i]; 
+  //       percentileElements[i];
   // }
-  outputDataArray[threshQuantities] = 
+  outputDataArray[threshQuantities] =
     percentileElements[0]; // Write MPS-95 to paraview
   // Percentile Values
   // Write MPS-95-Value

@@ -1,0 +1,111 @@
+-----------TENSION-------------------------
+//
+index = ndim * i;
+if (fabs(coordinates[index] - 0.0) < tol) {
+  boundary[index] = 1;
+//  printf("%d\n", index-1);
+  displacements[index] = 0.0;
+  velocities[index] = 0.0;
+  accelerations[index] = 0.0;
+  count = count + 1;
+}
+
+index = ndim * i + 1;
+if (fabs(coordinates[index] - 0.0) < tol) {
+  boundary[index] = 1;
+//  printf("%d\n", index-1);
+  displacements[index] = 0.0;
+  velocities[index] = 0.0;
+  accelerations[index] = 0.0;
+  count = count + 1;
+}
+// if y coordinate = 0, constrain node to y plane (1-direction)
+// if z coordinate = 0, constrain node to z plane (2-direction)
+index = ndim * i + 2;
+if (fabs(coordinates[index] - 0.0) < tol) {
+  boundary[index] = 1;
+//  printf("%d\n", index);
+  displacements[index] = 0.0;
+  velocities[index] = 0.0;
+  accelerations[index] = 0.0;
+  count = count + 1;
+}
+// if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
+index = ndim * i + 1;
+if (fabs(coordinates[index] - 0.005) < tol) {
+  boundary[index] = 1;
+  count = count + 1;
+  // note that this may have to be divided into
+  // diplacement increments for both implicit and
+  // explicit solver. In the future this would be
+  // equal to some time dependent function i.e.,
+  // CalculateDisplacement to get current increment out
+  //  displacment to be applied.
+  displacements[index] = AppliedDisp;
+  velocities[index] = dMax/tMax;
+  // For energy computations
+  accelerations[index] = 0.0;
+
+
+  --------------SHEAR------------------------------------------------
+  index = ndim * i + 1;
+  if (fabs(coordinates[index] - 0.005) < tol) {
+    boundary[index] = 1;
+  //  printf("%d\n", index-1);
+    displacements[index] = 0.0;
+    velocities[index] = 0.0;
+    accelerations[index] = 0.0;
+    count = count + 1;
+  }
+
+  index = ndim * i + 1;
+  if (fabs(coordinates[index] - 0.0) < tol) {
+    boundary[index] = 1;
+  //  printf("%d\n", index-1);
+    displacements[index] = 0.0;
+    velocities[index] = 0.0;
+    accelerations[index] = 0.0;
+    count = count + 1;
+    boundary[index-1] = 1;
+  //  printf("%d\n", index-1);
+    displacements[index-1] = 0.0;
+    velocities[index-1] = 0.0;
+    accelerations[index-1] = 0.0;
+    count = count + 1;
+  }
+  // if y coordinate = 0, constrain node to y plane (1-direction)
+  // if z coordinate = 0, constrain node to z plane (2-direction)
+  index = ndim * i + 2;
+  if (fabs(coordinates[index] - 0.0) < tol) {
+    boundary[index] = 1;
+  //  printf("%d\n", index);
+    displacements[index] = 0.0;
+    velocities[index] = 0.0;
+    accelerations[index] = 0.0;
+    count = count + 1;
+  }
+
+  index = ndim * i + 2;
+  if (fabs(coordinates[index] - 0.005) < tol) {
+    boundary[index] = 1;
+  //  printf("%d\n", index);
+    displacements[index] = 0.0;
+    velocities[index] = 0.0;
+    accelerations[index] = 0.0;
+    count = count + 1;
+  }
+  // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
+  index = ndim * i + 1;
+  if (fabs(coordinates[index] - 0.005) < tol) {
+    boundary[index-1] = 1;
+    count = count + 1;
+    // note that this may have to be divided into
+    // diplacement increments for both implicit and
+    // explicit solver. In the future this would be
+    // equal to some time dependent function i.e.,
+    // CalculateDisplacement to get current increment out
+    //  displacment to be applied.
+    displacements[index-1] = AppliedDisp;
+    velocities[index-1] = dMax/tMax;
+    // For energy computations
+    accelerations[index-1] = 0.0; 

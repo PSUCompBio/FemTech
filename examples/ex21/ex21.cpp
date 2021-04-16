@@ -8,11 +8,11 @@ void ApplyBoundaryConditions(double dMax, double tMax);
 void CustomPlot();
 
 double Time, dt;
-int nSteps;
+int nSteps, countstress;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
 
-int nPlotSteps = 50;
+int nPlotSteps = 100;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
@@ -20,15 +20,15 @@ bool ExplicitDynamic = true;
 int main(int argc, char **argv) {
 //  feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   InitFemTechWoInput(argc, argv);
-
   ReadInputFile(argv[1]);
-  strcpy(ElementType[0], "C3D8R");
+  for(int i=0; i<nelements; i++)
+    strcpy(ElementType[i], "C3D8R");
+  //printf("%s\n", ElementType[i]);
   ReadMaterials();
 
   PartitionMesh();
 
   AllocateArrays();
-
   std::string meshFile(argv[1]);
   size_t lastindex = meshFile.find_last_of(".");
   std::string outputFileName = meshFile.substr(0, lastindex);
@@ -38,7 +38,8 @@ int main(int argc, char **argv) {
   WriteVTU(outputFileName.c_str(), plot_counter);
   stepTime[plot_counter] = Time;
   CustomPlot();
-
+  FILE *fd;
+  fd=fopen("displacement.txt","w");
   if (ImplicitStatic) {
     // Static solution
     double dMax = 0.1; // max displacment in meters
@@ -69,10 +70,10 @@ int main(int argc, char **argv) {
     SolveUnsteadyNewmarkImplicit(beta, gamma, dt, tMax, argv[1]);
   } else if (ExplicitDynamic) {
     // Dynamic Explcit solution using....
-
+    countstress = 0;
     dt = 0.0;
-    double tMax = 1.00; // max simulation time in seconds
-    double dMax = 0.007; // max displacment in meters
+    double tMax = 1; // max simulation time in seconds
+    double dMax = 0.005; // max displacment in meters
 
     int time_step_counter = 0;
     /** Central Difference Method - Beta and Gamma */
@@ -81,6 +82,7 @@ int main(int argc, char **argv) {
 
     ShapeFunctions();
     /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
+
     AssembleLumpedMass();
 
     // Used if initial velocity and acceleration BC is to be set.
@@ -91,6 +93,7 @@ int main(int argc, char **argv) {
     /* Step-2: getforce step from Belytschko */
     GetForce(); // Calculating the force term.
 
+    countstress=0;
     /* Step-3: Calculate accelerations */
     CalculateAccelerations();
 
@@ -114,7 +117,6 @@ int main(int argc, char **argv) {
       FILE_LOG_MASTER(INFO, "Time : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt, tMax);
       double dt_nphalf = dt;                 // equ 6.2.1
       double t_nphalf = 0.5 * (t_np1 + t_n); // equ 6.2.1
-
       /* Step 5 from Belytschko Box 6.1 - Update velocity */
       for (int i = 0; i < nDOF; i++) {
         if (boundary[i]) {
@@ -124,24 +126,34 @@ int main(int argc, char **argv) {
               velocities[i] + (t_nphalf - t_n) * accelerations[i];
         }
       }
+    //  printf("%.10f %.10f\n", t_nphalf - t_n, Time);
 
       // Store old displacements and accelerations for energy computation
       memcpy(displacements_prev, displacements, nDOF * sizeof(double));
       memcpy(accelerations_prev, accelerations, nDOF * sizeof(double));
+
       // Store internal external force from previous step to compute energy
       memcpy(fi_prev, fi, nDOF * sizeof(double));
       memcpy(fe_prev, fe, nDOF * sizeof(double));
-
+    //  for(int i = 0; i<nDOF; i++)
+    //    printf("%.10f %d %.10f\n", fi[i], i, Time);
       for (int i = 0; i < nDOF; i++) {
         if (!boundary[i]) {
           displacements[i] = displacements[i] + dt_nphalf * velocities_half[i];
+        //  printf("%.10f %.10f %d\n", displacements[i], Time, i);
         }
       }
+
+      //printf("%.10f %.10f %.10f %.10f\n", displacements[0], displacements[1], displacements[2], Time);
       /* Step 6 Enforce displacement boundary Conditions */
       ApplyBoundaryConditions(dMax, tMax);
-
+      for (int i = 0; i < nDOF; i++) {
+        fprintf(fd, "%.10f %.10f %d\n", displacements[i], Time, i);
+      }
+//works till here for 2nd time step -delete
       /* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
       GetForce(); // Calculating the force term.
+      countstress+=1;
       /* Step - 9 from Belytschko Box 6.1 - Calculate Accelerations */
       CalculateAccelerations(); // Calculating the new accelerations from total
                                 // nodal forces.
@@ -152,7 +164,9 @@ int main(int argc, char **argv) {
           velocities[i] =
               velocities_half[i] + (t_np1 - t_nphalf) * accelerations[i];
         }
+        //printf("%.10f %.10f\n", velocities[i], Time);
       }
+
 
       /** Step - 11 Checking* Energy Balance */
       int writeFlag = time_step_counter%nsteps_plot;
@@ -184,6 +198,7 @@ int main(int argc, char **argv) {
   FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Final Displacement Solution");
 
   FinalizeFemTech();
+  fclose(fd);
   return 0;
 }
 
@@ -194,24 +209,25 @@ void ApplyBoundaryConditions(double dMax, double tMax) {
 
   // Apply Ramped Displacment
   if (ExplicitDynamic || ImplicitDynamic) {
-    AppliedDisp = Time * (dMax / tMax);
-  } else if (ImplicitStatic) {
+
+      AppliedDisp = Time * (dMax / tMax);
+
+ }
+  else if (ImplicitStatic) {
     AppliedDisp = dMax;
   }
   int index;
 
   for (int i = 0; i < nNodes; i++) {
-    // if x value = 0, constrain node to x plane (0-direction)
-    index = ndim * i + 0;
+    index = ndim * i;
     if (fabs(coordinates[index] - 0.0) < tol) {
       boundary[index] = 1;
       displacements[index] = 0.0;
       velocities[index] = 0.0;
-      // For energy computations
       accelerations[index] = 0.0;
       count = count + 1;
     }
-    // if y coordinate = 0, constrain node to y plane (1-direction)
+
     index = ndim * i + 1;
     if (fabs(coordinates[index] - 0.0) < tol) {
       boundary[index] = 1;
@@ -220,6 +236,7 @@ void ApplyBoundaryConditions(double dMax, double tMax) {
       accelerations[index] = 0.0;
       count = count + 1;
     }
+    // if y coordinate = 0, constrain node to y plane (1-direction)
     // if z coordinate = 0, constrain node to z plane (2-direction)
     index = ndim * i + 2;
     if (fabs(coordinates[index] - 0.0) < tol) {
@@ -243,8 +260,8 @@ void ApplyBoundaryConditions(double dMax, double tMax) {
       displacements[index] = AppliedDisp;
       velocities[index] = dMax/tMax;
       // For energy computations
-      accelerations[index] = 0.0;
-    }
+      accelerations[index] = 0.0;}
+
   }
   FILE_LOG_MASTER(INFO, "Time = %10.5E, Applied Disp = %10.5E",Time, AppliedDisp);
   return;
