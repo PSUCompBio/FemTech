@@ -3,6 +3,7 @@
 #include "lapack.h"
 
 #include <stdlib.h>
+#include <math.h>
 
 /* Implements the Ogden Model
  * Expected material properties :
@@ -19,10 +20,6 @@ void Ogden(int e, int gp) {
     TerminateFemTech(3);
   }
   // Assumes ndim == 3
-  // Pointer to start of deformation gradient matrix for given element number
-  // and Gauss point
-  const int index = fptr[e] + ndim * ndim * gp;
-  double J = detF[detFptr[e] + gp];
   // Get material property ID to read material properties
   const int pideIndex = pid[e]*MAXMATPARAMS;
   // Get location of array with material properties of the element
@@ -31,73 +28,77 @@ void Ogden(int e, int gp) {
   const double K = localProperties[1];
   const int nTerm = static_cast<int>(localProperties[2]);
 
+  // b = F F^T
+  double *H = mat1;
+  ComputeH(e, gp, H);
+  // Compute and store F = H + I
+  const unsigned int index = fptr[e] + ndim * ndim * gp;
   double * const F_element_gp = &(F[index]);
-  // Use temp storage mat1 for Finverse
-  double *fInv = mat1;
-  // Compute F inverse
-  InverseF(e, gp, fInv);
-  // Use temp storage 2 for storing Bmat
-  double *Bmat = mat2;
-  // Compute B = FF^T and compute its eigen values
+  for (unsigned int i = 0; i < ndim2; ++i) {
+    F_element_gp[i] = H[i];
+  }
+  F_element_gp[0] = F_element_gp[0] + 1.0;
+  F_element_gp[4] = F_element_gp[4] + 1.0;
+  F_element_gp[8] = F_element_gp[8] + 1.0;
+  double *b = mat2;
+  // Compute F F^T and store to b 
   dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
-        F_element_gp, &ndim, &zero, Bmat, &ndim);
-  const unsigned int matSize = ndim * ndim;
+          F_element_gp, &ndim, &zero, b, &ndim);
   // Compute eigen values and eigenvectors of B
   double cEigenValue[ndim];
   double dWork[workSize];
-  dsyev_(jobzV, uploU, &ndim, Bmat, &ndim, cEigenValue, dWork, &workSize, &info);
-  // Compute sqrt of lambda and multiply by J^{-1/3}
-  const double Jm13 = pow(J, -1.0/3.0);
-  for (int i = 0; i < ndim; ++i) {
-    cEigenValue[i] = sqrt(cEigenValue[i])*Jm13;
-  }
-  // Compute F^-1(cEigenVector)
-  // Each column of basisVec points to F^{-1}*e where e is the eigen vector of B
-  // matrix
-  double *basisVec = mat3;
-  dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim,
-           Bmat, &ndim, &zero, basisVec, &ndim);
+  dsyev_(jobzV, uploU, &ndim, b, &ndim, cEigenValue, dWork, &workSize, &info);
+  // b now contains the eigen vectors of b
 
-  double *S = mat4;
-  for (int i = 0; i < matSize; ++i) {
-    S[i] = 0.0;
+  // Correct Eigen Values for numerical inaccuracy
+  double delat01 = fabs(cEigenValue[0] - cEigenValue[1]);
+  double delat12 = fabs(cEigenValue[1] - cEigenValue[2]);
+  double delat02 = fabs(cEigenValue[0] - cEigenValue[2]);
+
+  const double eigenTol = 1e-12;
+  if (delat01 < eigenTol) cEigenValue[1] = cEigenValue[0];
+  if (delat02 < eigenTol) cEigenValue[2] = cEigenValue[0];
+  if (delat12 < eigenTol) cEigenValue[2] = cEigenValue[1];
+
+  for (int i = 0; i < ndim; ++i) {
+    cEigenValue[i] = sqrt(cEigenValue[i]);
+  }
+  const double J = det3x3Matrix(F_element_gp);
+  FILE_LOG_SINGLE(WARNING, "Det 1 = %15.6e, Det 2 = %15.6e", J, 
+      cEigenValue[0]*cEigenValue[1]*cEigenValue[2]);
+  const double invJ = 1.0/J;
+
+  double *sigma_e = mat3;
+  for (int i = 0; i < ndim2; ++i) {
+    sigma_e[i] = 0.0;
   }
   const double hydro = K*(J-1.0); 
   double eigenPower[ndim];
   for (int i = 0; i < ndim; ++i) {
-    double preFactor = 0.0;
+    double preFactor = hydro;
     for (int j = 0; j < nTerm; ++j) {
       double alpha = localProperties[3+j*2];
       double mu = localProperties[4+j*2];
-      double eigenSum = 0.0;
-      for (int k = 0; k < ndim; ++k) {
-        const double t1 = pow(cEigenValue[k], alpha);
-        eigenPower[k] = t1;
-        eigenSum = eigenSum + t1;
-      }
-      eigenSum = eigenSum/(-3.0);
-      preFactor = mu*(eigenPower[i]-eigenSum);
+      preFactor += (mu*invJ*(pow(cEigenValue[i], alpha)-1.0))/alpha;
     }
-    preFactor += hydro;
-    dyadic(&basisVec[3*i], preFactor, S);
+    dyadic(&b[3*i], preFactor, sigma_e);
   }
 
-  // TODO (NEED UPDATE from PK2 to Cauchy)
   // Get location of array to store Cauchy values
   double * sigma_nLocal = &(sigma_n[sigmaptr[e]+6*gp]);
   // 6 values saved per gauss point for 3d
   // in voigt notation, sigma11
-  sigma_nLocal[0] = S[0];
+  sigma_nLocal[0] = sigma_e[0];
   // in voigt notation, sigma22
-  sigma_nLocal[1] = S[4];
+  sigma_nLocal[1] = sigma_e[4];
   // in voigt notation, sigma33
-  sigma_nLocal[2] = S[8];
+  sigma_nLocal[2] = sigma_e[8];
   // in voigt notation, sigma23
-  sigma_nLocal[3] = S[7];
+  sigma_nLocal[3] = sigma_e[7];
   // in voigt notation, sigma13
-  sigma_nLocal[4] = S[6];
+  sigma_nLocal[4] = sigma_e[6];
   // in voigt notation, sigma12
-  sigma_nLocal[5] = S[3];
+  sigma_nLocal[5] = sigma_e[3];
 
 #ifdef DEBUG
   FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Element ID = %d, gp = %d", e, gp);

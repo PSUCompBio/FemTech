@@ -32,16 +32,31 @@ void CompressibleNeoHookean(int e, int gp){
     F_element_gp[8] = F_element_gp[8] + 1.0;
 
     double *b = mat2;
-    // Compute F F^T and store to b 
-    dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
-           F_element_gp, &ndim, &zero, b, &ndim);
-    // Compute b - I
-    b[0] = b[0] - 1.0;
-    b[4] = b[4] - 1.0;
-    b[8] = b[8] - 1.0;
+    // Compute H+H^T
+    for (int i = 0; i < ndim; ++i) {
+      for (int j = 0; j < ndim; ++j) {
+        const int indexL = j + i*ndim;
+        b[indexL] = H[indexL]+H[i+j*ndim];
+      }
+    }
+    // Compute H H^T and add to b
+    computeAAT3dI(H, b);
+    // dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, H, &ndim,
+    //        H, &ndim, &one, b, &ndim);
+    // // Compute F F^T and store to b 
+    // dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
+    //        F_element_gp, &ndim, &zero, b, &ndim);
+    // // Compute b - I
+    // b[0] = b[0] - 1.0;
+    // b[4] = b[4] - 1.0;
+    // b[8] = b[8] - 1.0;
 
     // J = det(F)
     const double J = det3x3Matrix(F_element_gp);
+    // Throw error when J is negative
+    if (J < 0) {
+      FILE_LOG_SINGLE(ERROR, "Negative Jacobian Encountered")
+    }
     const double factor1 = mu/J;
     const double factor2 = lambda*log(J)/J;
 

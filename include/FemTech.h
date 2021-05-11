@@ -84,7 +84,8 @@ void OgdenViscoelastic(int e, int gp);
 void lsDynaKMEquivalent(int e, int gp);
 double CalculateWaveSpeed(const unsigned int partID);
 
-void inverse3x3Matrix(double* mat, double* invMat, double* det);
+// TODO : Move to math.h
+double inverse3x3Matrix(double* mat, double* invMat);
 double det3x3Matrix(double* mat);
 //void MultiplyMatrices(double* a, double* b, int sizeM, double* result);
 double tripleProduct(double* s, double* a, double* b);
@@ -104,6 +105,8 @@ double compute95thPercentileValueBruteForce(double* dataArray, int localSize);
 double compute95thPercentileValue(double* dataArray, int localSize);
 void test95Percentile(void);
 void dyadic(const double* const, const double, double * const);
+void computeAAT3d(const double* const matI, double* const matO);
+void computeAAT3dI(const double* const matI, double* const matO);
 
 void CheckEnergy(double time, bool writeFlag);
 

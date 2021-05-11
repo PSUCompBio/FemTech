@@ -6,7 +6,7 @@
 #include <vector>
 #include <cstdlib>
 
-void inverse3x3Matrix(double* mat, double* invMat, double* det) {
+double inverse3x3Matrix(double* mat, double* invMat) {
   // Mat and invMat are 1d arrays with colum major format for storing matrix
   // Compute matrix determinant
   double detLocal = mat[0] * (mat[4] * mat[8] - mat[5] * mat[7]) -
@@ -25,7 +25,7 @@ void inverse3x3Matrix(double* mat, double* invMat, double* det) {
   invMat[5] = (mat[2] * mat[3] - mat[0] * mat[5]) * invdet;
   invMat[8] = (mat[0] * mat[4] - mat[1] * mat[3]) * invdet;
 
-  (*det) = detLocal;
+  return detLocal;
 }
 
 double det3x3Matrix(double* mat) {
@@ -397,4 +397,36 @@ void test95Percentile(void) {
 // Computes mat = mat + \alpha*(x*x^T)
 void dyadic(const double* const vector, const double preFactor, double * const mat) {
   dger_(&ndim, &ndim, &preFactor, vector, &oneI, vector, &oneI, mat, &ndim);
+}
+
+// Compute B = A * A^T
+void computeAAT3d(const double* const matI, double* const matO) {
+  const double od1 = matI[0]*matI[1] + matI[3]*matI[4] + matI[6]*matI[7];
+  const double od2 = matI[0]*matI[2] + matI[3]*matI[5] + matI[6]*matI[8];
+  const double od3 = matI[1]*matI[2] + matI[4]*matI[5] + matI[7]*matI[8];
+  matO[0] = matI[0]*matI[0] + matI[3]*matI[3] + matI[6]*matI[6];
+  matO[1] = od1;
+  matO[2] = od2;
+  matO[3] = od1;
+  matO[4] = matI[1]*matI[1] + matI[4]*matI[4] + matI[7]*matI[7];
+  matO[5] = od3;
+  matO[6] = od2;
+  matO[7] = od3;
+  matO[8] = matI[2]*matI[2] + matI[5]*matI[5] + matI[8]*matI[8];
+}
+
+// Compute B = B + A * A^T
+void computeAAT3dI(const double* const matI, double* const matO) {
+  const double od1 = matI[0]*matI[1] + matI[3]*matI[4] + matI[6]*matI[7];
+  const double od2 = matI[0]*matI[2] + matI[3]*matI[5] + matI[6]*matI[8];
+  const double od3 = matI[1]*matI[2] + matI[4]*matI[5] + matI[7]*matI[8];
+  matO[0] += matI[0]*matI[0] + matI[3]*matI[3] + matI[6]*matI[6];
+  matO[1] += od1;
+  matO[2] += od2;
+  matO[3] += od1;
+  matO[4] += matI[1]*matI[1] + matI[4]*matI[4] + matI[7]*matI[7];
+  matO[5] += od3;
+  matO[6] += od2;
+  matO[7] += od3;
+  matO[8] += matI[2]*matI[2] + matI[5]*matI[5] + matI[8]*matI[8];
 }

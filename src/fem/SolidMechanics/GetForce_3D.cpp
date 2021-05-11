@@ -7,7 +7,8 @@ void GetForce_3D() {
   // Below algorithm works for n > 0
   // Following Belytschko
   // Set force_n to zero
-  // TODO : Call function to update fe
+  // TODO : Call function to update fe in cases where external traction is
+  // required or call updateExternalForce BC routine before calling get 
   memcpy(f_net, fe, nDOF * sizeof(double));
   memset(fi, 0, nDOF * sizeof(double));
 
@@ -16,6 +17,7 @@ void GetForce_3D() {
     int nNodesL = nShapeFunctions[i];
     // number of shape functions * ndim
     // TODO : nShapeFunctions not always equal to nNodes
+    // TODO : remove the following calloc to global variables
     double *fintLocal = (double*)calloc(nNodesL*ndim, sizeof(double));
 		// force calculaton for hexes, tets and quads
 		for(int j=0; j<GaussPoints[i]; j++) {
@@ -35,6 +37,7 @@ void GetForce_3D() {
 			  // InternalForceUpdate(i, j, fintLocal);
 
         /* Updated Lagrangian approach */
+        // Calculate quantites required for Stress computation
         // Calculate F_Xi^n
         CalculateF_XiAndInverse(i, j);
         // Calculate sigma^n

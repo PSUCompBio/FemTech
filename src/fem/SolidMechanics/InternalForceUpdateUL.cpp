@@ -12,13 +12,14 @@ void InternalForceUpdateUL(int e, int gp, double *force) {
 
   for (unsigned int I = 0; I < nShapeFunc; ++I) {
     const unsigned int indexShp = indexStart + I * ndim;
+
     // Compute dN_I/dx_j = (dN_I/d_Xi)^T F_Xi^-{-1}
     const double dN_Ibydx = dshp[indexShp]*F_XiInverse[0] + 
-      dshp[indexShp+1]*F_XiInverse[3] + dshp[indexShp+2]*F_XiInverse[6];
-    const double dN_Ibydy = dshp[indexShp]*F_XiInverse[1] + 
-      dshp[indexShp+1]*F_XiInverse[4] + dshp[indexShp +2]*F_XiInverse[7];
-    const double dN_Ibydz = dshp[indexShp]*F_XiInverse[2] + 
-      dshp[indexShp+1]*F_XiInverse[5] + dshp[indexShp +2]*F_XiInverse[8];
+      dshp[indexShp+1]*F_XiInverse[1] + dshp[indexShp+2]*F_XiInverse[2];
+    const double dN_Ibydy = dshp[indexShp]*F_XiInverse[3] + 
+      dshp[indexShp+1]*F_XiInverse[4] + dshp[indexShp +2]*F_XiInverse[5];
+    const double dN_Ibydz = dshp[indexShp]*F_XiInverse[6] + 
+      dshp[indexShp+1]*F_XiInverse[7] + dshp[indexShp +2]*F_XiInverse[8];
 
     // Compute f_iI = dN_I/dx_j*sigma_{ji}
     // Get location of Cauchy values

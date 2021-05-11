@@ -98,10 +98,9 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
   //   F_Xi_0_egp[i] = xs[i];
   // }
 
-  double det, J_Inv[9];
+  double J_Inv[9];
 
-  inverse3x3Matrix(xs, J_Inv, &det);
-  detJ[gp] = det;
+  detJ[gp] = inverse3x3Matrix(xs, J_Inv);
 
   // Transform derivatives to global co-ordinates
   // And store in B0 for updated Lagrangian formulation
@@ -110,7 +109,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 
 	FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Shape Function C3D8\nDeterminant of Jacobian : "
       "%12.6e\nDerivatives eid : %d, gpid : %d, chi : %12.6f, eta : %12.6f, "
-      "iota : %12.6f", det, e, gp, chi, eta, iota);
+      "iota : %12.6f", detJ[gp], e, gp, chi, eta, iota);
 
   for (int i = 0; i < nShapeFunctions[e]; ++i) {
     baseIndex = dsptr[e] + gp * g*ndim + ndim * i;

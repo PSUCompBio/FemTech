@@ -20,7 +20,6 @@ double CalculateWaveSpeed(const unsigned int partID) {
     case 4 : // HGO with isotropic fiber distribution
              lambda = partProperties[2];
              mu = partProperties[1];
-             E = mu*(3.0*lambda+2.0*mu)/(lambda+mu);
              break;
     case 5 : // HGO with isotropic fiber distribution and viscoelasticity
              lambda = partProperties[2];
@@ -33,17 +32,12 @@ double CalculateWaveSpeed(const unsigned int partID) {
                viscoEffect = viscoEffect + gi*exp(-Time/taui);
              }
              mu = muI * viscoEffect;
-             // Compute E, using mu and lambda
-             E = mu*(3.0*lambda+2.0*mu)/(lambda+mu);
              break;
     case 6 : // LS-Dyna Maxwell viscoelastic material equivalent
-             // lsDynaKMEquivalent(e, gp);
              lambda = partProperties[1];
              muI = partProperties[2];
              viscoEffect = 1.0 + partProperties[3]*exp(-Time*properties[4]);
              mu = muI *viscoEffect;
-             // Compute E, using mu and lambda
-             E = mu*(3.0*lambda+2.0*mu)/(lambda+mu);
              break;
     case 7 : // Ogden
              K = partProperties[1];
@@ -53,7 +47,7 @@ double CalculateWaveSpeed(const unsigned int partID) {
                mu = mu + partProperties[3+2*i]*partProperties[4+2*i];
              }
              mu = 0.5*mu;
-             E = 9.0*K*mu/(3.0*K+mu);
+             lambda = K - 2.0*mu/3.0;
              break;
     case 8 : // Ogden Viscoelastic
              K = partProperties[1];
@@ -64,7 +58,7 @@ double CalculateWaveSpeed(const unsigned int partID) {
                muI = muI + partProperties[3+2*i]*partProperties[4+2*i];
              }
              muI = 0.5*muI;
-             // Compute mu = mu_\infity*(1+\Sigmag_i*exp(-t/tau_i)
+             // Compute mu = mu_\infity*(1+\Sigma g_i*exp(-t/tau_i)
              nPronyL = static_cast<int>(partProperties[3+2*nTerm]);
              viscoEffect = 1.0;
              for (int i = 0; i < nPronyL; ++i) {
@@ -73,13 +67,13 @@ double CalculateWaveSpeed(const unsigned int partID) {
                viscoEffect = viscoEffect + gi*exp(-Time/taui);
              }
              mu = muI * viscoEffect;
-             // Compute E, using mu and K
-             E = 9.0*K*mu/(3.0*K+mu);
+             lambda = K - 2.0*mu/3.0;
              break;
     default : FILE_LOG_SINGLE(ERROR, "Unknown material type in wave speed computation");
               TerminateFemTech(1);
   }
-  const double ce = sqrt(E/rho);
+  // Compute dilatational wave speed
+  const double ce = sqrt((lambda+2.0*mu)/rho);
   // FILE_LOG_SINGLE(WARNING, "Part : %d, Material type, %d with wave speed %15.9f", partID, matID, ce);
   return ce;
 }
