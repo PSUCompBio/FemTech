@@ -13,7 +13,6 @@ void CalculateF_XiAndInverse(int e, int gp) {
   // }
   const unsigned int start = eptr[e];
   const unsigned int nShapeFunc = eptr[e+1]-start;
-  // const unsigned int nShapeFunc = nShapeFunctions[e];
   const unsigned int indexStart = dsptr[e] + gp * GaussPoints[e] * ndim;
   for (unsigned int i = 0; i < ndim; i++) {
     for (unsigned int j = 0; j < ndim; j++) {

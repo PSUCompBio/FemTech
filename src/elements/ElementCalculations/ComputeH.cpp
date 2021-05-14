@@ -13,6 +13,7 @@ void ComputeH(int e, int gp, double *H) {
   for (unsigned int i = 0; i < ndim; ++i) {
     for (unsigned int j = 0; j < ndim; ++j) {
       double Hij = 0.0;
+      // nShapeFunc to be replacend by nNodes
       for (unsigned int I = 0; I < nShapeFunc; ++I) {
         const unsigned int dispIndex = connectivity[start+I]*ndim + i;
         const unsigned int indexShp = indexStart + I * ndim + j;
