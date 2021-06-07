@@ -36,6 +36,8 @@ int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
+
+double dynamicDamping = 0.000;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-8; // Set for max runtime of around 5 hrs on aws
 double MaxTimeStep = 1e-5;
@@ -209,10 +211,13 @@ int main(int argc, char **argv) {
   /* Step-2: getforce step from Belytschko */
   // In GetForce for viscoelastic material dt is required, hence we compute dt
   // prior to getforce to avoid special treatment of getforce at Time = 0
-  GetForce(); // Calculating the force term.
+  // GetForce(); // Calculating the force term.
 
   /* Step-3: Calculate accelerations */
-  CalculateAccelerations();
+  // CalculateAccelerations();
+  for (int i = 0; i < nDOF; i++) {
+    accelerations[i] = 0.0;
+  }
 
   nSteps = (int)((tMax - Time) / dt);
   int nsteps_plot = (int)(nSteps / nPlotSteps);
@@ -224,15 +229,15 @@ int main(int argc, char **argv) {
     nsteps_write = nSteps;
   }
 
-  FILE_LOG_MASTER(INFO, "initial dt = %3.3e, nSteps = %d, nsteps_plot = %d", dt,
-                  nSteps, nsteps_plot);
-
-  time_step_counter = time_step_counter + 1;
   double t_n = 0.0;
 
-  FILE_LOG_MASTER(INFO,
-      "------------------------------- Loop ----------------------------");
-  FILE_LOG_MASTER(INFO, "Time : %15.6e, tmax : %15.6e", Time, tMax);
+  FILE_LOG_MASTER(INFO, "---------------------------------");
+  FILE_LOG_MASTER(INFO, "Tmax : %15.6e, Initial dt : %15.6e", tMax, dt);
+  FILE_LOG_MASTER(INFO, "nSteps = %d, nsteps_plot = %d", nSteps, nsteps_plot);
+  FILE_LOG_MASTER(INFO, "-------------- Loop -------------");
+
+  time_step_counter = time_step_counter + 1;
+
 
   /* Step-4: Time loop starts....*/
   while (Time < tMax) {

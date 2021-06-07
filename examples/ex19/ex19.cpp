@@ -186,25 +186,23 @@ void ApplyVelocityBoundaryConditions(double) {
   int index;
 
   for (int i = 0; i < nNodes; i++) {
-    // if x value = 0, constrain node to x plane (0-direction)
-    index = ndim * i + 0;
-    if (fabs(coordinates[index] - 0.0) < tol) {
-      velocities_half[index] = 0.0;
-    }
     // if y coordinate = 0, constrain node to y plane (1-direction)
     index = ndim * i + 1;
     if (fabs(coordinates[index] - 0.0) < tol) {
       velocities_half[index] = 0.0;
+      // Constraint x in y = 0 plane
+      velocities_half[index-1] = 0.0;
+      // Constraint z in y = 0 plane
+      velocities_half[index+1] = 0.0;
     }
-    // if z coordinate = 0, constrain node to z plane (2-direction)
-    index = ndim * i + 2;
-    if (fabs(coordinates[index] - 0.0) < tol) {
-      velocities_half[index] = 0.0;
-    }
-    // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
-    index = ndim * i + 1;
+    // if y coordinate = 1, apply disp. to node in x direction (1-direction)
+    // index = ndim * i + 1;
     if (fabs(coordinates[index] - 0.005) < tol) {
-      velocities_half[index] = dMax / tMax;
+      velocities_half[index] = 0.0;
+      // Constraint x in y = 1 plane and prescribe motion
+      velocities_half[index-1] = dMax / tMax;
+      // Constraint z in y = 1 plane
+      velocities_half[index+1] = 0.0;
     }
   }
   FILE_LOG_MASTER(INFO, "Time = %10.5E, Applied Velocity = %10.5E", Time,
@@ -216,25 +214,23 @@ void InitVelocityBoundaryConditions() {
   double tol = 1e-5;
   int index;
   for (int i = 0; i < nNodes; i++) {
-    // if x value = 0, constrain node to x plane (0-direction)
-    index = ndim * i + 0;
-    if (fabs(coordinates[index] - 0.0) < tol) {
-      boundary[index] = 1;
-    }
     // if y coordinate = 0, constrain node to y plane (1-direction)
     index = ndim * i + 1;
     if (fabs(coordinates[index] - 0.0) < tol) {
       boundary[index] = 1;
+      // Constraint x in y = 0 plane
+      boundary[index-1] = 1;
+      // Constraint z in y = 0 plane
+      boundary[index+1] = 1;
     }
-    // if z coordinate = 0, constrain node to z plane (2-direction)
-    index = ndim * i + 2;
-    if (fabs(coordinates[index] - 0.0) < tol) {
-      boundary[index] = 1;
-    }
-    // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
-    index = ndim * i + 1;
+    // if y coordinate = 1, apply disp. to node in x direction (1-direction)
+    // index = ndim * i + 1;
     if (fabs(coordinates[index] - 0.005) < tol) {
       boundary[index] = 1;
+      // Constraint x in y = 1 plane
+      boundary[index-1] = 1;
+      // Constraint z in y = 1 plane
+      boundary[index+1] = 1;
     }
   }
   return;
