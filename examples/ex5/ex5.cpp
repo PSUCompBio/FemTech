@@ -243,17 +243,16 @@ int main(int argc, char **argv) {
   while (Time < tMax) {
     t_n = Time;
     double t_np1 = Time + dt;
-    Time = t_np1;          /*Update the time by adding full time step */
-    double dt_nphalf = dt; // equ 6.2.1
-    double t_nphalf = 0.5 * (t_np1 + t_n); // equ 6.2.1
+    Time = t_np1; /*Update the time by adding full time step */
+    double dtby2 = 0.5*dt;
+    double t_nphalf = t_n + dtby2; // equ 6.2.1
 
+    /* Step 6 Enforce boundary Conditions */
+    ApplyAccBoundaryConditions();
     /* Step 5 from Belytschko Box 6.1 - Update velocity */
     for (int i = 0; i < nDOF; i++) {
-      if (boundary[i]) {
-        velocities_half[i] = velocities[i];
-      } else {
-        velocities_half[i] =
-            velocities[i] + (t_nphalf - t_n) * accelerations[i];
+      if (!boundary[i]) {
+        velocities_half[i] = velocities[i] + dtby2 * accelerations[i];
       }
     }
 
@@ -264,13 +263,10 @@ int main(int argc, char **argv) {
     memcpy(fi_prev, fi, nDOF * sizeof(double));
     memcpy(fe_prev, fe, nDOF * sizeof(double));
 
+    // update displacements for all nodes, including where velocity bc is set
     for (int i = 0; i < nDOF; i++) {
-      if (!boundary[i]) {
-        displacements[i] = displacements[i] + dt_nphalf * velocities_half[i];
-      }
+      displacements[i] = displacements[i] + dt * velocities_half[i];
     }
-    /* Step 6 Enforce boundary Conditions */
-    ApplyAccBoundaryConditions();
 
     /* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
     GetForce(); // Calculating the force term.
@@ -280,10 +276,7 @@ int main(int argc, char **argv) {
 
     /** Step- 10 - Second Partial Update of Nodal Velocities */
     for (int i = 0; i < nDOF; i++) {
-      if (!boundary[i]) {
-        velocities[i] =
-            velocities_half[i] + (t_np1 - t_nphalf) * accelerations[i];
-      }
+      velocities[i] = velocities_half[i] + dtby2 * accelerations[i];
     }
 
     /** Step - 11 Checking* Energy Balance */
@@ -382,7 +375,7 @@ void ApplyAccBoundaryConditions() {
   double omegaR[3], omega[3], omegaOmegaR[3], omegaVel[3], vel[3]; // vectors
   double alpha[3], alphaR[3], locV[3];
 
-  rk.do_step(computeDerivatives, yInt, ydotInt, Time - dt, dt);
+  rk.do_step(computeDerivatives, yInt, ydotInt, Time - dt, 0.5*dt);
   r[0] = 0.0;
   r[1] = yInt[3];
   r[2] = yInt[4];
@@ -410,17 +403,17 @@ void ApplyAccBoundaryConditions() {
     V[3] = locV[2];
     quaternionRotate(V, R, Rinv, Vp); // Vp = RVR^{-1}
     crossProduct(omega, &(Vp[1]), omegaR);
-    crossProduct(omega, omegaR, omegaOmegaR);
-    crossProduct(omega, vel, omegaVel);
-    crossProduct(alpha, &(Vp[1]), alphaR);
+    // crossProduct(omega, omegaR, omegaOmegaR);
+    // crossProduct(omega, vel, omegaVel);
+    // crossProduct(alpha, &(Vp[1]), alphaR);
     for (int j = 0; j < ndim; ++j) {
       // Displacement
-      displacements[index + j] = Vp[j + 1] - locV[j] + yInt[9 + j];
+      // displacements[index + j] = Vp[j + 1] - locV[j] + yInt[9 + j];
       // Velocity
       velocities[index + j] = omegaR[j] + yInt[6 + j];
       // Acceleration
-      accelerations[index + j] =
-          2.0 * omegaVel[j] + omegaOmegaR[j] + ydotInt[6 + j] + alphaR[j];
+      // accelerations[index + j] =
+      //     2.0 * omegaVel[j] + omegaOmegaR[j] + ydotInt[6 + j] + alphaR[j];
     }
   }
   // Rotate points to plot to obtain their rigid displacements
