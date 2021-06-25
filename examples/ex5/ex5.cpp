@@ -186,7 +186,7 @@ int main(int argc, char **argv) {
   if (writeField) {
     if (computeInjuryFlag) {
       WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, outputCount,
-              outputNames, elementIDInjury, nElementsInjury, outputDoubleArray, 
+              outputNames, elementIDInjury, nElementsInjury, outputDoubleArray,
               outputDoubleCount, outputDoubleNames);
     } else {
       WriteVTU(outputFileName.c_str(), plot_counter);
@@ -301,7 +301,7 @@ int main(int argc, char **argv) {
           FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
           if (computeInjuryFlag) {
             WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, outputCount,
-                    outputNames, elementIDInjury, nElementsInjury, outputDoubleArray, 
+                    outputNames, elementIDInjury, nElementsInjury, outputDoubleArray,
                     outputDoubleCount, outputDoubleNames);
           } else {
             WriteVTU(outputFileName.c_str(), plot_counter);
@@ -410,7 +410,7 @@ void ApplyAccBoundaryConditions() {
       // Displacement
       // displacements[index + j] = Vp[j + 1] - locV[j] + yInt[9 + j];
       // Velocity
-      velocities[index + j] = omegaR[j] + yInt[6 + j];
+      velocities_half[index + j] = omegaR[j] + yInt[6 + j];
       // Acceleration
       // accelerations[index + j] =
       //     2.0 * omegaVel[j] + omegaOmegaR[j] + ydotInt[6 + j] + alphaR[j];
@@ -1453,9 +1453,9 @@ void InitInjuryCriteria(void) {
   }
   // for (int i = 0; i < percentileQuantities; ++i) {
   //   outputDataArray[threshQuantities + i] =
-  //       percentileElements[i]; 
+  //       percentileElements[i];
   // }
-  outputDataArray[threshQuantities] = 
+  outputDataArray[threshQuantities] =
     percentileElements[0]; // Write MPS-95 to paraview
   // Percentile Values
   // Write MPS-95-Value

@@ -26,7 +26,7 @@ void OgdenViscoelastic(int e, int gp) {
   // Pointer to start of deformation gradient matrix for given element number
   // and Gauss point
   const int index = fptr[e] + ndim * ndim * gp;
-  double J = detF[detFptr[e] + gp];
+
   // Get material property ID to read material properties
   const int pideIndex = pid[e]*MAXMATPARAMS;
   // Get location of array with material properties of the element
@@ -43,18 +43,29 @@ void OgdenViscoelastic(int e, int gp) {
     gi[i] = localProperties[4+2*(i+nTerm)];
     ti[i] = localProperties[5+2*(i+nTerm)];
   }
-
+  const unsigned int matSize = ndim * ndim;
+  double *H = mat1;
+  ComputeH(e, gp, H);
+  // Compute and store F = H + I
   double * const F_element_gp = &(F[index]);
-  // Use temp storage mat1 for Finverse
-  double *fInv = mat1;
+  for (unsigned int i = 0; i < ndim2; ++i) {
+      F_element_gp[i] = H[i];
+      }
+  F_element_gp[0] = F_element_gp[0] + 1.0;
+  F_element_gp[4] = F_element_gp[4] + 1.0;
+  F_element_gp[8] = F_element_gp[8] + 1.0;
+  // Use temp storage mat2 for Finverse
+  double *fInv = mat2;
   // Compute F inverse
-  InverseF(e, gp, fInv);
+  double J = inverse3x3Matrix(F_element_gp, fInv);
+  //InverseF(e, gp, fInv);
   // Use temp storage 2 for storing Bmat
-  double *Bmat = mat2;
+  double *Bmat = mat3;
   // Compute B = FF^T and compute its eigen values
   dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
         F_element_gp, &ndim, &zero, Bmat, &ndim);
-  const unsigned int matSize = ndim * ndim;
+
+   double invJ = 1.0/J;
   // Compute eigen values and eigenvectors of B
   int nEigen;
   double cEigenValue[ndim];
@@ -68,35 +79,38 @@ void OgdenViscoelastic(int e, int gp) {
   // Compute F^-1(cEigenVector)
   // Each column of basisVec points to F^{-1}*e where e is the eigen vector of B
   // matrix
-  double *basisVec = mat3;
-  dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim,
-           Bmat, &ndim, &zero, basisVec, &ndim);
+  //double *basisVec = mat3;
+  //dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim,
+    //       Bmat, &ndim, &zero, basisVec, &ndim);
 
   double *S = mat4;
-  for (int i = 0; i < matSize; ++i) {
-    S[i] = 0.0;
+  double *sigma_e = mat1; //check
+  for(int i = 0; i<matSize; i++){
+    sigma_e[i] = 0.0;
   }
-  const double hydro = K*(J-1.0); 
+
+  const double hydro = K*(J-1.0);
   double eigenPower[ndim];
   for (int i = 0; i < ndim; ++i) {
-    double preFactor = 0.0;
+    double preFactor = hydro;
     for (int j = 0; j < nTerm; ++j) {
       double alpha = localProperties[3+j*2];
       double mu = localProperties[4+j*2];
-      double eigenSum = 0.0;
-      for (int k = 0; k < ndim; ++k) {
-        const double t1 = pow(cEigenValue[k], alpha);
-        eigenPower[k] = t1;
-        eigenSum = eigenSum + t1;
-      }
-      eigenSum = eigenSum/(-3.0);
-      preFactor = mu*(eigenPower[i]-eigenSum);
+      preFactor += (mu*invJ*(pow(cEigenValue[i], alpha)-((pow(cEigenValue[0], alpha)+pow(cEigenValue[1], alpha)+pow(cEigenValue[2], alpha))/3.0)));
     }
-    preFactor += hydro;
-    dyadic(&basisVec[3*i], preFactor, S);
+    dyadic(&Bmat[3*i], preFactor, sigma_e);
   }
+
+  //S = J*Finv*Sigma*FinvT
+  double *STemp = mat3;//reuse mat3
+
+  dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim,
+         sigma_e, &ndim, &zero, STemp, &ndim);
+  dgemm_(chn, chy, &ndim, &ndim, &ndim, &J, STemp, &ndim,
+         fInv, &ndim, &zero, S, &ndim);
   // FILE_LOGMatrix(WARNING, S, ndim, ndim, "Before viscoelaticty\n");
-  double *Cmat = mat2;
+  double *Cmat = mat3;
+
   dgemm_(chy, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
         F_element_gp, &ndim, &zero, Cmat, &ndim);
   // FILE_LOGMatrix(WARNING, Cmat, ndim, ndim, "C mat\n");
@@ -109,10 +123,11 @@ void OgdenViscoelastic(int e, int gp) {
   SddC = SddC/3.0;
   // Compute Inverse of C, inv(C) = inv(F)*inv(F)^T
   double* Sic = mat3; // Reuse mat3 for storing isochoric part of S
+
   dgemm_(chn, chy, &ndim, &ndim, &ndim, &SddC, fInv, &ndim,
         fInv, &ndim, &zero, Sic, &ndim);
   // FILE_LOGMatrix(WARNING, Sic, ndim, ndim, "Sic mat\n");
-  double *Sdev = mat1; // Reuse mat1 to store deviatoric part of S
+  double *Sdev = mat2; // Reuse mat2 to store deviatoric part of S
   for (int i = 0; i < matSize; ++i) {
     Sdev[i] = S[i]-Sic[i];
   }
@@ -132,9 +147,22 @@ void OgdenViscoelastic(int e, int gp) {
     // Update S^{n+1} = S_0^{n+1} + \sum_j H_j^{n+1}
     for (int j = 0; j < matSize; ++j) {
       HnI[j] = c1i*HnI[j]+c2i*(Sdev[j]-S0nLocal[j]);
-      S[j] = S[j] + HnI[j];
+      Sdev[j] = Sdev[j] + HnI[j];
     }
   }
+  double *tau = mat4;
+  dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
+         Sdev, &ndim, &zero, STemp, &ndim);
+  dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, STemp, &ndim,
+         F_element_gp, &ndim, &zero, tau, &ndim);
+  tau[0] = tau[0] + J*K*(J-1);
+  tau[4] = tau[4] + J*K*(J-1);
+  tau[8] = tau[8] + J*K*(J-1);
+
+  for(int i = 0; i<matSize; i++){
+    sigma_e[i] = tau[i]*invJ;
+  }
+
   // FILE_LOGMatrix(WARNING, S, ndim, ndim, "S Visco mat\n");
 
   // TODO (NEED UPDATE from PK2 to Cauchy)
@@ -142,17 +170,17 @@ void OgdenViscoelastic(int e, int gp) {
   double * sigma_nLocal = &(sigma_n[sigmaptr[e]+6*gp]);
   // 6 values saved per gauss point for 3d
   // in voigt notation, sigma11
-  sigma_nLocal[0] = S[0];
+  sigma_nLocal[0] = sigma_e[0];
   // in voigt notation, sigma22
-  sigma_nLocal[1] = S[4];
+  sigma_nLocal[1] = sigma_e[4];
   // in voigt notation, sigma33
-  sigma_nLocal[2] = S[8];
+  sigma_nLocal[2] = sigma_e[8];
   // in voigt notation, sigma23
-  sigma_nLocal[3] = S[7];
+  sigma_nLocal[3] = sigma_e[7];
   // in voigt notation, sigma13
-  sigma_nLocal[4] = S[6];
+  sigma_nLocal[4] = sigma_e[6];
   // in voigt notation, sigma12
-  sigma_nLocal[5] = S[3];
+  sigma_nLocal[5] = sigma_e[3];
 
   // Update deviatoric part of S_0 for next time step
   for (int i = 0; i < matSize; ++i) {
