@@ -25,7 +25,7 @@ bool RI = true;
 
 // Parameters of simple tension test
 double tMax = 1.00;  // max simulation time in seconds
-double dMax = -0.0015; // max displacment in meters
+double dMax = 0.005; // max displacment in meters
 
 int main(int argc, char **argv) {
   // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
