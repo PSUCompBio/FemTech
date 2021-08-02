@@ -36,11 +36,12 @@ int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
+bool RI = false;
 
 double dynamicDamping = 0.000;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-8; // Set for max runtime of around 5 hrs on aws
-double MaxTimeStep = 1e-5;
+double MaxTimeStep = 1e-7;
 int nPlotSteps = 50;
 int nWriteSteps = 2000;
 
@@ -52,7 +53,7 @@ int *boundaryID = NULL;
 int boundarySize;
 double peakTime, tMax;
 bool writeField = true;
-bool computeInjuryFlag = true;
+bool computeInjuryFlag = false;
 /* Global variables for output */
 int *outputNodeList;
 int outputNodeCount = 0;
@@ -742,6 +743,7 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
     for (int i = 0; i < linAccXSize; ++i) {
       // linAccXv[i] = gC*linAccXv[i];
       linAccXt[i] = 0.001 * linAccXt[i];
+printf("%.10f %.10f\n", linAccXv[i], linAccXt[i]);
     }
     for (int i = 0; i < linAccYSize; ++i) {
       // linAccYv[i] = gC*linAccYv[i];

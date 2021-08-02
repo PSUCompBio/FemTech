@@ -170,6 +170,68 @@ void ShapeFunctions() {
 			internals_counter += MAXINTERNALVARS * GaussPoints[i];
 
     }
+    if (strcmp(ElementType[i], "C3D8R") == 0) {
+      //GuassPoints per element
+      gpCount = 1;
+      nShapeFunctions[i] = 8;
+
+      // shp function array needs to hold 8
+      // shp functions for each of these 8 gauss points
+      // for this one element there are 8 gauss points,
+      // which each have 8 components in shp function array
+      // so for this element I need 8 * 8 positions to hold
+
+      // counter = counter + nShapeFunctions[i]*GaussPoints[i];
+      counter += 8;
+
+      // the next counter is used to determine the size of the
+      // derivative of shp function, dshp. We expand the slots
+      // to account for ndim, since derivatives are taken with
+      // respect to chi, eta, and iota.
+      // dshp_counter = dshp_counter + (ndim * nShapeFunctions[i]*GaussPoints[i]);
+      dshp_counter += 24;
+
+      // the next counter is for the deformation gradient
+			// since there is a deformation gradient stored at each
+      // gauss point. The deformation graient, F is normally
+      // ndim*ndim, but since we are saving F for each gauss point
+ 			// it is ndim*ndim*ngausspoint =3*3*8 = 72. Also, because we can have mixed meshes,
+      // we need a way to reference F as well (An fptr). Note F is not symmetric.
+	    // Also this counter will be used (as well as fptr) for detF, InvF, b and E.
+			F_counter += 9;
+      if (viscousCount) {
+        const int F_counterViscous = 9;
+        S0n[i] = (double*)calloc(F_counterViscous, sizeof(double));
+        // Allocate nProny number of Hn matrix
+        Hn[i] = (double*)calloc(F_counterViscous*viscousCount, sizeof(double));
+      } else {
+        if (viscoElastic) {
+          Hn[i] = NULL;
+          S0n[i] = NULL;
+        }
+      }
+
+			//the next counter is for the cauchy stress array
+			//there is a cauchy stress tensor stored at each gauss point
+			//there are six values stored at each gauss point since
+			// cauchy stress is symmetric.
+			// size would be ndim*ndim*8, but since symmetric it is only
+			// 6 values stored for each gauss point, or 6*8 = 48
+			cauchy_counter += 6;
+
+			// the next counter is for the detF array. This holds a detF value for each
+			// gauss point. Since detF is a scalar value there is only 8 values per
+			// hex element.
+			detF_counter +=1;
+
+			// the next counter is for holding internal variables. These are stored at
+			// each of the gauss points. Depending on the material model, such as
+			// plasticity, there are different number of internals stored. For now
+			// we define the same number, MAXINTERNALVARS to each gauss point, or
+			// MAXINTERNALVARS*GaussPoints[i].
+			internals_counter += MAXINTERNALVARS * GaussPoints[i];
+
+    }
     if (strcmp(ElementType[i], "C3D4") == 0) {
       gpCount = 1; // only one gauss point
       nShapeFunctions[i] = 4;
@@ -288,6 +350,10 @@ void ShapeFunctions() {
     for (int k = 0; k < GaussPoints[i]; k++) {
       // 3D 8-noded hex shape function routine
       if (strcmp(ElementType[i], "C3D8") == 0) {
+          GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
+          ShapeFunction_C3D8(i, k, Chi, detJacobianLocal);
+      }
+      if (strcmp(ElementType[i], "C3D8R") == 0) {
           GaussQuadrature3D(i, GaussPoints[i], Chi, GaussWeightsLocal);
           ShapeFunction_C3D8(i, k, Chi, detJacobianLocal);
       }

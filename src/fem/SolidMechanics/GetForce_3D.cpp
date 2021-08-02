@@ -41,8 +41,11 @@ void GetForce_3D() {
         // Calculate F_Xi^n
         CalculateF_XiAndInverse(i, j);
         // Calculate sigma^n
-				StressUpdate(i, j);
-			  InternalForceUpdateUL(i, j, fintLocal);
+	StressUpdate(i, j);
+	InternalForceUpdateUL(i, j, fintLocal);
+	if(strcmp(ElementType[i], "C3D8R") == 0){
+          ComputeHG(i, fintLocal);
+        }
 			} // else
 		} //loop on gauss points
     // Move Local internal for to global force

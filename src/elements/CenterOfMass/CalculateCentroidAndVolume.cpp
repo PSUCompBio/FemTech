@@ -5,6 +5,9 @@ double CalculateCentroidAndVolume(int e, double *cm) {
   if (strcmp(ElementType[e], "C3D8") == 0) {
     volume = CalculateCentroidAndVolume_C3D8(e, cm);
   } else {
+ if (strcmp(ElementType[e], "C3D8R") == 0) {
+    volume = CalculateCentroidAndVolume_C3D8(e, cm);
+}     else {
     if (strcmp(ElementType[e], "C3D4") == 0) {
       CalculateCentroid_C3D4(e, cm);
       double coord[12];
@@ -20,6 +23,7 @@ double CalculateCentroidAndVolume(int e, double *cm) {
       TerminateFemTech(3);
     }
   }
+}
   return volume;
 }
 
@@ -27,6 +31,16 @@ double calculateVolume(int e) {
   // Function and computation not optimized since its a one time operation
   double volume;
   if (strcmp(ElementType[e], "C3D8") == 0) {
+    double coord[24];
+    for (int i = eptr[e], j = 0; i < eptr[e+1]; ++i, ++j) {
+      for (int k = 0; k < 3; ++k) {
+        int index = ndim*connectivity[i]+k;
+        coord[j*ndim+k] = coordinates[index];
+      }
+    }
+    volume = volumeHexahedron(coord);
+  } else {
+  if (strcmp(ElementType[e], "C3D8R") == 0) {
     double coord[24];
     for (int i = eptr[e], j = 0; i < eptr[e+1]; ++i, ++j) {
       for (int k = 0; k < 3; ++k) {
@@ -50,5 +64,6 @@ double calculateVolume(int e) {
       TerminateFemTech(3);
     }
   }
+}
   return volume;
 }

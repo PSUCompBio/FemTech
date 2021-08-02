@@ -48,8 +48,8 @@ void MassElementMatrix(double *Me, int e) {
     // Me = \Sum_j w_j (N^T*N Det(J))_j
     // Add contribution of current Gauss point to elemental mass matrix
     for (int n = 0; n < mLocalSize; ++n) {
-      Me[n] += MeGQ[n]*preFactor;
-    }
+      Me[n] += MeGQ[n]*preFactor;    
+      }
   }
   // Multiply all elements of mass matrix by density
   // TODO(Anil) Use material property rho and remove variable rho

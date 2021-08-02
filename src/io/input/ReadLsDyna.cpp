@@ -203,10 +203,11 @@ bool ReadLsDyna(const char *FileName) {
 
             long LastValidElemDataLinePos = -1;
             while (fgets(Line, sizeof(Line), File) != NULL) {
-                int *PIDs, *Nodes, *eids;
+                int *PIDs, *Nodes, *eids, *sID;
                 const int ne = LineToArray(true, false, 1, 1, Line, Delim, (void**)&eids);
                 const int np = LineToArray(true, false, 2, 1, Line, Delim, (void**)&PIDs);
                 const int nn = LineToArray(true, true, 3, 0, Line, Delim, (void**)&Nodes);
+		int secID = LineToArray(true, true, 3, 0, Line, Delim, (void**)&sID);
                 if (np == 0 || nn == 0 || ne == 0) {
                     if (np > 0) {
                         free(PIDs);
@@ -225,7 +226,9 @@ bool ReadLsDyna(const char *FileName) {
 
                     const int N = nn == 8 ? CalcUniqueValues(Nodes, nn) : nn;
                     if (N > 4) {
+			if(!RI)
                         strcpy(ElementType[pi], "C3D8");
+			else strcpy(ElementType[pi], "C3D8R");
                     }
                     else if (N == 4) {
                         strcpy(ElementType[pi], "C3D4");
