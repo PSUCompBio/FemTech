@@ -125,8 +125,8 @@ int main(int argc, char **argv) {
     // Store internal external force from previous step to compute energy
     memcpy(fi_prev, fi, nDOF * sizeof(double));
     memcpy(fe_prev, fe, nDOF * sizeof(double));
-    if(RI)
-	memcpy(f_hgprev, f_hg, nDOF * sizeof(double));
+   // if(RI)
+   //	memcpy(f_hgprev, f_hg, nDOF * sizeof(double));
 
     // update displacements for all nodes, including where velocity bc is set
     for (int i = 0; i < nDOF; i++) {

@@ -21,10 +21,11 @@ int nFieldSkip = 1; // 1 in nFieldSkip plot steps will be used to output VTU
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
+bool RI = true;
 
 // Parameters of simple tension test
 double tMax = 1.00;  // max simulation time in seconds
-double dMax = -0.002; // max displacment in meters
+double dMax = -0.0015; // max displacment in meters
 
 int main(int argc, char **argv) {
   // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
@@ -189,7 +190,7 @@ void ApplyVelocityBoundaryConditions(double) {
     // if x value = 0, constrain node to x plane (0-direction)
     index = ndim * i;
     if (fabs(coordinates[index] - 0.0) < tol) {
-      velocities_half[index-1] = 0.0;
+      velocities_half[index] = 0.0;
     }
     // if y coordinate = 0, constrain node to y plane (1-direction)
     index = ndim * i + 1;
@@ -269,7 +270,7 @@ void CustomPlot() {
     }
     // Compute Cauchy stress for the element
     double stressElem[6];
-    CalculateElementStress(63, stressElem);
+    CalculateElementStress(0, stressElem);
     // Print all six stress components of 1st element stress
     fprintf(datFile, "%13.5e  %13.5e  %13.5e  %13.5e  %13.5e  %13.5e\n",
             stressElem[0], stressElem[1], stressElem[2], stressElem[5],

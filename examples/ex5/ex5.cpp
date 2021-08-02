@@ -743,7 +743,6 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
     for (int i = 0; i < linAccXSize; ++i) {
       // linAccXv[i] = gC*linAccXv[i];
       linAccXt[i] = 0.001 * linAccXt[i];
-printf("%.10f %.10f\n", linAccXv[i], linAccXt[i]);
     }
     for (int i = 0; i < linAccYSize; ++i) {
       // linAccYv[i] = gC*linAccYv[i];
