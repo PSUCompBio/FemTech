@@ -45,11 +45,9 @@ void CheckEnergy(double time, bool writeFlag) {
         //                                     accelerations_prev[indexJ]);
         //   sum_Wext_n += delta_d * reaction;
         // }
-        // sum_Wint_n += delta_d * (fi_prev[indexJ] + fi[indexJ]); #<{(| equ 6.2.14 |)}>#
-        // sum_Wext_n += delta_d * (fe_prev[indexJ] + fe[indexJ]); #<{(| equ 6.2.15 |)}>#
-        if (!boundary[indexJ]) {
+        // if (!boundary[indexJ]) {
           sum_Wint_n += delta_d * (fi_prev[indexJ] + fi[indexJ]); /* equ 6.2.14 */
-        }
+        // }
         sum_Wext_n += delta_d * (fe_prev[indexJ] + fe[indexJ]); /* equ 6.2.15 */
       }
     }

@@ -42,11 +42,12 @@ double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-8; // Set for max runtime of around 5 hrs on aws
 double MaxTimeStep = 1e-5;
 int nPlotSteps = 50;
-int nWriteSteps = 2000;
+int nWriteSteps = 100;
 
 /* Global variables used only in this file */
 int nodeIDtoPlot;
 bool rankForCustomPlot;
+bool outputRelativeDisplacement = true;
 /* Global variables for bc */
 int *boundaryID = NULL;
 int boundarySize;
@@ -243,12 +244,12 @@ int main(int argc, char **argv) {
   while (Time < tMax) {
     t_n = Time;
     double t_np1 = Time + dt;
-    Time = t_np1; /*Update the time by adding full time step */
     double dtby2 = 0.5*dt;
     double t_nphalf = t_n + dtby2; // equ 6.2.1
 
     /* Step 6 Enforce boundary Conditions */
     ApplyAccBoundaryConditions();
+    Time = t_np1; /*Update the time by adding full time step */
     /* Step 5 from Belytschko Box 6.1 - Update velocity */
     for (int i = 0; i < nDOF; i++) {
       if (!boundary[i]) {
@@ -372,10 +373,14 @@ int main(int argc, char **argv) {
 
 void ApplyAccBoundaryConditions() {
   double r[4], R[4], Rinv[4], V[4], Vp[4]; // quaternions
-  double omegaR[3], omega[3], omegaOmegaR[3], omegaVel[3], vel[3]; // vectors
-  double alpha[3], alphaR[3], locV[3];
+  // double omegaR[3], omega[3], omegaOmegaR[3], omegaVel[3], vel[3]; // vectors
+  // double alpha[3], alphaR[3], locV[3];
+  double omegaR[3], omega[3]; // vectors
+  double locV[3];
 
-  rk.do_step(computeDerivatives, yInt, ydotInt, Time - dt, 0.5*dt);
+  // Update to half time step to compute velocity
+  // rk.do_step(computeDerivatives, yInt, ydotInt, Time, 0.5*dt);
+  rk.do_step(computeDerivatives, yInt, Time, 0.5*dt);
   r[0] = 0.0;
   r[1] = yInt[3];
   r[2] = yInt[4];
@@ -385,12 +390,12 @@ void ApplyAccBoundaryConditions() {
   omega[0] = yInt[0];
   omega[1] = yInt[1];
   omega[2] = yInt[2];
-  alpha[0] = ydotInt[0];
-  alpha[1] = ydotInt[1];
-  alpha[2] = ydotInt[2];
-  vel[0] = yInt[6];
-  vel[1] = yInt[7];
-  vel[2] = yInt[8];
+  // alpha[0] = ydotInt[0];
+  // alpha[1] = ydotInt[1];
+  // alpha[2] = ydotInt[2];
+  // vel[0] = yInt[6];
+  // vel[1] = yInt[7];
+  // vel[2] = yInt[8];
 
   for (int i = 0; i < boundarySize; i++) {
     int index = boundaryID[i] * ndim;
@@ -416,8 +421,16 @@ void ApplyAccBoundaryConditions() {
       //     2.0 * omegaVel[j] + omegaOmegaR[j] + ydotInt[6 + j] + alphaR[j];
     }
   }
+  // Move to full time step
+  rk.do_step(computeDerivatives, yInt, Time+0.5*dt, 0.5*dt);
   // Rotate points to plot to obtain their rigid displacements
   if (rankForCustomPlot) {
+    r[0] = 0.0;
+    r[1] = yInt[3];
+    r[2] = yInt[4];
+    r[3] = yInt[5];
+    quaternionExp(r, R); // R = exp(r)
+    quaternionInverse(R, Rinv);
     for (int i = 0; i < outputNodeCount; i++) {
       int index = outputNodeList[i] * ndim;
       int index1 = i * ndim;
@@ -592,6 +605,10 @@ void InitCustomPlot(const Json::Value &jsonInput) {
     outputNodeRigidDisp =
         (double *)calloc(outputNodeCount * ndim, sizeof(double));
   }
+  // Check if we should disable relative displacement
+  if (!jsonInput["relative-displacement"].empty()) {
+    outputRelativeDisplacement = jsonInput["relative-displacement"].asBool();
+  }
   return;
 }
 
@@ -607,11 +624,14 @@ void CustomPlot() {
     for (int i = 0; i < outputNodeCount; ++i) {
       unsigned int plotNode = outputNodeList[i] * ndim;
       unsigned int plotIndex = i * ndim;
-      double xCord = displacements[plotNode] - outputNodeRigidDisp[plotIndex];
-      double yCord =
-          displacements[plotNode + 1] - outputNodeRigidDisp[plotIndex + 1];
-      double zCord =
-          displacements[plotNode + 2] - outputNodeRigidDisp[plotIndex + 2];
+      double xCord = displacements[plotNode];
+      double yCord = displacements[plotNode + 1];
+      double zCord = displacements[plotNode + 2];
+      if (outputRelativeDisplacement) {
+        xCord -= outputNodeRigidDisp[plotIndex];
+        yCord -= outputNodeRigidDisp[plotIndex + 1];
+        zCord -= outputNodeRigidDisp[plotIndex + 2];
+      }
       sprintf(output, "%s %15.9e %15.9e %15.9e", output, xCord, yCord, zCord);
     }
     double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;

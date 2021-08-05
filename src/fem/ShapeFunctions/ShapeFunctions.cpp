@@ -29,6 +29,7 @@ double *fintGQ;
 double *B;
 double **Hn, **S0n;
 int *nProny; // To store number of terms in viscous Prony Series
+// TODO : Remove element dependent nProny
 double *B0;
 
 // double *F_Xi_0;
