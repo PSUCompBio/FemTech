@@ -17,6 +17,14 @@
  * MAXMATPARAMS = 4+2*(N_{Ogden}+N_{Prony}) = 22
  * */
 
+/*
+ * compute PK2 Stress S :
+ * S = \Sum_{i=0}^{3} ((\Sum_{j=0}^{N} mu_j [\overline{\lambda}_i^{\alpha_j}
+ * - (\overline{\lambda}_1^{\alpha_j}+\overline{\lambda}_2^{\alpha_j}+
+ *   \overline{\lambda}_3^{\alpha_j})/3.0])/\lambda_i^2 + 
+ *   K*(J-1)/\lambda_i^2) (N_i \dyadic N_i) 
+ */
+
 void OgdenViscoelastic(int e, int gp) {
   if (ndim == 2) {
     FILE_LOG_SINGLE(ERROR, "Plane Strain implementation yet to be done");
@@ -78,7 +86,7 @@ void OgdenViscoelastic(int e, int gp) {
 
   const double J = det3x3Matrix(F_element_gp);
   const double Jm13 = pow(J, -1.0/3.0);
-  const double invJ = 1.0/J;
+  double invJ = 1.0/J;
 
   // Compute parameters derived from the eigen value required for stress
   // computations
@@ -102,9 +110,9 @@ void OgdenViscoelastic(int e, int gp) {
   }
 
   // Compute the distortional/deviatoric part of PK2 stress
-  double *STilde = mat3;
+  double *devS0np1 = mat3;
   for(int i = 0; i< ndim2; ++i) {
-    STilde[i] = 0.0;
+    devS0np1[i] = 0.0;
   }
   for (int i = 0; i < ndim; ++i) {
     double preFactor = 0.0;
@@ -112,71 +120,18 @@ void OgdenViscoelastic(int e, int gp) {
       double mu = localProperties[4+j*2];
       preFactor += mu*(eigenPower[i*nTerm+j]-eigenPowerSum[j]);
     }
-    preFactor *= invJ;
-    dyadic(&Cmat[3*i], preFactor, STilde);
+    preFactor /= cEigenValue[i];
+    dyadic(&Cmat[3*i], preFactor, devS0np1);
   }
-  FILE_LOG_SINGLE(WARNING, "Trace of STilde = %15.9f", STilde[0]+STilde[4]+STilde[8]);
+  FILE_LOG_SINGLE(WARNING, "Trace of devS0np1 = %15.9f", devS0np1[0]+devS0np1[4]+devS0np1[8]);
 
-  // Transform Stilde to sigmaTilde
-  // Compute sigmaTilde
-  double* sigmaTilde = mat4;
-  double* sigmaTemp = mat1; // Reuse mat1 as H is nolonger required
-  // Compute F \widetilde{S}
-  dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
-      STilde, &ndim, &zero, sigmaTemp, &ndim);
-  double Jm53 = pow(Jm13, 5);
-  // Compute F \widetilde{S} F^T
-  // sigmaTilde = Ftilde Stilde Ftilde^T/J
-  dgemm_(chn, chy, &ndim, &ndim, &ndim, &Jm53, sigmaTemp, &ndim,
-      F_element_gp, &ndim, &zero, sigmaTilde, &ndim);
-
-  // Compute deviatoric part of sigmaTilde and add the isochoric part to obtain
-  // sigma
-  const double traceSigmaTildeby3 = (sigmaTilde[0] + sigmaTilde[4] + sigmaTilde[8])/3.0;
-  FILE_LOG_SINGLE(WARNING, "Trace of sigma Tilde = %15.9f", 3.0*traceSigmaTildeby3);
-  const double volum = K*(J-1.0); 
-  const double diagDiff = volum-traceSigmaTildeby3;
-  // Compute sigma
-  double* sigma_e = sigmaTilde;
-  sigma_e[0] += diagDiff;
-  sigma_e[4] += diagDiff;
-  sigma_e[8] += diagDiff;
-
-  /*
-  //S = J*Finv*Sigma*FinvT
-  double *STemp = mat3;//reuse mat3
-
-  dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim,
-      sigma_e, &ndim, &zero, STemp, &ndim);
-  dgemm_(chn, chy, &ndim, &ndim, &ndim, &J, STemp, &ndim,
-      fInv, &ndim, &zero, S, &ndim);
-  // FILE_LOGMatrix(WARNING, S, ndim, ndim, "Before viscoelaticty\n");
-  double *Cmat = mat3;
-
-  dgemm_(chy, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
-      F_element_gp, &ndim, &zero, Cmat, &ndim);
-  // FILE_LOGMatrix(WARNING, Cmat, ndim, ndim, "C mat\n");
-  // compute the double dot product C:S
-  double SddC = 0.0;
-  for (int i = 0; i < ndim2; ++i) {
-    SddC += Cmat[i]*S[i];
-  }
-  // Compute isochoric part : Sic = 1/3(C:S)inv(C)
-  SddC = SddC/3.0;
-  // Compute Inverse of C, inv(C) = inv(F)*inv(F)^T
-  double* Sic = mat3; // Reuse mat3 for storing isochoric part of S
-
-  dgemm_(chn, chy, &ndim, &ndim, &ndim, &SddC, fInv, &ndim,
-      fInv, &ndim, &zero, Sic, &ndim);
-  // FILE_LOGMatrix(WARNING, Sic, ndim, ndim, "Sic mat\n");
-  double *Sdev = mat2; // Reuse mat2 to store deviatoric part of S
-  for (int i = 0; i < ndim2; ++i) {
-    Sdev[i] = S[i]-Sic[i];
-  }
-  // FILE_LOGMatrix(WARNING, Sdev, ndim, ndim, "Sdev mat\n");
   // Access histroy dependence
+  double *Sdev = mat4;
+  for (int j = 0; j < ndim2; ++j) {
+    Sdev[j] = devS0np1[j];
+  }
   double *elemS = S0n[e];
-  double *S0nLocal = &(elemS[gp*ndim2]);
+  double *devS0n = &(elemS[gp*ndim2]);
   double *elemH = Hn[e];
   double *HnLocal = &(elemH[gp*ndim2*nPronyLocal]);
   for (unsigned int i = 0; i < nPronyLocal; ++i) {
@@ -188,27 +143,32 @@ void OgdenViscoelastic(int e, int gp) {
     // Update H_j^{n+1} = c1j*H_j^n + c2j*[Dev S_0^{n+1} - S_0^n]
     // Update S^{n+1} = S_0^{n+1} + \sum_j H_j^{n+1}
     for (int j = 0; j < ndim2; ++j) {
-      HnI[j] = c1i*HnI[j]+c2i*(Sdev[j]-S0nLocal[j]);
+      HnI[j] = c1i*HnI[j]+c2i*(devS0np1[j]-devS0n[j]);
       Sdev[j] = Sdev[j] + HnI[j];
     }
   }
-  double *tau = mat4;
+
+  // Transform devS to sigma
+  // Compute sigmaTilde
+  double* sigma = mat1; // Reuse mat1 as H is nolonger required
+  double* sigmaTemp = mat2; // Reuse mat2 as eigen Vectors of C is nolonger required
+  // Compute F (dev S) 
   dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
-      Sdev, &ndim, &zero, STemp, &ndim);
-  dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, STemp, &ndim,
-      F_element_gp, &ndim, &zero, tau, &ndim);
-  tau[0] = tau[0] + J*K*(J-1);
-  tau[4] = tau[4] + J*K*(J-1);
-  tau[8] = tau[8] + J*K*(J-1);
+      Sdev, &ndim, &zero, sigmaTemp, &ndim);
+  // Compute (F (dev S) F^T)/J
+  dgemm_(chn, chy, &ndim, &ndim, &ndim, &invJ, sigmaTemp, &ndim,
+      F_element_gp, &ndim, &zero, sigma, &ndim);
 
-  for(int i = 0; i< ndim2; ++i) {
-    sigma_e[i] = tau[i]*invJ;
-  }
-  */
+  // Compute deviatoric part of sigmaTilde and add the isochoric part to obtain
+  // sigma
+  FILE_LOG_SINGLE(WARNING, "Trace of sigma = %15.9f", sigma[0]+sigma[4]+sigma[8]);
+  const double volum = invJ*K*(J-1.0); 
+  // Compute sigma
+  double* sigma_e = sigma;
+  sigma_e[0] += volum;
+  sigma_e[4] += volum;
+  sigma_e[8] += volum;
 
-  // FILE_LOGMatrix(WARNING, S, ndim, ndim, "S Visco mat\n");
-
-  // TODO (NEED UPDATE from PK2 to Cauchy)
   // Get location of array to store Cauchy values
   double * sigma_nLocal = &(sigma_n[sigmaptr[e]+6*gp]);
   // 6 values saved per gauss point for 3d
@@ -226,9 +186,9 @@ void OgdenViscoelastic(int e, int gp) {
   sigma_nLocal[5] = sigma_e[3];
 
   // Update deviatoric part of S_0 for next time step
-  // for (int i = 0; i < ndim2; ++i) {
-  //   S0nLocal[i] = Sdev[i];
-  // }
+  for (int i = 0; i < ndim2; ++i) {
+    devS0n[i] = devS0np1[i];
+  }
   free(gi);
   free(ti);
 

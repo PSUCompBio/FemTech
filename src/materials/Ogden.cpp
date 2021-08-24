@@ -15,6 +15,13 @@
  * MAXMATPARAMS = 4+2*N_{Ogden} = 10
  * */
 
+/*
+ * compute Cauchy Stress \sigma
+ * \sigma = \Sum_{i=0}^{3} ((\Sum_{j=0}^{N} mu_j [\overline{\lambda}_i^{\alpha_j}
+ * - (\overline{\lambda}_1^{\alpha_j}+\overline{\lambda}_2^{\alpha_j}+
+ *   \overline{\lambda}_3^{\alpha_j})/3.0])) (n_i \dyadic n_i) + K*(J-1)/J
+ */
+
 void Ogden(int e, int gp) {
   if (ndim == 2) {
     FILE_LOG_SINGLE(ERROR, "Plane Strain implementation yet to be done");
@@ -96,8 +103,8 @@ void Ogden(int e, int gp) {
     preFactor *= invJ;
     dyadic(&b[3*i], preFactor, sigma_e);
   }
-  // const double volum = K*(J-1.0)/J; 
-  const double volum = K*(J-1.0); 
+  const double volum = K*invJ*(J-1.0); 
+  // const double volum = K*(J-1.0); 
   // Add the volumentric component
   sigma_e[0] += volum;
   sigma_e[4] += volum;

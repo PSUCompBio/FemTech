@@ -62,7 +62,6 @@ int outputElemCount = 0;
 MPI_Comm output_comm;
 MPI_File outputFilePtr;
 int output_size, output_rank;
-double *outputNodeRigidDisp;
 double *outputElemStress;
 
 /* Variables for injury metrics */
@@ -136,6 +135,10 @@ double *linAccXt, *linAccYt, *linAccZt;
 double *linAccXv, *linAccYv, *linAccZv;
 double *angAccXt, *angAccYt, *angAccZt;
 double *angAccXv, *angAccYv, *angAccZv;
+
+/* Local co-ordinate system rotating with the skull for comparison with Hardy's
+ * data. Use first 3 index to store x unit vector, next 3 for y unit vector  */
+double unitVec[9], rigidTranslation[3];
 
 /* Varibles for Local integrator */
 const int nIntVar = 12;
@@ -350,7 +353,6 @@ int main(int argc, char **argv) {
   free1DArray(angAccZv);
   free1DArray(outputNodeList);
   free1DArray(outputElemList);
-  free1DArray(outputNodeRigidDisp);
   // Free variables used for injury criteria
   free1DArray(PS_Old);
   free1DArray(elementIDInjury);
@@ -421,9 +423,31 @@ void ApplyAccBoundaryConditions() {
       //     2.0 * omegaVel[j] + omegaOmegaR[j] + ydotInt[6 + j] + alphaR[j];
     }
   }
+  if (rankForCustomPlot) {
+    // Update unit vector
+    for (int i = 0; i < 3; i++) {
+      int index = i * ndim;
+      for (int j = 0; j < ndim; ++j) {
+        locV[j] = unitVec[index + j];
+      }
+      V[0] = 0.0;
+      V[1] = locV[0];
+      V[2] = locV[1];
+      V[3] = locV[2];
+      quaternionRotate(V, R, Rinv, Vp); // Vp = RVR^{-1}
+      double unitVecMag = sqrt(Vp[1]*Vp[1]+Vp[2]*Vp[2]+Vp[3]*Vp[3]);
+      for (int j = 0; j < ndim; ++j) {
+        // update unit vectors by rotating
+        unitVec[index + j] = Vp[j + 1]/unitVecMag;
+      }
+    }
+    // for (int i = 0; i < 3; i++) {
+    //   rigidTranslation[i] += yInt[9+i];
+    // }
+  }
   // Move to full time step
   rk.do_step(computeDerivatives, yInt, Time+0.5*dt, 0.5*dt);
-  // Rotate points to plot to obtain their rigid displacements
+  // Rotate unit vectors to keep track of local co-ordinate system
   if (rankForCustomPlot) {
     r[0] = 0.0;
     r[1] = yInt[3];
@@ -431,22 +455,26 @@ void ApplyAccBoundaryConditions() {
     r[3] = yInt[5];
     quaternionExp(r, R); // R = exp(r)
     quaternionInverse(R, Rinv);
-    for (int i = 0; i < outputNodeCount; i++) {
-      int index = outputNodeList[i] * ndim;
-      int index1 = i * ndim;
+    // Update unit vector
+    for (int i = 0; i < 3; i++) {
+      int index = i * ndim;
       for (int j = 0; j < ndim; ++j) {
-        locV[j] = coordinates[index + j];
+        locV[j] = unitVec[index + j];
       }
       V[0] = 0.0;
       V[1] = locV[0];
       V[2] = locV[1];
       V[3] = locV[2];
       quaternionRotate(V, R, Rinv, Vp); // Vp = RVR^{-1}
+      double unitVecMag = sqrt(Vp[1]*Vp[1]+Vp[2]*Vp[2]+Vp[3]*Vp[3]);
       for (int j = 0; j < ndim; ++j) {
-        // Displacement
-        outputNodeRigidDisp[index1 + j] = Vp[j + 1] - locV[j] + yInt[9 + j];
+        // update unit vectors by rotating
+        unitVec[index + j] = Vp[j + 1]/unitVecMag;
       }
     }
+    // for (int i = 0; i < 3; i++) {
+    //   rigidTranslation[i] += yInt[9+i];
+    // }
   }
   return;
 }
@@ -602,8 +630,16 @@ void InitCustomPlot(const Json::Value &jsonInput) {
     MPI_File_write_ordered(outputFilePtr, outputHeader, strlen(outputHeader),
                            MPI_CHAR, MPI_STATUS_IGNORE);
     free(outputHeader);
-    outputNodeRigidDisp =
-        (double *)calloc(outputNodeCount * ndim, sizeof(double));
+    // Set the unit vector for locla co-ordinates
+    for (int i = 0; i < ndim2; ++i) {
+      unitVec[i] = 0.0;
+    }
+    for (int i = 0; i < ndim; ++i) {
+      rigidTranslation[i] = 0.0;
+    }
+    unitVec[0] = 1.0;
+    unitVec[4] = 1.0;
+    unitVec[8] = 1.0;
   }
   // Check if we should disable relative displacement
   if (!jsonInput["relative-displacement"].empty()) {
@@ -627,12 +663,17 @@ void CustomPlot() {
       double xCord = displacements[plotNode];
       double yCord = displacements[plotNode + 1];
       double zCord = displacements[plotNode + 2];
+      double xCordLocal, yCordLocal, zCordLocal;
       if (outputRelativeDisplacement) {
-        xCord -= outputNodeRigidDisp[plotIndex];
-        yCord -= outputNodeRigidDisp[plotIndex + 1];
-        zCord -= outputNodeRigidDisp[plotIndex + 2];
+        xCordLocal = xCord*unitVec[0] + yCord*unitVec[1] + zCord*unitVec[2] - rigidTranslation[0];
+        yCordLocal = xCord*unitVec[3] + yCord*unitVec[4] + zCord*unitVec[5] - rigidTranslation[1];
+        zCordLocal = xCord*unitVec[6] + yCord*unitVec[7] + zCord*unitVec[8] - rigidTranslation[2];
+      } else {
+        xCordLocal = xCord;
+        yCordLocal = yCord;
+        zCordLocal = zCord;
       }
-      sprintf(output, "%s %15.9e %15.9e %15.9e", output, xCord, yCord, zCord);
+      sprintf(output, "%s %15.9e %15.9e %15.9e", output, xCordLocal, yCordLocal, zCordLocal);
     }
     double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
     for (int i = 0; i < outputElemCount; ++i) {
