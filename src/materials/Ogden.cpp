@@ -3,6 +3,7 @@
 #include "lapack.h"
 
 #include <stdlib.h>
+#include <math.h>
 
 /* Implements the Ogden Model
  * Expected material properties :
@@ -11,11 +12,15 @@
  * N_{Ogden} = properties(2), maximum value of 3
  * \alpha_i  = properties(3+2*i) i = 0 to N_{Ogden}-1
  * \mu_i     = properties(4+2*i) i = 0 to N_{Ogden}-1
- * N_{Prony} = properties(3+N_{Ogden}*2), maximum value of 6
- * g_i       = properties(4+2*N_{Ogden}+2*j) j = 0 to N_{Prony}-1
- * \tau_i    = properties(5+2*N_{Ogden}+2*j) j = 0 to N_{Prony}-1
- * MAXMATPARAMS = 4+2*(N_{Ogden}+N_{Prony}) = 22
+ * MAXMATPARAMS = 4+2*N_{Ogden} = 10
  * */
+
+/*
+ * compute Cauchy Stress \sigma
+ * \sigma = \Sum_{i=0}^{3} ((\Sum_{j=0}^{N} mu_j [\overline{\lambda}_i^{\alpha_j}
+ * - (\overline{\lambda}_1^{\alpha_j}+\overline{\lambda}_2^{\alpha_j}+
+ *   \overline{\lambda}_3^{\alpha_j})/3.0])) (n_i \dyadic n_i) + K*(J-1)/J
+ */
 
 void Ogden(int e, int gp) {
   if (ndim == 2) {
@@ -23,10 +28,6 @@ void Ogden(int e, int gp) {
     TerminateFemTech(3);
   }
   // Assumes ndim == 3
-  // Pointer to start of deformation gradient matrix for given element number
-  // and Gauss point
-  const int index = fptr[e] + ndim * ndim * gp;
-
   // Get material property ID to read material properties
   const int pideIndex = pid[e]*MAXMATPARAMS;
   // Get location of array with material properties of the element
@@ -34,35 +35,30 @@ void Ogden(int e, int gp) {
   // Read material properties
   const double K = localProperties[1];
   const int nTerm = static_cast<int>(localProperties[2]);
-  const unsigned int matSize = ndim * ndim;
+
+  // b = F F^T
   double *H = mat1;
   ComputeH(e, gp, H);
   // Compute and store F = H + I
+  const unsigned int index = fptr[e] + ndim2 * gp;
   double * const F_element_gp = &(F[index]);
   for (unsigned int i = 0; i < ndim2; ++i) {
-      F_element_gp[i] = H[i];
-      }
+    F_element_gp[i] = H[i];
+  }
   F_element_gp[0] = F_element_gp[0] + 1.0;
   F_element_gp[4] = F_element_gp[4] + 1.0;
   F_element_gp[8] = F_element_gp[8] + 1.0;
-  // Use temp storage mat2 for Finverse
-  double *fInv = mat2;
-  // Compute F inverse
-  double J = inverse3x3Matrix(F_element_gp, fInv);
-  //InverseF(e, gp, fInv);
-  // Use temp storage 2 for storing Bmat
-  double *Bmat = mat3;
-  // Compute B = FF^T and compute its eigen values
+  double *b = mat2;
+  // Compute F F^T and store to b 
   dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
-        F_element_gp, &ndim, &zero, Bmat, &ndim);
-
-   double invJ = 1.0/J;
+          F_element_gp, &ndim, &zero, b, &ndim);
   // Compute eigen values and eigenvectors of B
-  int nEigen;
   double cEigenValue[ndim];
   double dWork[workSize];
-  
-    // Correct Eigen Values for numerical inaccuracy
+  dsyev_(jobzV, uploU, &ndim, b, &ndim, cEigenValue, dWork, &workSize, &info);
+  // b now contains the eigen vectors of b
+
+  // Correct Eigen Values for numerical inaccuracy
   double delat01 = fabs(cEigenValue[0] - cEigenValue[1]);
   double delat12 = fabs(cEigenValue[1] - cEigenValue[2]);
   double delat02 = fabs(cEigenValue[0] - cEigenValue[2]);
@@ -72,35 +68,47 @@ void Ogden(int e, int gp) {
   if (delat02 < eigenTol) cEigenValue[2] = cEigenValue[0];
   if (delat12 < eigenTol) cEigenValue[2] = cEigenValue[1];
 
-  dsyev_(jobzV, uploU, &ndim, Bmat, &ndim, cEigenValue, dWork, &workSize, &info);
-  // Compute sqrt of lambda and multiply by J^{-1/3}
+  const double J = det3x3Matrix(F_element_gp);
   const double Jm13 = pow(J, -1.0/3.0);
-  for (int i = 0; i < ndim; ++i) {
-    cEigenValue[i] = sqrt(cEigenValue[i])*Jm13;
-  }
-  // Compute F^-1(cEigenVector)
-  // Each column of basisVec points to F^{-1}*e where e is the eigen vector of B
-  // matrix
-  //double *basisVec = mat3;
-  //dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim,
-    //       Bmat, &ndim, &zero, basisVec, &ndim);
+  const double invJ = 1.0/J;
 
-  double *sigma_e = mat1; //check
-  for(int i = 0; i<matSize; i++){
+  double eigenPower[ndim*nTerm];
+  double eigenPowerSum[nTerm];
+  for (int j = 0; j < nTerm; ++j) {
+    eigenPowerSum[j] = 0.0;
+  }
+  for (int i = 0; i < ndim; ++i) {
+    const double lambdaBar = Jm13*sqrt(cEigenValue[i]);
+    for (int j = 0; j < nTerm; ++j) {
+      const double alpha = localProperties[3+j*2];
+      const double lambdaBarAlpha = pow(lambdaBar, alpha);
+      eigenPowerSum[j] += lambdaBarAlpha;
+      eigenPower[i*nTerm+j] = lambdaBarAlpha;
+    }
+  }
+  for (int j = 0; j < nTerm; ++j) {
+    eigenPowerSum[j] /= 3.0;
+  }
+
+  double *sigma_e = mat3;
+  for (int i = 0; i < ndim2; ++i) {
     sigma_e[i] = 0.0;
   }
-
-  const double hydro = K*(J-1.0);
-  double eigenPower[ndim];
   for (int i = 0; i < ndim; ++i) {
-    double preFactor = hydro;
+    double preFactor = 0.0;
     for (int j = 0; j < nTerm; ++j) {
-      double alpha = localProperties[3+j*2];
       double mu = localProperties[4+j*2];
-      preFactor += (mu*invJ*(pow(cEigenValue[i], alpha)-((pow(cEigenValue[0], alpha)+pow(cEigenValue[1], alpha)+pow(cEigenValue[2], alpha))/3.0)));
+      preFactor += mu*(eigenPower[i*nTerm+j]-eigenPowerSum[j]);
     }
-    dyadic(&Bmat[3*i], preFactor, sigma_e);
+    preFactor *= invJ;
+    dyadic(&b[3*i], preFactor, sigma_e);
   }
+  const double volum = K*invJ*(J-1.0); 
+  // const double volum = K*(J-1.0); 
+  // Add the volumentric component
+  sigma_e[0] += volum;
+  sigma_e[4] += volum;
+  sigma_e[8] += volum;
 
   // Get location of array to store Cauchy values
   double * sigma_nLocal = &(sigma_n[sigmaptr[e]+6*gp]);

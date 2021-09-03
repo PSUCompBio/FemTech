@@ -36,7 +36,6 @@ int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
-bool RI = true;
 
 double dynamicDamping = 0.000;
 double ExplicitTimeStepReduction = 0.8;
@@ -54,7 +53,7 @@ int *boundaryID = NULL;
 int boundarySize;
 double peakTime, tMax;
 bool writeField = true;
-bool computeInjuryFlag = false;
+bool computeInjuryFlag = true;
 /* Global variables for output */
 int *outputNodeList;
 int outputNodeCount = 0;
@@ -63,6 +62,7 @@ int outputElemCount = 0;
 MPI_Comm output_comm;
 MPI_File outputFilePtr;
 int output_size, output_rank;
+double *outputNodeRigidDisp;
 double *outputElemStress;
 
 /* Variables for injury metrics */
@@ -136,10 +136,6 @@ double *linAccXt, *linAccYt, *linAccZt;
 double *linAccXv, *linAccYv, *linAccZv;
 double *angAccXt, *angAccYt, *angAccZt;
 double *angAccXv, *angAccYv, *angAccZv;
-
-/* Local co-ordinate system rotating with the skull for comparison with Hardy's
- * data. Use first 3 index to store x unit vector, next 3 for y unit vector  */
-double unitVec[9], rigidTranslation[3], velocities_half_unit[9], displacements_unit[9], velocities_unit[9], acceleration_unit[9], normVec[9], rotmat[9], invrotmat[9];
 
 /* Varibles for Local integrator */
 const int nIntVar = 12;
@@ -253,7 +249,6 @@ int main(int argc, char **argv) {
 
     /* Step 6 Enforce boundary Conditions */
     ApplyAccBoundaryConditions();
-//printf("%.10f %.10f %.10f\n", unitVec[3], unitVec[4], unitVec[5]);
     Time = t_np1; /*Update the time by adding full time step */
     /* Step 5 from Belytschko Box 6.1 - Update velocity */
     for (int i = 0; i < nDOF; i++) {
@@ -274,10 +269,6 @@ int main(int argc, char **argv) {
       displacements[i] = displacements[i] + dt * velocities_half[i];
     }
 
-    for (int i = 0; i < ndim2; i++) {
-      displacements_unit[i] = displacements_unit[i] + dt * velocities_half_unit[i];
-    }
-
     /* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
     GetForce(); // Calculating the force term.
     /* Step - 9 from Belytschko Box 6.1 - Calculate Accelerations */
@@ -288,9 +279,7 @@ int main(int argc, char **argv) {
     for (int i = 0; i < nDOF; i++) {
       velocities[i] = velocities_half[i] + dtby2 * accelerations[i];
     }
-    for (int i = 0; i < ndim2; i++) {
-      velocities_unit[i] = velocities_half_unit[i] + dtby2 * acceleration_unit[i];
-    }
+
     /** Step - 11 Checking* Energy Balance */
     int writeFlag = time_step_counter % nsteps_plot;
     int writeFileFlag = time_step_counter % nsteps_write;
@@ -361,6 +350,7 @@ int main(int argc, char **argv) {
   free1DArray(angAccZv);
   free1DArray(outputNodeList);
   free1DArray(outputElemList);
+  free1DArray(outputNodeRigidDisp);
   // Free variables used for injury criteria
   free1DArray(PS_Old);
   free1DArray(elementIDInjury);
@@ -383,8 +373,8 @@ int main(int argc, char **argv) {
 
 void ApplyAccBoundaryConditions() {
   double r[4], R[4], Rinv[4], V[4], Vp[4]; // quaternions
-  double omegaOmegaR[3], omegaVel[3], vel[3]; // vectors
-  double alpha[3], alphaR[3];
+  // double omegaR[3], omega[3], omegaOmegaR[3], omegaVel[3], vel[3]; // vectors
+  // double alpha[3], alphaR[3], locV[3];
   double omegaR[3], omega[3]; // vectors
   double locV[3];
 
@@ -431,36 +421,33 @@ void ApplyAccBoundaryConditions() {
       //     2.0 * omegaVel[j] + omegaOmegaR[j] + ydotInt[6 + j] + alphaR[j];
     }
   }
-
+  // Move to full time step
+  rk.do_step(computeDerivatives, yInt, Time+0.5*dt, 0.5*dt);
+  // Rotate points to plot to obtain their rigid displacements
   if (rankForCustomPlot) {
-    // Update unit vector
-    for (int i = 0; i < 3; i++) {
-      int index = i * ndim;
+    r[0] = 0.0;
+    r[1] = yInt[3];
+    r[2] = yInt[4];
+    r[3] = yInt[5];
+    quaternionExp(r, R); // R = exp(r)
+    quaternionInverse(R, Rinv);
+    for (int i = 0; i < outputNodeCount; i++) {
+      int index = outputNodeList[i] * ndim;
+      int index1 = i * ndim;
       for (int j = 0; j < ndim; ++j) {
-        locV[j] = unitVec[index + j];
+        locV[j] = coordinates[index + j];
       }
       V[0] = 0.0;
       V[1] = locV[0];
       V[2] = locV[1];
       V[3] = locV[2];
       quaternionRotate(V, R, Rinv, Vp); // Vp = RVR^{-1}
-      crossProduct(omega, &(Vp[1]), omegaR);
-      crossProduct(omega, omegaR, omegaOmegaR);
-      crossProduct(omega, vel, omegaVel);
-      crossProduct(alpha, &(Vp[1]), alphaR);
-      double unitVecMag = sqrt(Vp[1]*Vp[1]+Vp[2]*Vp[2]+Vp[3]*Vp[3]);
       for (int j = 0; j < ndim; ++j) {
-        // update unit vectors by rotating
-	velocities_half_unit[index + j] = omegaR[j] + yInt[6 + j];
-        acceleration_unit[index + j] = 2.0 * omegaVel[j] + omegaOmegaR[j] + ydotInt[6 + j] + alphaR[j];
+        // Displacement
+        outputNodeRigidDisp[index1 + j] = Vp[j + 1] - locV[j] + yInt[9 + j];
       }
     }
-    // for (int i = 0; i < 3; i++) {
-    //   rigidTranslation[i] += yInt[9+i];     
-    //}
   }
-  // Move to full time step
-  rk.do_step(computeDerivatives, yInt, Time+0.5*dt, 0.5*dt);
   return;
 }
 
@@ -615,21 +602,8 @@ void InitCustomPlot(const Json::Value &jsonInput) {
     MPI_File_write_ordered(outputFilePtr, outputHeader, strlen(outputHeader),
                            MPI_CHAR, MPI_STATUS_IGNORE);
     free(outputHeader);
-    // Set the unit vector for locla co-ordinates
-    for (int i = 0; i < ndim2; ++i) {
-      unitVec[i] = 0.0;
-      velocities_half_unit[i] = 0.0;
-      displacements_unit[i] = 0.0;
-      velocities_unit[i] = 0.0;
-      acceleration_unit[i] = 0.0;
-      normVec[i] = 0.0;
-    }
-    for (int i = 0; i < ndim; ++i) {
-      rigidTranslation[i] = 0.0;
-    }
-    unitVec[0] = 1.0;
-    unitVec[4] = 1.0;
-    unitVec[8] = 1.0;
+    outputNodeRigidDisp =
+        (double *)calloc(outputNodeCount * ndim, sizeof(double));
   }
   // Check if we should disable relative displacement
   if (!jsonInput["relative-displacement"].empty()) {
@@ -647,46 +621,19 @@ void CustomPlot() {
     if (output_rank == 0) {
       sprintf(output, "%15.9e", Time);
     }
-    if(outputRelativeDisplacement){
-        for(int i = 0; i<ndim ; i++){
-	    int index = i*ndim;
-	    for(int j = 0; j<ndim ; j++){
-	        normVec[index+j] = displacements_unit[index+j] - yInt[9+j] + unitVec[index+j];
-	    }
-      }
-        double normMag1 = sqrt(normVec[0]*normVec[0]+normVec[1]*normVec[1]+normVec[2]*normVec[2]);
-        double normMag2 = sqrt(normVec[3]*normVec[3]+normVec[4]*normVec[4]+normVec[5]*normVec[5]);
-        double normMag3 = sqrt(normVec[6]*normVec[6]+normVec[7]*normVec[7]+normVec[8]*normVec[8]);
-        for(int i = 0; i<ndim ; i++){
-	    rotmat[i+0*ndim] = normVec[i+0*ndim]/normMag1;
-	    rotmat[i+1*ndim] = normVec[i+1*ndim]/normMag2;
-	    rotmat[i+2*ndim] = normVec[i+2*ndim]/normMag3;
-        }
-	double detrotmat;
-	detrotmat = inverse3x3Matrix(rotmat, invrotmat);
-    }
     for (int i = 0; i < outputNodeCount; ++i) {
       unsigned int plotNode = outputNodeList[i] * ndim;
       unsigned int plotIndex = i * ndim;
-      double xCord, yCord, zCord;
-      double xCordLocal, yCordLocal, zCordLocal;
+      double xCord = displacements[plotNode];
+      double yCord = displacements[plotNode + 1];
+      double zCord = displacements[plotNode + 2];
       if (outputRelativeDisplacement) {
-        xCord = displacements[plotNode]+coordinates[plotNode]-yInt[9];
-        yCord = displacements[plotNode + 1]+coordinates[plotNode+1]-yInt[10];
-        zCord = displacements[plotNode + 2]+coordinates[plotNode+2]-yInt[11];
-        xCordLocal = xCord*invrotmat[0] + yCord*invrotmat[3] + zCord*invrotmat[6] - coordinates[plotNode];
-	yCordLocal = xCord*invrotmat[1] + yCord*invrotmat[4] + zCord*invrotmat[7] - coordinates[plotNode+1];
-	zCordLocal = xCord*invrotmat[2] + yCord*invrotmat[5] + zCord*invrotmat[8] - coordinates[plotNode+2];
-      } else {
-        xCord = displacements[plotNode];
-        yCord = displacements[plotNode + 1];
-        zCord = displacements[plotNode + 2];
-        xCordLocal = xCord;
-        yCordLocal = yCord;
-        zCordLocal = zCord;
+        xCord -= outputNodeRigidDisp[plotIndex];
+        yCord -= outputNodeRigidDisp[plotIndex + 1];
+        zCord -= outputNodeRigidDisp[plotIndex + 2];
       }
-      sprintf(output, "%s %15.9e %15.9e %15.9e", output, xCordLocal, yCordLocal, zCordLocal);
-      }
+      sprintf(output, "%s %15.9e %15.9e %15.9e", output, xCord, yCord, zCord);
+    }
     double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
     for (int i = 0; i < outputElemCount; ++i) {
       unsigned int plotElem = outputElemList[i];
@@ -813,15 +760,15 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
     // Convert linear accelerations from g force to m/s^2
     // Convert time from milli-seconds to seconds
     for (int i = 0; i < linAccXSize; ++i) {
-       linAccXv[i] = gC*linAccXv[i];
+      // linAccXv[i] = gC*linAccXv[i];
       linAccXt[i] = 0.001 * linAccXt[i];
     }
     for (int i = 0; i < linAccYSize; ++i) {
-       linAccYv[i] = gC*linAccYv[i];
+      // linAccYv[i] = gC*linAccYv[i];
       linAccYt[i] = 0.001 * linAccYt[i];
     }
     for (int i = 0; i < linAccZSize; ++i) {
-       linAccZv[i] = gC*linAccZv[i];
+      // linAccZv[i] = gC*linAccZv[i];
       linAccZt[i] = 0.001 * linAccZt[i];
     }
     for (int i = 0; i < angAccXSize; ++i) {
@@ -1284,7 +1231,7 @@ void WriteOutputFile() {
           maxLocationAndTime[0] += coordinates[connectivity[j] * ndim];
           maxLocationAndTime[1] += coordinates[connectivity[j] * ndim + 1];
           maxLocationAndTime[2] += coordinates[connectivity[j] * ndim + 2];
-	}
+        }
         for (int j = 0; j < ndim; ++j) {
           maxLocationAndTime[j] = maxLocationAndTime[j] / ((double)nP);
         }
