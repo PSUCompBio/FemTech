@@ -11,7 +11,7 @@ def getLastLine(fname):
         array = map(float, lastLine.split())
         return np.array(array)
 
-femTech = getLastLine('plot.dat')
+femTech = getLastLine('displacement.dat')
 abaqus = getLastLine('ls-dyna/ogdenDisplacement.txt')
 
 print(femTech)
