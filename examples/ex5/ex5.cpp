@@ -1796,7 +1796,7 @@ void WriteMPS(void) {
   for (unsigned int i = 0; i < nelements; ++i) {
     offset = (global_eid[i]-1)*lineSize;
     sprintf(s2, "%06d, %14.5e, %14.5e\n", global_eid[i], elementMPS[i], initialVolume[i]);
-    sprintf(s3, "%50s", s2);
+    sprintf(s3, "%49s", s2);
     MPI_File_write_at(mpsFilePtr, offset, s3, lineSize, MPI_CHAR, MPI_STATUS_IGNORE);
   }
 
