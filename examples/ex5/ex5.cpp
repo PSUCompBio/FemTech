@@ -1789,14 +1789,15 @@ void WriteMPS(void) {
     }
   }
 
-  const unsigned int lineSize = 39;
-  char s2[lineSize] = {0};
+  const unsigned int lineSize = 50;
+  char s2[lineSize] = {0}, s3[lineSize];
   unsigned int offset = 0;
 
   for (unsigned int i = 0; i < nelements; ++i) {
     offset = (global_eid[i]-1)*lineSize;
     sprintf(s2, "%06d, %14.5e, %14.5e\n", global_eid[i], elementMPS[i], initialVolume[i]);
-    MPI_File_write_at(mpsFilePtr, offset, s2, lineSize, MPI_CHAR, MPI_STATUS_IGNORE);
+    sprintf(s3, "%50s", s2);
+    MPI_File_write_at(mpsFilePtr, offset, s3, lineSize, MPI_CHAR, MPI_STATUS_IGNORE);
   }
 
   MPI_File_close(&mpsFilePtr);
