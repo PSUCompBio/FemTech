@@ -7,13 +7,14 @@ set -eo pipefail
 cd "$(dirname "$0")"
 
 # input_test_?.json array
-testInputFiles=( p1 pt x s )
+# testInputFiles=( p1 pt x s )
+testInputFiles=( pt x )
 # Values of element id expected in the order, max-shear, min-principal,
 # max-principal
 value_p1=( 9821 7323 10243 )
-value_pt=( 10223 10223 10223 )
-value_s=( 15186 12602 15186 )
-value_x=( 7740 7740 7740 )
+value_pt=( 13880 13880 9867 )
+value_x=( 7838 7838 7838 )
+value_s=( 7740 7740 7740 )
 
 # Run all tests and check output
 for name in "${testInputFiles[@]}"
@@ -27,7 +28,7 @@ do
   if [ -e $output_filename ]; then
     rm $output_filename
   fi
-  mpirun --oversubscribe -np 8 -mca btl_base_warn_component_unused 0 -mca btl_vader_single_copy_mechanism none ex5 $input_filename
+  mpirun --oversubscribe -np 2 -mca btl_base_warn_component_unused 0 -mca btl_vader_single_copy_mechanism none ex5 $input_filename
   simulationSuccess=$?
   if [ $simulationSuccess -eq 0 ]; then
     if [ -e $output_filename ]; then
