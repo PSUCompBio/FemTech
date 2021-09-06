@@ -19,7 +19,9 @@ int plotElemID = 0;
 double Time, dt;
 int nSteps;
 
-double dynamicDamping = 0.0;
+double dynamicDamping = 0.01;
+// 0.2 : Very bad stress, displacement match
+// 0.002 : Works for Ogden material model
 double ExplicitTimeStepReduction = 0.7;
 double FailureTimeStep = 1e-11;
 double MaxTimeStep = 1e-1;
@@ -32,7 +34,8 @@ bool ExplicitDynamic = true;
 
 // Parameters of simple tension test
 double tMax = 1.00;  // max simulation time in seconds
-double dMax = 0.007; // max displacment in meters
+double dMax = 0.005; // max displacment in meters
+// double dMax = -0.002; // max displacment in meters
 
 int main(int argc, char **argv) {
   // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
@@ -63,12 +66,12 @@ int main(int argc, char **argv) {
   ShapeFunctions();
   // Check if the problem is viscoelastic or not
   bool viscoElastic = false;
-  // for (int i = 0; i < nelements; ++i) {
-  //   if (nProny[i]) {
-  //     viscoElastic = true;
-  //     break;
-  //   }
-  // }
+  for (int i = 0; i < nelements; ++i) {
+    if (nProny[i]) {
+      viscoElastic = true;
+      break;
+    }
+  }
   /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
   AssembleLumpedMass();
   InitVelocityBoundaryConditions();

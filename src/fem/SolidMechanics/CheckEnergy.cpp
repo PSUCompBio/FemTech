@@ -67,9 +67,9 @@ void CheckEnergy(double time, bool writeFlag) {
     Wint_n += Wint_n_total;
     Wext_n += Wext_n_total;
     double total = fabs(WKE_Total + Wint_n - Wext_n);
-    FILE_LOG_SINGLE(WARNING, "Internal Work : %15.9e", Wint_n);
-    FILE_LOG_SINGLE(WARNING, "External Work : %15.9e", Wext_n);
-    FILE_LOG_SINGLE(WARNING, "Kinetic Energy : %15.9e", WKE_Total);
+    // FILE_LOG_SINGLE(WARNING, "Internal Work : %15.9e", Wint_n);
+    // FILE_LOG_SINGLE(WARNING, "External Work : %15.9e", Wext_n);
+    // FILE_LOG_SINGLE(WARNING, "Kinetic Energy : %15.9e", WKE_Total);
     // FILE_LOG_SINGLE(WARNING, "Total Energy : %15.9e", total);
 
     double max = fabs(Wint_n);
@@ -81,10 +81,10 @@ void CheckEnergy(double time, bool writeFlag) {
     }
     const double epsilon = 0.01;
     if (total > epsilon * max) {
-      FILE_LOG_MASTER(
-          WARNING,
-          "Energy Violation. Total = %15.9e, Max = %15.9e, Error\% : %10.2f",
-          total, max, total * 100.0 / max);
+      // FILE_LOG_MASTER(
+      //     WARNING,
+      //     "Energy Violation. Total = %15.9e, Max = %15.9e, Error\% : %10.2f",
+      //     total, max, total * 100.0 / max);
     }
     if (writeFlag) {
       fprintf(energyFile, "%12.6e %12.6e  %12.6e  %12.6e %12.6e\n", time,
