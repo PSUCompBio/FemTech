@@ -11,6 +11,7 @@ else()
 endif(ENABLE_MPI)
 
 file(INSTALL 1-elt-cube.k DESTINATION .)
+file(INSTALL tensionMesh.k DESTINATION .)
 file(INSTALL materials.dat DESTINATION .)
 file(INSTALL compareResults.py DESTINATION .)
 file(INSTALL gnuplot.script DESTINATION .)

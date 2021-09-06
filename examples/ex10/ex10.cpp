@@ -17,6 +17,9 @@ bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 
+
+double dynamicDamping = 0.01;
+
 int main(int argc, char **argv) {
   InitFemTechWoInput(argc, argv);
 
