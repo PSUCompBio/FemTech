@@ -5,6 +5,10 @@ import numpy as np
 
 import csv
 
+# Part list 
+partList = ["msc", "stem", "cerebellum", "frontal", "parietal", "occipital",
+        "temporal"]
+
 # Code assumes maximum-time is set to the last value of the time array
 jsonInputFile = sys.argv[1]
 inputJson = json.loads(open(jsonInputFile).read())
@@ -76,14 +80,11 @@ if (not 'compute-injury-criteria' in inputJson['simulation']) or inputJson['simu
     meshType = outputJson["output-file"].split('_')[0]
     cellDataFile = meshType + '_cellcentres.txt'
 
-    # Part list 
-    partList = ["msc", "stem", "cerebellum", "frontal", "parietal", "occipital",
-            "temporal"]
 
     # Populate region from cell centres file
     maxInjuryMetrics = ["principal-max-strain", "principal-min-strain",
             "maximum-shear-strain", "maximum-PSxSR"];
-    threshInjuryMetrics = ["CSDM-10", "CSDM-15", "CSDM-30", "CSDM-5", 
+    threshInjuryMetrics = ["CSDM-10", "CSDM-15", "CSDM-30", "CSDM-5", "CSDM-3",
             "MPS-95"];
 
     # Loop over metric with single element output
@@ -162,6 +163,21 @@ if 'impact-time' in inputJson:
     outputJson['impact-time'] = inputJson['impact-time']
 if 'impact-date' in inputJson:
     outputJson['impact-date'] = inputJson['impact-date']
+
+# Include region wise MPS values to output.json
+if (not 'compute-injury-criteria' in inputJson['simulation']) or inputJson['simulation']['compute-injury-criteria']:
+    outputJson["region-wise-mps"] = {}
+    # Set all region MPS value to zero
+    for part in partList:
+        outputJson["region-wise-mps"][part] = 0.0
+
+    with open('MPSfile.dat') as mpsFile, open(cellDataFile) as regionFile:
+        for mpsLine, cellDataLine in zip(mpsFile, regionFile):
+            part = cellDataLine.split()[4]
+            if part != 'skull' and part != 'csf':
+                mpsValue = float(mpsLine.split(',')[1])
+                if mpsValue > outputJson["region-wise-mps"][part]:
+                    outputJson["region-wise-mps"][part] = mpsValue
 
 # print(outputJson)
 # jstr = json.dumps(outputJson, indent = 2, sort_keys=False)

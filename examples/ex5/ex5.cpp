@@ -90,17 +90,18 @@ double percentileTime[percentileQuantities];
 double percentileValue[percentileQuantities];
 const std::string percentileTag[percentileQuantities] = {"MPS-95", "MPSxSR-95"};
 /* Threshold variables */
-/* 0. MPS > 5
- * 1. MPS > 10
- * 2. MPS > 15
- * 3. MPS > 30
- * 4. MPSR > 120 1/s
- * 5. MPSxSR > 28 1/s
+/* 0. MPS > 3
+ * 1. MPS > 5
+ * 2. MPS > 10
+ * 3. MPS > 15
+ * 4. MPS > 30
+ * 5. MPSR > 120 1/s
+ * 6. MPSxSR > 28 1/s
  */
-const int threshQuantities = 6;
+const int threshQuantities = 7;
 int *thresholdElements[threshQuantities];
 const std::string thresholdTag[threshQuantities] = {
-    "CSDM-5", "CSDM-10", "CSDM-15", "CSDM-30", "MPSR-120", "MPSxSR-28"};
+    "CSDM-3", "CSDM-5", "CSDM-10", "CSDM-15", "CSDM-30", "MPSR-120", "MPSxSR-28"};
 
 /* Variables for maximum Principal Strain times Strain Rate */
 double *PS_Old = NULL;
@@ -116,17 +117,17 @@ const int injuryExcludePIDCount = 2;
 const int injuryExcludePID[injuryExcludePIDCount] = {0, 1};
 
 // Variables to write injury criterion to Paraview output
-const int outputCount = 7;
+const int outputCount = 8;
 int *outputDataArray[outputCount];
-const char *outputNames[outputCount] = {"CSDM-5",  "CSDM-10",  "CSDM-15",
+const char *outputNames[outputCount] = {"CSDM-3", "CSDM-5",  "CSDM-10",  "CSDM-15",
                                         "CSDM-30", "MPSR-120", "MPSxSR-28",
                                         "MPS-95"};
 const int outputDoubleCount = 1;
 double *outputDoubleArray[outputDoubleCount];
 const char *outputDoubleNames[outputDoubleCount] = {"MPS-95-Value"};
 
-const int csdmCount = 4;
-const double csdmLimits[csdmCount] = {0.05, 0.1, 0.15, 0.3};
+const int csdmCount = 5;
+const double csdmLimits[csdmCount] = {0.03, 0.05, 0.1, 0.15, 0.3};
 
 /* Variables used to store acceleration values */
 int linAccXSize, linAccYSize, linAccZSize;
@@ -1316,26 +1317,21 @@ void WriteOutputFile() {
     for (int i = 0; i < nElementsInjury; ++i) {
       int e = elementIDInjury[i];
       double eV = elementVolume[e];
-      // CSDM 5, 10, 15, 30 volume computations
-      if (thresholdElements[0][i]) {
-        thresholdVolume[0] += eV;
-        if (thresholdElements[1][i]) {
-          thresholdVolume[1] += eV;
-          if (thresholdElements[2][i]) {
-            thresholdVolume[2] += eV;
-            if (thresholdElements[3][i]) {
-              thresholdVolume[3] += eV;
-            }
-          }
+      // CSDM 3, 5, 10, 15, 30 volume computations
+      for (unsigned int j = 0; j < csdmCount; ++j) {
+        if (thresholdElements[j][i]) {
+          thresholdVolume[j] += eV;
+        } else {
+          break;
         }
       }
       // MPSR > 120 volume
-      if (thresholdElements[4][i]) {
-        thresholdVolume[4] += eV;
+      if (thresholdElements[csdmCount][i]) {
+        thresholdVolume[csdmCount] += eV;
       }
       // MPSxSR > 28 volume
-      if (thresholdElements[5][i]) {
-        thresholdVolume[5] += eV;
+      if (thresholdElements[csdmCount + 1][i]) {
+        thresholdVolume[csdmCount + 1] += eV;
       }
     }
     // Calculate cumulative volume on all ranks
@@ -1370,7 +1366,7 @@ void WriteOutputFile() {
       }
     }
     // Create list to write to output.json
-    const int outputJsonCount = 5;
+    const int outputJsonCount = csdmCount + 1;
     std::string jsonOutputTag[outputJsonCount];
     int *outputJsonArray[outputJsonCount];
     for (int i = 0; i < csdmCount; ++i) {
@@ -1508,7 +1504,7 @@ void InitInjuryCriteria(void) {
   initialVolume = (double *)calloc(nelements, sizeof(double));
 
   // Array to output to Paraview
-  // All threshold elements CSDM : 5, 10, 15, 30, MPSR-120, MPSxSR-28
+  // All threshold elements CSDM : 3, 5, 10, 15, 30, MPSR-120, MPSxSR-28
   for (int i = 0; i < threshQuantities; ++i) {
     outputDataArray[i] = thresholdElements[i];
   }
@@ -1790,13 +1786,13 @@ void WriteMPS(void) {
   }
 
   const unsigned int lineSize = 50;
-  char s2[lineSize] = {0}, s3[lineSize];
+  char s2[lineSize+1], s3[lineSize+1];
   unsigned int offset = 0;
 
   for (unsigned int i = 0; i < nelements; ++i) {
     offset = (global_eid[i]-1)*lineSize;
     sprintf(s2, "%06d, %14.5e, %14.5e\n", global_eid[i], elementMPS[i], initialVolume[i]);
-    sprintf(s3, "%49s", s2);
+    sprintf(s3, "%50s", s2);
     MPI_File_write_at(mpsFilePtr, offset, s3, lineSize, MPI_CHAR, MPI_STATUS_IGNORE);
   }
 
