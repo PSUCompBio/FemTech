@@ -318,12 +318,9 @@ int main(int argc, char **argv) {
           WritePVD(outputFileName.c_str(), plot_counter);
         }
       }
-      FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim,
-                       "Displacement Solution");
     }
     time_step_counter = time_step_counter + 1;
     dt = ExplicitTimeStepReduction * StableTimeStep();
-    FILE_LOG_MASTER(INFO, "dt = %15.6e, Time = %15.6e", dt, Time);
 
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);
@@ -334,8 +331,6 @@ int main(int argc, char **argv) {
     CustomPlot();
   }
   FILE_LOG_MASTER(INFO, "End of Iterative Loop");
-  FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim,
-                   "Final Displacement Solution");
 
   WriteOutputFile();
   if (computeInjuryFlag) {
