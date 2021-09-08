@@ -5,19 +5,12 @@
 // Evaluates the PK2 stress tensor
 
 void StVenantKirchhoff(int e, int gp) {
-  if (ndim == 2) {
-    // 6 values saved per gauss point for 3d
-    for (int i = 0; i < 3; i++) {
-      int index = pk2ptr[e] + 3 * gp + i;
-    }
-  }
   if (ndim == 3) {
     int pide = pid[e];
     double mu = properties[MAXMATPARAMS * pide + 1];    
     double lambda = properties[MAXMATPARAMS * pide + 2];
     const unsigned int index = fptr[e] + ndim * ndim * gp;
 
-    // Compute Green-Lagrange Tensor: E= (1/2)*(F^T*F - I)
     // Compute Green-Lagrange Tensor: E= (1/2)*(H + H^T + H^T*H)
     double *H = mat1;
     ComputeH(e, gp, H);
@@ -63,19 +56,21 @@ void StVenantKirchhoff(int e, int gp) {
     dgemm_(chn, chy, &ndim, &ndim, &ndim, &Jinv, sigmaTemp, &ndim,
            H, &ndim, &zero, sigma, &ndim);
 
-    // 6 values saved per gauss point for 3d
-    // in voigt notation, sigma11
-    sigma_n[0] = sigma[0];
+    // Get location of array to store Cauchy values
+    double * sigma_nLocal = &(sigma_n[sigmaptr[e]+6*gp]);
+		// 6 values saved per gauss point for 3d
+		// in voigt notation, sigma11
+    sigma_nLocal[0] = sigma[0];
     // in voigt notation, sigma22
-    sigma_n[1] = sigma[4];
+    sigma_nLocal[1] = sigma[4];
     // in voigt notation, sigma33
-    sigma_n[2] = sigma[8];
+    sigma_nLocal[2] = sigma[8];
     // in voigt notation, sigma23
-    sigma_n[3] = sigma[7];
+    sigma_nLocal[3] = sigma[7];
     // in voigt notation, sigma13
-    sigma_n[4] = sigma[6];
+    sigma_nLocal[4] = sigma[6];
     // in voigt notation, sigma12
-    sigma_n[5] = sigma[3];
+    sigma_nLocal[5] = sigma[3];
   } // if ndim == 3
   return;
 }

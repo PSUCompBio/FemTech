@@ -13,7 +13,6 @@ void CalculateF_XiAndInverse(int e, int gp) {
   // }
   const unsigned int start = eptr[e];
   const unsigned int nShapeFunc = eptr[e+1]-start;
-  // const unsigned int nShapeFunc = nShapeFunctions[e];
   const unsigned int indexStart = dsptr[e] + gp * GaussPoints[e] * ndim;
   for (unsigned int i = 0; i < ndim; i++) {
     for (unsigned int j = 0; j < ndim; j++) {
@@ -47,8 +46,10 @@ void CalculateF_XiAndInverse(int e, int gp) {
   //     ndim, "--------F_Xi_0 for gauss point %d --------", gp);
   // FILE_LOGMatrix_SINGLE(WARNING, F_Xi, ndim, \
   //     ndim, "--------F_Xi for gauss point %d --------", gp);
+  
   // Compute the matrix inverse
-  inverse3x3Matrix(F_Xi, F_XiInverse, &J_Xi);
+  J_Xi = inverse3x3Matrix(F_Xi, F_XiInverse);
+
   // dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, F_Xi, &ndim,
   //          F_XiInverse, &ndim, &zero, FTest, &ndim);
   // FILE_LOGMatrix_SINGLE(WARNING, FTest, ndim, \

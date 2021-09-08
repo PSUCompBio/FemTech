@@ -15,8 +15,8 @@ int *nShapeFunctions;
 double *F; // deformation gradient array, F
 double *detF; // inverse of deformation gradient array
 double *invF; // inverse of deformation gradient array
-double *pk2; // PK2 Stress
-int *pk2ptr; // pointer for iterating through PK2 stress.
+double *sigma_n; // Cauchy Stress
+int *sigmaptr; // pointer for iterating through Cauchy stress.
 int *detFptr; //pointer for iterating through detF array.
 int *InternalsPtr; // pointer for iteratign through internals array
 double *internals; /*internal variables for history dependent models */
@@ -29,6 +29,7 @@ double *fintGQ;
 double *B;
 double **Hn, **S0n;
 int *nProny; // To store number of terms in viscous Prony Series
+// TODO : Remove element dependent nProny
 double *B0;
 
 // double *F_Xi_0;
@@ -46,6 +47,9 @@ void ShapeFunctions() {
     if (materialID[j] == 8) {
       const int nOgden = properties[MAXMATPARAMS*j+2];
       nProny[i] = properties[MAXMATPARAMS*j+2*nOgden+3];
+    }
+    if (materialID[j] == 6) {
+      nProny[i] = 1;
     }
   }
   bool viscoElastic = false;
@@ -75,7 +79,7 @@ void ShapeFunctions() {
   dsptr = (int *)malloc((nelements + 1) * sizeof(int));
   gpPtr = (int *)malloc((nelements+1) * sizeof(int));
   fptr = (int *)malloc((nelements+1) * sizeof(int));
-	pk2ptr = (int *)malloc((nelements+1) * sizeof(int));
+	sigmaptr = (int *)malloc((nelements+1) * sizeof(int));
 	detFptr = (int *)malloc((nelements+1) * sizeof(int));
 	InternalsPtr = (int *)malloc((nelements+1) * sizeof(int));
 
@@ -83,7 +87,7 @@ void ShapeFunctions() {
   int dshp_counter = 0; // counter for deriviatives of shp function
   int gpCount = 0; // counter for gaupp points
 	int F_counter = 0; //counter for storage of deformation gradient, F
-  int pk2_counter = 0; //counter for storage of PK2 stress.
+  int cauchy_counter = 0; //counter for storage of cauchy stress.
 	int detF_counter = 0; // counter for storage of detF for each element.
 	int internals_counter = 0; //counter for storage of internals for each gauss point.
 
@@ -91,7 +95,7 @@ void ShapeFunctions() {
   dsptr[0] = 0;
   gpPtr[0] = 0;
 	fptr[0]=0;
-	pk2ptr[0]=0;
+	sigmaptr[0]=0;
 	detFptr[0]=0;
 
   if (viscoElastic) {
@@ -146,13 +150,13 @@ void ShapeFunctions() {
         }
       }
 
-			//the next counter is for the PK2 stress array
-			//there is a PK2 stress tensor stored at each gauss point
+			//the next counter is for the cauchy stress array
+			//there is a cauchy stress tensor stored at each gauss point
 			//there are six values stored at each gauss point since
-			// PK2 stress is symmetric.
+			// cauchy stress is symmetric.
 			// size would be ndim*ndim*8, but since symmetric it is only
 			// 6 values stored for each gauss point, or 6*8 = 48
-			pk2_counter += 48;
+			cauchy_counter += 48;
 
 			// the next counter is for the detF array. This holds a detF value for each
 			// gauss point. Since detF is a scalar value there is only 8 values per
@@ -174,7 +178,7 @@ void ShapeFunctions() {
       // counter = counter + nShapeFunctions[i]*GaussPoints[i];
       // dshp_counter = dshp_counter + (ndim * nShapeFunctions[i]*GaussPoints[i]);
 			// F_counter = ndim*ndim*ngausspoint = 3*3*1
-      //pk2_counter = 6*1 = 6
+      //cauchy_counter = 6*1 = 6
       counter += 4;
       dshp_counter += 12;
 			F_counter += 9;
@@ -190,7 +194,7 @@ void ShapeFunctions() {
         }
       }
 
-			pk2_counter += 6; // six positions for 3D, it is symmetric
+			cauchy_counter += 6; // six positions for 3D, it is symmetric
 			detF_counter +=1;
 			internals_counter += MAXINTERNALVARS * GaussPoints[i];
       // gpCount = 4;
@@ -205,7 +209,7 @@ void ShapeFunctions() {
       // counter = counter + nShapeFunctions[i]*gpCount;
       // dshp_counter = dshp_counter + (ndim * nShapeFunctions[i]*gpCount);
 			// F_counter = ndim*ndim*gpCount
-      //pk2_counter = 6*1 = 6
+      //cauchy_counter = 6*1 = 6
       counter += nShapeFunctions[i]*gpCount;
       dshp_counter += (ndim * nShapeFunctions[i] * gpCount);
 			F_counter += (ndim*ndim*gpCount);
@@ -220,7 +224,7 @@ void ShapeFunctions() {
           S0n[i] = NULL;
         }
       }
-			pk2_counter += 6; // six positions for 3D, it is symmetric
+			cauchy_counter += 6; // six positions for 3D, it is symmetric
 			detF_counter += gpCount; // detF stored only at gauss point
 			internals_counter += MAXINTERNALVARS * GaussPoints[i];
     }
@@ -229,7 +233,7 @@ void ShapeFunctions() {
     dsptr[i + 1] = dshp_counter;
     gpPtr[i + 1] = gpPtr[i]+gpCount;
     fptr[i+1] = F_counter;
-		pk2ptr[i+1] = pk2_counter;
+		sigmaptr[i+1] = cauchy_counter;
 		detFptr[i+1] = detF_counter;
 		InternalsPtr[i+1]=internals_counter;
   } // loop on i, nelements
@@ -237,9 +241,9 @@ void ShapeFunctions() {
   // for debugging purposes
 #ifdef DEBUG
   for (int i = 0; i < nelements; i++) {
-    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "(e.%d) - eptr:[%d->%d] - gptr:[%d->%d] -  dsptr:[%d->%d] - fptr:[%d->%d] - pk2ptr:[%d->%d]",
+    FILE_LOG_SINGLE(DEBUGLOGIGNORE, "(e.%d) - eptr:[%d->%d] - gptr:[%d->%d] -  dsptr:[%d->%d] - fptr:[%d->%d] - sigmaptr:[%d->%d]",
       i, eptr[i], eptr[i + 1], gptr[i], gptr[i + 1], dsptr[i], dsptr[i + 1],
-      fptr[i],fptr[i + 1],pk2ptr[i],pk2ptr[i+1]);
+      fptr[i],fptr[i + 1],sigmaptr[i],sigmaptr[i+1]);
   }
   FILE_LOG_SINGLE(DEBUGLOGIGNORE, "size of shp array = %d", counter);
   FILE_LOG_SINGLE(DEBUGLOGIGNORE, "size of derivatives of shp functions array, dshp = %d", dshp_counter);
@@ -269,9 +273,9 @@ void ShapeFunctions() {
     detF[i] = 1.0;
   }
 	internals = (double *)calloc(internals_counter, sizeof(double));
-	/*  size of PK2 stress is 6 values for each gauss point
-	  	the PK2 stress is symmetric */
-	pk2 = (double *)calloc(pk2_counter, sizeof(double));
+	/*  size of cauchy stress is 6 values for each gauss point
+	  	the cauchy stress is symmetric */
+	sigma_n = (double *)calloc(cauchy_counter, sizeof(double));
   dshp = (double *)calloc(dshp_counter, sizeof(double));
   // B0 : Store derivative of shape functions with respect to initial material
   // coordinates

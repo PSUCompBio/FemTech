@@ -20,12 +20,6 @@
  * */
 
 void lsDynaKMEquivalent(int e, int gp) {
-	if(ndim == 2) {
-		// 6 values saved per gauss point for 3d
-		for(int i=0;i<3;i++){
-			int index = pk2[e]+3*gp+i;
-		}
-	}
 	if(ndim == 3) {
     const unsigned int pideOffset = MAXMATPARAMS*pid[e];
     const double mu = properties[pideOffset + 2];
@@ -65,7 +59,8 @@ void lsDynaKMEquivalent(int e, int gp) {
     // J = det(F)
     const double J = det3x3Matrix(F_element_gp);
     const double factor1 = mu/J;
-    const double factor2 = lambda*log(J)/J;
+    // const double factor2 = lambda*log(J)/J;
+    const double factor2 = 0;
 
     double *sigma_e = mat3;
     for (unsigned int i = 0; i < ndim2; ++i) {
@@ -103,19 +98,21 @@ void lsDynaKMEquivalent(int e, int gp) {
       sigma_e[j] = sigma_e[j] + HnI[j];
     }
 
+    // Get location of array to store Cauchy values
+    double * sigma_nLocal = &(sigma_n[sigmaptr[e]+6*gp]);
 		// 6 values saved per gauss point for 3d
 		// in voigt notation, sigma11
-    sigma_n[0] = sigma_e[0];
+    sigma_nLocal[0] = sigma_e[0];
     // in voigt notation, sigma22
-    sigma_n[1] = sigma_e[4];
+    sigma_nLocal[1] = sigma_e[4];
     // in voigt notation, sigma33
-    sigma_n[2] = sigma_e[8];
+    sigma_nLocal[2] = sigma_e[8];
     // in voigt notation, sigma23
-    sigma_n[3] = sigma_e[7];
+    sigma_nLocal[3] = sigma_e[7];
     // in voigt notation, sigma13
-    sigma_n[4] = sigma_e[6];
+    sigma_nLocal[4] = sigma_e[6];
     // in voigt notation, sigma12
-    sigma_n[5] = sigma_e[3];
+    sigma_nLocal[5] = sigma_e[3];
 
     // Update deviatoric part of S_0 for next time step
     for (int i = 0; i < ndim2; ++i) {

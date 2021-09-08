@@ -1,6 +1,5 @@
 #include "FemTech.h"
 
-
 void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
    /* Purpose : Compute 3-d isoparametric 8 - node e shape
 	            functions and their derivatives with respect to
@@ -75,60 +74,65 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 	// on speed.
   // xs = dX_j/dXi_k = X_Ij*dN_I/dXi_k
 	double xs[ndim2];
-  int index = eptr[e];
-	for (int j = 0; j < ndim; j++) {
-		xs[0+j*ndim] = (coordinates[ndim*connectivity[index+1] + j] - coordinates[ndim*connectivity[index+0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 1 + 0]
-		       	 + (coordinates[ndim*connectivity[index+2] + j] - coordinates[ndim*connectivity[index+3] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 2 + 0]
-			       + (coordinates[ndim*connectivity[index+5] + j] - coordinates[ndim*connectivity[index+4] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 5 + 0]
-			       + (coordinates[ndim*connectivity[index+6] + j] - coordinates[ndim*connectivity[index+7] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 0];
-
-		xs[1+j*ndim] = (coordinates[ndim*connectivity[index+2] + j] - coordinates[ndim*connectivity[index+1] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 2 + 1]
-			       + (coordinates[ndim*connectivity[index+3] + j] - coordinates[ndim*connectivity[index+0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 3 + 1]
-			       + (coordinates[ndim*connectivity[index+6] + j] - coordinates[ndim*connectivity[index+5] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 1]
-			       + (coordinates[ndim*connectivity[index+7] + j] - coordinates[ndim*connectivity[index+4] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 7 + 1];
-
-		xs[2+j*ndim] = (coordinates[ndim*connectivity[index+4] + j] - coordinates[ndim*connectivity[index+0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 4 + 2]
-		         + (coordinates[ndim*connectivity[index+5] + j] - coordinates[ndim*connectivity[index+1] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 5 + 2]
-			       + (coordinates[ndim*connectivity[index+6] + j] - coordinates[ndim*connectivity[index+2] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 2]
-			       + (coordinates[ndim*connectivity[index+7] + j] - coordinates[ndim*connectivity[index+3] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 7 + 2];
-	}
+  // int index = eptr[e];
+	// for (int j = 0; j < ndim; j++) {
+	// 	xs[0+j*ndim] = (coordinates[ndim*connectivity[index+1] + j] - coordinates[ndim*connectivity[index+0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 1 + 0]
+	// 	       	 + (coordinates[ndim*connectivity[index+2] + j] - coordinates[ndim*connectivity[index+3] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 2 + 0]
+	// 		       + (coordinates[ndim*connectivity[index+5] + j] - coordinates[ndim*connectivity[index+4] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 5 + 0]
+	// 		       + (coordinates[ndim*connectivity[index+6] + j] - coordinates[ndim*connectivity[index+7] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 0];
+  //
+	// 	xs[1+j*ndim] = (coordinates[ndim*connectivity[index+2] + j] - coordinates[ndim*connectivity[index+1] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 2 + 1]
+	// 		       + (coordinates[ndim*connectivity[index+3] + j] - coordinates[ndim*connectivity[index+0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 3 + 1]
+	// 		       + (coordinates[ndim*connectivity[index+6] + j] - coordinates[ndim*connectivity[index+5] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 1]
+	// 		       + (coordinates[ndim*connectivity[index+7] + j] - coordinates[ndim*connectivity[index+4] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 7 + 1];
+  //
+	// 	xs[2+j*ndim] = (coordinates[ndim*connectivity[index+4] + j] - coordinates[ndim*connectivity[index+0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 4 + 2]
+	// 	         + (coordinates[ndim*connectivity[index+5] + j] - coordinates[ndim*connectivity[index+1] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 5 + 2]
+	// 		       + (coordinates[ndim*connectivity[index+6] + j] - coordinates[ndim*connectivity[index+2] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 6 + 2]
+	// 		       + (coordinates[ndim*connectivity[index+7] + j] - coordinates[ndim*connectivity[index+3] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 7 + 2];
+	// }
   // const int indexT = fptr[e] + ndim * ndim * gp;
   // double *F_Xi_0_egp = &(F_Xi_0[indexT]);
   // for (unsigned int i = 0; i < ndim2; ++i) {
   //   F_Xi_0_egp[i] = xs[i];
   // }
+  const unsigned int start = eptr[e];
+  const unsigned int nShapeFunc = eptr[e+1]-start;
+  for (unsigned int i = 0; i < ndim; i++) {
+    for (unsigned int j = 0; j < ndim; j++) {
+      double F_Xi_ij = 0.0;
+      for (unsigned int I = 0; I < nShapeFunc; ++I) {
+        const unsigned int dispIndex = ndim*connectivity[start + I] + i;
+        const unsigned int indexdShp = indexDshp + I * ndim + j;
+        F_Xi_ij = F_Xi_ij + coordinates[dispIndex]*dshp[indexdShp];
+      } // loop on I
+      // Store in column major format
+      xs[i+j*ndim] = F_Xi_ij;
+    }
+  }
 
-  double det, J_Inv[9];
+  double J_Inv[9];
 
-  inverse3x3Matrix(xs, J_Inv, &det);
-  detJ[gp] = det;
+  detJ[gp] = inverse3x3Matrix(xs, J_Inv);
 
   // Transform derivatives to global co-ordinates
   // And store in B0 for updated Lagrangian formulation
-  double c1, c2, c3;
-  int baseIndex;
-
+  // B0 Stores dN_I/dX (N_{,X})
 	FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Shape Function C3D8\nDeterminant of Jacobian : "
       "%12.6e\nDerivatives eid : %d, gpid : %d, chi : %12.6f, eta : %12.6f, "
-      "iota : %12.6f", det, e, gp, chi, eta, iota);
+      "iota : %12.6f", detJ[gp], e, gp, chi, eta, iota);
 
   for (int i = 0; i < nShapeFunctions[e]; ++i) {
-    baseIndex = dsptr[e] + gp * g*ndim + ndim * i;
-    c1 = dshp[baseIndex]*J_Inv[0]+dshp[baseIndex+1]*J_Inv[3]+dshp[baseIndex+2]*J_Inv[6];
-    c2 = dshp[baseIndex]*J_Inv[1]+dshp[baseIndex+1]*J_Inv[4]+dshp[baseIndex+2]*J_Inv[7];
-    c3 = dshp[baseIndex]*J_Inv[2]+dshp[baseIndex+1]*J_Inv[5]+dshp[baseIndex+2]*J_Inv[8];
+    const unsigned int baseIndex = indexDshp + ndim * i;
+    B0[baseIndex] = dshp[baseIndex]*J_Inv[0]+dshp[baseIndex+1]*J_Inv[1]+dshp[baseIndex+2]*J_Inv[2];
+    B0[baseIndex+1] = dshp[baseIndex]*J_Inv[3]+dshp[baseIndex+1]*J_Inv[4]+dshp[baseIndex+2]*J_Inv[5];
+    B0[baseIndex+2] = dshp[baseIndex]*J_Inv[6]+dshp[baseIndex+1]*J_Inv[7]+dshp[baseIndex+2]*J_Inv[8];
 
 	  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Shape fn        : %d, %12.6f, %12.6f, %12.6f", i, \
         dshp[baseIndex], dshp[baseIndex+1], dshp[baseIndex+2]);
-
-    B0[baseIndex] = c1;
-    B0[baseIndex+1] = c2;
-    B0[baseIndex+2] = c3;
-
     FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Shape fn Global : %d, %12.6f, %12.6f, %12.6f", \
         i, B0[baseIndex], B0[baseIndex+1], B0[baseIndex+2]);
   }
-
   FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, xs, ndim, ndim, "---- XS Matrix ----")
   FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, J_Inv, ndim, ndim, "---- JInv Matrix ----")
   return;

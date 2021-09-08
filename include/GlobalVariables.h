@@ -16,6 +16,8 @@ static const int elemWeight[] = {2, 1, 1};
 
 const double huge = 1e20;
 
+extern double dynamicDamping;
+
 extern std::string uid; /* Simulation unique id */
 extern int nparts;
 extern int nelements;
@@ -31,6 +33,7 @@ extern int ndim2; // To store ndim*ndim, a widely used constant
 
 extern double ExplicitTimeStepReduction;
 extern double FailureTimeStep;
+extern double MaxTimeStep;
 
 extern double *coordinates;
 extern int *connectivity;
@@ -40,7 +43,7 @@ extern int *gptr;			/*gauss point pointer - helps step through shp array*/
 extern int *dsptr;			/*deriviative of shp functions pointer array - helps step through dshp array*/
 extern int *gpPtr;			/*gauss point pointer - helps step through detJ and gaussWeights*/
 extern int *fptr; /*deformation gradient pointer - helps step through F array */
-extern int *pk2ptr; /*counter array for iterating through PK2 stress */
+// extern int *pk2ptr; #<{(|counter array for iterating through PK2 stress |)}>#
 extern int *nShapeFunctions;/*number of shp functions per element */
 extern double *shp;			/*shape functions*/
 extern double *dshp;		/*derivatives of shape functions*/
@@ -85,11 +88,13 @@ extern double *accelerations_prev; /*displacements for previous step - used in e
 extern double *F; /* deformation graident tensor array */
 extern double *detF; /*determinate of F for all gauss points */
 extern double *invF; /*Inverse of F for all gauss points */
-extern double *pk2; /*PK2 Stress */
+// extern double *pk2; #<{(|PK2 Stress |)}>#
 extern double *Eavg; /*Green Lagrange Strain Tensor Averaged */
 
 extern int *materialID; /* material id for each element */
 extern double *properties; /* holds material parameters for each element */
+extern double *waveSpeed; /* holds material wave speed for each part */
+extern bool *viscoElasticPart;
 
 extern double *internals; /* internal variables, typically used for damage or plasticity varialbes*/
 extern int *InternalsPtr; /* pointer for iterating through internals array */
@@ -133,6 +138,7 @@ extern int *nProny;
 // Variables required for updated Lagrangian formulation
 extern double *F_Xi, *F_XiInverse, J_Xi;
 extern double *sigma_n; // To store stress in Voigot notation for updated Lagrangian
+extern int *sigmaptr; /*counter array for iterating through stress */
 extern double *B0; // Store dN_I/dX_j. Used for H computation
 // Temperory variables to test updated lagrangian
 // extern double *F_Xi_0;

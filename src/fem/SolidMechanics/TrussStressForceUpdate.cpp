@@ -82,17 +82,17 @@ void TrussStressForceUpdate(int e, int gp, double *force){
 
 	// 6 values saved per gauss point for 3d
 	// in voigt notation, sigma11
-	pk2[pk2ptr[e] + 6 * gp + 0] = cauchystress;
+	sigma_n[sigmaptr[e] + 6 * gp + 0] = cauchystress;
 	// in voigt notation, sigma22
-	pk2[pk2ptr[e] + 6 * gp + 1] = 0;
+	sigma_n[sigmaptr[e] + 6 * gp + 1] = 0;
 	// in voigt notation, sigma33
-	pk2[pk2ptr[e] + 6 * gp + 2] = 0;
+	sigma_n[sigmaptr[e] + 6 * gp + 2] = 0;
 	// in voigt notation, sigma23
-	pk2[pk2ptr[e] + 6 * gp + 3] = 0;
+	sigma_n[sigmaptr[e] + 6 * gp + 3] = 0;
 	// in voigt notation, sigma13
-	pk2[pk2ptr[e] + 6 * gp + 4] = 0;
+	sigma_n[sigmaptr[e] + 6 * gp + 4] = 0;
 	// in voigt notation, sigma12
-	pk2[pk2ptr[e] + 6 * gp + 5] = 0;
+	sigma_n[sigmaptr[e] + 6 * gp + 5] = 0;
 
 	force[0] = truss_axial_force;
 	force[1] = 0.0;

@@ -28,7 +28,6 @@ FILE *energyFile;
 
 int ndim2;
 double *F_Xi, *F_XiInverse, J_Xi;
-double *sigma_n;
 
 void AllocateArrays() {
   // Allocate and initialize global displacements
@@ -125,7 +124,7 @@ void AllocateArrays() {
       FILE_LOG_SINGLE(ERROR, "Error in allocating f_damp_prev array");
       TerminateFemTech(12);
     }
-    std::string energyFileName = "energy_"+uid+".dat"; 
+    std::string energyFileName = "energy.dat"; 
     energyFile = fopen(energyFileName.c_str(), "w");
     fprintf(energyFile, "# Energy for FEM\n");
     fprintf(energyFile, "# Time  Winternal   Wexternal   WKE   total\n");
@@ -156,6 +155,5 @@ void AllocateArrays() {
   /* Store variables required for updated lagrangian computation */
   F_Xi = (double*)malloc(ndim2*sizeof(double));
   F_XiInverse = (double*)malloc(ndim2*sizeof(double));
-  sigma_n = (double*)malloc((ndim*(ndim+1)/2)*sizeof(double));
 	return;
 }

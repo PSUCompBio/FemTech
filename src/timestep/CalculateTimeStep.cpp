@@ -10,12 +10,7 @@ double CalculateTimeStep(int e) {
   double le = CalculateCharacteristicLength(e);
 	//wave speed of material
   int pide = pid[e];
-  double mu = properties[MAXMATPARAMS * pide + 1];
-  double lambda = properties[MAXMATPARAMS * pide + 2];
-  double rho = properties[MAXMATPARAMS * pide + 0];
-  double nu = 0.5*lambda/(lambda+mu);
-  // ce calculated using dilatatoin wave speed
-	double ce = sqrt(lambda*(1.0/nu-1.0)/rho);
+	double ce = waveSpeed[pide];
 	dtElem = le/ce;
 	return dtElem;
 }

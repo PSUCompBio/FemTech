@@ -31,19 +31,23 @@ void TransformMesh(const Json::Value &jsonInput);
 void WriteMPS(void);
 
 /* Global Variables/Parameters */
-double Time, dt;
+double Time = 0.0, dt;
 int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
+
+double dynamicDamping = 0.000;
 double ExplicitTimeStepReduction = 0.8;
-double FailureTimeStep = 5e-8; // Set for max runtime of around 5 hrs on aws
+double FailureTimeStep = 1e-8; // Set for max runtime of around 5 hrs on aws
+double MaxTimeStep = 1e-5;
 int nPlotSteps = 50;
-int nWriteSteps = 2000;
+int nWriteSteps = 100;
 
 /* Global variables used only in this file */
 int nodeIDtoPlot;
 bool rankForCustomPlot;
+bool outputRelativeDisplacement = true;
 /* Global variables for bc */
 int *boundaryID = NULL;
 int boundarySize;
@@ -58,7 +62,6 @@ int outputElemCount = 0;
 MPI_Comm output_comm;
 MPI_File outputFilePtr;
 int output_size, output_rank;
-double *outputNodeRigidDisp;
 double *outputElemStress;
 
 /* Variables for injury metrics */
@@ -87,23 +90,25 @@ double percentileTime[percentileQuantities];
 double percentileValue[percentileQuantities];
 const std::string percentileTag[percentileQuantities] = {"MPS-95", "MPSxSR-95"};
 /* Threshold variables */
-/* 0. MPS > 5
- * 1. MPS > 10
- * 2. MPS > 15
- * 3. MPS > 30
- * 4. MPSR > 120 1/s
- * 5. MPSxSR > 28 1/s
+/* 0. MPS > 3
+ * 1. MPS > 5
+ * 2. MPS > 10
+ * 3. MPS > 15
+ * 4. MPS > 30
+ * 5. MPSR > 120 1/s
+ * 6. MPSxSR > 28 1/s
  */
-const int threshQuantities = 6;
+const int threshQuantities = 7;
 int *thresholdElements[threshQuantities];
 const std::string thresholdTag[threshQuantities] = {
-    "CSDM-5", "CSDM-10", "CSDM-15", "CSDM-30", "MPSR-120", "MPSxSR-28"};
+    "CSDM-3", "CSDM-5", "CSDM-10", "CSDM-15", "CSDM-30", "MPSR-120", "MPSxSR-28"};
 
 /* Variables for maximum Principal Strain times Strain Rate */
 double *PS_Old = NULL;
 double *PSxSRArray = NULL;
-/* Store MPS of each element */
+/* Store MPS, volume of each element */
 double *elementMPS = NULL;
+double *initialVolume = NULL;
 
 int nElementsInjury = 0, *elementIDInjury = NULL;
 // part ID to exclude from injury computation
@@ -112,25 +117,33 @@ const int injuryExcludePIDCount = 2;
 const int injuryExcludePID[injuryExcludePIDCount] = {0, 1};
 
 // Variables to write injury criterion to Paraview output
-const int outputCount = 7;
+const int outputCount = 8;
 int *outputDataArray[outputCount];
-const char *outputNames[outputCount] = {"CSDM-5",  "CSDM-10",  "CSDM-15",
+const char *outputNames[outputCount] = {"CSDM-3", "CSDM-5",  "CSDM-10",  "CSDM-15",
                                         "CSDM-30", "MPSR-120", "MPSxSR-28",
                                         "MPS-95"};
 const int outputDoubleCount = 1;
 double *outputDoubleArray[outputDoubleCount];
 const char *outputDoubleNames[outputDoubleCount] = {"MPS-95-Value"};
 
-const int csdmCount = 4;
-const double csdmLimits[csdmCount] = {0.05, 0.1, 0.15, 0.3};
+const int csdmCount = 5;
+const double csdmLimits[csdmCount] = {0.03, 0.05, 0.1, 0.15, 0.3};
 
 /* Variables used to store acceleration values */
 int linAccXSize, linAccYSize, linAccZSize;
 int angAccXSize, angAccYSize, angAccZSize;
+int angVelXSize, angVelYSize, angVelZSize;
 double *linAccXt, *linAccYt, *linAccZt;
 double *linAccXv, *linAccYv, *linAccZv;
 double *angAccXt, *angAccYt, *angAccZt;
 double *angAccXv, *angAccYv, *angAccZv;
+double *angVelXt, *angVelYt, *angVelZt;
+double *angVelXv, *angVelYv, *angVelZv;
+bool angularVelPrescribed = false;
+
+/* Local co-ordinate system rotating with the skull for comparison with Hardy's
+ * data. Use first 3 index to store x unit vector, next 3 for y unit vector  */
+double unitVec[9];
 
 /* Varibles for Local integrator */
 const int nIntVar = 12;
@@ -182,7 +195,7 @@ int main(int argc, char **argv) {
   if (writeField) {
     if (computeInjuryFlag) {
       WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, outputCount,
-              outputNames, elementIDInjury, nElementsInjury, outputDoubleArray, 
+              outputNames, elementIDInjury, nElementsInjury, outputDoubleArray,
               outputDoubleCount, outputDoubleNames);
     } else {
       WriteVTU(outputFileName.c_str(), plot_counter);
@@ -207,10 +220,13 @@ int main(int argc, char **argv) {
   /* Step-2: getforce step from Belytschko */
   // In GetForce for viscoelastic material dt is required, hence we compute dt
   // prior to getforce to avoid special treatment of getforce at Time = 0
-  GetForce(); // Calculating the force term.
+  // GetForce(); // Calculating the force term.
 
   /* Step-3: Calculate accelerations */
-  CalculateAccelerations();
+  // CalculateAccelerations();
+  for (int i = 0; i < nDOF; i++) {
+    accelerations[i] = 0.0;
+  }
 
   nSteps = (int)((tMax - Time) / dt);
   int nsteps_plot = (int)(nSteps / nPlotSteps);
@@ -222,31 +238,30 @@ int main(int argc, char **argv) {
     nsteps_write = nSteps;
   }
 
-  FILE_LOG_MASTER(INFO, "initial dt = %3.3e, nSteps = %d, nsteps_plot = %d", dt,
-                  nSteps, nsteps_plot);
-
-  time_step_counter = time_step_counter + 1;
   double t_n = 0.0;
 
-  FILE_LOG_MASTER(INFO,
-      "------------------------------- Loop ----------------------------");
-  FILE_LOG_MASTER(INFO, "Time : %15.6e, tmax : %15.6e", Time, tMax);
+  FILE_LOG_MASTER(INFO, "---------------------------------");
+  FILE_LOG_MASTER(INFO, "Tmax : %15.6e, Initial dt : %15.6e", tMax, dt);
+  FILE_LOG_MASTER(INFO, "nSteps = %d, nsteps_plot = %d", nSteps, nsteps_plot);
+  FILE_LOG_MASTER(INFO, "-------------- Loop -------------");
+
+  time_step_counter = time_step_counter + 1;
+
 
   /* Step-4: Time loop starts....*/
   while (Time < tMax) {
     t_n = Time;
     double t_np1 = Time + dt;
-    Time = t_np1;          /*Update the time by adding full time step */
-    double dt_nphalf = dt; // equ 6.2.1
-    double t_nphalf = 0.5 * (t_np1 + t_n); // equ 6.2.1
+    double dtby2 = 0.5*dt;
+    double t_nphalf = t_n + dtby2; // equ 6.2.1
 
+    /* Step 6 Enforce boundary Conditions */
+    ApplyAccBoundaryConditions();
+    Time = t_np1; /*Update the time by adding full time step */
     /* Step 5 from Belytschko Box 6.1 - Update velocity */
     for (int i = 0; i < nDOF; i++) {
-      if (boundary[i]) {
-        velocities_half[i] = velocities[i];
-      } else {
-        velocities_half[i] =
-            velocities[i] + (t_nphalf - t_n) * accelerations[i];
+      if (!boundary[i]) {
+        velocities_half[i] = velocities[i] + dtby2 * accelerations[i];
       }
     }
 
@@ -257,13 +272,10 @@ int main(int argc, char **argv) {
     memcpy(fi_prev, fi, nDOF * sizeof(double));
     memcpy(fe_prev, fe, nDOF * sizeof(double));
 
+    // update displacements for all nodes, including where velocity bc is set
     for (int i = 0; i < nDOF; i++) {
-      if (!boundary[i]) {
-        displacements[i] = displacements[i] + dt_nphalf * velocities_half[i];
-      }
+      displacements[i] = displacements[i] + dt * velocities_half[i];
     }
-    /* Step 6 Enforce boundary Conditions */
-    ApplyAccBoundaryConditions();
 
     /* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
     GetForce(); // Calculating the force term.
@@ -273,10 +285,7 @@ int main(int argc, char **argv) {
 
     /** Step- 10 - Second Partial Update of Nodal Velocities */
     for (int i = 0; i < nDOF; i++) {
-      if (!boundary[i]) {
-        velocities[i] =
-            velocities_half[i] + (t_np1 - t_nphalf) * accelerations[i];
-      }
+      velocities[i] = velocities_half[i] + dtby2 * accelerations[i];
     }
 
     /** Step - 11 Checking* Energy Balance */
@@ -301,7 +310,7 @@ int main(int argc, char **argv) {
           FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
           if (computeInjuryFlag) {
             WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, outputCount,
-                    outputNames, elementIDInjury, nElementsInjury, outputDoubleArray, 
+                    outputNames, elementIDInjury, nElementsInjury, outputDoubleArray,
                     outputDoubleCount, outputDoubleNames);
           } else {
             WriteVTU(outputFileName.c_str(), plot_counter);
@@ -309,8 +318,6 @@ int main(int argc, char **argv) {
           WritePVD(outputFileName.c_str(), plot_counter);
         }
       }
-      FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim,
-                       "Displacement Solution");
     }
     time_step_counter = time_step_counter + 1;
     dt = ExplicitTimeStepReduction * StableTimeStep();
@@ -324,8 +331,6 @@ int main(int argc, char **argv) {
     CustomPlot();
   }
   FILE_LOG_MASTER(INFO, "End of Iterative Loop");
-  FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim,
-                   "Final Displacement Solution");
 
   WriteOutputFile();
   if (computeInjuryFlag) {
@@ -346,9 +351,14 @@ int main(int argc, char **argv) {
   free1DArray(angAccXv);
   free1DArray(angAccYv);
   free1DArray(angAccZv);
+  free1DArray(angVelXt);
+  free1DArray(angVelYt);
+  free1DArray(angVelZt);
+  free1DArray(angVelXv);
+  free1DArray(angVelYv);
+  free1DArray(angVelZv);
   free1DArray(outputNodeList);
   free1DArray(outputElemList);
-  free1DArray(outputNodeRigidDisp);
   // Free variables used for injury criteria
   free1DArray(PS_Old);
   free1DArray(elementIDInjury);
@@ -360,6 +370,7 @@ int main(int argc, char **argv) {
     free1DArray(percentileElements[i]);
   }
   free1DArray(elementMPS);
+  free1DArray(initialVolume);
 
   if (rankForCustomPlot) {
     MPI_File_close(&outputFilePtr);
@@ -370,25 +381,27 @@ int main(int argc, char **argv) {
 
 void ApplyAccBoundaryConditions() {
   double r[4], R[4], Rinv[4], V[4], Vp[4]; // quaternions
-  double omegaR[3], omega[3], omegaOmegaR[3], omegaVel[3], vel[3]; // vectors
-  double alpha[3], alphaR[3], locV[3];
+  double omegaR[3], omega[3]; // vectors
+  double locV[3];
 
-  rk.do_step(computeDerivatives, yInt, ydotInt, Time - dt, dt);
+  // Update to half time step to compute velocity
+  rk.do_step(computeDerivatives, yInt, Time, 0.5*dt);
   r[0] = 0.0;
   r[1] = yInt[3];
   r[2] = yInt[4];
   r[3] = yInt[5];
   quaternionExp(r, R); // R = exp(r)
   quaternionInverse(R, Rinv);
-  omega[0] = yInt[0];
-  omega[1] = yInt[1];
-  omega[2] = yInt[2];
-  alpha[0] = ydotInt[0];
-  alpha[1] = ydotInt[1];
-  alpha[2] = ydotInt[2];
-  vel[0] = yInt[6];
-  vel[1] = yInt[7];
-  vel[2] = yInt[8];
+  if (angularVelPrescribed) {
+    double tLocal = Time + 0.5*dt;
+    omega[0] = interpolateLinear(angVelXSize, angVelXt, angVelXv, tLocal);
+    omega[1] = interpolateLinear(angVelYSize, angVelYt, angVelYv, tLocal);
+    omega[2] = interpolateLinear(angVelZSize, angVelZt, angVelZv, tLocal);
+  } else {
+    omega[0] = yInt[0];
+    omega[1] = yInt[1];
+    omega[2] = yInt[2];
+  }
 
   for (int i = 0; i < boundarySize; i++) {
     int index = boundaryID[i] * ndim;
@@ -401,35 +414,31 @@ void ApplyAccBoundaryConditions() {
     V[3] = locV[2];
     quaternionRotate(V, R, Rinv, Vp); // Vp = RVR^{-1}
     crossProduct(omega, &(Vp[1]), omegaR);
-    crossProduct(omega, omegaR, omegaOmegaR);
-    crossProduct(omega, vel, omegaVel);
-    crossProduct(alpha, &(Vp[1]), alphaR);
     for (int j = 0; j < ndim; ++j) {
-      // Displacement
-      displacements[index + j] = Vp[j + 1] - locV[j] + yInt[9 + j];
-      // Velocity
-      velocities[index + j] = omegaR[j] + yInt[6 + j];
-      // Acceleration
-      accelerations[index + j] =
-          2.0 * omegaVel[j] + omegaOmegaR[j] + ydotInt[6 + j] + alphaR[j];
+      velocities_half[index + j] = omegaR[j] + yInt[6 + j];
     }
   }
-  // Rotate points to plot to obtain their rigid displacements
+  // Move to full time step
+  rk.do_step(computeDerivatives, yInt, Time+0.5*dt, 0.5*dt);
+  // Rotate unit vectors to keep track of local co-ordinate system
   if (rankForCustomPlot) {
-    for (int i = 0; i < outputNodeCount; i++) {
-      int index = outputNodeList[i] * ndim;
-      int index1 = i * ndim;
-      for (int j = 0; j < ndim; ++j) {
-        locV[j] = coordinates[index + j];
-      }
+    r[0] = 0.0;
+    r[1] = yInt[3];
+    r[2] = yInt[4];
+    r[3] = yInt[5];
+    quaternionExp(r, R); // R = exp(r)
+    quaternionInverse(R, Rinv);
+    // Update unit vector
+    for (int i = 0; i < 3; i++) {
+      int index = i * ndim;
       V[0] = 0.0;
-      V[1] = locV[0];
-      V[2] = locV[1];
-      V[3] = locV[2];
+      V[1] = double(i==0);
+      V[2] = double(i==1);
+      V[3] = double(i==2);
       quaternionRotate(V, R, Rinv, Vp); // Vp = RVR^{-1}
       for (int j = 0; j < ndim; ++j) {
-        // Displacement
-        outputNodeRigidDisp[index1 + j] = Vp[j + 1] - locV[j] + yInt[9 + j];
+        // update unit vectors by rotating
+        unitVec[index + j] = Vp[j + 1];
       }
     }
   }
@@ -587,8 +596,17 @@ void InitCustomPlot(const Json::Value &jsonInput) {
     MPI_File_write_ordered(outputFilePtr, outputHeader, strlen(outputHeader),
                            MPI_CHAR, MPI_STATUS_IGNORE);
     free(outputHeader);
-    outputNodeRigidDisp =
-        (double *)calloc(outputNodeCount * ndim, sizeof(double));
+    // Set the unit vector for local co-ordinates
+    for (int i = 0; i < ndim2; ++i) {
+      unitVec[i] = 0.0;
+    }
+    unitVec[0] = 1.0;
+    unitVec[4] = 1.0;
+    unitVec[8] = 1.0;
+  }
+  // Check if we should disable relative displacement
+  if (!jsonInput["relative-displacement"].empty()) {
+    outputRelativeDisplacement = jsonInput["relative-displacement"].asBool();
   }
   return;
 }
@@ -605,12 +623,20 @@ void CustomPlot() {
     for (int i = 0; i < outputNodeCount; ++i) {
       unsigned int plotNode = outputNodeList[i] * ndim;
       unsigned int plotIndex = i * ndim;
-      double xCord = displacements[plotNode] - outputNodeRigidDisp[plotIndex];
-      double yCord =
-          displacements[plotNode + 1] - outputNodeRigidDisp[plotIndex + 1];
-      double zCord =
-          displacements[plotNode + 2] - outputNodeRigidDisp[plotIndex + 2];
-      sprintf(output, "%s %15.9e %15.9e %15.9e", output, xCord, yCord, zCord);
+      double xCordLocal, yCordLocal, zCordLocal;
+      if (outputRelativeDisplacement) {
+        double xCord = displacements[plotNode] - yInt[9];
+        double yCord = displacements[plotNode + 1] - yInt[10];
+        double zCord = displacements[plotNode + 2] - yInt[11];
+        xCordLocal = xCord*unitVec[0] + yCord*unitVec[1] + zCord*unitVec[2];
+        yCordLocal = xCord*unitVec[3] + yCord*unitVec[4] + zCord*unitVec[5];
+        zCordLocal = xCord*unitVec[6] + yCord*unitVec[7] + zCord*unitVec[8];
+      } else {
+        xCordLocal = displacements[plotNode];
+        yCordLocal = displacements[plotNode + 1];
+        zCordLocal = displacements[plotNode + 2];
+      }
+      sprintf(output, "%s %15.9e %15.9e %15.9e", output, xCordLocal, yCordLocal, zCordLocal);
     }
     double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
     for (int i = 0; i < outputElemCount; ++i) {
@@ -668,26 +694,56 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
       memcpy(linAccYt, linAccXt, timeSize*sizeof(double));
       memcpy(linAccZt, linAccXt, timeSize*sizeof(double));
 
-      angAccXSize = jsonInput["angular-acceleration"]["xv"].size();
-      assert(timeSize == angAccXSize);
-      angAccYSize = jsonInput["angular-acceleration"]["yv"].size();
-      assert(timeSize == angAccYSize);
-      angAccZSize = jsonInput["angular-acceleration"]["zv"].size();
-      assert(timeSize == angAccZSize);
+      if (!jsonInput["angular-velocity"].empty()) {
+        angVelXSize = jsonInput["angular-velocity"]["xv"].size();
+        assert(timeSize == angVelXSize);
+        angVelYSize = jsonInput["angular-velocity"]["yv"].size();
+        assert(timeSize == angVelYSize);
+        angVelZSize = jsonInput["angular-velocity"]["zv"].size();
+        assert(timeSize == angVelZSize);
 
-      angAccXt = (double *)malloc(sizeof(double) * angAccXSize);
-      angAccXv = (double *)malloc(sizeof(double) * angAccXSize);
-      angAccYt = (double *)malloc(sizeof(double) * angAccYSize);
-      angAccYv = (double *)malloc(sizeof(double) * angAccYSize);
-      angAccZt = (double *)malloc(sizeof(double) * angAccZSize);
-      angAccZv = (double *)malloc(sizeof(double) * angAccZSize);
+        angVelXt = (double *)malloc(sizeof(double) * angVelXSize);
+        angVelXv = (double *)malloc(sizeof(double) * angVelXSize);
+        angVelYt = (double *)malloc(sizeof(double) * angVelYSize);
+        angVelYv = (double *)malloc(sizeof(double) * angVelYSize);
+        angVelZt = (double *)malloc(sizeof(double) * angVelZSize);
+        angVelZv = (double *)malloc(sizeof(double) * angVelZSize);
 
-      jsonToArray(angAccXv, jsonInput["angular-acceleration"]["xv"]);
-      jsonToArray(angAccYv, jsonInput["angular-acceleration"]["yv"]);
-      jsonToArray(angAccZv, jsonInput["angular-acceleration"]["zv"]);
-      memcpy(angAccXt, linAccXt, timeSize*sizeof(double));
-      memcpy(angAccYt, linAccXt, timeSize*sizeof(double));
-      memcpy(angAccZt, linAccXt, timeSize*sizeof(double));
+        jsonToArray(angVelXv, jsonInput["angular-velocity"]["xv"]);
+        jsonToArray(angVelYv, jsonInput["angular-velocity"]["yv"]);
+        jsonToArray(angVelZv, jsonInput["angular-velocity"]["zv"]);
+        memcpy(angVelXt, linAccXt, timeSize*sizeof(double));
+        memcpy(angVelYt, linAccXt, timeSize*sizeof(double));
+        memcpy(angVelZt, linAccXt, timeSize*sizeof(double));
+        angularVelPrescribed = true;
+      } else {
+        if (jsonInput["angular-acceleration"].empty()) {
+          // If both angular acceleration or angular velocity is not prescribed 
+          // terminate the application
+          FILE_LOG_SINGLE(ERROR, "Either angular acceleration or angular velocity has to be prescribed");
+          TerminateFemTech(12);
+        }
+        angAccXSize = jsonInput["angular-acceleration"]["xv"].size();
+        assert(timeSize == angAccXSize);
+        angAccYSize = jsonInput["angular-acceleration"]["yv"].size();
+        assert(timeSize == angAccYSize);
+        angAccZSize = jsonInput["angular-acceleration"]["zv"].size();
+        assert(timeSize == angAccZSize);
+
+        angAccXt = (double *)malloc(sizeof(double) * angAccXSize);
+        angAccXv = (double *)malloc(sizeof(double) * angAccXSize);
+        angAccYt = (double *)malloc(sizeof(double) * angAccYSize);
+        angAccYv = (double *)malloc(sizeof(double) * angAccYSize);
+        angAccZt = (double *)malloc(sizeof(double) * angAccZSize);
+        angAccZv = (double *)malloc(sizeof(double) * angAccZSize);
+
+        jsonToArray(angAccXv, jsonInput["angular-acceleration"]["xv"]);
+        jsonToArray(angAccYv, jsonInput["angular-acceleration"]["yv"]);
+        jsonToArray(angAccZv, jsonInput["angular-acceleration"]["zv"]);
+        memcpy(angAccXt, linAccXt, timeSize*sizeof(double));
+        memcpy(angAccYt, linAccXt, timeSize*sizeof(double));
+        memcpy(angAccZt, linAccXt, timeSize*sizeof(double));
+      }
     } else {
       // Read linear acceleration and angular acceleration time traces
       linAccXSize = jsonInput["linear-acceleration"]["xt"].size();
@@ -712,27 +768,58 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
       jsonToArray(linAccZt, jsonInput["linear-acceleration"]["zt"]);
       jsonToArray(linAccZv, jsonInput["linear-acceleration"]["zv"]);
 
-      angAccXSize = jsonInput["angular-acceleration"]["xt"].size();
-      tempSize = jsonInput["angular-acceleration"]["xv"].size();
-      assert(tempSize == angAccXSize);
-      angAccXt = (double *)malloc(sizeof(double) * angAccXSize);
-      angAccXv = (double *)malloc(sizeof(double) * angAccXSize);
-      angAccYSize = jsonInput["angular-acceleration"]["yt"].size();
-      tempSize = jsonInput["angular-acceleration"]["yv"].size();
-      assert(tempSize == angAccYSize);
-      angAccYt = (double *)malloc(sizeof(double) * angAccYSize);
-      angAccYv = (double *)malloc(sizeof(double) * angAccYSize);
-      angAccZSize = jsonInput["angular-acceleration"]["zt"].size();
-      tempSize = jsonInput["angular-acceleration"]["zv"].size();
-      assert(tempSize == angAccZSize);
-      angAccZt = (double *)malloc(sizeof(double) * angAccZSize);
-      angAccZv = (double *)malloc(sizeof(double) * angAccZSize);
-      jsonToArray(angAccXt, jsonInput["angular-acceleration"]["xt"]);
-      jsonToArray(angAccXv, jsonInput["angular-acceleration"]["xv"]);
-      jsonToArray(angAccYt, jsonInput["angular-acceleration"]["yt"]);
-      jsonToArray(angAccYv, jsonInput["angular-acceleration"]["yv"]);
-      jsonToArray(angAccZt, jsonInput["angular-acceleration"]["zt"]);
-      jsonToArray(angAccZv, jsonInput["angular-acceleration"]["zv"]);
+      if (!jsonInput["angular-velocity"].empty()) {
+        angVelXSize = jsonInput["angular-velocity"]["xt"].size();
+        tempSize = jsonInput["angular-velocity"]["xv"].size();
+        assert(tempSize == angVelXSize);
+        angVelXt = (double *)malloc(sizeof(double) * angVelXSize);
+        angVelXv = (double *)malloc(sizeof(double) * angVelXSize);
+        angVelYSize = jsonInput["angular-velocity"]["yt"].size();
+        tempSize = jsonInput["angular-velocity"]["yv"].size();
+        assert(tempSize == angVelYSize);
+        angVelYt = (double *)malloc(sizeof(double) * angVelYSize);
+        angVelYv = (double *)malloc(sizeof(double) * angVelYSize);
+        angVelZSize = jsonInput["angular-velocity"]["zt"].size();
+        tempSize = jsonInput["angular-velocity"]["zv"].size();
+        assert(tempSize == angVelZSize);
+        angVelZt = (double *)malloc(sizeof(double) * angVelZSize);
+        angVelZv = (double *)malloc(sizeof(double) * angVelZSize);
+        jsonToArray(angVelXt, jsonInput["angular-velocity"]["xt"]);
+        jsonToArray(angVelXv, jsonInput["angular-velocity"]["xv"]);
+        jsonToArray(angVelYt, jsonInput["angular-velocity"]["yt"]);
+        jsonToArray(angVelYv, jsonInput["angular-velocity"]["yv"]);
+        jsonToArray(angVelZt, jsonInput["angular-velocity"]["zt"]);
+        jsonToArray(angVelZv, jsonInput["angular-velocity"]["zv"]);
+        angularVelPrescribed = true;
+      } else {
+        if (jsonInput["angular-acceleration"].empty()) {
+          // If both angular acceleration or angular velocity is not prescribed 
+          // terminate the application
+          FILE_LOG_SINGLE(ERROR, "Either angular acceleration or angular velocity has to be prescribed");
+          TerminateFemTech(12);
+        }
+        angAccXSize = jsonInput["angular-acceleration"]["xt"].size();
+        tempSize = jsonInput["angular-acceleration"]["xv"].size();
+        assert(tempSize == angAccXSize);
+        angAccXt = (double *)malloc(sizeof(double) * angAccXSize);
+        angAccXv = (double *)malloc(sizeof(double) * angAccXSize);
+        angAccYSize = jsonInput["angular-acceleration"]["yt"].size();
+        tempSize = jsonInput["angular-acceleration"]["yv"].size();
+        assert(tempSize == angAccYSize);
+        angAccYt = (double *)malloc(sizeof(double) * angAccYSize);
+        angAccYv = (double *)malloc(sizeof(double) * angAccYSize);
+        angAccZSize = jsonInput["angular-acceleration"]["zt"].size();
+        tempSize = jsonInput["angular-acceleration"]["zv"].size();
+        assert(tempSize == angAccZSize);
+        angAccZt = (double *)malloc(sizeof(double) * angAccZSize);
+        angAccZv = (double *)malloc(sizeof(double) * angAccZSize);
+        jsonToArray(angAccXt, jsonInput["angular-acceleration"]["xt"]);
+        jsonToArray(angAccXv, jsonInput["angular-acceleration"]["xv"]);
+        jsonToArray(angAccYt, jsonInput["angular-acceleration"]["yt"]);
+        jsonToArray(angAccYv, jsonInput["angular-acceleration"]["yv"]);
+        jsonToArray(angAccZt, jsonInput["angular-acceleration"]["zt"]);
+        jsonToArray(angAccZv, jsonInput["angular-acceleration"]["zv"]);
+      }
     }
 
     // Convert linear accelerations from g force to m/s^2
@@ -749,14 +836,26 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
       // linAccZv[i] = gC*linAccZv[i];
       linAccZt[i] = 0.001 * linAccZt[i];
     }
-    for (int i = 0; i < angAccXSize; ++i) {
-      angAccXt[i] = 0.001 * angAccXt[i];
-    }
-    for (int i = 0; i < angAccYSize; ++i) {
-      angAccYt[i] = 0.001 * angAccYt[i];
-    }
-    for (int i = 0; i < angAccZSize; ++i) {
-      angAccZt[i] = 0.001 * angAccZt[i];
+    if (angularVelPrescribed) {
+      for (int i = 0; i < angVelXSize; ++i) {
+        angVelXt[i] = 0.001 * angVelXt[i];
+      }
+      for (int i = 0; i < angVelYSize; ++i) {
+        angVelYt[i] = 0.001 * angVelYt[i];
+      }
+      for (int i = 0; i < angVelZSize; ++i) {
+        angVelZt[i] = 0.001 * angVelZt[i];
+      }
+    } else {
+      for (int i = 0; i < angAccXSize; ++i) {
+        angAccXt[i] = 0.001 * angAccXt[i];
+      }
+      for (int i = 0; i < angAccYSize; ++i) {
+        angAccYt[i] = 0.001 * angAccYt[i];
+      }
+      for (int i = 0; i < angAccZSize; ++i) {
+        angAccZt[i] = 0.001 * angAccZt[i];
+      }
     }
     startTime = linAccXt[0];
   } else { // Read maximum values from input file
@@ -915,53 +1014,102 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
           "Error in angular to linear frame transformation. x not present");
       TerminateFemTech(12);
     }
-    // Transform all angular acceleration values
-    // Transforming individual values rather than pointer rotation for
-    // readability
-    double accSize[ndim];
-    accSize[index[0]] = angAccXSize;
-    accSize[index[1]] = angAccYSize;
-    accSize[index[2]] = angAccZSize;
-    double *angAccTNew[ndim], *angAccVNew[ndim];
-    angAccTNew[0] = (double *)malloc(accSize[0] * sizeof(double));
-    angAccVNew[0] = (double *)malloc(accSize[0] * sizeof(double));
-    angAccTNew[1] = (double *)malloc(accSize[1] * sizeof(double));
-    angAccVNew[1] = (double *)malloc(accSize[1] * sizeof(double));
-    angAccTNew[2] = (double *)malloc(accSize[2] * sizeof(double));
-    angAccVNew[2] = (double *)malloc(accSize[2] * sizeof(double));
+    // Transform all angular acceleration/velocity values
+    if (angularVelPrescribed) {
+      // Transforming individual values rather than pointer rotation for
+      // readability
+      double velSize[ndim];
+      velSize[index[0]] = angVelXSize;
+      velSize[index[1]] = angVelYSize;
+      velSize[index[2]] = angVelZSize;
+      double *angVelTNew[ndim], *angVelVNew[ndim];
+      angVelTNew[0] = (double *)malloc(velSize[0] * sizeof(double));
+      angVelVNew[0] = (double *)malloc(velSize[0] * sizeof(double));
+      angVelTNew[1] = (double *)malloc(velSize[1] * sizeof(double));
+      angVelVNew[1] = (double *)malloc(velSize[1] * sizeof(double));
+      angVelTNew[2] = (double *)malloc(velSize[2] * sizeof(double));
+      angVelVNew[2] = (double *)malloc(velSize[2] * sizeof(double));
 
-    int transformedIndex = index[0];
-    for (int i = 0; i < angAccXSize; ++i) {
-      angAccTNew[transformedIndex][i] = angAccXt[i];
-      angAccVNew[transformedIndex][i] = angAccXv[i] * factor[0];
-    }
-    transformedIndex = index[1];
-    for (int i = 0; i < angAccYSize; ++i) {
-      angAccTNew[transformedIndex][i] = angAccYt[i];
-      angAccVNew[transformedIndex][i] = angAccYv[i] * factor[1];
-    }
-    transformedIndex = index[2];
-    for (int i = 0; i < angAccZSize; ++i) {
-      angAccTNew[transformedIndex][i] = angAccZt[i];
-      angAccVNew[transformedIndex][i] = angAccZv[i] * factor[2];
-    }
+      int transformedIndex = index[0];
+      for (int i = 0; i < angVelXSize; ++i) {
+        angVelTNew[transformedIndex][i] = angVelXt[i];
+        angVelVNew[transformedIndex][i] = angVelXv[i] * factor[0];
+      }
+      transformedIndex = index[1];
+      for (int i = 0; i < angVelYSize; ++i) {
+        angVelTNew[transformedIndex][i] = angVelYt[i];
+        angVelVNew[transformedIndex][i] = angVelYv[i] * factor[1];
+      }
+      transformedIndex = index[2];
+      for (int i = 0; i < angVelZSize; ++i) {
+        angVelTNew[transformedIndex][i] = angVelZt[i];
+        angVelVNew[transformedIndex][i] = angVelZv[i] * factor[2];
+      }
 
-    angAccXSize = accSize[0];
-    angAccYSize = accSize[1];
-    angAccZSize = accSize[2];
-    free(angAccXt);
-    free(angAccXv);
-    free(angAccYt);
-    free(angAccYv);
-    free(angAccZt);
-    free(angAccZv);
-    angAccXt = angAccTNew[0];
-    angAccXv = angAccVNew[0];
-    angAccYt = angAccTNew[1];
-    angAccYv = angAccVNew[1];
-    angAccZt = angAccTNew[2];
-    angAccZv = angAccVNew[2];
+      angVelXSize = velSize[0];
+      angVelYSize = velSize[1];
+      angVelZSize = velSize[2];
+      free(angVelXt);
+      free(angVelXv);
+      free(angVelYt);
+      free(angVelYv);
+      free(angVelZt);
+      free(angVelZv);
+      angVelXt = angVelTNew[0];
+      angVelXv = angVelVNew[0];
+      angVelYt = angVelTNew[1];
+      angVelYv = angVelVNew[1];
+      angVelZt = angVelTNew[2];
+      angVelZv = angVelVNew[2];
+    } else {
+      double accSize[ndim];
+      // Transforming individual values rather than pointer rotation for
+      // readability
+      accSize[index[0]] = angAccXSize;
+      accSize[index[1]] = angAccYSize;
+      accSize[index[2]] = angAccZSize;
+      double *angAccTNew[ndim], *angAccVNew[ndim];
+      angAccTNew[0] = (double *)malloc(accSize[0] * sizeof(double));
+      angAccVNew[0] = (double *)malloc(accSize[0] * sizeof(double));
+      angAccTNew[1] = (double *)malloc(accSize[1] * sizeof(double));
+      angAccVNew[1] = (double *)malloc(accSize[1] * sizeof(double));
+      angAccTNew[2] = (double *)malloc(accSize[2] * sizeof(double));
+      angAccVNew[2] = (double *)malloc(accSize[2] * sizeof(double));
+
+      int transformedIndex = index[0];
+      for (int i = 0; i < angAccXSize; ++i) {
+        angAccTNew[transformedIndex][i] = angAccXt[i];
+        angAccVNew[transformedIndex][i] = angAccXv[i] * factor[0];
+      }
+      transformedIndex = index[1];
+      for (int i = 0; i < angAccYSize; ++i) {
+        angAccTNew[transformedIndex][i] = angAccYt[i];
+        angAccVNew[transformedIndex][i] = angAccYv[i] * factor[1];
+      }
+      transformedIndex = index[2];
+      for (int i = 0; i < angAccZSize; ++i) {
+        angAccTNew[transformedIndex][i] = angAccZt[i];
+        angAccVNew[transformedIndex][i] = angAccZv[i] * factor[2];
+      }
+
+      angAccXSize = accSize[0];
+      angAccYSize = accSize[1];
+      angAccZSize = accSize[2];
+      free(angAccXt);
+      free(angAccXv);
+      free(angAccYt);
+      free(angAccYv);
+      free(angAccZt);
+      free(angAccZv);
+      angAccXt = angAccTNew[0];
+      angAccXv = angAccVNew[0];
+      angAccYt = angAccTNew[1];
+      angAccYv = angAccVNew[1];
+      angAccZt = angAccTNew[2];
+      angAccZv = angAccVNew[2];
+    }
   }
+
 
   double tol = 1e-5;
   // Find count of nodes with specified partID
@@ -1118,10 +1266,26 @@ void computeDerivatives(const state_type &y, state_type &ydot, const double t) {
   // ydot[3-5] : Store derivative of rotation quaternion generator, rdot
   // ydot[6-8] : Linear acceleration of the center of mass, acc
   // ydot[9-11] : Linear velocity of the center of mass, vel
-  // Storing alpha
-  ydot[0] = interpolateLinear(angAccXSize, angAccXt, angAccXv, t);
-  ydot[1] = interpolateLinear(angAccYSize, angAccYt, angAccYv, t);
-  ydot[2] = interpolateLinear(angAccZSize, angAccZt, angAccZv, t);
+  double omega[3];
+  if (angularVelPrescribed) {
+    // Computation of omega from alpha is not required as alpha is already
+    // available
+    ydot[0] = 0.0;
+    ydot[1] = 0.0;
+    ydot[2] = 0.0;
+    // Interpolate omega
+    omega[0] = interpolateLinear(angVelXSize, angVelXt, angVelXv, t);
+    omega[1] = interpolateLinear(angVelYSize, angVelYt, angVelYv, t);
+    omega[2] = interpolateLinear(angVelZSize, angVelZt, angVelZv, t);
+  } else {
+    // Storing alpha
+    ydot[0] = interpolateLinear(angAccXSize, angAccXt, angAccXv, t);
+    ydot[1] = interpolateLinear(angAccYSize, angAccYt, angAccYv, t);
+    ydot[2] = interpolateLinear(angAccZSize, angAccZt, angAccZv, t);
+    omega[0] = y[0];
+    omega[1] = y[1];
+    omega[2] = y[2];
+  }
   // Linear Acceleration
   ydot[6] = interpolateLinear(linAccXSize, linAccXt, linAccXv, t);
   ydot[7] = interpolateLinear(linAccYSize, linAccYt, linAccYv, t);
@@ -1141,15 +1305,11 @@ void computeDerivatives(const state_type &y, state_type &ydot, const double t) {
   double rMagnitude = sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
   if (rMagnitude < 1e-10) {
     // rdot = 0.5*omega
-    rdot[0] = 0.5 * y[0];
-    rdot[1] = 0.5 * y[1];
-    rdot[2] = 0.5 * y[2];
+    rdot[0] = 0.5 * omega[0];
+    rdot[1] = 0.5 * omega[1];
+    rdot[2] = 0.5 * omega[2];
   } else {
     double rCotR = rMagnitude / tan(rMagnitude);
-    double omega[3];
-    omega[0] = y[0];
-    omega[1] = y[1];
-    omega[2] = y[2];
     crossProduct(omega, r, rdot); // compute rdot = omega x r
     // Normalize r by its magnitude
     for (int i = 0; i < 3; ++i) {
@@ -1253,26 +1413,21 @@ void WriteOutputFile() {
     for (int i = 0; i < nElementsInjury; ++i) {
       int e = elementIDInjury[i];
       double eV = elementVolume[e];
-      // CSDM 5, 10, 15, 30 volume computations
-      if (thresholdElements[0][i]) {
-        thresholdVolume[0] += eV;
-        if (thresholdElements[1][i]) {
-          thresholdVolume[1] += eV;
-          if (thresholdElements[2][i]) {
-            thresholdVolume[2] += eV;
-            if (thresholdElements[3][i]) {
-              thresholdVolume[3] += eV;
-            }
-          }
+      // CSDM 3, 5, 10, 15, 30 volume computations
+      for (unsigned int j = 0; j < csdmCount; ++j) {
+        if (thresholdElements[j][i]) {
+          thresholdVolume[j] += eV;
+        } else {
+          break;
         }
       }
       // MPSR > 120 volume
-      if (thresholdElements[4][i]) {
-        thresholdVolume[4] += eV;
+      if (thresholdElements[csdmCount][i]) {
+        thresholdVolume[csdmCount] += eV;
       }
       // MPSxSR > 28 volume
-      if (thresholdElements[5][i]) {
-        thresholdVolume[5] += eV;
+      if (thresholdElements[csdmCount + 1][i]) {
+        thresholdVolume[csdmCount + 1] += eV;
       }
     }
     // Calculate cumulative volume on all ranks
@@ -1307,7 +1462,7 @@ void WriteOutputFile() {
       }
     }
     // Create list to write to output.json
-    const int outputJsonCount = 5;
+    const int outputJsonCount = csdmCount + 1;
     std::string jsonOutputTag[outputJsonCount];
     int *outputJsonArray[outputJsonCount];
     for (int i = 0; i < csdmCount; ++i) {
@@ -1442,21 +1597,29 @@ void InitInjuryCriteria(void) {
   PS_Old = (double *)calloc(nElementsInjury, sizeof(double));
   PSxSRArray = (double *)calloc(nElementsInjury, sizeof(double));
   elementMPS = (double *)calloc(nelements, sizeof(double));
+  initialVolume = (double *)calloc(nelements, sizeof(double));
 
   // Array to output to Paraview
-  // All threshold elements CSDM : 5, 10, 15, 30, MPSR-120, MPSxSR-28
+  // All threshold elements CSDM : 3, 5, 10, 15, 30, MPSR-120, MPSxSR-28
   for (int i = 0; i < threshQuantities; ++i) {
     outputDataArray[i] = thresholdElements[i];
   }
   // for (int i = 0; i < percentileQuantities; ++i) {
   //   outputDataArray[threshQuantities + i] =
-  //       percentileElements[i]; 
+  //       percentileElements[i];
   // }
-  outputDataArray[threshQuantities] = 
+  outputDataArray[threshQuantities] =
     percentileElements[0]; // Write MPS-95 to paraview
   // Percentile Values
   // Write MPS-95-Value
   outputDoubleArray[0] = PS_Old;
+
+  // Compute the initial volume of elements for MPS file
+  double volumePart[nPIDglobal];
+  for (int i = 0; i < nPIDglobal; ++i) {
+    volumePart[i] = 0.0;
+  }
+  computePartVolume(volumePart, initialVolume);
 }
 
 void CalculateInjuryCriteria(void) {
@@ -1718,14 +1881,16 @@ void WriteMPS(void) {
     }
   }
 
-  char s1[25*nelements] = {0};
-  char s2[25] = {0};
+  const unsigned int lineSize = 50;
+  char s2[lineSize+1], s3[lineSize+1];
+  unsigned int offset = 0;
+
   for (unsigned int i = 0; i < nelements; ++i) {
-    sprintf(s2, "%06d, %.9e\n", global_eid[i], elementMPS[i]);
-    strcat(s1, s2);
+    offset = (global_eid[i]-1)*lineSize;
+    sprintf(s2, "%06d, %14.5e, %14.5e\n", global_eid[i], elementMPS[i], initialVolume[i]);
+    sprintf(s3, "%50s", s2);
+    MPI_File_write_at(mpsFilePtr, offset, s3, lineSize, MPI_CHAR, MPI_STATUS_IGNORE);
   }
-  // FILE_LOG(ERROR, "String : %s, Size : %d", s1, strlen(s1));
-  MPI_File_write_ordered(mpsFilePtr, s1, strlen(s1), MPI_CHAR, MPI_STATUS_IGNORE);
 
   MPI_File_close(&mpsFilePtr);
   FILE_LOG_MASTER(INFO, "MPS values written to file");

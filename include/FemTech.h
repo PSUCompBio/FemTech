@@ -62,6 +62,7 @@ void CalculateFR();
 void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
     double *currentStrainMin, double *currentShearMax);
 void CalculateStrain();
+void CalculateElementStress(unsigned int e, double* stress);
 void CalculateDeformationGradient(int e, int gp);
 void SumOfDeformationGradient(int e, int gp);
 void StrainDisplacementMatrix(int e, int gp, int nI, double *B);
@@ -81,8 +82,10 @@ void HGOIsotropicViscoelastic(int e, int gp);
 void Ogden(int e, int gp);
 void OgdenViscoelastic(int e, int gp);
 void lsDynaKMEquivalent(int e, int gp);
+double CalculateWaveSpeed(const unsigned int partID);
 
-void inverse3x3Matrix(double* mat, double* invMat, double* det);
+// TODO : Move to math.h
+double inverse3x3Matrix(double* mat, double* invMat);
 double det3x3Matrix(double* mat);
 //void MultiplyMatrices(double* a, double* b, int sizeM, double* result);
 double tripleProduct(double* s, double* a, double* b);
@@ -102,8 +105,10 @@ double compute95thPercentileValueBruteForce(double* dataArray, int localSize);
 double compute95thPercentileValue(double* dataArray, int localSize);
 void test95Percentile(void);
 void dyadic(const double* const, const double, double * const);
+void computeAAT3d(const double* const matI, double* const matO);
+void computeAAT3dI(const double* const matI, double* const matO);
 
-void CheckEnergy(double time, int writeFlag);
+void CheckEnergy(double time, bool writeFlag);
 
 /* Functions to calculate characteristic lengths */
 double CalculateCharacteristicLength(int e);

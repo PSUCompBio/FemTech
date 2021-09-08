@@ -92,6 +92,10 @@ if (EXAMPLE18)
 	add_subdirectory(ex18)
 endif (EXAMPLE18)
 
+if (EXAMPLE19)
+	add_subdirectory(ex19)
+endif (EXAMPLE19)
+
 if (Benchmarking-Parallel)
 	add_subdirectory(Benchmarking-Parallel)
 endif (Benchmarking-Parallel)
