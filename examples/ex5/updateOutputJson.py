@@ -15,7 +15,12 @@ inputJson = json.loads(open(jsonInputFile).read())
 uid = inputJson["event_id"]
 jsonOutputFile = uid + '_output.json'
 linearAcc = inputJson['simulation']['linear-acceleration']
-angularAcc = inputJson['simulation']['angular-acceleration']
+
+computeAngAcc = False
+if 'angular-acceleration' in inputJson['simulation']:
+    computeAngAcc = True
+    angularAcc = inputJson['simulation']['angular-acceleration']
+
 computeAngVel = False
 if 'angular-velocity' in inputJson['simulation']:
     computeAngVel = True
@@ -24,7 +29,8 @@ if 'angular-velocity' in inputJson['simulation']:
 # Check if time array is present, common for all accelerations 
 if 'time-all' in inputJson['simulation']:
     maxG = np.max(np.sqrt(np.array(linearAcc['xv'])**2+np.array(linearAcc['yv'])**2+np.array(linearAcc['zv'])**2))/9.81
-    maxT = np.max(np.sqrt(np.array(angularAcc['xv'])**2+np.array(angularAcc['yv'])**2+np.array(angularAcc['zv'])**2))
+    if computeAngAcc:
+        maxT = np.max(np.sqrt(np.array(angularAcc['xv'])**2+np.array(angularAcc['yv'])**2+np.array(angularAcc['zv'])**2))
     if computeAngVel:
         maxAV = np.max(np.sqrt(np.array(angularVel['xv'])**2+np.array(angularVel['yv'])**2+np.array(angularVel['zv'])**2))
 elif 'xt' in linearAcc: # If all sensor values have corresponding time arrays
@@ -41,18 +47,19 @@ elif 'xt' in linearAcc: # If all sensor values have corresponding time arrays
         yV = np.interp(tInter, linearAcc['yt'], linearAcc['yv'])
         zV = np.interp(tInter, linearAcc['zt'], linearAcc['zv'])
         maxG = np.max(np.sqrt(xV**2+yV**2+zV**2))/9.81
-    if (np.array_equal(np.array(angularAcc['xt']), np.array(angularAcc['yt']))
-            and np.array_equal(np.array(angularAcc['xt']), np.array(angularAcc['zt']))):
-        maxT = np.max(np.sqrt(np.array(angularAcc['xv'])**2+np.array(angularAcc['yv'])**2+np.array(angularAcc['zv'])**2))
-    else:
-        nCount = 5*max([len(angularAcc['xt']), len(angularAcc['yt']), len(angularAcc['zt'])])
-        tmin = min(angularAcc['xt'][0], angularAcc['yt'][0], angularAcc['zt'][0])
-        tmax = min(angularAcc['xt'][-1], angularAcc['yt'][-1], angularAcc['zt'][-1])
-        tInter = np.linspace(tmin, tmax, nCount)
-        xV = np.interp(tInter, angularAcc['xt'], angularAcc['xv'])
-        yV = np.interp(tInter, angularAcc['yt'], angularAcc['yv'])
-        zV = np.interp(tInter, angularAcc['zt'], angularAcc['zv'])
-        maxT = np.max(np.sqrt(xV**2+yV**2+zV**2))
+    if computeAngAcc:
+        if (np.array_equal(np.array(angularAcc['xt']), np.array(angularAcc['yt']))
+                and np.array_equal(np.array(angularAcc['xt']), np.array(angularAcc['zt']))):
+            maxT = np.max(np.sqrt(np.array(angularAcc['xv'])**2+np.array(angularAcc['yv'])**2+np.array(angularAcc['zv'])**2))
+        else:
+            nCount = 5*max([len(angularAcc['xt']), len(angularAcc['yt']), len(angularAcc['zt'])])
+            tmin = min(angularAcc['xt'][0], angularAcc['yt'][0], angularAcc['zt'][0])
+            tmax = min(angularAcc['xt'][-1], angularAcc['yt'][-1], angularAcc['zt'][-1])
+            tInter = np.linspace(tmin, tmax, nCount)
+            xV = np.interp(tInter, angularAcc['xt'], angularAcc['xv'])
+            yV = np.interp(tInter, angularAcc['yt'], angularAcc['yv'])
+            zV = np.interp(tInter, angularAcc['zt'], angularAcc['zv'])
+            maxT = np.max(np.sqrt(xV**2+yV**2+zV**2))
 
     if computeAngVel:
         if (np.array_equal(np.array(angularVel['xt']), np.array(angularVel['yt']))
@@ -69,10 +76,11 @@ elif 'xt' in linearAcc: # If all sensor values have corresponding time arrays
             maxAV = np.max(np.sqrt(xV**2+yV**2+zV**2))
 else:
     maxG = np.sqrt(np.array(linearAcc[0])**2+np.array(linearAcc[1])**2+np.array(linearAcc[2])**2)
-    if isinstance(angularAcc, list):
-        maxT = np.sqrt(np.array(angularAcc[0])**2+np.array(angularAcc[1])**2+np.array(angularAcc[2])**2)
-    else:
-        maxT = np.fabs(angularAcc)
+    if computeAngAcc:
+        if isinstance(angularAcc, list):
+            maxT = np.sqrt(np.array(angularAcc[0])**2+np.array(angularAcc[1])**2+np.array(angularAcc[2])**2)
+        else:
+            maxT = np.fabs(angularAcc)
 
 outputJson = json.loads(open(jsonOutputFile).read())
 
@@ -110,7 +118,8 @@ if (not 'compute-injury-criteria' in inputJson['simulation']) or inputJson['simu
 
 # Add max quantities 
 outputJson["max-linear-acc-g"] = maxG
-outputJson["max-angular-acc-rads2"] = maxT
+if computeAngAcc:
+    outputJson["max-angular-acc-rads2"] = maxT
 if computeAngVel:
     outputJson["max-angular-vel-rads"] = maxAV
 
