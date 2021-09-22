@@ -5,7 +5,7 @@
     "position" : "OL"
   },
   "simulation": {
-    "mesh" : "coarse_brain_c288.inp",
+    "mesh" : "coarse_brain_c288_RI.inp",
     "linear-acceleration": {
         "xt": [ 0	,
                 0.44080001	,
@@ -1818,7 +1818,7 @@
     "maximum-time" : 40,
     "mesh-transformation" : ["y", "-z", "-x"],
     "head-cg" : [0.0, -0.335, -0.018],
-    "output-nodes" : [16027, 16151],
+    "output-nodes" : [17093, 16764, 16025, 16127, 16767, 15942, 15944, 16277, 17071, 16802, 16151, 16052, 16150, 16744],
     "relative-displacement" : true,
     "write-vtu" : true
   }
