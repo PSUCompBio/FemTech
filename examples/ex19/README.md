@@ -1,5 +1,5 @@
 # To run: 
-prompt> mpirun -n 1 ex19 1-elt-hex.k
+prompt> mpirun -n 1 ex19 1-elt-cube.k
 
 # To Plot:
 prompt> gnuplot gnuplot.script

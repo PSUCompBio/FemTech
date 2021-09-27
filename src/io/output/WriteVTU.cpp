@@ -1,8 +1,12 @@
 #include "FemTech.h"
 
-static void strip_ext(char *);
+#include <assert.h>
 
-void WriteVTU(const char* FileName, int step) {
+void WriteVTU(const char* FileName, int step, int** intCellData /*= NULL*/, \
+    int cellDataCount /*= 0*/, const char **cellDataNames /*= NULL*/, \
+    int *mapping /* = NULL*/, int mapCount /*= 0*/, \
+    double **dpCellData /*= NULL*/, int dpDataCount /*= 0*/, \
+    const char **dpDataNames /*= NULL*/) {
   static const int ARR_SIZE = 1000;
 
 	FILE *fp;
@@ -17,7 +21,6 @@ void WriteVTU(const char* FileName, int step) {
 	if (strlen(FileName) < ARR_SIZE) {
 	    strcpy(outfile, FileName);
 	}
-	// strip_ext(outfile);
 
 	sprintf(s, ".vtu.%04d.%04d",step,world_rank);
   sprintf(paths,"./results/vtu/");
@@ -35,12 +38,8 @@ void WriteVTU(const char* FileName, int step) {
 	fprintf(fp,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">\n");
 	fprintf(fp,"\t<UnstructuredGrid>\n");
 	fprintf(fp,"\t\t<Piece NumberOfPoints=\"%d\" NumberOfCells=\"%d\">\n",nNodes,nelements);
+
 	// write coordinates
-
-	// Temporary soution for ndim
-	//const int NDim = ndim == 2 ? 3 : ndim;
-	//
-
 	fprintf(fp,"\t\t\t<Points>\n");
 	fprintf(fp,"\t\t\t\t<DataArray type=\"Float64\" NumberOfComponents=\"%d\" format=\"ascii\">\n", ndim);
 	for(i=0;i<nNodes;i++){
@@ -93,8 +92,6 @@ void WriteVTU(const char* FileName, int step) {
 	}
 	fprintf(fp, "\t\t\t\t</DataArray>\n");
 	fprintf(fp, "\t\t\t</Cells>\n");
-
-
 
 	/*-----------POINT DATA -----------------*/
 	fprintf(fp, "\t\t\t<PointData>\n");
@@ -191,6 +188,38 @@ void WriteVTU(const char* FileName, int step) {
 	}
 	fprintf(fp, "\t\t\t\t</DataArray>\n");
 
+	// Write example specific element data
+  for (int c = 0; c < cellDataCount; ++c) {
+    int *data = intCellData[c];
+    fprintf(fp, "\t\t\t\t<DataArray type=\"Int32\" Name=\"%s\" format=\"ascii\">\n", cellDataNames[c]);
+    int count = 0;
+    for (i = 0; i < nelements; i++) {
+      if(i == mapping[count]) {
+        fprintf(fp, "\t\t\t\t\t%d\n", data[count]);
+        count = count + 1;
+      } else {
+        fprintf(fp, "\t\t\t\t\t%d\n", 0);
+      }
+    }
+    assert(count == mapCount);
+    fprintf(fp, "\t\t\t\t</DataArray>\n");
+  }
+	// Write example specific double element data
+  for (int c = 0; c < dpDataCount; ++c) {
+    double *data = dpCellData[c];
+    fprintf(fp, "\t\t\t\t<DataArray type=\"Float64\" Name=\"%s\" format=\"ascii\">\n", dpDataNames[c]);
+    int count = 0;
+    for (i = 0; i < nelements; i++) {
+      if(i == mapping[count]) {
+        fprintf(fp, "\t\t\t\t\t%10.8e\n", data[count]);
+        count = count + 1;
+      } else {
+        fprintf(fp, "\t\t\t\t\t%10.8e\n", 0.0);
+      }
+    }
+    assert(count == mapCount);
+    fprintf(fp, "\t\t\t\t</DataArray>\n");
+  }
 	// // write Global Element ID
 	// fprintf(fp, "\t\t\t\t<DataArray type=\"Int32\" Name=\"GlobalEID\" format=\"ascii\">\n");
 	// for (i = 0; i < nelements; i++) {
@@ -198,8 +227,6 @@ void WriteVTU(const char* FileName, int step) {
 	// }
 	// fprintf(fp, "\t\t\t\t</DataArray>\n");
 	fprintf(fp, "\t\t\t</CellData>\n");
-
-
 
 	fprintf(fp,"\t\t</Piece>\n");
 	fprintf(fp,"\t</UnstructuredGrid>\n");
@@ -224,7 +251,7 @@ void WriteVTU(const char* FileName, int step) {
     fprintf(fp,"\t\t</PCells>\n");
 
 		/*-----------POINT DATA -----------------*/
-		fprintf(fp,"\t\t<PPointData  Vectors=\"Displacements Accelerations\" >\n");
+		fprintf(fp,"\t\t<PPointData  Vectors=\"Displacements Accelerations Boundary\" >\n");
 		fprintf(fp,"\t\t\t<PDataArray type=\"Float64\" Name=\"Displacements\" "
                "NumberOfComponents=\"%d\" ComponentName0=\"X\" ComponentName1=\"Y\" "
                "ComponentName2=\"Z\" format=\"ascii\" />\n",ndim);
@@ -238,7 +265,15 @@ void WriteVTU(const char* FileName, int step) {
     fprintf(fp,"\t\t</PPointData>\n");
 
 		/*-----------CELL DATA -----------------*/
-  	fprintf(fp,"\t\t<PCellData Scalars=\"PartID\" Tensors=\"AvgStrain\">\n");
+  	fprintf(fp,"\t\t<PCellData Scalars=\"PartID ProcID");
+    for (int c = 0; c < cellDataCount; ++c) {
+      fprintf(fp," %s", cellDataNames[c]);
+    }
+    for (int c = 0; c < dpDataCount; ++c) {
+      fprintf(fp," %s", dpDataNames[c]);
+    }
+  	fprintf(fp,"\" Tensors=\"AvgStrain\">\n");
+
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"PartID\"/>\n");
     fprintf(fp,"\t\t\t<PDataArray type=\"Float64\" Name=\"AvgStrain\" "
                     "NumberOfComponents=\"%d\" ComponentName0=\"E11\" "
@@ -248,6 +283,12 @@ void WriteVTU(const char* FileName, int step) {
                     "ComponentName7=\"E23\" ComponentName8=\"E33\" "
                     "format=\"ascii\"/>\n",ndim*ndim);
 		fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"ProcID\"/>\n");
+    for (int c = 0; c < cellDataCount; ++c) {
+      fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"%s\"/>\n", cellDataNames[c]);
+    }
+    for (int c = 0; c < dpDataCount; ++c) {
+      fprintf(fp,"\t\t\t<PDataArray type=\"Float64\" Name=\"%s\"/>\n", dpDataNames[c]);
+    }
 		// fprintf(fp,"\t\t\t<PDataArray type=\"Int32\" Name=\"GlobalEID\"/>\n");
     fprintf(fp,"\t\t</PCellData>\n");
     for (i = 0; i < world_size; ++i) {
@@ -258,14 +299,4 @@ void WriteVTU(const char* FileName, int step) {
 		fclose(fp);
   }
 	return;
-}
-//-------------------------------------------------------------------------------------------
-void strip_ext(char *fname){
-    char *end = fname + strlen(fname);
-    while (end > fname && *end != '.' && *end != '\\' && *end != '/') {
-        --end;
-    }
-    if (end > fname && *end == '.') {
-        *end = '\0';
-    }
 }

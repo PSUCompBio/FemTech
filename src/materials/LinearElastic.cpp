@@ -2,71 +2,65 @@
 #include "blas.h"
 
 // plane strain or three-dimensional Linear Elastic Material
-// Evaluates the PK2 stress tensor
+// Evaluates the Cauchy stress tensor
 
 void LinearElastic(int e, int gp) {
-	if(ndim == 2){
-		// 6 values saved per gauss point for 3d
-		for(int i=0;i<3;i++){
-			int index = pk2ptr[e]+3*gp+i;
-		}
-	}
 	if(ndim == 3){
-    int index = fptr[e] + ndim * ndim * gp;
-    int index2 = detFptr[e] + gp;
     int pide = pid[e];
     double mu = properties[MAXMATPARAMS * pide + 1];    
     double lambda = properties[MAXMATPARAMS * pide + 2];
-    double J = detF[index2];
+    const unsigned int index = fptr[e] + ndim * ndim * gp;
     // Computation based on
     // http://run.usc.edu/femdefo/sifakis-courseNotes-TheoryAndDiscretization.pdf
     // section 3.2
 
+    // Compute H matrix of the element from B^0 Matrix
+    // Reuse mat1 for H computation
+    double *H = mat1;
+    ComputeH(e, gp, H);
+
     // Compute strain \epsilon = 0.5*(F+F^T)-I
-    double matSize = ndim * ndim;
-    double *eps = mat1;
-    double *F_element_gp = &(F[index]);
-    // trace(\epsilon) = trace(F)-3
-    const double trEps = F_element_gp[0]+F_element_gp[4]+F_element_gp[8]-3.0;
+    // This can be written as \epsilon = 0.5*(H+H^T)
+    double *sigma_e = mat2; // Reuse mat2 for sigma computation
+    // trace(\epsilon) = trace(F)-3 = trace(H)
+    const double trEpsLambda = lambda*(H[0]+H[4]+H[8]);
+    // \sigma = \lambda tr(\epsilon) I + 2 \mu \epsilon
+    // \sigma = \lambda tr(H) I + \mu (H+H^T)
+    // Compute 2*\mu*\epsilon
     for (int i = 0; i < ndim; ++i) {
       for (int j = 0; j < ndim; ++j) {
         const int indexL = j + i*ndim;
-        eps[indexL] = (F_element_gp[indexL]+F_element_gp[i+j*ndim]);
+        sigma_e[indexL] = mu*(H[indexL]+H[i+j*ndim]);
       }
     }
-    eps[0] -= 2.0;
-    eps[4] -= 2.0;
-    eps[8] -= 2.0;
+    sigma_e[0] = sigma_e[0] + trEpsLambda;
+    sigma_e[4] = sigma_e[4] + trEpsLambda;
+    sigma_e[8] = sigma_e[8] + trEpsLambda;
 
-    // Compute sigma = \lambda tr(\eps) I + 2 \mu \eps
-    double *P = mat2;
-    for (int i = 0; i < matSize; ++i) {
-      P[i] = mu * eps[i];
+    // Compute and store F = H + I
+    double * const F_element_gp = &(F[index]);
+    for (unsigned int i = 0; i < ndim2; ++i) {
+      F_element_gp[i] = H[i];
     }
-    P[0] += lambda * trEps;
-    P[4] += lambda * trEps;
-    P[8] += lambda * trEps;
+    F_element_gp[0] = F_element_gp[0] + 1.0;
+    F_element_gp[4] = F_element_gp[4] + 1.0;
+    F_element_gp[8] = F_element_gp[8] + 1.0;
 
-    // Compute pk2 : S = F^{-1} P 
-    double *fInv = mat3;
-    double *S = mat4;
-    InverseF(e, gp, fInv);
-    // Compute F^{-1}*P
-    dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim,
-           P, &ndim, &zero, S, &ndim);
+    // Get location of array to store Cauchy values
+    double * sigma_nLocal = &(sigma_n[sigmaptr[e]+6*gp]);
 		// 6 values saved per gauss point for 3d
 		// in voigt notation, sigma11
-    pk2[pk2ptr[e] + 6 * gp + 0] = S[0];
+    sigma_nLocal[0] = sigma_e[0];
     // in voigt notation, sigma22
-    pk2[pk2ptr[e] + 6 * gp + 1] = S[4];
+    sigma_nLocal[1] = sigma_e[4];
     // in voigt notation, sigma33
-    pk2[pk2ptr[e] + 6 * gp + 2] = S[8];
+    sigma_nLocal[2] = sigma_e[8];
     // in voigt notation, sigma23
-    pk2[pk2ptr[e] + 6 * gp + 3] = S[7];
+    sigma_nLocal[3] = sigma_e[7];
     // in voigt notation, sigma13
-    pk2[pk2ptr[e] + 6 * gp + 4] = S[6];
+    sigma_nLocal[4] = sigma_e[6];
     // in voigt notation, sigma12
-    pk2[pk2ptr[e] + 6 * gp + 5] = S[3];
+    sigma_nLocal[5] = sigma_e[3];
 	}
 	return;
 }

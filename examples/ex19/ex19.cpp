@@ -1,22 +1,33 @@
 #include "FemTech.h"
 
 #include <assert.h>
+// #include <fenv.h>
 
 /*Delare Functions*/
-void ApplyBoundaryConditions(double tMax);
+void ApplyVelocityBoundaryConditions(double);
+void InitVelocityBoundaryConditions();
 void CustomPlot();
 
 double Time, dt;
 int nSteps;
+
+double dynamicDamping = 0.000;
 double ExplicitTimeStepReduction = 0.7;
 double FailureTimeStep = 1e-11;
+double MaxTimeStep = 1e-1;
 
-int nPlotSteps = 50;
+int nPlotSteps = 1000;
+int nFieldSkip = 20; // 1 in nFieldSkip plot steps will be used to output VTU
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 
+// Parameters of simple tension test
+double tMax = 1.00;  // max simulation time in seconds
+double dMax = 0.007; // max displacment in meters
+
 int main(int argc, char **argv) {
+  // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   InitFemTechWoInput(argc, argv);
 
   ReadInputFile(argv[1]);
@@ -36,62 +47,74 @@ int main(int argc, char **argv) {
   stepTime[plot_counter] = Time;
   CustomPlot();
 
-  // Dynamic Explcit solution using....
-
+  // Dynamic Explcit solution Belytschko Box 6.1
   dt = 0.0;
-  double tMax = 1.0; // max simulation time in seconds
 
+  // Initial operations 
   int time_step_counter = 0;
-  /** Central Difference Method - Beta and Gamma */
-  // double beta = 0;
-  // double gamma = 0.5;
-
   ShapeFunctions();
   /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
   AssembleLumpedMass();
-
-  // Used if initial velocity and acceleration BC is to be set.
-  ApplyBoundaryConditions(tMax);
+  InitVelocityBoundaryConditions();
 
   /* Obtain dt, according to Belytschko dt is calculated at end of getForce */
   dt = ExplicitTimeStepReduction * StableTimeStep();
+
+  // Used if initial velocity BC is to be set.
+  ApplyVelocityBoundaryConditions(0.5*dt);
+
+  // For cases with no residual stress and external forces, 
+  // GetFoce is not required, we can directly set accelerations at zero time
+  // step to be zero
   /* Step-2: getforce step from Belytschko */
-  GetForce(); // Calculating the force term.
+  // GetForce(); // Calculating the force term.
 
   /* Step-3: Calculate accelerations */
-  CalculateAccelerations();
+  // CalculateAccelerations();
+  for (int i = 0; i < nDOF; i++) {
+    accelerations[i] = 0.0;
+  }
 
   nSteps = (int)(tMax / dt);
+  double dtPlot = tMax/double(nPlotSteps);
+  double nextPlotTime = dtPlot;
   int nsteps_plot = (int)(nSteps / nPlotSteps);
-  if (nsteps_plot == 0) {
-    nsteps_plot = 1;
-  }
-  FILE_LOG_MASTER(INFO, "initial dt = %3.3e, nSteps = %d, nsteps_plot = %d", dt, nSteps,
-          nsteps_plot);
 
-
-  time_step_counter = time_step_counter + 1;
   double t_n = 0.0;
 
-  FILE_LOG_MASTER(INFO, "------------------------------- Loop ----------------------------");
-  FILE_LOG_MASTER(INFO, "Time : %15.6e, tmax : %15.6e", Time, tMax);
+  FILE_LOG_MASTER(INFO, "---------------------------------");
+  FILE_LOG_MASTER(INFO, "Tmax : %15.6e, Initial dt : %15.6e", tMax, dt);
+  FILE_LOG_MASTER(INFO, "nSteps = %d, nsteps_plot = %d", nSteps, nsteps_plot);
+  FILE_LOG_MASTER(INFO, "-------------- Loop -------------");
+
+  bool writeFlag = false;
+  int  vtuSkipCount = 0;
 
   /* Step-4: Time loop starts....*/
   while (Time < tMax) {
     t_n = Time;
     double t_np1 = Time + dt;
+    if (t_np1 > nextPlotTime) {
+      // Adjust dt to plot at specific time steps
+      t_np1 = nextPlotTime;
+      dt = nextPlotTime - Time;
+      // Update next plot time step
+      nextPlotTime = nextPlotTime + dtPlot;
+      writeFlag = true;
+    }
     Time = t_np1; /*Update the time by adding full time step */
-    FILE_LOG_MASTER(INFO, "Time : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt, tMax);
-    double dt_nphalf = dt;                 // equ 6.2.1
-    double t_nphalf = 0.5 * (t_np1 + t_n); // equ 6.2.1
+    FILE_LOG_MASTER(INFO, "Time : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt,
+                    tMax);
+    double dtby2 = 0.5*dt;
+    double t_nphalf = t_n + dtby2; // equ 6.2.1
+
+    /* Step 6 Enforce velocity boundary Conditions */
+    ApplyVelocityBoundaryConditions(t_nphalf);
 
     /* Step 5 from Belytschko Box 6.1 - Update velocity */
     for (int i = 0; i < nDOF; i++) {
-      if (boundary[i]) {
-        velocities_half[i] = velocities[i];
-      } else {
-        velocities_half[i] =
-            velocities[i] + (t_nphalf - t_n) * accelerations[i];
+      if (!boundary[i]) {
+        velocities_half[i] = velocities[i] + dtby2 * accelerations[i];
       }
     }
 
@@ -102,46 +125,47 @@ int main(int argc, char **argv) {
     memcpy(fi_prev, fi, nDOF * sizeof(double));
     memcpy(fe_prev, fe, nDOF * sizeof(double));
 
+    // update displacements for all nodes, including where velocity bc is set
     for (int i = 0; i < nDOF; i++) {
-      if (!boundary[i]) {
-        displacements[i] = displacements[i] + dt_nphalf * velocities_half[i];
-      }
+      displacements[i] = displacements[i] + dt * velocities_half[i];
     }
-    /* Step 6 Enforce displacement boundary Conditions */
-    ApplyBoundaryConditions(tMax);
 
     /* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
     GetForce(); // Calculating the force term.
+
     /* Step - 9 from Belytschko Box 6.1 - Calculate Accelerations */
     CalculateAccelerations(); // Calculating the new accelerations from total
                               // nodal forces.
 
     /** Step- 10 - Second Partial Update of Nodal Velocities */
     for (int i = 0; i < nDOF; i++) {
-      if (!boundary[i]) {
-        velocities[i] =
-            velocities_half[i] + (t_np1 - t_nphalf) * accelerations[i];
-      }
+      velocities[i] = velocities_half[i] + dtby2 * accelerations[i];
     }
 
     /** Step - 11 Checking* Energy Balance */
-    int writeFlag = time_step_counter%nsteps_plot;
     CheckEnergy(Time, writeFlag);
-
-    if (writeFlag == 0) {
-      plot_counter = plot_counter + 1;
-      CalculateStrain();
-      FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
-      WriteVTU(outputFileName.c_str(), plot_counter);
-      if (plot_counter < MAXPLOTSTEPS) {
-        stepTime[plot_counter] = Time;
-        WritePVD(outputFileName.c_str(), plot_counter);
-      }
+    
+    // int writeFlag = time_step_counter % nsteps_plot;
+    if (writeFlag) {
       CustomPlot();
+      vtuSkipCount = vtuSkipCount + 1;
+      if (!(vtuSkipCount%nFieldSkip)) {
+        plot_counter = plot_counter + 1;
+        CalculateStrain();
+        FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
+        WriteVTU(outputFileName.c_str(), plot_counter);
+        if (plot_counter < MAXPLOTSTEPS) {
+          stepTime[plot_counter] = Time;
+          WritePVD(outputFileName.c_str(), plot_counter);
+        }
+        vtuSkipCount = 0;
+      }
 
-      FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Displacement Solution");
+      FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim,
+                        "Displacement Solution");
+      writeFlag = false;
     }
-    time_step_counter = time_step_counter + 1;
+    // time_step_counter = time_step_counter + 1;
     dt = ExplicitTimeStepReduction * StableTimeStep();
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);
@@ -149,50 +173,64 @@ int main(int argc, char **argv) {
   FILE_LOG_MASTER(INFO, "End of Iterative Loop");
 
   // Write out the last time step
-  CustomPlot();
-  FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim, "Final Displacement Solution");
+  // CustomPlot();
+  FILE_LOGMatrixRM(DEBUGLOG, displacements, nNodes, ndim,
+                   "Final Displacement Solution");
 
   FinalizeFemTech();
   return 0;
 }
 
-void ApplyBoundaryConditions(double tMax) {
+void ApplyVelocityBoundaryConditions(double) {
   double tol = 1e-5;
-  double load = 625.0;
-  // Apply Ramped Pressure
-  double rampedUnit = Time*load/tMax;
+  int index;
 
+  for (int i = 0; i < nNodes; i++) {
+    // if y coordinate = 0, constrain node to y plane (1-direction)
+    index = ndim * i + 1;
+    if (fabs(coordinates[index] - 0.0) < tol) {
+      velocities_half[index] = 0.0;
+      // Constraint x in y = 0 plane
+      velocities_half[index-1] = 0.0;
+      // Constraint z in y = 0 plane
+      velocities_half[index+1] = 0.0;
+    }
+    // if y coordinate = 1, apply disp. to node in x direction (1-direction)
+    // index = ndim * i + 1;
+    if (fabs(coordinates[index] - 0.005) < tol) {
+      velocities_half[index] = 0.0;
+      // Constraint x in y = 1 plane and prescribe motion
+      velocities_half[index-1] = dMax / tMax;
+      // Constraint z in y = 1 plane
+      velocities_half[index+1] = 0.0;
+    }
+  }
+  FILE_LOG_MASTER(INFO, "Time = %10.5E, Applied Velocity = %10.5E", Time,
+                  dMax / tMax);
+  return;
+}
+
+void InitVelocityBoundaryConditions() {
+  double tol = 1e-5;
   int index;
   for (int i = 0; i < nNodes; i++) {
-    // if x value = 0, constrain node to x plane (0-direction)
-    index = ndim * i + 0;
-    if (fabs(coordinates[index] - 0.0) < tol) {
-      boundary[index] = 1;
-      displacements[index] = 0.0;
-      velocities[index] = 0.0;
-      // For energy computations
-      accelerations[index] = 0.0;
-    }
     // if y coordinate = 0, constrain node to y plane (1-direction)
     index = ndim * i + 1;
     if (fabs(coordinates[index] - 0.0) < tol) {
       boundary[index] = 1;
-      displacements[index] = 0.0;
-      velocities[index] = 0.0;
-      accelerations[index] = 0.0;
+      // Constraint x in y = 0 plane
+      boundary[index-1] = 1;
+      // Constraint z in y = 0 plane
+      boundary[index+1] = 1;
     }
-    // if z coordinate = 0, constrain node to z plane (2-direction)
-    index = ndim * i + 2;
-    if (fabs(coordinates[index] - 0.0) < tol) {
-      boundary[index] = 1;
-      displacements[index] = 0.0;
-      velocities[index] = 0.0;
-      accelerations[index] = 0.0;
-    }
-    // if y coordinate = 1, apply force in y direction
-    index = ndim * i + 1;
+    // if y coordinate = 1, apply disp. to node in x direction (1-direction)
+    // index = ndim * i + 1;
     if (fabs(coordinates[index] - 0.005) < tol) {
-      fe[index] = rampedUnit;
+      boundary[index] = 1;
+      // Constraint x in y = 1 plane
+      boundary[index-1] = 1;
+      // Constraint z in y = 1 plane
+      boundary[index+1] = 1;
     }
   }
   return;
@@ -208,9 +246,11 @@ void CustomPlot() {
   if (fabs(Time - 0.0) < 1e-16) {
     datFile = fopen("plot.dat", "w");
     fprintf(datFile, "# Results for Node ?\n");
-    fprintf(datFile, "# Time  DispX    DispY   DispZ\n");
-    fprintf(datFile, "%11.5e %11.5e  %11.5e  %11.5e\n", 0.0, 0.0, 0.0, 0.0);
-
+    fprintf(datFile, "# Time  DispX  DispY  DispZ  SigmaXX  SigmaYY  SigmaZZ  "
+                     "SigmaXY  Sigma XZ  SigmaYZ\n");
+    fprintf(datFile, "%13.5e  %13.5e  %13.5e  %13.5e  %13.5e  %13.5e  %13.5e  "
+            "%13.5e  %13.5e  %13.5e\n", 
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   } else {
     datFile = fopen("plot.dat", "a");
     for (int i = 0; i < nNodes; i++) {
@@ -218,13 +258,19 @@ void CustomPlot() {
           fabs(coordinates[ndim * i + y] - 0.005) < tol &&
           fabs(coordinates[ndim * i + z] - 0.005) < tol) {
 
-        fprintf(datFile, "%11.5e %11.5e  %11.5e  %11.5e\n", Time,
+        fprintf(datFile, "%13.5e  %13.5e  %13.5e  %13.5e  ", Time,
                 displacements[ndim * i + x], displacements[ndim * i + y],
                 displacements[ndim * i + z]);
       }
     }
+    // Compute Cauchy stress for the element
+    double stressElem[6];
+    CalculateElementStress(0, stressElem);
+    // Print all six stress components of 1st element stress
+    fprintf(datFile, "%13.5e  %13.5e  %13.5e  %13.5e  %13.5e  %13.5e\n",
+            stressElem[0], stressElem[1], stressElem[2], stressElem[5],
+            stressElem[4], stressElem[3]);
   }
-
   fclose(datFile);
   return;
 }

@@ -9,7 +9,7 @@ nRes = 100
 
 jsonFile = sys.argv[1]
 inputJson = json.loads(open(jsonFile).read())
-uid = inputJson["uid"]
+uid = inputJson["event_id"]
 simulationJson = inputJson["simulation"]
 meshFile = simulationJson["mesh"]
 mesh = os.path.splitext(meshFile)[0]
@@ -40,18 +40,33 @@ for tA in np.arange(count-1):
     tArray[tA*nRes:(tA+1)*nRes] = localT[:-1]
 tArray[-1] = tArrayRaw[-1]
 
+timeArray = False
+
+if 'time-all' in simulationJson:
+    timeFull = simulationJson['time-all']
+    timeArray = True
+
 if type(simulationJson["linear-acceleration"]) == dict:
-    linXt = simulationJson["linear-acceleration"]["xt"]
+    if timeArray:
+        linXt = timeFull
+        linYt = timeFull
+        linZt = timeFull
+        angXt = timeFull
+        angYt = timeFull
+        angZt = timeFull
+    else:
+        linXt = simulationJson["linear-acceleration"]["xt"]
+        linYt = simulationJson["linear-acceleration"]["yt"]
+        linZt = simulationJson["linear-acceleration"]["zt"]
+        angXt = simulationJson["angular-acceleration"]["xt"]
+        angYt = simulationJson["angular-acceleration"]["yt"]
+        angZt = simulationJson["angular-acceleration"]["zt"]
+
     linXv = simulationJson["linear-acceleration"]["xv"]
-    linYt = simulationJson["linear-acceleration"]["yt"]
     linYv = simulationJson["linear-acceleration"]["yv"]
-    linZt = simulationJson["linear-acceleration"]["zt"]
     linZv = simulationJson["linear-acceleration"]["zv"]
-    angXt = simulationJson["angular-acceleration"]["xt"]
     angXv = simulationJson["angular-acceleration"]["xv"]
-    angYt = simulationJson["angular-acceleration"]["yt"]
     angYv = simulationJson["angular-acceleration"]["yv"]
-    angZt = simulationJson["angular-acceleration"]["zt"]
     angZv = simulationJson["angular-acceleration"]["zv"]
 
     linArrayX = np.interp(tArray, linXt, linXv)

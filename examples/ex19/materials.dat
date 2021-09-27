@@ -1,9 +1,18 @@
-0 1 1040 100.0 100.00
+0 6 1040 558.47e6 928 1.66e3 16.95
 
+# 0 7 1040 9.996667e5 2 10.1 53.8 -12.9 -120.4
 
 # form of file
 # partID (starting at 0), material ID (goes with consitutive model), ...
 # n properties (reads MAXMATPARAMS defined in GlobalVariables.h)
 
+# mat ID 0 - Specified rigid-body motion : density
 # mat ID 1 - CompressibleNeoHookean props: density mu lambda
 # mat ID 2 - St. Venant props            : density mu lambda
+# mat ID 3 - Linear Elasticity           : density mu lambda
+# mat ID 4 - HGO Isotropic               : density mu lambda k1 k2
+# mat ID 5 - HGO Isotropic + Viscoelasticity  : density mu_0 lambda k1 k2 g1 t1 g2 t2
+# g1 t1 and g2 t2 are pairs of 2 term Prony series
+# mat ID 6 - LS-Dyna Maxwell equivalent  : density(Kg/m^3) K(Pa) G_\infity(Pa) G_0(Pa) \beta(1/s)
+# mat ID 7 - Ogden : density K N alpha_1 mu_1..alpha_N mu_N
+# mat ID 8 - Ogden : density K N alpha_1 mu_1..alpha_N mu_N M g_1 t_1...g_M t_M

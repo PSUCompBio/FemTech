@@ -7,6 +7,13 @@ double StableTimeStep() {
   bool isNotRigid;
   // int minElementID;
   // int elemSkipped = 0;
+  
+  // Update wave speed of viscoelastic parts
+  for (int i = 0; i < nPIDglobal; ++i) {
+    if(viscoElasticPart[i]) {
+      waveSpeed[i] = CalculateWaveSpeed(i);
+    }
+  }
 
 	for(int i=0;i<nelements;i++){
     isNotRigid = false;
@@ -37,6 +44,9 @@ double StableTimeStep() {
   if(dtMin < FailureTimeStep){
 		FILE_LOG_MASTER(ERROR, "Timestep too small, dt = %15.9e", dtMin);
     TerminateFemTech(19);
+	}
+  if(dtMin > MaxTimeStep){
+    dtMin = MaxTimeStep;
 	}
   return dtMin;
 }

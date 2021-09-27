@@ -7,6 +7,7 @@ double Time, dt;
 int nSteps;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
+double MaxTimeStep = 1e-5;
 
 int nPlotSteps = 1;
 bool ImplicitStatic = false;

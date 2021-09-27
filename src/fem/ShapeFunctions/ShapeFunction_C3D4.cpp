@@ -68,7 +68,7 @@ void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ){
 	xs[8]=coordinates[ndim*connectivity[index+node3]+z] - coordinates[ndim*connectivity[index+node4]+z];
   double det, J_Inv[9];
 
-  inverse3x3Matrix(xs, J_Inv, &det);
+  det = inverse3x3Matrix(xs, J_Inv);
   //Chandrupatla Eq. 9.19
   detJ[gp] = fabs(det);
 

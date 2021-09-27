@@ -28,21 +28,23 @@ Json::Value InitFemTech(int argc, char **argv) {
   Json::Value inputJson = getConfig(argv[1]);
   // create simulation unique id from time
   // Check if UID is present in input JSON
-  if (inputJson["uid"].empty()) {
+  if (inputJson["event_id"].empty()) {
     time_t t = time(0);   // get time now
     struct tm * now = localtime( & t );
     char buffer [80];
     strftime(buffer, 80, "%d_%m_%Y_%H_%M_%S", now);
     uid = buffer;
   } else {
-    uid = inputJson["uid"].asString();
+    uid = inputJson["event_id"].asString();
   }
   std::string logFile = "femtech_"+uid+".log";
 
   // Initialize the output log file
   initLog(logFile.c_str());
+  FILE_LOG_MASTER(INFO, "Simulation started");
   FILE_LOG_MASTER(INFO, "Code with commit hash : %s of branch %s", GIT_COMMIT_HASH,
            GIT_BRANCH);
+  FILE_LOG_MASTER(INFO, "Event ID : %s", uid.c_str());
   return inputJson;
 }
 
@@ -68,8 +70,10 @@ void InitFemTechWoInput(int argc, char **argv) {
 
   // Initialize the output log file
   initLog(logFile.c_str());
+  FILE_LOG_MASTER(INFO, "Simulation started");
   FILE_LOG_MASTER(INFO, "Code with commit hash : %s of branch %s", GIT_COMMIT_HASH,
            GIT_BRANCH);
+  FILE_LOG_MASTER(INFO, "Event ID : %s", uid.c_str());
 }
 
 void FinalizeFemTech() {

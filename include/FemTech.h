@@ -36,7 +36,10 @@ void AllocateArrays();
 void Assembly(char *operation);
 void StiffnessElementMatrix(double* Ke, int e);
 void MassElementMatrix(double* Me, int e);
-void WriteVTU(const char* FileName, int step);
+void WriteVTU(const char* FileName, int step, int** intCellData = NULL, \
+    int cellDataCount = 0, const char **cellDataNames = NULL, \
+    int *mapping = NULL, int mapCount = 0, double **dpCellData = NULL, \
+    int dpDataCount = 0, const char **dpDataNames = NULL);
 void WritePVD(const char* FileName, int step);
 void FreeArrays();
 void ApplySteadyBoundaryConditions(void);
@@ -59,6 +62,7 @@ void CalculateFR();
 void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
     double *currentStrainMin, double *currentShearMax);
 void CalculateStrain();
+void CalculateElementStress(unsigned int e, double* stress);
 void CalculateDeformationGradient(int e, int gp);
 void SumOfDeformationGradient(int e, int gp);
 void StrainDisplacementMatrix(int e, int gp, int nI, double *B);
@@ -76,9 +80,14 @@ void NeoHookeanAbaqus(int e, int gp);
 void LinearElastic(int e, int gp);
 void HGOIsotropic(int e, int gp);
 void HGOIsotropicViscoelastic(int e, int gp);
-void Viscoelastic(int e, int gp);
+void Ogden(int e, int gp);
+void OgdenViscoelastic(int e, int gp);
+void lsDynaKMEquivalent(int e, int gp);
+double CalculateWaveSpeed(const unsigned int partID);
 
-void inverse3x3Matrix(double* mat, double* invMat, double* det);
+// TODO : Move to math.h
+double inverse3x3Matrix(double* mat, double* invMat);
+double det3x3Matrix(double* mat);
 //void MultiplyMatrices(double* a, double* b, int sizeM, double* result);
 double tripleProduct(double* s, double* a, double* b);
 double normOfCrossProduct(double *a, double *b);
@@ -93,8 +102,14 @@ void quaternionMultiply(double *q1, double *q2, double *qr);
 void quaternionInverse(double *q, double *qinv);
 void quaternionRotate(double *v, double *R, double* vp);
 void quaternionRotate(double *v, double *R, double *Rinv, double* vp);
+double compute95thPercentileValueBruteForce(double* dataArray, int localSize);
+double compute95thPercentileValue(double* dataArray, int localSize);
+void test95Percentile(void);
+void dyadic(const double* const, const double, double * const);
+void computeAAT3d(const double* const matI, double* const matO);
+void computeAAT3dI(const double* const matI, double* const matO);
 
-void CheckEnergy(double time, int writeFlag);
+void CheckEnergy(double time, bool writeFlag);
 
 /* Functions to calculate characteristic lengths */
 double CalculateCharacteristicLength(int e);
@@ -113,6 +128,8 @@ void updateMassMatrixNeighbour(void);
 double volumeHexahedron(double *coordinates);
 double areaHexahedronFace(double *coordinates, const int * const index);
 double volumeTetrahedron(double *coordinates);
+void computePartVolume(double *volume, double *elemVolume);
+double calculateVolume(int e);
 
 int compare(const void *a, const void *b);
 int unique(int *arr, int n);
@@ -123,4 +140,9 @@ Json::Value InitFemTech(int argc, char **argv);
 void InitFemTechWoInput(int argc, char **argv);
 void FinalizeFemTech();
 void TerminateFemTech(int errorCode);
+
+/* Functions for updated Lagrangian formulation */
+void CalculateF_XiAndInverse(int e, int gp);
+void ComputeH(int e, int gp, double *H);
+void InternalForceUpdateUL(int e, int gp, double *force);
 #endif

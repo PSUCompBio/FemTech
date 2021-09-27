@@ -26,6 +26,9 @@ double *mat1, *mat2, *mat3, *mat4;
 int *boundary;
 FILE *energyFile;
 
+int ndim2;
+double *F_Xi, *F_XiInverse, J_Xi;
+
 void AllocateArrays() {
   // Allocate and initialize global displacements
 	displacements=(double*)calloc(nDOF,sizeof(double));
@@ -121,7 +124,7 @@ void AllocateArrays() {
       FILE_LOG_SINGLE(ERROR, "Error in allocating f_damp_prev array");
       TerminateFemTech(12);
     }
-    std::string energyFileName = "energy_"+uid+".dat"; 
+    std::string energyFileName = "energy.dat"; 
     energyFile = fopen(energyFileName.c_str(), "w");
     fprintf(energyFile, "# Energy for FEM\n");
     fprintf(energyFile, "# Time  Winternal   Wexternal   WKE   total\n");
@@ -133,21 +136,24 @@ void AllocateArrays() {
     }
     // Allocations for material temporary computation
     // By default initialize mat1 and mat2
-    // If HGO or Linear Elastic material model present, allocate mat3 and mat4
-    int matCount = 2;
-    for (int i = 0; i < nPIDglobal; ++i) {
-      if (materialID[i] == 3 || materialID[i] == 4 || materialID[i] == 5) {
-        matCount = 4;
-        break;
-      }    
-    }
+    // If HGO, Linear Elastic or Ogden material model present, allocate mat3 and mat4
+    // int matCount = 2;
+    // for (int i = 0; i < nPIDglobal; ++i) {
+    //   if (materialID[i] == 3 || materialID[i] == 4 || materialID[i] == 5 || materialID[i] == 7 || materialID[i] == 8) {
+    //     matCount = 4;
+    //     break;
+    //   }    
+    // }
     const int matSize = ndim*ndim;
     mat1 = (double*)malloc(matSize*sizeof(double));
     mat2 = (double*)malloc(matSize*sizeof(double));
-    if (matCount == 4) {
-      mat3 = (double*)malloc(matSize*sizeof(double));
-      mat4 = (double*)malloc(matSize*sizeof(double));
-    }
+    mat3 = (double*)malloc(matSize*sizeof(double));
+    mat4 = (double*)malloc(matSize*sizeof(double));
   }
+  /* Precompute and store constantly used sub expressions */
+  ndim2 = ndim*ndim;
+  /* Store variables required for updated lagrangian computation */
+  F_Xi = (double*)malloc(ndim2*sizeof(double));
+  F_XiInverse = (double*)malloc(ndim2*sizeof(double));
 	return;
 }

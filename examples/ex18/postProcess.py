@@ -16,7 +16,7 @@ fileName = sys.argv[1]
 # Remove comments in json string before parsing
 config = json.loads(re.sub("//.*","", open(fileName).read(),flags=re.MULTILINE))
 
-uid = config["uid"]
+uid = config["event_id"]
 # Read the main output file
 trace = pd.read_csv('./plot_'+uid+'.dat', delimiter=' ')
 logFile = './femtech_'+uid+'.log'

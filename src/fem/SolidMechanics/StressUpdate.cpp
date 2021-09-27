@@ -22,8 +22,14 @@ void StressUpdate(int e, int gp){
     case 5 : // HGO with isotropic fiber distribution and viscoelasticity
              HGOIsotropicViscoelastic(e, gp);
              break;
-    case 6 : // Viscoelastic material
-             Viscoelastic(e, gp);
+    case 6 : // LS-Dyna Maxwell viscoelastic material equivalent
+             lsDynaKMEquivalent(e, gp);
+             break;
+    case 7 : // Ogden
+             Ogden(e, gp);
+             break;
+    case 8 : // Ogden Viscoelastic
+             OgdenViscoelastic(e, gp);
              break;
     default : FILE_LOG_SINGLE(ERROR, "Unknown material type");
               TerminateFemTech(1);

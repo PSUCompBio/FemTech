@@ -35,7 +35,13 @@ message(STATUS "Install Directory : ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Current built type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Current build type flags: ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}")
 # Set additional compiler flags
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native -mtune=native")
+STRING(TOLOWER "${PROC_ARCH}" PROC_ARCH)
+if (NOT PROC_ARCH)
+  message(STATUS "No processor instruction set selected, default to Native")
+  set(PROC_ARCH "native" CACHE STRING "Instruction set (default native)" FORCE)
+endif()
+
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=${PROC_ARCH} -mtune=${PROC_ARCH}")
 
 # set install rules (windows only)
 if(WIN32)

@@ -10,11 +10,15 @@ double Time, dt;
 int nSteps;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
+double MaxTimeStep = 1e-5;
 
 int nPlotSteps = 50;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
+
+
+double dynamicDamping = 0.01;
 
 int main(int argc, char **argv) {
   InitFemTechWoInput(argc, argv);
