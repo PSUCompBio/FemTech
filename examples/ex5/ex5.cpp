@@ -1433,9 +1433,9 @@ void WriteOutputFile() {
     // Calculate cumulative volume on all ranks
     MPI_Allreduce(MPI_IN_PLACE, thresholdVolume, 6, MPI_DOUBLE, MPI_SUM,
                   MPI_COMM_WORLD);
+    double totalVolume = 0.0;
     if (world_rank == 0) {
       // Excluded PID hardcoded for CSDM computation
-      double totalVolume = 0.0;
       for (int i = 0; i < nPIDglobal; ++i) {
         bool include = true;
         for (int j = 0; j < injuryExcludePIDCount; ++j) {
@@ -1524,7 +1524,23 @@ void WriteOutputFile() {
           elementList[j] = fullElemList[j];
         }
         free(fullElemList);
-        output[jsonOutputTag[i]]["global-element-id"] = elementList;
+        // output[jsonOutputTag[i]]["global-element-id"] = elementList;
+        Json::Value outputThreshold;
+        outputThreshold["global-element-id"] = elementList;
+        Json::StreamWriterBuilder builder;
+        builder["commentStyle"] = "None";
+        builder["indentation"] = "  ";
+        std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+        std::ofstream oFile(jsonOutputTag[i] + ".json");
+
+        if (i < csdmCount) {
+          outputThreshold["value"] = thresholdVolume[i] / totalVolume;
+        } else {
+          int ind = i - csdmCount;
+          outputThreshold["value"] = percentileValue[ind];
+          outputThreshold["time"] = percentileTime[ind];
+        }
+        writer->write(outputThreshold, &oFile);
       }
       free(localElemList);
       MPI_Barrier(MPI_COMM_WORLD);
@@ -1544,7 +1560,7 @@ void WriteOutputFile() {
     std::ofstream oFile(uid + "_output.json");
     writer->write(output, &oFile);
   }
-  FILE_LOG_MASTER(INFO, "Json output file written");
+  FILE_LOG_MASTER(INFO, "Json output files written");
 }
 
 void InitInjuryCriteria(void) {
