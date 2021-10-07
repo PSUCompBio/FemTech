@@ -107,14 +107,18 @@ if (not 'compute-injury-criteria' in inputJson['simulation']) or inputJson['simu
 
     # Loop over metric with multiple element output
     for metric in threshInjuryMetrics:
-        maxLocation = outputJson[metric]["global-element-id"]
+        jsonOutputFileMetric = metric + '.json'
+        outputJsonMetric = json.loads(open(jsonOutputFileMetric).read())
+        maxLocation = outputJsonMetric["global-element-id"]
         for part in partList:
-            outputJson[metric][part] = []
+            outputJsonMetric[part] = []
         for loc in maxLocation:
             maxLine = linecache.getline(cellDataFile, int(loc)).split()
-            outputJson[metric][maxLine[4]].append([float(maxLine[1]), \
+            outputJsonMetric[maxLine[4]].append([float(maxLine[1]), \
                     float(maxLine[2]), float(maxLine[3])])
-        outputJson[metric].pop("global-element-id", None)
+        outputJsonMetric.pop("global-element-id", None)
+        with open(jsonOutputFileMetric, 'w') as outfile:
+            json.dump(outputJsonMetric, outfile, indent = 2, sort_keys=False)
 
 # Add max quantities 
 outputJson["max-linear-acc-g"] = maxG
