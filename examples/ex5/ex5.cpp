@@ -625,12 +625,12 @@ void CustomPlot() {
       unsigned int plotIndex = i * ndim;
       double xCordLocal, yCordLocal, zCordLocal;
       if (outputRelativeDisplacement) {
-        double xCord = displacements[plotNode] - yInt[9];
-        double yCord = displacements[plotNode + 1] - yInt[10];
-        double zCord = displacements[plotNode + 2] - yInt[11];
-        xCordLocal = xCord*unitVec[0] + yCord*unitVec[1] + zCord*unitVec[2];
-        yCordLocal = xCord*unitVec[3] + yCord*unitVec[4] + zCord*unitVec[5];
-        zCordLocal = xCord*unitVec[6] + yCord*unitVec[7] + zCord*unitVec[8];
+        double xCord = displacements[plotNode] + coordinates[plotNode] - yInt[9];
+        double yCord = displacements[plotNode + 1] + coordinates[plotNode + 1] - yInt[10];
+        double zCord = displacements[plotNode + 2] + coordinates[plotNode + 2] - yInt[11];
+        xCordLocal = xCord*unitVec[0] + yCord*unitVec[1] + zCord*unitVec[2] - coordinates[plotNode];
+        yCordLocal = xCord*unitVec[3] + yCord*unitVec[4] + zCord*unitVec[5] - coordinates[plotNode + 1];
+        zCordLocal = xCord*unitVec[6] + yCord*unitVec[7] + zCord*unitVec[8] - coordinates[plotNode + 2];
       } else {
         xCordLocal = displacements[plotNode];
         yCordLocal = displacements[plotNode + 1];
