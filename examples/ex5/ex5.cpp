@@ -846,6 +846,19 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
       for (int i = 0; i < angVelZSize; ++i) {
         angVelZt[i] = 0.001 * angVelZt[i];
       }
+      // Subtract the initial angular velocity from data
+      const double xZero = angVelXv[0];
+      for (int i = 0; i < angVelXSize; ++i) {
+        angVelXv[i] -= xZero;
+      }
+      const double yZero = angVelYv[0];
+      for (int i = 0; i < angVelYSize; ++i) {
+        angVelYv[i] -= yZero;
+      }
+      const double zZero = angVelZv[0];
+      for (int i = 0; i < angVelZSize; ++i) {
+        angVelZv[i] -= zZero;
+      }
     } else {
       for (int i = 0; i < angAccXSize; ++i) {
         angAccXt[i] = 0.001 * angAccXt[i];
