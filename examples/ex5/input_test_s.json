@@ -22,7 +22,7 @@
         "zv": [ 0, 0, 0 ],
         "zt": [0, 20, 40]
     },
-    "maximum-time": 0.4,
+    "maximum-time": 0.2,
     "mesh-transformation" : ["-z", "-x", "y"],
     "head-cg" : [0.0, -0.3308, -0.037],
     "angular-sensor-position": [ 0.025, -0.281, -0.089757 ],

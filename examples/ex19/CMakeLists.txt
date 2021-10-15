@@ -15,7 +15,6 @@ file(INSTALL wideshear.k DESTINATION .)
 file(INSTALL materials.dat DESTINATION .)
 file(INSTALL gnuplot.script DESTINATION .)
 file(INSTALL README.md DESTINATION .)
-file(INSTALL lsdyna DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
 

@@ -39,6 +39,8 @@ double MaxTimeStep = 1e-5;
 int nPlotSteps = 50;
 int nWriteSteps = 2000;
 
+double dynamicDamping = 0.01;
+
 /* Global variables used only in this file */
 int nodeIDtoPlot;
 bool rankForCustomPlot;

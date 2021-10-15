@@ -1,5 +1,5 @@
 {
-  "event_id": "test_st",
+  "uid": "test_st",
   "player": {
     "name" : "harry",
     "position" : "OL"
@@ -22,7 +22,7 @@
         "zv": [ 0, 0, 0 ],
         "zt": [0, 20, 40]
     },
-    "maximum-time": 0.4,
+    "maximum-time": 0.2,
     "mesh-transformation" : ["y", "-z", "-x"],
     "head-cg" : [0.0, -0.3308, -0.037],
     "write-vtu" : false
