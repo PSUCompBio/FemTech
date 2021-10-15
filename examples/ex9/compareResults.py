@@ -11,11 +11,14 @@ def getLastLine(fname):
         array = map(float, lastLine.split())
         return np.array(array)
 
-femTech = getLastLine('plot.dat')
-abaqus = getLastLine('abaqus/abaqus.rpt')
+femTech = getLastLine('displacement.dat')
+abaqus = getLastLine('ls-dyna/ogdenDisplacement.txt')
+
+print(femTech)
+print(abaqus)
 
 tF = femTech[0]; xF = femTech[1:];
-tA = abaqus[0]; xA = abaqus[10:13];
+tA = abaqus[0]; xA = abaqus[1:];
 
 dT = np.abs((tF-tA)*100.0/tA);
 dX = np.abs((xF-xA)*100.0/xA);

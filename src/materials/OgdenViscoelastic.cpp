@@ -161,7 +161,6 @@ void OgdenViscoelastic(int e, int gp) {
 
   // Compute deviatoric part of sigmaTilde and add the isochoric part to obtain
   // sigma
- // FILE_LOG_SINGLE(WARNING, "Trace of sigma = %15.9f", sigma[0]+sigma[4]+sigma[8]);
   const double volum = invJ*K*(J-1.0); 
   // Compute sigma
   double* sigma_e = sigma;

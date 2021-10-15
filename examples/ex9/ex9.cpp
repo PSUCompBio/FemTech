@@ -5,13 +5,23 @@
 
 /*Delare Functions*/
 void ApplyVelocityBoundaryConditions(double);
+void ApplyVelocityBoundaryConditionsVE(double);
 void InitVelocityBoundaryConditions();
 void CustomPlot();
+void InitCustomPlot();
+
+// Global parameters to output
+bool writeNodeOP = false;
+bool writeElementOP = false;
+int plotNodeID = 0;
+int plotElemID = 0;
 
 double Time, dt;
 int nSteps;
 
-double dynamicDamping = 0.000;
+double dynamicDamping = 0.01;
+// 0.2 : Very bad stress, displacement match
+// 0.002 : Works for Ogden material model
 double ExplicitTimeStepReduction = 0.7;
 double FailureTimeStep = 1e-11;
 double MaxTimeStep = 1e-1;
@@ -46,7 +56,7 @@ int main(int argc, char **argv) {
   int plot_counter = 0;
   WriteVTU(outputFileName.c_str(), plot_counter);
   stepTime[plot_counter] = Time;
-  CustomPlot();
+
 
   // Dynamic Explcit solution Belytschko Box 6.1
   dt = 0.0;
@@ -54,15 +64,30 @@ int main(int argc, char **argv) {
   // Initial operations 
   int time_step_counter = 0;
   ShapeFunctions();
+  // Check if the problem is viscoelastic or not
+  bool viscoElastic = false;
+  for (int i = 0; i < nelements; ++i) {
+    if (nProny[i]) {
+      viscoElastic = true;
+      break;
+    }
+  }
   /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
   AssembleLumpedMass();
   InitVelocityBoundaryConditions();
+  InitCustomPlot();
+
+  // CustomPlot();
 
   /* Obtain dt, according to Belytschko dt is calculated at end of getForce */
   dt = ExplicitTimeStepReduction * StableTimeStep();
 
   // Used if initial velocity BC is to be set.
-  ApplyVelocityBoundaryConditions(0.5*dt);
+  if (viscoElastic) {
+    ApplyVelocityBoundaryConditionsVE(0.5*dt);
+  } else {
+    ApplyVelocityBoundaryConditions(0.5*dt);
+  }
 
   // For cases with no residual stress and external forces, 
   // GetFoce is not required, we can directly set accelerations at zero time
@@ -110,7 +135,11 @@ int main(int argc, char **argv) {
     double t_nphalf = t_n + dtby2; // equ 6.2.1
 
     /* Step 6 Enforce velocity boundary Conditions */
-    ApplyVelocityBoundaryConditions(t_nphalf);
+    if (viscoElastic) {
+      ApplyVelocityBoundaryConditionsVE(t_nphalf);
+    } else {
+      ApplyVelocityBoundaryConditions(t_nphalf);
+    }
 
     /* Step 5 from Belytschko Box 6.1 - Update velocity */
     for (int i = 0; i < nDOF; i++) {
@@ -213,6 +242,50 @@ void ApplyVelocityBoundaryConditions(double) {
   return;
 }
 
+void ApplyVelocityBoundaryConditionsVE(double t) {
+  double tol = 1e-5;
+  int index;
+
+  double nVel = 0.0;
+  if (t < 0.025) {
+    nVel = dMax/0.025;
+  } else {
+    if (t < 0.475) {
+      nVel = 0.0;
+    } else {
+      if (t < 0.5) {
+        nVel = -dMax/0.025;
+      }
+    }
+  }
+
+  for (int i = 0; i < nNodes; i++) {
+    // if x value = 0, constrain node to x plane (0-direction)
+    index = ndim * i + 0;
+    if (fabs(coordinates[index] - 0.0) < tol) {
+      velocities_half[index] = 0.0;
+    }
+    // if y coordinate = 0, constrain node to y plane (1-direction)
+    index = ndim * i + 1;
+    if (fabs(coordinates[index] - 0.0) < tol) {
+      velocities_half[index] = 0.0;
+    }
+    // if z coordinate = 0, constrain node to z plane (2-direction)
+    index = ndim * i + 2;
+    if (fabs(coordinates[index] - 0.0) < tol) {
+      velocities_half[index] = 0.0;
+    }
+    // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
+    index = ndim * i + 1;
+    if (fabs(coordinates[index] - 0.005) < tol) {
+      velocities_half[index] = nVel;
+    }
+  }
+  FILE_LOG_MASTER(INFO, "Time = %10.5E, Applied Velocity = %10.5E", Time,
+                  nVel);
+  return;
+}
+
 void InitVelocityBoundaryConditions() {
   double tol = 1e-5;
   int index;
@@ -241,41 +314,94 @@ void InitVelocityBoundaryConditions() {
   return;
 }
 
-void CustomPlot() {
-  double tol = 1e-5;
-  FILE *datFile;
-  int x = 0;
-  int y = 1;
-  int z = 2;
-
-  if (fabs(Time - 0.0) < 1e-16) {
-    datFile = fopen("plot.dat", "w");
-    fprintf(datFile, "# Results for Node ?\n");
-    fprintf(datFile, "# Time  DispX  DispY  DispZ  SigmaXX  SigmaYY  SigmaZZ  "
-                     "SigmaXY  Sigma XZ  SigmaYZ\n");
-    fprintf(datFile, "%13.5e  %13.5e  %13.5e  %13.5e  %13.5e  %13.5e  %13.5e  "
-            "%13.5e  %13.5e  %13.5e\n", 
-            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-  } else {
-    datFile = fopen("plot.dat", "a");
-    for (int i = 0; i < nNodes; i++) {
-      if (fabs(coordinates[ndim * i + x] - 0.005) < tol &&
-          fabs(coordinates[ndim * i + y] - 0.005) < tol &&
-          fabs(coordinates[ndim * i + z] - 0.005) < tol) {
-
-        fprintf(datFile, "%13.5e  %13.5e  %13.5e  %13.5e  ", Time,
-                displacements[ndim * i + x], displacements[ndim * i + y],
-                displacements[ndim * i + z]);
-      }
+void InitCustomPlot() {
+  // Find process with largest nodeID and elementID
+  // Assumes larges node and elemnt is to be written
+  int maxNodeID = globalNodeID[0];
+  int localID = 0;
+  for (int i = 1; i < nNodes; ++i) {
+    if (globalNodeID[i] > maxNodeID) {
+      maxNodeID = globalNodeID[i];
+      localID = i;
     }
-    // Compute Cauchy stress for the element
-    double stressElem[6];
-    CalculateElementStress(0, stressElem);
-    // Print all six stress components of 1st element stress
-    fprintf(datFile, "%13.5e  %13.5e  %13.5e  %13.5e  %13.5e  %13.5e\n",
-            stressElem[0], stressElem[1], stressElem[2], stressElem[5],
-            stressElem[4], stressElem[3]);
   }
-  fclose(datFile);
+  // Find maximum among processors
+  int globalMax;
+  MPI_Allreduce(&maxNodeID, &globalMax, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+  if (globalMax == maxNodeID) {
+    writeNodeOP = true;
+    plotNodeID = localID;
+  }
+  // Similarly for element ID
+  int maxElemID = global_eid[0];
+  localID = 0;
+  for (int i = 1; i < nelements; ++i) {
+    if (global_eid[i] > maxElemID) {
+      maxElemID = global_eid[i];
+      localID = i;
+    }
+  }
+  // Find maximum among processors
+  MPI_Allreduce(&maxElemID, &globalMax, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+  if (globalMax == maxElemID) {
+    writeElementOP = true;
+    plotElemID = localID;
+  }
+  const int x = 0;
+  const int y = 1;
+  const int z = 2;
+
+  // Write the file header and first entry
+  // Write nodal displacement
+  if (writeNodeOP) {
+    FILE *datFileD;
+    datFileD = fopen("displacement.dat", "w");
+    fprintf(datFileD, "# Results for Node %d\n", plotNodeID+1);
+    fprintf(datFileD, "# Time  DispX  DispY  DispZ\n");
+    fprintf(datFileD, "%13.5e  %13.5e  %13.5e  %13.5e\n", 0.0,
+            displacements[ndim * plotNodeID + x], displacements[ndim * plotNodeID + y],
+            displacements[ndim * plotNodeID + z]);
+    fclose(datFileD);
+  }
+  // Write element stress, assumes no residual stress, hence all zeros
+  if (writeElementOP) {
+    FILE *datFileS;
+    datFileS = fopen("stress.dat", "w");
+    fprintf(datFileS, "# Results for Element %d\n", plotElemID+1);
+    fprintf(datFileS, "# Time  SigmaXX  SigmaYY  SigmaZZ  "
+                     "SigmaXY  Sigma XZ  SigmaYZ\n");
+    fprintf(datFileS, "%13.5e  %13.5e  %13.5e  %13.5e  %13.5e  %13.5e %13.5e\n",
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    fclose(datFileS);
+  }
+}
+
+void CustomPlot() {
+  // Create 2 files, writing out displacement and stress
+  // Write nodal displacement
+  if (writeNodeOP) {
+    const int x = 0;
+    const int y = 1;
+    const int z = 2;
+
+    FILE *datFileD;
+    datFileD = fopen("displacement.dat", "a");
+    fprintf(datFileD, "%13.5e  %13.5e  %13.5e  %13.5e\n", Time,
+            displacements[ndim * plotNodeID + x], displacements[ndim * plotNodeID + y],
+            displacements[ndim * plotNodeID + z]);
+    fclose(datFileD);
+  }
+  // Write element stress, assumes no residual stress, hence all zeros
+  if (writeElementOP) {
+    FILE *datFileS;
+    datFileS = fopen("stress.dat", "a");
+    double stressElem[6];
+    CalculateElementStress(plotElemID, stressElem);
+    // Print all six stress components of 1st element stress
+    fprintf(datFileS, "%13.5e  %13.5e  %13.5e  %13.5e  %13.5e  %13.5e  %13.5e\n",
+            Time, stressElem[0], stressElem[1], stressElem[2], stressElem[5],
+            stressElem[4], stressElem[3]);
+    fclose(datFileS);
+  }
   return;
 }

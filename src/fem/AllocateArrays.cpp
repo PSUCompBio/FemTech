@@ -126,7 +126,8 @@ void AllocateArrays() {
       FILE_LOG_SINGLE(ERROR, "Error in allocating f_damp_prev array");
       TerminateFemTech(12);
     }
-	if(RI){
+
+    if(RI){
 		f_hg = (double*)calloc(nDOF, sizeof(double)); // Internal Nodal force vector
     if (!f_hg) {
       FILE_LOG_SINGLE(ERROR, "Error in allocating f_hg array");
@@ -138,7 +139,7 @@ void AllocateArrays() {
       TerminateFemTech(12);
     }
 }
-    std::string energyFileName = "energy_"+uid+".dat"; 
+    std::string energyFileName = "energy.dat"; 
     energyFile = fopen(energyFileName.c_str(), "w");
     fprintf(energyFile, "# Energy for FEM\n");
     fprintf(energyFile, "# Time  Winternal   Wexternal   WKE   total\n");
