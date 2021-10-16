@@ -126,7 +126,7 @@ void AllocateArrays() {
       FILE_LOG_SINGLE(ERROR, "Error in allocating f_damp_prev array");
       TerminateFemTech(12);
     }
-    if (RI) {
+    if (reducedIntegration) {
       f_hg = (double*)calloc(nDOF, sizeof(double)); // Internal Nodal force vector
       if (!f_hg) {
         FILE_LOG_SINGLE(ERROR, "Error in allocating f_hg array");

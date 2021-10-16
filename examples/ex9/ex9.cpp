@@ -31,7 +31,7 @@ int nFieldSkip = 1; // 1 in nFieldSkip plot steps will be used to output VTU
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
-bool RI = true;
+bool reducedIntegration = true;
 
 // Parameters of simple tension test
 double tMax = 1.00;  // max simulation time in seconds

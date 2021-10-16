@@ -138,6 +138,9 @@ bool ReadAbaqus(const char *FileName) {
                     eptr[j] = eptr[j - 1] + n;
                     ConnectivitySize = ConnectivitySize + n;
                     Type[MAX_ELEMENT_TYPE_SIZE - 1] = 0;
+                    if (!strcmp(Type, "C3D8") && reducedIntegration) {
+                      strncpy(Type, "C3D8R", MAX_ELEMENT_TYPE_SIZE);
+                    }
                     strcpy(ElementType[pi], Type);
                     strcpy(ElSetNames[pi], ElSetName);
                     pi = pi + 1;

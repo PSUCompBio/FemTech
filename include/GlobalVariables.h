@@ -17,7 +17,7 @@ static const int elemWeight[] = {2, 1, 1, 1};
 const double huge = 1e20;
 
 extern double dynamicDamping;
-extern bool RI;
+extern bool reducedIntegration;
 
 extern std::string uid; /* Simulation unique id */
 extern int nparts;
