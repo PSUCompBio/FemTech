@@ -12,19 +12,20 @@ double Time, dt;
 int nSteps;
 
 double dynamicDamping = 0.000;
-double ExplicitTimeStepReduction = 0.7;
+double ExplicitTimeStepReduction = 0.668;
 double FailureTimeStep = 1e-11;
 double MaxTimeStep = 1e-1;
 
-int nPlotSteps = 1000;
-int nFieldSkip = 20; // 1 in nFieldSkip plot steps will be used to output VTU
+int nPlotSteps = 50;
+int nFieldSkip = 1; // 1 in nFieldSkip plot steps will be used to output VTU
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
+bool reducedIntegration = true;
 
 // Parameters of simple tension test
 double tMax = 1.00;  // max simulation time in seconds
-double dMax = 0.007; // max displacment in meters
+double dMax = 0.001; // max displacment in meters
 
 int main(int argc, char **argv) {
   // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
@@ -124,6 +125,8 @@ int main(int argc, char **argv) {
     // Store internal external force from previous step to compute energy
     memcpy(fi_prev, fi, nDOF * sizeof(double));
     memcpy(fe_prev, fe, nDOF * sizeof(double));
+   // if(RI)
+   //	memcpy(f_hgprev, f_hg, nDOF * sizeof(double));
 
     // update displacements for all nodes, including where velocity bc is set
     for (int i = 0; i < nDOF; i++) {
@@ -186,23 +189,30 @@ void ApplyVelocityBoundaryConditions(double) {
   int index;
 
   for (int i = 0; i < nNodes; i++) {
+    // if x value = 0, constrain node to x plane (0-direction)
+    index = ndim * i + 1;
+    if (fabs(coordinates[index] - 0.0) < tol) {
+      velocities_half[index-1] = 0.0;
+    }
     // if y coordinate = 0, constrain node to y plane (1-direction)
     index = ndim * i + 1;
     if (fabs(coordinates[index] - 0.0) < tol) {
       velocities_half[index] = 0.0;
-      // Constraint x in y = 0 plane
-      velocities_half[index-1] = 0.0;
-      // Constraint z in y = 0 plane
-      velocities_half[index+1] = 0.0;
     }
-    // if y coordinate = 1, apply disp. to node in x direction (1-direction)
-    // index = ndim * i + 1;
+    // if z coordinate = 0, constrain node to z plane (2-direction)
+    index = ndim * i + 2;
+    if (fabs(coordinates[index] - 0.0) < tol) {
+      velocities_half[index] = 0.0;
+    }
     if (fabs(coordinates[index] - 0.005) < tol) {
       velocities_half[index] = 0.0;
-      // Constraint x in y = 1 plane and prescribe motion
+    }
+    // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
+    // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
+    index = ndim * i + 1;
+    if (fabs(coordinates[index] - 0.001) < tol) {
       velocities_half[index-1] = dMax / tMax;
-      // Constraint z in y = 1 plane
-      velocities_half[index+1] = 0.0;
+      velocities_half[index] = 0.0;
     }
   }
   FILE_LOG_MASTER(INFO, "Time = %10.5E, Applied Velocity = %10.5E", Time,
@@ -214,23 +224,29 @@ void InitVelocityBoundaryConditions() {
   double tol = 1e-5;
   int index;
   for (int i = 0; i < nNodes; i++) {
+    // if x value = 0, constrain node to x plane (0-direction)
+    index = ndim * i + 1;
+    if (fabs(coordinates[index] - 0.0) < tol) {
+      boundary[index-1] = 1;
+    }
     // if y coordinate = 0, constrain node to y plane (1-direction)
     index = ndim * i + 1;
     if (fabs(coordinates[index] - 0.0) < tol) {
       boundary[index] = 1;
-      // Constraint x in y = 0 plane
-      boundary[index-1] = 1;
-      // Constraint z in y = 0 plane
-      boundary[index+1] = 1;
     }
-    // if y coordinate = 1, apply disp. to node in x direction (1-direction)
-    // index = ndim * i + 1;
+    // if z coordinate = 0, constrain node to z plane (2-direction)
+    index = ndim * i + 2;
+    if (fabs(coordinates[index] - 0.0) < tol) {
+      boundary[index] = 1;
+    }
     if (fabs(coordinates[index] - 0.005) < tol) {
       boundary[index] = 1;
-      // Constraint x in y = 1 plane
+    }
+    // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
+    index = ndim * i + 1;
+    if (fabs(coordinates[index] - 0.001) < tol) {
       boundary[index-1] = 1;
-      // Constraint z in y = 1 plane
-      boundary[index+1] = 1;
+      boundary[index] = 1;
     }
   }
   return;
@@ -254,9 +270,9 @@ void CustomPlot() {
   } else {
     datFile = fopen("plot.dat", "a");
     for (int i = 0; i < nNodes; i++) {
-      if (fabs(coordinates[ndim * i + x] - 0.005) < tol &&
-          fabs(coordinates[ndim * i + y] - 0.005) < tol &&
-          fabs(coordinates[ndim * i + z] - 0.005) < tol) {
+      if (fabs(coordinates[ndim * i + x] - 0.002) < tol &&
+          fabs(coordinates[ndim * i + y] - 0.0005) < tol &&
+          fabs(coordinates[ndim * i + z] - 0.002) < tol) {
 
         fprintf(datFile, "%13.5e  %13.5e  %13.5e  %13.5e  ", Time,
                 displacements[ndim * i + x], displacements[ndim * i + y],
@@ -265,7 +281,7 @@ void CustomPlot() {
     }
     // Compute Cauchy stress for the element
     double stressElem[6];
-    CalculateElementStress(0, stressElem);
+    CalculateElementStress(94, stressElem);
     // Print all six stress components of 1st element stress
     fprintf(datFile, "%13.5e  %13.5e  %13.5e  %13.5e  %13.5e  %13.5e\n",
             stressElem[0], stressElem[1], stressElem[2], stressElem[5],

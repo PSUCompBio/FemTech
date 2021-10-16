@@ -36,6 +36,7 @@ int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
+bool reducedIntegration = true;
 
 double dynamicDamping = 0.000;
 double ExplicitTimeStepReduction = 0.8;
@@ -157,6 +158,8 @@ std::string outputFileName;
 int main(int argc, char **argv) {
   // Initialize FemTech including logfile and MPI
   Json::Value inputJson = InitFemTech(argc, argv);
+
+  // Processing various solver and output flags from the json file
   Json::Value simulationJson = inputJson["simulation"];
 
   std::string meshFile = simulationJson["mesh"].asString();
@@ -167,6 +170,12 @@ int main(int argc, char **argv) {
   }
   if (!simulationJson["compute-injury-criteria"].empty()) {
     computeInjuryFlag = simulationJson["compute-injury-criteria"].asBool();
+  }
+  if (!simulationJson["reduced-integration"].empty()) {
+    reducedIntegration = simulationJson["reduced-integration"].asBool();
+  }
+  if (reducedIntegration) {
+    FILE_LOG_MASTER(INFO, "Solver using reduced integration");
   }
   FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
   // Read Input Mesh file and equally partition elements among processes

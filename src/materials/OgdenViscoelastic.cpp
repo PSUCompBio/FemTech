@@ -123,6 +123,7 @@ void OgdenViscoelastic(int e, int gp) {
     preFactor /= cEigenValue[i];
     dyadic(&Cmat[3*i], preFactor, devS0np1);
   }
+ // FILE_LOG_SINGLE(WARNING, "Trace of devS0np1 = %15.9f", devS0np1[0]+devS0np1[4]+devS0np1[8]);
 
   // Access histroy dependence
   double *Sdev = mat4;
@@ -158,8 +159,6 @@ void OgdenViscoelastic(int e, int gp) {
   dgemm_(chn, chy, &ndim, &ndim, &ndim, &invJ, sigmaTemp, &ndim,
       F_element_gp, &ndim, &zero, sigma, &ndim);
 
-  // Compute deviatoric part of sigmaTilde and add the isochoric part to obtain
-  // sigma
   const double volum = invJ*K*(J-1.0); 
   // Compute sigma
   double* sigma_e = sigma;

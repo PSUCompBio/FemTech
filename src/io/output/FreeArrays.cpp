@@ -96,4 +96,9 @@ void FreeArrays() {
   free1DArray(B0);
   // Temperory test variables
   // free1DArray(F_Xi_0);
+  // Free arrays used for reduced integration
+  if (reducedIntegration) {
+    free1DArray(f_hg);
+    free1DArray(f_hgprev);
+  }
 }

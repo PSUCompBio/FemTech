@@ -127,12 +127,12 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
     B0[baseIndex] = dshp[baseIndex]*J_Inv[0]+dshp[baseIndex+1]*J_Inv[1]+dshp[baseIndex+2]*J_Inv[2];
     B0[baseIndex+1] = dshp[baseIndex]*J_Inv[3]+dshp[baseIndex+1]*J_Inv[4]+dshp[baseIndex+2]*J_Inv[5];
     B0[baseIndex+2] = dshp[baseIndex]*J_Inv[6]+dshp[baseIndex+1]*J_Inv[7]+dshp[baseIndex+2]*J_Inv[8];
-
 	  FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Shape fn        : %d, %12.6f, %12.6f, %12.6f", i, \
         dshp[baseIndex], dshp[baseIndex+1], dshp[baseIndex+2]);
     FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Shape fn Global : %d, %12.6f, %12.6f, %12.6f", \
         i, B0[baseIndex], B0[baseIndex+1], B0[baseIndex+2]);
   }
+
   FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, xs, ndim, ndim, "---- XS Matrix ----")
   FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, J_Inv, ndim, ndim, "---- JInv Matrix ----")
   return;

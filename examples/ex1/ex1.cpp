@@ -4,6 +4,7 @@
 
 bool ImplicitDynamic = true;
 bool ExplicitDynamic = false;
+bool reducedIntegration = true;
 
 double Time = 0.0;
 
