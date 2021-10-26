@@ -58,16 +58,26 @@ if type(simulationJson["linear-acceleration"]) == dict:
         linXt = simulationJson["linear-acceleration"]["xt"]
         linYt = simulationJson["linear-acceleration"]["yt"]
         linZt = simulationJson["linear-acceleration"]["zt"]
-        angXt = simulationJson["angular-acceleration"]["xt"]
-        angYt = simulationJson["angular-acceleration"]["yt"]
-        angZt = simulationJson["angular-acceleration"]["zt"]
+        if 'angular-acceleration' in simulationJson:
+            angXt = simulationJson["angular-acceleration"]["xt"]
+            angYt = simulationJson["angular-acceleration"]["yt"]
+            angZt = simulationJson["angular-acceleration"]["zt"]
+        else:
+            angXt = simulationJson["angular-velocity"]["xt"]
+            angYt = simulationJson["angular-velocity"]["yt"]
+            angZt = simulationJson["angular-velocity"]["zt"]
 
     linXv = simulationJson["linear-acceleration"]["xv"]
     linYv = simulationJson["linear-acceleration"]["yv"]
     linZv = simulationJson["linear-acceleration"]["zv"]
-    angXv = simulationJson["angular-acceleration"]["xv"]
-    angYv = simulationJson["angular-acceleration"]["yv"]
-    angZv = simulationJson["angular-acceleration"]["zv"]
+    if 'angular-acceleration' in simulationJson:
+        angXv = simulationJson["angular-acceleration"]["xv"]
+        angYv = simulationJson["angular-acceleration"]["yv"]
+        angZv = simulationJson["angular-acceleration"]["zv"]
+    else:
+        angXv = simulationJson["angular-velocity"]["xv"]
+        angYv = simulationJson["angular-velocity"]["yv"]
+        angZv = simulationJson["angular-velocity"]["zv"]
 
     linArrayX = np.interp(tArray, linXt, linXv)
     linArrayY = np.interp(tArray, linYt, linYv)
@@ -123,7 +133,10 @@ for fileCount in range(count1):
     axes2.set_facecolor((.80, .80, .80))
     label = axes2.set_xlabel("time [msec]", color="white")
     label = axes2.set_ylabel("acceleration [g]", color=color1)
-    label = p1.set_ylabel(r"[$rad/s^2$]", color=color2)
+    if 'angular-acceleration' in simulationJson:
+        label = p1.set_ylabel(r"[$rad/s^2$]", color=color2)
+    else:
+        label = p1.set_ylabel(r"[$rad/s$]", color=color2)
     axes2.tick_params(labelcolor='white')
     p1.tick_params(labelcolor='white')
     lns = [l1, l2]

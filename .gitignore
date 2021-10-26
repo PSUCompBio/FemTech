@@ -22,3 +22,5 @@ project.vcxproj.user.in
 CMakeCache.txt
 CMakeFiles
 examples/ex19/ls-dyna
+# Temp, work in progress
+runSimulation.sh 
