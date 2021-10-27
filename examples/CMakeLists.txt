@@ -18,6 +18,7 @@ option (EXAMPLE17  "Plate Impact problem of Valerie Martin - abaqus inp format" 
 option (EXAMPLE18  "Full Brain model validation" OFF)
 option (EXAMPLE19  "3D Cuboid Shear Test" OFF)
 option (EXAMPLE20  "3D Cuboid Traction BC Test" OFF)
+option (EXAMPLE21  "3D Brain Sim Pressure" OFF)
 option (Benchmarking-Parallel  "Parallel-Benchmarks" OFF)
 
 if (EXAMPLE1)
@@ -101,6 +102,10 @@ endif (EXAMPLE19)
 if (EXAMPLE20)
 	add_subdirectory(ex20)
 endif (EXAMPLE20)
+
+if (EXAMPLE21)
+	add_subdirectory(ex21)
+endif (EXAMPLE21)
 
 if (Benchmarking-Parallel)
 	add_subdirectory(Benchmarking-Parallel)

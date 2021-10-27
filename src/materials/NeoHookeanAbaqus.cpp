@@ -2,15 +2,9 @@
 #include "blas.h"
 
 // plane strain or three-dimensional compressible neo-Hookean
-// Evaluates the PK2 stress tensor
+// Evaluates the Cauchy stress tensor
 
 void NeoHookeanAbaqus(int e, int gp){
-	if(ndim == 2) {
-		// 6 values saved per gauss point for 3d
-		// for(int i=0;i<3;i++){
-		// 	int index = pk2[e]+3*gp+i;
-		// }
-	}
 	if(ndim == 3) {
     int index = fptr[e] + ndim * ndim * gp;
     int index2 = detFptr[e] + gp;

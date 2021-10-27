@@ -8,7 +8,7 @@ void StressUpdate(int e, int gp){
     case 0 : // Rigid-body motion
              break;
     case 1 : //Compressible Neohookean
-             NeoHookeanAbaqus(e, gp);
+             CompressibleNeoHookean(e, gp);
              break;
     case 2 : // St. Venant-Kirchhoff
              StVenantKirchhoff(e, gp);
