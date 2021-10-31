@@ -15,18 +15,8 @@ double StableTimeStep() {
     }
   }
 
-	for(int i=0;i<nelements;i++){
-    isNotRigid = false;
-    // TODO : Remove part that checks rigid part and convert to a one time
-    // pre-processing step
-    for (int j = eptr[i]; j < eptr[i+1]; ++j) {
-      int index = connectivity[j]*ndim;
-      if (!(boundary[index]&boundary[index+1]&boundary[index+2])) {
-        isNotRigid = true;
-        break;
-      }
-    }
-    if (isNotRigid) {
+	for (int i = 0; i < nelements; ++i) {
+    if (materialID[pid[i]] != 0) {
       dtElem = CalculateTimeStep(i);
       if (dtElem < dtMin){
         dtMin = dtElem;
@@ -41,9 +31,19 @@ double StableTimeStep() {
   // FILE_LOG(DEBUGLOG, "Elements skipped %d", elemSkipped);
   MPI_Allreduce(MPI_IN_PLACE, &dtMin, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
 
-  if(dtMin < FailureTimeStep){
+  if(dtMin < FailureTimeStep) {
 		FILE_LOG_MASTER(ERROR, "Timestep too small, dt = %15.9e", dtMin);
-    TerminateFemTech(19);
+    // Find the element causing low time step and report the element
+    // on log before termination
+    for (int i = 0; i < nelements; ++i) {
+      // materialID = 0 => Rigid element
+      if (materialID[pid[i]] != 0) {
+        dtElem = CalculateTimeStep(i);
+        if (dtElem < FailureTimeStep) {
+		      FILE_LOG_SINGLE(ERROR, "Small timestep detected in element number : %8d", global_eid[i]);
+        }
+      } 
+    }
 	}
   if(dtMin > MaxTimeStep){
     dtMin = MaxTimeStep;
