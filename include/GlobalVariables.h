@@ -110,6 +110,7 @@ static int debug = 1; /* Setting it to 1 has no effect when compiled in non-debu
 // For unsteady nStep and time are set by solver
 extern double Time;
 extern double dt;
+extern double tInitial;
 extern double *stepTime;
 
 // Variables to keep store the communication patterns between processes

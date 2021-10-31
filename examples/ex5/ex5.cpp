@@ -31,7 +31,7 @@ void TransformMesh(const Json::Value &jsonInput);
 void WriteMPS(void);
 
 /* Global Variables/Parameters */
-double Time = 0.0, dt;
+double Time = 0.0, dt, tInitial;
 int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
@@ -201,7 +201,8 @@ int main(int argc, char **argv) {
 
   // Initial settings for BC evaluations
   // Used if initial velocity and acceleration BC is to be set.
-  Time = InitBoundaryCondition(simulationJson);
+  tInitial = InitBoundaryCondition(simulationJson);
+  Time = tInitial;
 
   /* Write inital, undeformed configuration*/
   int plot_counter = 0;
@@ -228,8 +229,13 @@ int main(int argc, char **argv) {
   // Needs to be after shapefunctions
   CustomPlot();
 
+  double stableDt = StableTimeStep();
+  if (stableDt < FailureTimeStep) {
+    TerminateFemTech(19);
+  }
+
   /* Obtain dt, according to Belytschko dt is calculated at end of getForce */
-  dt = ExplicitTimeStepReduction * StableTimeStep();
+  dt = ExplicitTimeStepReduction * stableDt;
   /* Step-2: getforce step from Belytschko */
   // In GetForce for viscoelastic material dt is required, hence we compute dt
   // prior to getforce to avoid special treatment of getforce at Time = 0
@@ -332,8 +338,32 @@ int main(int argc, char **argv) {
         }
       }
     }
+    stableDt = StableTimeStep();
+    // Moved stable time step termination to example to write paraview output
+    // file for debug
+    if (stableDt < FailureTimeStep) {
+      FILE_LOG_MASTER(INFO, "Time at failure : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt,
+                      tMax);
+      plot_counter = plot_counter + 1;
+      if (plot_counter < MAXPLOTSTEPS) {
+        stepTime[plot_counter] = Time;
+        if (writeField) {
+          FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
+          if (computeInjuryFlag) {
+            WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, outputCount,
+                    outputNames, elementIDInjury, nElementsInjury, outputDoubleArray,
+                    outputDoubleCount, outputDoubleNames);
+          } else {
+            WriteVTU(outputFileName.c_str(), plot_counter);
+          }
+          WritePVD(outputFileName.c_str(), plot_counter);
+        }
+      }
+      TerminateFemTech(19);
+    }
+
+    dt = ExplicitTimeStepReduction * stableDt;
     time_step_counter = time_step_counter + 1;
-    dt = ExplicitTimeStepReduction * StableTimeStep();
 
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);

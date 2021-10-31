@@ -16,7 +16,7 @@ bool writeElementOP = false;
 int plotNodeID = 0;
 int plotElemID = 0;
 
-double Time, dt;
+double Time, dt, tInitial = 0.0;
 int nSteps;
 
 double dynamicDamping = 0.01;
@@ -57,7 +57,6 @@ int main(int argc, char **argv) {
   int plot_counter = 0;
   WriteVTU(outputFileName.c_str(), plot_counter);
   stepTime[plot_counter] = Time;
-
 
   // Dynamic Explcit solution Belytschko Box 6.1
   dt = 0.0;

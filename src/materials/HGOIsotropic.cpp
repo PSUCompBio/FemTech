@@ -39,6 +39,7 @@ void HGOIsotropic(int e, int gp) {
   const double k2 = localProperties[4];
   // Kappa = 1/3 for isotropic fiber distribution
   const double kappa = 1.0/3.0;
+  FILE_LOG_SINGLE(WARNING, "Material Properties : \n\tMu : %12.9f\nLambda : %12.9f\nk1 : %12.9f\nk2 : %12.9f", mu, lambda, k1, k2);
 
   // Compute the bulk modulus from \lambda and \mu
   const double K = lambda + 2.0*mu/3.0;
