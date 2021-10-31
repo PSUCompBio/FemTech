@@ -36,6 +36,7 @@ int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
+bool reducedIntegration = false;
 
 double dynamicDamping = 0.000;
 double ExplicitTimeStepReduction = 0.8;
@@ -157,6 +158,8 @@ std::string outputFileName;
 int main(int argc, char **argv) {
   // Initialize FemTech including logfile and MPI
   Json::Value inputJson = InitFemTech(argc, argv);
+
+  // Processing various solver and output flags from the json file
   Json::Value simulationJson = inputJson["simulation"];
 
   std::string meshFile = simulationJson["mesh"].asString();
@@ -168,6 +171,16 @@ int main(int argc, char **argv) {
   if (!simulationJson["compute-injury-criteria"].empty()) {
     computeInjuryFlag = simulationJson["compute-injury-criteria"].asBool();
   }
+  if (!simulationJson["reduced-integration"].empty()) {
+    reducedIntegration = simulationJson["reduced-integration"].asBool();
+  }
+  if (reducedIntegration) {
+    FILE_LOG_MASTER(INFO, "Solver using reduced integration");
+  }
+  if (!simulationJson["dynamic-damping"].empty()) {
+    dynamicDamping = simulationJson["dynamic-damping"].asDouble();
+  }
+  FILE_LOG_MASTER(INFO, "Dynamic damping set to : %.3f", dynamicDamping);
   FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
   // Read Input Mesh file and equally partition elements among processes
   ReadInputFile(meshFile.c_str());
@@ -875,6 +888,19 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
       }
       for (int i = 0; i < angVelZSize; ++i) {
         angVelZt[i] = 0.001 * angVelZt[i];
+      }
+      // Subtract the initial angular velocity from data
+      const double xZero = angVelXv[0];
+      for (int i = 0; i < angVelXSize; ++i) {
+        angVelXv[i] -= xZero;
+      }
+      const double yZero = angVelYv[0];
+      for (int i = 0; i < angVelYSize; ++i) {
+        angVelYv[i] -= yZero;
+      }
+      const double zZero = angVelZv[0];
+      for (int i = 0; i < angVelZSize; ++i) {
+        angVelZv[i] -= zZero;
       }
     } else {
       for (int i = 0; i < angAccXSize; ++i) {

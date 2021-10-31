@@ -90,9 +90,12 @@ if not pressureSimulation:
 outputJson = json.loads(open(jsonOutputFile).read())
 
 if (not 'compute-injury-criteria' in inputJson['simulation']) or inputJson['simulation']['compute-injury-criteria']:
-    meshType = outputJson["output-file"].split('_')[0]
+    meshFileParts = outputJson["output-file"].split('_')
+    if 'coarse' in meshFileParts:
+        meshType = 'coarse'
+    else:
+        meshType = 'fine'
     cellDataFile = meshType + '_cellcentres.txt'
-
 
     # Populate region from cell centres file
     maxInjuryMetrics = ["principal-max-strain", "principal-min-strain",
@@ -153,30 +156,32 @@ if 'output-nodes' in inputJson['simulation'] or 'output-elements' in inputJson['
         xVal = np.zeros(nRow)
         yVal = np.zeros(nRow)
         zVal = np.zeros(nRow)
-        for n, node in enumerate(inputJson['simulation']['output-nodes']):
-            nodeStr = 'Node'+'%08d'%node+'-Disp'
-            csv_file.seek(0)
-            # Go to next item to skip header
-            next(csv_reader)
-            for i, row in enumerate(csv_reader):
-                xVal[i] = row[nodeStr+'X']
-                yVal[i] = row[nodeStr+'Y']
-                zVal[i] = row[nodeStr+'Z']
-            outputJson['plot']['nodal-displacement-'+str(n)] = {}
-            outputJson['plot']['nodal-displacement-'+str(n)]['x'] = xVal.tolist();
-            outputJson['plot']['nodal-displacement-'+str(n)]['y'] = yVal.tolist();
-            outputJson['plot']['nodal-displacement-'+str(n)]['z'] = zVal.tolist();
-        for n, element in enumerate(inputJson['simulation']['output-elements']):
-            elemStr = 'Elem'+'%08d'%element+'-Stre'
-            csv_file.seek(0)
-            # Go to next item to skip header
-            next(csv_reader)
-            for i, row in enumerate(csv_reader):
-                xVal[i] = row[elemStr+'P']
-                yVal[i] = row[elemStr+'S']
-            outputJson['plot']['element-stress-'+str(n)] = {}
-            outputJson['plot']['element-stress-'+str(n)]['principal'] = xVal.tolist();
-            outputJson['plot']['element-stress-'+str(n)]['shear'] = yVal.tolist();
+        if 'output-nodes' in inputJson['simulation']:
+            for n, node in enumerate(inputJson['simulation']['output-nodes']):
+                nodeStr = 'Node'+'%08d'%node+'-Disp'
+                csv_file.seek(0)
+                # Go to next item to skip header
+                next(csv_reader)
+                for i, row in enumerate(csv_reader):
+                    xVal[i] = row[nodeStr+'X']
+                    yVal[i] = row[nodeStr+'Y']
+                    zVal[i] = row[nodeStr+'Z']
+                outputJson['plot']['nodal-displacement-'+str(n)] = {}
+                outputJson['plot']['nodal-displacement-'+str(n)]['x'] = xVal.tolist();
+                outputJson['plot']['nodal-displacement-'+str(n)]['y'] = yVal.tolist();
+                outputJson['plot']['nodal-displacement-'+str(n)]['z'] = zVal.tolist();
+        if 'output-elements' in inputJson['simulation']:
+            for n, element in enumerate(inputJson['simulation']['output-elements']):
+                elemStr = 'Elem'+'%08d'%element+'-Stre'
+                csv_file.seek(0)
+                # Go to next item to skip header
+                next(csv_reader)
+                for i, row in enumerate(csv_reader):
+                    xVal[i] = row[elemStr+'P']
+                    yVal[i] = row[elemStr+'S']
+                outputJson['plot']['element-stress-'+str(n)] = {}
+                outputJson['plot']['element-stress-'+str(n)]['principal'] = xVal.tolist();
+                outputJson['plot']['element-stress-'+str(n)]['shear'] = yVal.tolist();
 
 if 'impact-time' in inputJson:
     outputJson['impact-time'] = inputJson['impact-time']

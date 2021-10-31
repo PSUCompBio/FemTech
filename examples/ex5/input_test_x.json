@@ -89,6 +89,7 @@
     "angular-to-linear-frame" : ["-y", "-x", "z"],
     "head-cg" : [0.0, -0.3308, -0.037],
     "angular-sensor-position" : [0.025, -0.281, -0.089757],
-    "write-vtu" : false
+    "write-vtu" : false,
+    "reduced-integration" : true
   }
 }

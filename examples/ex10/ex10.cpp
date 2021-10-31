@@ -16,7 +16,7 @@ int nPlotSteps = 50;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
-
+bool reducedIntegration = true;
 
 double dynamicDamping = 0.01;
 

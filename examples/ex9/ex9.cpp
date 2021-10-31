@@ -26,11 +26,12 @@ double ExplicitTimeStepReduction = 0.7;
 double FailureTimeStep = 1e-11;
 double MaxTimeStep = 1e-1;
 
-int nPlotSteps = 1000;
-int nFieldSkip = 20; // 1 in nFieldSkip plot steps will be used to output VTU
+int nPlotSteps = 50;
+int nFieldSkip = 1; // 1 in nFieldSkip plot steps will be used to output VTU
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
+bool reducedIntegration = true;
 
 // Parameters of simple tension test
 double tMax = 1.00;  // max simulation time in seconds
@@ -216,7 +217,7 @@ void ApplyVelocityBoundaryConditions(double) {
 
   for (int i = 0; i < nNodes; i++) {
     // if x value = 0, constrain node to x plane (0-direction)
-    index = ndim * i + 0;
+    index = ndim * i;
     if (fabs(coordinates[index] - 0.0) < tol) {
       velocities_half[index] = 0.0;
     }
@@ -290,7 +291,7 @@ void InitVelocityBoundaryConditions() {
   int index;
   for (int i = 0; i < nNodes; i++) {
     // if x value = 0, constrain node to x plane (0-direction)
-    index = ndim * i + 0;
+    index = ndim * i;
     if (fabs(coordinates[index] - 0.0) < tol) {
       boundary[index] = 1;
     }

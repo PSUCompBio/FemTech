@@ -144,5 +144,6 @@ void TerminateFemTech(int errorCode);
 /* Functions for updated Lagrangian formulation */
 void CalculateF_XiAndInverse(int e, int gp);
 void ComputeH(int e, int gp, double *H);
+void ComputeHG(int e, double *F);
 void InternalForceUpdateUL(int e, int gp, double *force);
 #endif

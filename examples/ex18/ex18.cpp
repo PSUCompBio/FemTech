@@ -40,6 +40,7 @@ int nPlotSteps = 50;
 int nWriteSteps = 2000;
 
 double dynamicDamping = 0.01;
+bool reducedIntegration = true;
 
 /* Global variables used only in this file */
 int nodeIDtoPlot;

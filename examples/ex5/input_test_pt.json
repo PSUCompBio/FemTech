@@ -137,6 +137,7 @@
     "maximum-time" : 0.2,
     "mesh-transformation" : ["-y", "z", "-x"],
     "head-cg" : [0.0, -0.3308, -0.037],
-    "write-vtu" : true
+    "write-vtu" : true,
+    "reduced-integration" : false
   }
 }
