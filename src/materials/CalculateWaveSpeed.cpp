@@ -29,14 +29,14 @@ double CalculateWaveSpeed(const unsigned int partID) {
              for (int i = 0; i < nPronyL; ++i) {
                const double gi = partProperties[6+2*i];
                const double taui = partProperties[7+2*i];
-               viscoEffect = viscoEffect + gi*exp(-Time/taui);
+               viscoEffect = viscoEffect + gi*exp(-1.0*(Time-tInitial)/taui);
              }
              mu = muI * viscoEffect;
              break;
     case 6 : // LS-Dyna Maxwell viscoelastic material equivalent
              lambda = partProperties[1];
              muI = partProperties[2];
-             viscoEffect = 1.0 + partProperties[3]*exp(-Time*properties[4]);
+             viscoEffect = 1.0 + partProperties[3]*exp(-1.0*(Time-tInitial)*properties[4]);
              mu = muI *viscoEffect;
              break;
     case 7 : // Ogden
@@ -64,7 +64,7 @@ double CalculateWaveSpeed(const unsigned int partID) {
              for (int i = 0; i < nPronyL; ++i) {
                const double gi = partProperties[4+2*(i+nTerm)];
                const double taui = partProperties[5+2*(i+nTerm)];
-               viscoEffect = viscoEffect + gi*exp(-Time/taui);
+               viscoEffect = viscoEffect + gi*exp(-1.0*(Time-tInitial)/taui);
              }
              mu = muI * viscoEffect;
              lambda = K - 2.0*mu/3.0;

@@ -6,6 +6,7 @@ bool ImplicitDynamic = true;
 bool ExplicitDynamic = false;
 
 double Time = 0.0;
+double tInitial = 0.0;
 
 int main(int argc, char **argv){
   

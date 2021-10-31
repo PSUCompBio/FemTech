@@ -25,7 +25,7 @@ void WriteOutputFile();
 void WriteMPS(void);
 
 /* Global Variables/Parameters */
-double Time = 0.0, dt;
+double Time = 0.0, dt, tInitial;
 int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
@@ -196,7 +196,8 @@ int main(int argc, char **argv) {
 
   // Initial settings for BC evaluations
   // Used if initial velocity and acceleration BC is to be set.
-  Time = InitBoundaryCondition(simulationJson);
+  tInitial = InitBoundaryCondition(simulationJson);
+  Time = tInitial;
 
   /* Write inital, undeformed configuration*/
   int plot_counter = 0;
