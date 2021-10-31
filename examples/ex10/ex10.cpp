@@ -6,7 +6,7 @@
 void ApplyBoundaryConditions(double dMax, double tMax);
 void CustomPlot();
 
-double Time, dt, tInital = 0.0;
+double Time, dt, tInitial = 0.0;
 int nSteps;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;

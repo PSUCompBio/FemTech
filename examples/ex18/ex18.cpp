@@ -28,7 +28,7 @@ void CalculateInjuryCriterions(void);
 void TransformMesh(const Json::Value& jsonInput);
 
 /* Global Variables/Parameters */
-double Time, dt;
+double Time, dt, tInitial = 0.0;
 int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;

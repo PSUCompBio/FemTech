@@ -8,7 +8,7 @@ void ApplyVelocityBoundaryConditions(double);
 void InitVelocityBoundaryConditions();
 void CustomPlot();
 
-double Time, dt;
+double Time, dt, tInitial = 0.0;
 int nSteps;
 
 double dynamicDamping = 0.000;
