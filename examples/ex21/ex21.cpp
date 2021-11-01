@@ -30,6 +30,7 @@ int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
+bool reducedIntegration = false;
 
 double dynamicDamping = 0.000;
 double ExplicitTimeStepReduction = 0.8;
@@ -177,6 +178,16 @@ int main(int argc, char **argv) {
   if (!simulationJson["compute-injury-criteria"].empty()) {
     computeInjuryFlag = simulationJson["compute-injury-criteria"].asBool();
   }
+  if (!simulationJson["reduced-integration"].empty()) {
+    reducedIntegration = simulationJson["reduced-integration"].asBool();
+  }
+  if (reducedIntegration) {
+    FILE_LOG_MASTER(INFO, "Solver using reduced integration");
+  }
+  if (!simulationJson["dynamic-damping"].empty()) {
+    dynamicDamping = simulationJson["dynamic-damping"].asDouble();
+  }
+  FILE_LOG_MASTER(INFO, "Dynamic damping set to : %.3f", dynamicDamping);
   FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
   // Read Input Mesh file and equally partition elements among processes
   ReadInputFile(meshFile.c_str());
