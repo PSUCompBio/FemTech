@@ -28,7 +28,7 @@ void CalculateInjuryCriterions(void);
 void TransformMesh(const Json::Value& jsonInput);
 
 /* Global Variables/Parameters */
-double Time, dt;
+double Time, dt, tInitial = 0.0;
 int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
@@ -40,6 +40,7 @@ int nPlotSteps = 50;
 int nWriteSteps = 2000;
 
 double dynamicDamping = 0.01;
+bool reducedIntegration = true;
 
 /* Global variables used only in this file */
 int nodeIDtoPlot;

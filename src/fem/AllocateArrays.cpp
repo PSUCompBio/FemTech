@@ -17,6 +17,8 @@ double *fr_prev;
 double *fi_curr;
 double *f_damp_prev;
 double *f_damp_curr;
+double *f_hg;
+double *f_hgprev;
 double *displacements_prev;
 double *accelerations_prev;
 double *stepTime;
@@ -123,6 +125,18 @@ void AllocateArrays() {
     if (!f_damp_prev) {
       FILE_LOG_SINGLE(ERROR, "Error in allocating f_damp_prev array");
       TerminateFemTech(12);
+    }
+    if (reducedIntegration) {
+      f_hg = (double*)calloc(nDOF, sizeof(double)); // Internal Nodal force vector
+      if (!f_hg) {
+        FILE_LOG_SINGLE(ERROR, "Error in allocating f_hg array");
+        TerminateFemTech(12);
+      }
+      f_hgprev = (double*)calloc(nDOF, sizeof(double)); // Internal Nodal force vector
+      if (!f_hgprev) {
+        FILE_LOG_SINGLE(ERROR, "Error in allocating f_hgprev array");
+        TerminateFemTech(12);
+      }
     }
     std::string energyFileName = "energy.dat"; 
     energyFile = fopen(energyFileName.c_str(), "w");

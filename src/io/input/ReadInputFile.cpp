@@ -65,6 +65,7 @@ void ReadInputFile(const char *FileName) {
                   MPI_COMM_WORLD);
     nPIDglobal = globalPIDmax;
     nDOF = nNodes * ndim;
+
     FILE_LOGArrayInt(DEBUGLOGIGNORE, sortedPID, nPID, \
         "Number of local pid : %d, global : %d", nPID, nPIDglobal);
 

@@ -1,9 +1,10 @@
 Set(elements_src
     Elements.cpp
-		ElementCalculations/CalculateDeformationGradient.cpp
+    ElementCalculations/CalculateDeformationGradient.cpp
     ElementCalculations/CalculateF_XiAndInverse.cpp
     ElementCalculations/ComputeH.cpp
-		ElementCalculations/StrainDisplacementMatrix.cpp
+    ElementCalculations/ComputeHG.cpp
+    ElementCalculations/StrainDisplacementMatrix.cpp
     CharacteristicLength/CalculateCharacteristicLength.cpp
     CharacteristicLength/CalculateCharacteristicLength_C3D4.cpp
     CharacteristicLength/CalculateCharacteristicLength_C3D8.cpp

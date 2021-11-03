@@ -11,10 +11,10 @@ else()
 endif(ENABLE_MPI)
 
 file(INSTALL 1-elt-cube.k DESTINATION .)
+file(INSTALL wideshear.k DESTINATION .)
 file(INSTALL materials.dat DESTINATION .)
 file(INSTALL gnuplot.script DESTINATION .)
 file(INSTALL README.md DESTINATION .)
-file(INSTALL ls-dyna DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
 

@@ -11,12 +11,13 @@ static const int MAXOGDEN = 3; /* maximum terms for Ogden material model */
    ID */
 static const int materialWeight[] = {1, 10, 10, 10, 15, 20, 10, 20, 20};
 /* Weights based on element type 0 = C3D8, 1 = C3D4, 2 = T3D2 */
-static const std::map<std::string, int> elemID = {{"C3D8", 0}, {"C3D4", 1}, {"T3D2", 2}};
-static const int elemWeight[] = {2, 1, 1};
+static const std::map<std::string, int> elemID = {{"C3D8", 0}, {"C3D4", 1}, {"T3D2", 2}, {"C3D8R", 3}};
+static const int elemWeight[] = {2, 1, 1, 1};
 
 const double huge = 1e20;
 
 extern double dynamicDamping;
+extern bool reducedIntegration;
 
 extern std::string uid; /* Simulation unique id */
 extern int nparts;
@@ -82,6 +83,8 @@ extern double *fr_prev;
 extern double *fr_curr;
 extern double *f_damp_prev;
 extern double *f_damp_curr;
+extern double *f_hg;
+extern double *f_hgprev;
 extern double *displacements_prev; /*displacements for previous step - used in engery calculation*/
 extern double *accelerations_prev; /*displacements for previous step - used in engery calculation*/
 
@@ -107,6 +110,7 @@ static int debug = 1; /* Setting it to 1 has no effect when compiled in non-debu
 // For unsteady nStep and time are set by solver
 extern double Time;
 extern double dt;
+extern double tInitial;
 extern double *stepTime;
 
 // Variables to keep store the communication patterns between processes

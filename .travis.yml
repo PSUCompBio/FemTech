@@ -39,7 +39,7 @@ before_script:
   # Run your build commands next
   - mkdir build
   - cd build/
-  - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON -DEXAMPLE1=ON -DEXAMPLE10=ON -DEXAMPLE5=ON
+  - cmake .. -DEXAMPLES=ON -DEXAMPLE9=ON -DEXAMPLE1=ON -DEXAMPLE10=ON -DEXAMPLE5=ON -DEXAMPLE21=ON
   - if [ "$TRAVIS_BRANCH" = "develop" ] || [ "$TRAVIS_BRANCH" = "CI" ]; then 
       docker pull $DOCKER_REPO:production || true; 
       docker pull $DOCKER_REPO:develop || true; 

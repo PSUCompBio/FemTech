@@ -16,7 +16,7 @@ bool writeElementOP = false;
 int plotNodeID = 0;
 int plotElemID = 0;
 
-double Time, dt;
+double Time, dt, tInitial = 0.0;
 int nSteps;
 
 double dynamicDamping = 0.01;
@@ -26,11 +26,12 @@ double ExplicitTimeStepReduction = 0.7;
 double FailureTimeStep = 1e-11;
 double MaxTimeStep = 1e-1;
 
-int nPlotSteps = 1000;
-int nFieldSkip = 20; // 1 in nFieldSkip plot steps will be used to output VTU
+int nPlotSteps = 50;
+int nFieldSkip = 1; // 1 in nFieldSkip plot steps will be used to output VTU
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
+bool reducedIntegration = true;
 
 // Parameters of simple tension test
 double tMax = 1.00;  // max simulation time in seconds
@@ -56,7 +57,6 @@ int main(int argc, char **argv) {
   int plot_counter = 0;
   WriteVTU(outputFileName.c_str(), plot_counter);
   stepTime[plot_counter] = Time;
-
 
   // Dynamic Explcit solution Belytschko Box 6.1
   dt = 0.0;
@@ -217,7 +217,7 @@ void ApplyVelocityBoundaryConditions(double) {
 
   for (int i = 0; i < nNodes; i++) {
     // if x value = 0, constrain node to x plane (0-direction)
-    index = ndim * i + 0;
+    index = ndim * i;
     if (fabs(coordinates[index] - 0.0) < tol) {
       velocities_half[index] = 0.0;
     }
@@ -291,7 +291,7 @@ void InitVelocityBoundaryConditions() {
   int index;
   for (int i = 0; i < nNodes; i++) {
     // if x value = 0, constrain node to x plane (0-direction)
-    index = ndim * i + 0;
+    index = ndim * i;
     if (fabs(coordinates[index] - 0.0) < tol) {
       boundary[index] = 1;
     }

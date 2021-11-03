@@ -27,6 +27,7 @@ void FreeArrays() {
 	free1DArray(boundary);
 	free1DArray(velocities_half);
   free1DArray(fe);
+  free1DArray(fe_prev);
   free1DArray(fi);
 	free1DArray(f_net);
 	free1DArray(fr_prev);
@@ -96,4 +97,9 @@ void FreeArrays() {
   free1DArray(B0);
   // Temperory test variables
   // free1DArray(F_Xi_0);
+  // Free arrays used for reduced integration
+  if (reducedIntegration) {
+    free1DArray(f_hg);
+    free1DArray(f_hgprev);
+  }
 }

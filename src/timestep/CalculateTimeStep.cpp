@@ -12,5 +12,6 @@ double CalculateTimeStep(int e) {
   int pide = pid[e];
 	double ce = waveSpeed[pide];
 	dtElem = le/ce;
+  // FILE_LOG_MASTER(WARNING, "Ce : %3.3e, Le : %3.3e, dt = %3.3e", ce, le, dtElem);
 	return dtElem;
 }

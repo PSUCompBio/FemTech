@@ -6,7 +6,7 @@
 void ApplyBoundaryConditions(double dMax, double tMax);
 void CustomPlot();
 
-double Time, dt;
+double Time, dt, tInitial = 0.0;
 int nSteps;
 double ExplicitTimeStepReduction = 0.8;
 double FailureTimeStep = 1e-11;
@@ -16,7 +16,7 @@ int nPlotSteps = 50;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
-
+bool reducedIntegration = true;
 
 double dynamicDamping = 0.01;
 

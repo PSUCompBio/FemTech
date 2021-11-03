@@ -31,11 +31,12 @@ void TransformMesh(const Json::Value &jsonInput);
 void WriteMPS(void);
 
 /* Global Variables/Parameters */
-double Time = 0.0, dt;
+double Time = 0.0, dt, tInitial;
 int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
+bool reducedIntegration = false;
 
 double dynamicDamping = 0.000;
 double ExplicitTimeStepReduction = 0.8;
@@ -157,6 +158,8 @@ std::string outputFileName;
 int main(int argc, char **argv) {
   // Initialize FemTech including logfile and MPI
   Json::Value inputJson = InitFemTech(argc, argv);
+
+  // Processing various solver and output flags from the json file
   Json::Value simulationJson = inputJson["simulation"];
 
   std::string meshFile = simulationJson["mesh"].asString();
@@ -168,6 +171,16 @@ int main(int argc, char **argv) {
   if (!simulationJson["compute-injury-criteria"].empty()) {
     computeInjuryFlag = simulationJson["compute-injury-criteria"].asBool();
   }
+  if (!simulationJson["reduced-integration"].empty()) {
+    reducedIntegration = simulationJson["reduced-integration"].asBool();
+  }
+  if (reducedIntegration) {
+    FILE_LOG_MASTER(INFO, "Solver using reduced integration");
+  }
+  if (!simulationJson["dynamic-damping"].empty()) {
+    dynamicDamping = simulationJson["dynamic-damping"].asDouble();
+  }
+  FILE_LOG_MASTER(INFO, "Dynamic damping set to : %.3f", dynamicDamping);
   FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
   // Read Input Mesh file and equally partition elements among processes
   ReadInputFile(meshFile.c_str());
@@ -188,7 +201,8 @@ int main(int argc, char **argv) {
 
   // Initial settings for BC evaluations
   // Used if initial velocity and acceleration BC is to be set.
-  Time = InitBoundaryCondition(simulationJson);
+  tInitial = InitBoundaryCondition(simulationJson);
+  Time = tInitial;
 
   /* Write inital, undeformed configuration*/
   int plot_counter = 0;
@@ -215,8 +229,13 @@ int main(int argc, char **argv) {
   // Needs to be after shapefunctions
   CustomPlot();
 
+  double stableDt = StableTimeStep();
+  if (stableDt < FailureTimeStep) {
+    TerminateFemTech(19);
+  }
+
   /* Obtain dt, according to Belytschko dt is calculated at end of getForce */
-  dt = ExplicitTimeStepReduction * StableTimeStep();
+  dt = ExplicitTimeStepReduction * stableDt;
   /* Step-2: getforce step from Belytschko */
   // In GetForce for viscoelastic material dt is required, hence we compute dt
   // prior to getforce to avoid special treatment of getforce at Time = 0
@@ -319,8 +338,32 @@ int main(int argc, char **argv) {
         }
       }
     }
+    stableDt = StableTimeStep();
+    // Moved stable time step termination to example to write paraview output
+    // file for debug
+    if (stableDt < FailureTimeStep) {
+      FILE_LOG_MASTER(INFO, "Time at failure : %15.6e, dt=%15.6e, tmax : %15.6e", Time, dt,
+                      tMax);
+      plot_counter = plot_counter + 1;
+      if (plot_counter < MAXPLOTSTEPS) {
+        stepTime[plot_counter] = Time;
+        if (writeField) {
+          FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
+          if (computeInjuryFlag) {
+            WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, outputCount,
+                    outputNames, elementIDInjury, nElementsInjury, outputDoubleArray,
+                    outputDoubleCount, outputDoubleNames);
+          } else {
+            WriteVTU(outputFileName.c_str(), plot_counter);
+          }
+          WritePVD(outputFileName.c_str(), plot_counter);
+        }
+      }
+      TerminateFemTech(19);
+    }
+
+    dt = ExplicitTimeStepReduction * stableDt;
     time_step_counter = time_step_counter + 1;
-    dt = ExplicitTimeStepReduction * StableTimeStep();
 
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);
@@ -625,12 +668,12 @@ void CustomPlot() {
       unsigned int plotIndex = i * ndim;
       double xCordLocal, yCordLocal, zCordLocal;
       if (outputRelativeDisplacement) {
-        double xCord = displacements[plotNode] - yInt[9];
-        double yCord = displacements[plotNode + 1] - yInt[10];
-        double zCord = displacements[plotNode + 2] - yInt[11];
-        xCordLocal = xCord*unitVec[0] + yCord*unitVec[1] + zCord*unitVec[2];
-        yCordLocal = xCord*unitVec[3] + yCord*unitVec[4] + zCord*unitVec[5];
-        zCordLocal = xCord*unitVec[6] + yCord*unitVec[7] + zCord*unitVec[8];
+        double xCord = displacements[plotNode] + coordinates[plotNode] - yInt[9];
+        double yCord = displacements[plotNode + 1] + coordinates[plotNode + 1] - yInt[10];
+        double zCord = displacements[plotNode + 2] + coordinates[plotNode + 2] - yInt[11];
+        xCordLocal = xCord*unitVec[0] + yCord*unitVec[1] + zCord*unitVec[2] - coordinates[plotNode];
+        yCordLocal = xCord*unitVec[3] + yCord*unitVec[4] + zCord*unitVec[5] - coordinates[plotNode + 1];
+        zCordLocal = xCord*unitVec[6] + yCord*unitVec[7] + zCord*unitVec[8] - coordinates[plotNode + 2];
       } else {
         xCordLocal = displacements[plotNode];
         yCordLocal = displacements[plotNode + 1];
@@ -845,6 +888,19 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
       }
       for (int i = 0; i < angVelZSize; ++i) {
         angVelZt[i] = 0.001 * angVelZt[i];
+      }
+      // Subtract the initial angular velocity from data
+      const double xZero = angVelXv[0];
+      for (int i = 0; i < angVelXSize; ++i) {
+        angVelXv[i] -= xZero;
+      }
+      const double yZero = angVelYv[0];
+      for (int i = 0; i < angVelYSize; ++i) {
+        angVelYv[i] -= yZero;
+      }
+      const double zZero = angVelZv[0];
+      for (int i = 0; i < angVelZSize; ++i) {
+        angVelZv[i] -= zZero;
       }
     } else {
       for (int i = 0; i < angAccXSize; ++i) {
@@ -1433,9 +1489,9 @@ void WriteOutputFile() {
     // Calculate cumulative volume on all ranks
     MPI_Allreduce(MPI_IN_PLACE, thresholdVolume, 6, MPI_DOUBLE, MPI_SUM,
                   MPI_COMM_WORLD);
+    double totalVolume = 0.0;
     if (world_rank == 0) {
       // Excluded PID hardcoded for CSDM computation
-      double totalVolume = 0.0;
       for (int i = 0; i < nPIDglobal; ++i) {
         bool include = true;
         for (int j = 0; j < injuryExcludePIDCount; ++j) {
@@ -1524,7 +1580,23 @@ void WriteOutputFile() {
           elementList[j] = fullElemList[j];
         }
         free(fullElemList);
-        output[jsonOutputTag[i]]["global-element-id"] = elementList;
+        // output[jsonOutputTag[i]]["global-element-id"] = elementList;
+        Json::Value outputThreshold;
+        outputThreshold["global-element-id"] = elementList;
+        Json::StreamWriterBuilder builder;
+        builder["commentStyle"] = "None";
+        builder["indentation"] = "  ";
+        std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+        std::ofstream oFile(jsonOutputTag[i] + ".json");
+
+        if (i < csdmCount) {
+          outputThreshold["value"] = thresholdVolume[i] / totalVolume;
+        } else {
+          int ind = i - csdmCount;
+          outputThreshold["value"] = percentileValue[ind];
+          outputThreshold["time"] = percentileTime[ind];
+        }
+        writer->write(outputThreshold, &oFile);
       }
       free(localElemList);
       MPI_Barrier(MPI_COMM_WORLD);
@@ -1544,7 +1616,7 @@ void WriteOutputFile() {
     std::ofstream oFile(uid + "_output.json");
     writer->write(output, &oFile);
   }
-  FILE_LOG_MASTER(INFO, "Json output file written");
+  FILE_LOG_MASTER(INFO, "Json output files written");
 }
 
 void InitInjuryCriteria(void) {

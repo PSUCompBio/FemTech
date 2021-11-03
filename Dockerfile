@@ -22,7 +22,7 @@ RUN cd FemTech/build_native;cmake .. -DEXAMPLES=ON -DEXAMPLE5=ON; make -j 8;
 RUN if [ "$PARCH" != "native" ]; then \
     mkdir FemTech/build_$PARCH && \
     cd FemTech/build_$PARCH && \
-    cmake .. -DPROC_ARCH=$PARCH -DEXAMPLES=ON -DEXAMPLE5=ON && \
+    cmake .. -DPROC_ARCH=$PARCH -DEXAMPLES=ON -DEXAMPLE5=ON -DEXAMPLE21=ON && \
     make -j 8; \ 
   fi
 
@@ -58,6 +58,9 @@ COPY --from=buildFemTech ["/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/ex5"
   "/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/fine_cellcentres.txt", \
   "/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/coarse_cellcentres.txt", \
   "/home/ubuntu/FemTech/build_${PARCH}/examples/ex5/updateOutputJson.py", \
+  "/home/ubuntu/FemTech/build_${PARCH}/examples/ex21/ex21", \
   "/home/ubuntu/FemTechRun/"]
+
+COPY --from=buildFemTech "/home/ubuntu/FemTech/build_${PARCH}/examples/ex21/materials.dat" "/home/ubuntu/FemTechRun/materialsPressure.dat"
 
 # To create image : docker build --pull --cache-from nsfcareer/femtech:develop --cache-from nsfcareer/femtech:production --tag nsfcareer/femtech:production -f Dockerfile .

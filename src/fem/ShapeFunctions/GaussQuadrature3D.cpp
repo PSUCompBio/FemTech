@@ -57,6 +57,14 @@ void GaussQuadrature3D(int element, int nGaussPoint, double *Chi, double *GaussW
 		 GaussWeights[6] = 1.0;
 		 GaussWeights[7] = 1.0;
 	}
+	if (strcmp(ElementType[element], "C3D8R") == 0 && nGaussPoint==1) {
+		 /*integration point 1*/
+		 Chi[0 * ndim + 0] = 0.0;
+		 Chi[0 * ndim + 1] = 0.0;
+		 Chi[0 * ndim + 2] = 0.0;
+
+		 GaussWeights[0] = 8.0;
+	}
 
 	// 4-noded tet with 1 integration point
 	if (strcmp(ElementType[element], "C3D4") == 0 && nGaussPoint==1) {
