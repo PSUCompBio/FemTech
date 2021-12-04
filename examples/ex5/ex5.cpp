@@ -183,8 +183,8 @@ int main(int argc, char **argv) {
     dynamicDamping = simulationJson["dynamic-damping"].asDouble();
   }
   if (reducedIntegration) {
-    if (tMax > 15.0) {
-      tMax = 15.0;
+    if (tMax > 0.015) {
+      tMax = 0.015;
     }
   }
   FILE_LOG_MASTER(INFO, "Dynamic damping set to : %.3f", dynamicDamping);
