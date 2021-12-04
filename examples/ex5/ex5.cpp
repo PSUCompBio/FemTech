@@ -182,11 +182,11 @@ int main(int argc, char **argv) {
   if (!simulationJson["dynamic-damping"].empty()) {
     dynamicDamping = simulationJson["dynamic-damping"].asDouble();
   }
-  if (reducedIntegration) {
-    if (tMax > 0.015) {
-      tMax = 0.015;
-    }
-  }
+  // if (reducedIntegration) {
+  //   if (tMax > 0.015) {
+  //     tMax = 0.015;
+  //   }
+  // }
   FILE_LOG_MASTER(INFO, "Dynamic damping set to : %.3f", dynamicDamping);
   FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
   // Read Input Mesh file and equally partition elements among processes
@@ -372,6 +372,7 @@ int main(int argc, char **argv) {
     dt = ExplicitTimeStepReduction * stableDt;
     time_step_counter = time_step_counter + 1;
 
+    MPI_Allreduce(MPI_IN_PLACE, &exceedFlag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);
   } // end explcit while loop
