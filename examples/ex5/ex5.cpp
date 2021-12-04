@@ -155,6 +155,8 @@ state_type yInt, ydotInt;
 double cm[3];
 std::string outputFileName;
 
+bool exceedFlag = false;
+
 int main(int argc, char **argv) {
   // Initialize FemTech including logfile and MPI
   Json::Value inputJson = InitFemTech(argc, argv);
@@ -181,8 +183,8 @@ int main(int argc, char **argv) {
     dynamicDamping = simulationJson["dynamic-damping"].asDouble();
   }
   if (reducedIntegration) {
-    if (tMax > 30.0) {
-      tMax = 30.0;
+    if (tMax > 15.0) {
+      tMax = 15.0;
     }
   }
   FILE_LOG_MASTER(INFO, "Dynamic damping set to : %.3f", dynamicDamping);
@@ -273,7 +275,7 @@ int main(int argc, char **argv) {
 
 
   /* Step-4: Time loop starts....*/
-  while (Time < tMax) {
+  while ((Time < tMax) && !exceedFlag) {
     t_n = Time;
     double t_np1 = Time + dt;
     double dtby2 = 0.5*dt;
@@ -1758,6 +1760,9 @@ void CalculateInjuryCriteria(void) {
       elementMPS[i] = currentStrainMaxElem;
     }
   } // For loop over elements included for injury
+  if (maxValue[0] > 0.3) {
+    exceedFlag = true;
+  }
 
   // Compute 95 percentile MPS and corresponding element list
   double MPS95 = compute95thPercentileValue(PS_Old, nElementsInjury);
