@@ -11,6 +11,8 @@
 #include <math.h>
 #include <memory> // For JSON output unique pointer
 #include <string>
+#include <cstdlib>
+#include <ctime>
 
 #include <boost/numeric/odeint.hpp>
 
@@ -182,11 +184,13 @@ int main(int argc, char **argv) {
   if (!simulationJson["dynamic-damping"].empty()) {
     dynamicDamping = simulationJson["dynamic-damping"].asDouble();
   }
-  // if (reducedIntegration) {
-  //   if (tMax > 0.015) {
-  //     tMax = 0.015;
-  //   }
-  // }
+  if (reducedIntegration) {
+    if (tMax > 0.005) {
+      srand((unsigned int)time(0));
+      double tRand = 0.007*((double)rand()/(double)RAND_MAX);
+      tMax = 0.005 + tRand;
+    }
+  }
   FILE_LOG_MASTER(INFO, "Dynamic damping set to : %.3f", dynamicDamping);
   FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
   // Read Input Mesh file and equally partition elements among processes
