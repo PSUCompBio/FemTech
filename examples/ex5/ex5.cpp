@@ -1613,6 +1613,7 @@ void WriteOutputFile() {
       free(countPerProc);
       free(cumCountPerProc);
     }
+    output[maxOutput[0]]["value"] = percentileValue[0];
   }
 
   // Write output to file
@@ -1761,7 +1762,7 @@ void CalculateInjuryCriteria(void) {
       elementMPS[i] = currentStrainMaxElem;
     }
   } // For loop over elements included for injury
-  if (maxValue[0] > 0.3) {
+  if (maxValue[0] > 0.4) {
     exceedFlag = true;
   }
 
