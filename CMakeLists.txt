@@ -36,12 +36,25 @@ message(STATUS "Current built type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Current build type flags: ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}}")
 # Set additional compiler flags
 STRING(TOLOWER "${PROC_ARCH}" PROC_ARCH)
+
+if(${PROC_ARCH} STREQUAL arm64)
+  set(PROC_ARCH "armv8.2-a+fp16+rcpc+dotprod+crypto" CACHE STRING "ARM Graviton Instruction set" FORCE)
+  set(PROC_TUNE "neoverse-n1" CACHE STRING "ARM Graviton Instruction set" FORCE)
+endif()
+
 if (NOT PROC_ARCH)
   message(STATUS "No processor instruction set selected, default to Native")
   set(PROC_ARCH "native" CACHE STRING "Instruction set (default native)" FORCE)
 endif()
+if (NOT PROC_TUNE)
+  message(STATUS "No processor tune selected, default to ${PROC_ARCH}")
+  set(PROC_TUNE ${PROC_ARCH} CACHE STRING "Tune set" FORCE)
+endif()
 
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=${PROC_ARCH} -mtune=${PROC_ARCH}")
+message(STATUS "march : ${PROC_ARCH}")
+message(STATUS "mtune : ${PROC_TUNE}")
+
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=${PROC_ARCH} -mtune=${PROC_TUNE}")
 
 # set install rules (windows only)
 if(WIN32)
