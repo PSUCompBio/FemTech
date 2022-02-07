@@ -157,7 +157,7 @@ state_type yInt, ydotInt;
 double cm[3];
 std::string outputFileName;
 
-bool exceedFlag = false;
+// bool exceedFlag = false;
 
 int main(int argc, char **argv) {
   // Initialize FemTech including logfile and MPI
@@ -184,13 +184,13 @@ int main(int argc, char **argv) {
   if (!simulationJson["dynamic-damping"].empty()) {
     dynamicDamping = simulationJson["dynamic-damping"].asDouble();
   }
-  if (reducedIntegration) {
-    if (tMax > 0.005) {
-      srand((unsigned int)time(0));
-      double tRand = 0.007*((double)rand()/(double)RAND_MAX);
-      tMax = 0.005 + tRand;
-    }
-  }
+  // if (reducedIntegration) {
+  //   if (tMax > 0.005) {
+  //     srand((unsigned int)time(0));
+  //     double tRand = 0.007*((double)rand()/(double)RAND_MAX);
+  //     tMax = 0.005 + tRand;
+  //   }
+  // }
   FILE_LOG_MASTER(INFO, "Dynamic damping set to : %.3f", dynamicDamping);
   FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
   // Read Input Mesh file and equally partition elements among processes
@@ -279,7 +279,8 @@ int main(int argc, char **argv) {
 
 
   /* Step-4: Time loop starts....*/
-  while ((Time < tMax) && !exceedFlag) {
+  // while ((Time < tMax) && !exceedFlag) {
+  while (Time < tMax) {
     t_n = Time;
     double t_np1 = Time + dt;
     double dtby2 = 0.5*dt;
@@ -376,7 +377,7 @@ int main(int argc, char **argv) {
     dt = ExplicitTimeStepReduction * stableDt;
     time_step_counter = time_step_counter + 1;
 
-    MPI_Allreduce(MPI_IN_PLACE, &exceedFlag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
+    // MPI_Allreduce(MPI_IN_PLACE, &exceedFlag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);
   } // end explcit while loop
@@ -1766,9 +1767,9 @@ void CalculateInjuryCriteria(void) {
       elementMPS[i] = currentStrainMaxElem;
     }
   } // For loop over elements included for injury
-  if (maxValue[0] > 0.4) {
-    exceedFlag = true;
-  }
+  // if (maxValue[0] > 0.4) {
+  //   exceedFlag = true;
+  // }
 
   // Compute 95 percentile MPS and corresponding element list
   double MPS95 = compute95thPercentileValue(PS_Old, nElementsInjury);
