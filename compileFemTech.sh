@@ -25,7 +25,7 @@ if [ "$PARCH" == "amd64" ]; then
   ### Copy all executables and required input files to a single folder #####
   cd ../build_all
   ## Copy files required for displacement BC ##
-  cp ../build_native/examples/ex5/{input.json,materials.dat,coarse_brain.inp,simulationMovie.py,mps95Movie.py,addGraph.py,fine_cellcentres.txt,coarse_cellcentres.txt,updateOutputJson.py,fine_brain.inp} .
+  cp ../build_native/examples/ex5/{input.json,materials.dat,simulationMovie.py,mps95Movie.py,addGraph.py,fine_cellcentres.txt,coarse_cellcentres.txt,updateOutputJson.py} .
   cp ../build_c6i/examples/ex5/ex5 ex5_c6i
   cp ../build_c5/examples/ex5/ex5 ex5_c5
   cp ../build_c5a/examples/ex5/ex5 ex5_c5a
