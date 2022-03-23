@@ -40,7 +40,7 @@ double StableTimeStep() {
       if (materialID[pid[i]] != 0) {
         dtElem = CalculateTimeStep(i);
         if (dtElem < FailureTimeStep) {
-		      FILE_LOG_SINGLE(ERROR, "Small timestep detected in element number : %8d", global_eid[i]);
+		      FILE_LOG_SINGLE(ERROR, "Small timestep detected in element number : %8d, dt = %15.9e, wave speed = %15.9e", global_eid[i], dtElem, waveSpeed[i]);
         }
       } 
     }
