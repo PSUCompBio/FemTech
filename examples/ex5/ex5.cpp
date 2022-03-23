@@ -11,6 +11,8 @@
 #include <math.h>
 #include <memory> // For JSON output unique pointer
 #include <string>
+#include <cstdlib>
+#include <ctime>
 
 #include <boost/numeric/odeint.hpp>
 
@@ -36,7 +38,7 @@ int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
-bool reducedIntegration = false;
+bool reducedIntegration = true;
 
 double dynamicDamping = 0.000;
 double ExplicitTimeStepReduction = 0.8;
@@ -155,6 +157,8 @@ state_type yInt, ydotInt;
 double cm[3];
 std::string outputFileName;
 
+// bool exceedFlag = false;
+
 int main(int argc, char **argv) {
   // Initialize FemTech including logfile and MPI
   Json::Value inputJson = InitFemTech(argc, argv);
@@ -180,6 +184,13 @@ int main(int argc, char **argv) {
   if (!simulationJson["dynamic-damping"].empty()) {
     dynamicDamping = simulationJson["dynamic-damping"].asDouble();
   }
+  // if (reducedIntegration) {
+  //   if (tMax > 0.005) {
+  //     srand((unsigned int)time(0));
+  //     double tRand = 0.007*((double)rand()/(double)RAND_MAX);
+  //     tMax = 0.005 + tRand;
+  //   }
+  // }
   FILE_LOG_MASTER(INFO, "Dynamic damping set to : %.3f", dynamicDamping);
   FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
   // Read Input Mesh file and equally partition elements among processes
@@ -268,6 +279,7 @@ int main(int argc, char **argv) {
 
 
   /* Step-4: Time loop starts....*/
+  // while ((Time < tMax) && !exceedFlag) {
   while (Time < tMax) {
     t_n = Time;
     double t_np1 = Time + dt;
@@ -365,6 +377,7 @@ int main(int argc, char **argv) {
     dt = ExplicitTimeStepReduction * stableDt;
     time_step_counter = time_step_counter + 1;
 
+    // MPI_Allreduce(MPI_IN_PLACE, &exceedFlag, 1, MPI_C_BOOL, MPI_LOR, MPI_COMM_WORLD);
     // Barrier not a must
     MPI_Barrier(MPI_COMM_WORLD);
   } // end explcit while loop
@@ -737,35 +750,35 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
       memcpy(linAccYt, linAccXt, timeSize*sizeof(double));
       memcpy(linAccZt, linAccXt, timeSize*sizeof(double));
 
-      if (!jsonInput["angular-velocity"].empty()) {
-        angVelXSize = jsonInput["angular-velocity"]["xv"].size();
-        assert(timeSize == angVelXSize);
-        angVelYSize = jsonInput["angular-velocity"]["yv"].size();
-        assert(timeSize == angVelYSize);
-        angVelZSize = jsonInput["angular-velocity"]["zv"].size();
-        assert(timeSize == angVelZSize);
-
-        angVelXt = (double *)malloc(sizeof(double) * angVelXSize);
-        angVelXv = (double *)malloc(sizeof(double) * angVelXSize);
-        angVelYt = (double *)malloc(sizeof(double) * angVelYSize);
-        angVelYv = (double *)malloc(sizeof(double) * angVelYSize);
-        angVelZt = (double *)malloc(sizeof(double) * angVelZSize);
-        angVelZv = (double *)malloc(sizeof(double) * angVelZSize);
-
-        jsonToArray(angVelXv, jsonInput["angular-velocity"]["xv"]);
-        jsonToArray(angVelYv, jsonInput["angular-velocity"]["yv"]);
-        jsonToArray(angVelZv, jsonInput["angular-velocity"]["zv"]);
-        memcpy(angVelXt, linAccXt, timeSize*sizeof(double));
-        memcpy(angVelYt, linAccXt, timeSize*sizeof(double));
-        memcpy(angVelZt, linAccXt, timeSize*sizeof(double));
-        angularVelPrescribed = true;
-      } else {
-        if (jsonInput["angular-acceleration"].empty()) {
-          // If both angular acceleration or angular velocity is not prescribed 
-          // terminate the application
-          FILE_LOG_SINGLE(ERROR, "Either angular acceleration or angular velocity has to be prescribed");
-          TerminateFemTech(12);
-        }
+      // if (!jsonInput["angular-velocity"].empty()) {
+      //   angVelXSize = jsonInput["angular-velocity"]["xv"].size();
+      //   assert(timeSize == angVelXSize);
+      //   angVelYSize = jsonInput["angular-velocity"]["yv"].size();
+      //   assert(timeSize == angVelYSize);
+      //   angVelZSize = jsonInput["angular-velocity"]["zv"].size();
+      //   assert(timeSize == angVelZSize);
+      //
+      //   angVelXt = (double *)malloc(sizeof(double) * angVelXSize);
+      //   angVelXv = (double *)malloc(sizeof(double) * angVelXSize);
+      //   angVelYt = (double *)malloc(sizeof(double) * angVelYSize);
+      //   angVelYv = (double *)malloc(sizeof(double) * angVelYSize);
+      //   angVelZt = (double *)malloc(sizeof(double) * angVelZSize);
+      //   angVelZv = (double *)malloc(sizeof(double) * angVelZSize);
+      //
+      //   jsonToArray(angVelXv, jsonInput["angular-velocity"]["xv"]);
+      //   jsonToArray(angVelYv, jsonInput["angular-velocity"]["yv"]);
+      //   jsonToArray(angVelZv, jsonInput["angular-velocity"]["zv"]);
+      //   memcpy(angVelXt, linAccXt, timeSize*sizeof(double));
+      //   memcpy(angVelYt, linAccXt, timeSize*sizeof(double));
+      //   memcpy(angVelZt, linAccXt, timeSize*sizeof(double));
+      //   angularVelPrescribed = true;
+      // } else {
+      //   if (jsonInput["angular-acceleration"].empty()) {
+      //     // If both angular acceleration or angular velocity is not prescribed 
+      //     // terminate the application
+      //     FILE_LOG_SINGLE(ERROR, "Either angular acceleration or angular velocity has to be prescribed");
+      //     TerminateFemTech(12);
+      //   }
         angAccXSize = jsonInput["angular-acceleration"]["xv"].size();
         assert(timeSize == angAccXSize);
         angAccYSize = jsonInput["angular-acceleration"]["yv"].size();
@@ -786,7 +799,7 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
         memcpy(angAccXt, linAccXt, timeSize*sizeof(double));
         memcpy(angAccYt, linAccXt, timeSize*sizeof(double));
         memcpy(angAccZt, linAccXt, timeSize*sizeof(double));
-      }
+      // }
     } else {
       // Read linear acceleration and angular acceleration time traces
       linAccXSize = jsonInput["linear-acceleration"]["xt"].size();
@@ -811,36 +824,36 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
       jsonToArray(linAccZt, jsonInput["linear-acceleration"]["zt"]);
       jsonToArray(linAccZv, jsonInput["linear-acceleration"]["zv"]);
 
-      if (!jsonInput["angular-velocity"].empty()) {
-        angVelXSize = jsonInput["angular-velocity"]["xt"].size();
-        tempSize = jsonInput["angular-velocity"]["xv"].size();
-        assert(tempSize == angVelXSize);
-        angVelXt = (double *)malloc(sizeof(double) * angVelXSize);
-        angVelXv = (double *)malloc(sizeof(double) * angVelXSize);
-        angVelYSize = jsonInput["angular-velocity"]["yt"].size();
-        tempSize = jsonInput["angular-velocity"]["yv"].size();
-        assert(tempSize == angVelYSize);
-        angVelYt = (double *)malloc(sizeof(double) * angVelYSize);
-        angVelYv = (double *)malloc(sizeof(double) * angVelYSize);
-        angVelZSize = jsonInput["angular-velocity"]["zt"].size();
-        tempSize = jsonInput["angular-velocity"]["zv"].size();
-        assert(tempSize == angVelZSize);
-        angVelZt = (double *)malloc(sizeof(double) * angVelZSize);
-        angVelZv = (double *)malloc(sizeof(double) * angVelZSize);
-        jsonToArray(angVelXt, jsonInput["angular-velocity"]["xt"]);
-        jsonToArray(angVelXv, jsonInput["angular-velocity"]["xv"]);
-        jsonToArray(angVelYt, jsonInput["angular-velocity"]["yt"]);
-        jsonToArray(angVelYv, jsonInput["angular-velocity"]["yv"]);
-        jsonToArray(angVelZt, jsonInput["angular-velocity"]["zt"]);
-        jsonToArray(angVelZv, jsonInput["angular-velocity"]["zv"]);
-        angularVelPrescribed = true;
-      } else {
-        if (jsonInput["angular-acceleration"].empty()) {
-          // If both angular acceleration or angular velocity is not prescribed 
-          // terminate the application
-          FILE_LOG_SINGLE(ERROR, "Either angular acceleration or angular velocity has to be prescribed");
-          TerminateFemTech(12);
-        }
+      // if (!jsonInput["angular-velocity"].empty()) {
+      //   angVelXSize = jsonInput["angular-velocity"]["xt"].size();
+      //   tempSize = jsonInput["angular-velocity"]["xv"].size();
+      //   assert(tempSize == angVelXSize);
+      //   angVelXt = (double *)malloc(sizeof(double) * angVelXSize);
+      //   angVelXv = (double *)malloc(sizeof(double) * angVelXSize);
+      //   angVelYSize = jsonInput["angular-velocity"]["yt"].size();
+      //   tempSize = jsonInput["angular-velocity"]["yv"].size();
+      //   assert(tempSize == angVelYSize);
+      //   angVelYt = (double *)malloc(sizeof(double) * angVelYSize);
+      //   angVelYv = (double *)malloc(sizeof(double) * angVelYSize);
+      //   angVelZSize = jsonInput["angular-velocity"]["zt"].size();
+      //   tempSize = jsonInput["angular-velocity"]["zv"].size();
+      //   assert(tempSize == angVelZSize);
+      //   angVelZt = (double *)malloc(sizeof(double) * angVelZSize);
+      //   angVelZv = (double *)malloc(sizeof(double) * angVelZSize);
+      //   jsonToArray(angVelXt, jsonInput["angular-velocity"]["xt"]);
+      //   jsonToArray(angVelXv, jsonInput["angular-velocity"]["xv"]);
+      //   jsonToArray(angVelYt, jsonInput["angular-velocity"]["yt"]);
+      //   jsonToArray(angVelYv, jsonInput["angular-velocity"]["yv"]);
+      //   jsonToArray(angVelZt, jsonInput["angular-velocity"]["zt"]);
+      //   jsonToArray(angVelZv, jsonInput["angular-velocity"]["zv"]);
+      //   angularVelPrescribed = true;
+      // } else {
+      //   if (jsonInput["angular-acceleration"].empty()) {
+      //     // If both angular acceleration or angular velocity is not prescribed 
+      //     // terminate the application
+      //     FILE_LOG_SINGLE(ERROR, "Either angular acceleration or angular velocity has to be prescribed");
+      //     TerminateFemTech(12);
+      //   }
         angAccXSize = jsonInput["angular-acceleration"]["xt"].size();
         tempSize = jsonInput["angular-acceleration"]["xv"].size();
         assert(tempSize == angAccXSize);
@@ -862,7 +875,7 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
         jsonToArray(angAccYv, jsonInput["angular-acceleration"]["yv"]);
         jsonToArray(angAccZt, jsonInput["angular-acceleration"]["zt"]);
         jsonToArray(angAccZv, jsonInput["angular-acceleration"]["zv"]);
-      }
+      // }
     }
 
     // Convert linear accelerations from g force to m/s^2
@@ -1605,6 +1618,7 @@ void WriteOutputFile() {
       free(countPerProc);
       free(cumCountPerProc);
     }
+    output[maxOutput[0]]["value"] = percentileValue[0];
   }
 
   // Write output to file
@@ -1753,6 +1767,9 @@ void CalculateInjuryCriteria(void) {
       elementMPS[i] = currentStrainMaxElem;
     }
   } // For loop over elements included for injury
+  // if (maxValue[0] > 0.4) {
+  //   exceedFlag = true;
+  // }
 
   // Compute 95 percentile MPS and corresponding element list
   double MPS95 = compute95thPercentileValue(PS_Old, nElementsInjury);
