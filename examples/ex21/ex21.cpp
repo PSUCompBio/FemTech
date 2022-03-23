@@ -637,50 +637,59 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
       FILE_LOG_SINGLE(ERROR, "Pressure-time array absent");
       TerminateFemTech(12);
     }
-    if (!jsonPressure["head"].empty()) {
-      unsigned int pressureTrace1Size = 0;
-      pressureTrace1Size = jsonPressure["head"].size();
-      assert(pressureTrace1Size == timeTraceBCSize);
-    } else{
-      FILE_LOG_SINGLE(ERROR, "Head pressure trace absent");
-      TerminateFemTech(12);
-    }
-    if (!jsonPressure["shoulder"].empty()) {
-      unsigned int pressureTrace2Size = 0;
-      pressureTrace2Size = jsonPressure["shoulder"].size();
-      assert(pressureTrace2Size == timeTraceBCSize);
-    } else{
-      FILE_LOG_SINGLE(ERROR, "Shoulder pressure trace absent");
-      TerminateFemTech(12);
-    }
-    if (!jsonPressure["chest"].empty()) {
-      unsigned int pressureTrace3Size = 0;
-      pressureTrace3Size = jsonPressure["chest"].size();
-      assert(pressureTrace3Size == timeTraceBCSize);
-    } else{
-      FILE_LOG_SINGLE(ERROR, "Chest pressure trace absent");
-      TerminateFemTech(12);
-    }
-    double *pressureTrace1 = (double*)malloc(sizeof(double) * timeTraceBCSize);
-    double *pressureTrace2 = (double*)malloc(sizeof(double) * timeTraceBCSize);
-    double *pressureTrace3 = (double*)malloc(sizeof(double) * timeTraceBCSize);
     timeTraceBC = (double*)malloc(sizeof(double) * timeTraceBCSize);
-    pressureTraceBC = (double*)malloc(sizeof(double) * timeTraceBCSize);
-
     jsonToArray(timeTraceBC, jsonPressure["time"]);
-    jsonToArray(pressureTrace1, jsonPressure["head"]);
-    jsonToArray(pressureTrace2, jsonPressure["shoulder"]);
-    jsonToArray(pressureTrace3, jsonPressure["chest"]);
 
-    // Average over the three pressure sensor values to arrive at pressure to be
-    // applied on the fore-head
-    for (unsigned int i = 0; i < timeTraceBCSize; ++i) {
-      pressureTraceBC[i] = (pressureTrace1[i] + pressureTrace2[i] + pressureTrace3[i])/3.0;
+    pressureTraceBC = (double*)malloc(sizeof(double) * timeTraceBCSize);
+    if (!jsonPressure["average"].empty()) {
+      unsigned int pressureTraceSize = 0;
+      pressureTraceSize = jsonPressure["average"].size();
+      assert(pressureTraceSize == timeTraceBCSize);
+
+      jsonToArray(pressureTraceBC, jsonPressure["average"]);
+    } else {
+      if (!jsonPressure["head"].empty()) {
+        unsigned int pressureTrace1Size = 0;
+        pressureTrace1Size = jsonPressure["head"].size();
+        assert(pressureTrace1Size == timeTraceBCSize);
+      } else{
+        FILE_LOG_SINGLE(ERROR, "Head pressure trace absent");
+        TerminateFemTech(12);
+      }
+      if (!jsonPressure["shoulder"].empty()) {
+        unsigned int pressureTrace2Size = 0;
+        pressureTrace2Size = jsonPressure["shoulder"].size();
+        assert(pressureTrace2Size == timeTraceBCSize);
+      } else{
+        FILE_LOG_SINGLE(ERROR, "Shoulder pressure trace absent");
+        TerminateFemTech(12);
+      }
+      if (!jsonPressure["chest"].empty()) {
+        unsigned int pressureTrace3Size = 0;
+        pressureTrace3Size = jsonPressure["chest"].size();
+        assert(pressureTrace3Size == timeTraceBCSize);
+      } else{
+        FILE_LOG_SINGLE(ERROR, "Chest pressure trace absent");
+        TerminateFemTech(12);
+      }
+      double *pressureTrace1 = (double*)malloc(sizeof(double) * timeTraceBCSize);
+      double *pressureTrace2 = (double*)malloc(sizeof(double) * timeTraceBCSize);
+      double *pressureTrace3 = (double*)malloc(sizeof(double) * timeTraceBCSize);
+
+      jsonToArray(pressureTrace1, jsonPressure["head"]);
+      jsonToArray(pressureTrace2, jsonPressure["shoulder"]);
+      jsonToArray(pressureTrace3, jsonPressure["chest"]);
+
+      // Average over the three pressure sensor values to arrive at pressure to be
+      // applied on the fore-head
+      for (unsigned int i = 0; i < timeTraceBCSize; ++i) {
+        pressureTraceBC[i] = (pressureTrace1[i] + pressureTrace2[i] + pressureTrace3[i])/3.0;
+      }
+
+      free(pressureTrace1);
+      free(pressureTrace2);
+      free(pressureTrace3);
     }
-
-    free(pressureTrace1);
-    free(pressureTrace2);
-    free(pressureTrace3);
 
     // Convert time from milli-seconds to seconds
     for (int i = 0; i < timeTraceBCSize; ++i) {
