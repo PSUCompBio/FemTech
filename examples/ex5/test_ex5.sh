@@ -12,8 +12,8 @@ testInputFiles=( pt x )
 # Values of element id expected in the order, max-shear, min-principal,
 # max-principal
 value_p1=( 9821 7323 10243 )
-value_pt=( 7875 8153 10491 )
-value_x=( 8153 8153 10002 )
+value_pt=( 7740 14281 7748 )
+value_x=( 7932 7932 7863 )
 value_s=( 7740 7740 7740 )
 
 # Run all tests and check output
