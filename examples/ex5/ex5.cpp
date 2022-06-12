@@ -157,7 +157,11 @@ state_type yInt, ydotInt;
 double cm[3];
 std::string outputFileName;
 
-// bool exceedFlag = false;
+/* Variable to store MPS-95 time trace */
+double *mps95TimeTrace, *linearAccMPS95TimeTrace;
+double *angularAccMPS95TimeTrace;
+double MPS95;
+int mpsArraySize;
 
 int main(int argc, char **argv) {
   // Initialize FemTech including logfile and MPI
@@ -228,6 +232,11 @@ int main(int argc, char **argv) {
     WritePVD(outputFileName.c_str(), plot_counter);
   }
   stepTime[plot_counter] = Time;
+  if (computeInjuryFlag && (world_rank == 0)) {
+    mps95TimeTrace[plot_counter] = 0.0;
+    linearAccMPS95TimeTrace[plot_counter] = sqrt(linAccXv[0]*linAccXv[0]+linAccYv[0]*linAccYv[0]+linAccZv[0]*linAccZv[0]);
+    angularAccMPS95TimeTrace[plot_counter] = sqrt(angAccXv[0]*angAccXv[0]+angAccYv[0]*angAccYv[0]+angAccZv[0]*angAccZv[0]);
+  }
 
   int time_step_counter = 0;
   /** Central Difference Method - Beta and Gamma */
@@ -279,7 +288,6 @@ int main(int argc, char **argv) {
 
 
   /* Step-4: Time loop starts....*/
-  // while ((Time < tMax) && !exceedFlag) {
   while (Time < tMax) {
     t_n = Time;
     double t_np1 = Time + dt;
@@ -337,6 +345,19 @@ int main(int argc, char **argv) {
 
       if (plot_counter < MAXPLOTSTEPS) {
         stepTime[plot_counter] = Time;
+        if (computeInjuryFlag && (world_rank == 0)) {
+          mps95TimeTrace[plot_counter] = MPS95;
+          double angAccX_Write = interpolateLinear(angAccXSize, angAccXt, angAccXv, Time);
+          double angAccY_Write = interpolateLinear(angAccYSize, angAccYt, angAccYv, Time);
+          double angAccZ_Write = interpolateLinear(angAccZSize, angAccZt, angAccZv, Time);
+          double angularAccMagnitude = angAccX_Write*angAccX_Write + angAccY_Write*angAccY_Write + angAccZ_Write*angAccZ_Write;
+          angularAccMPS95TimeTrace[plot_counter] = sqrt(angularAccMagnitude);
+          double linearAccX_Write = interpolateLinear(linAccXSize, linAccXt, linAccXv, Time);
+          double linearAccY_Write = interpolateLinear(linAccYSize, linAccYt, linAccYv, Time);
+          double linearAccZ_Write = interpolateLinear(linAccZSize, linAccZt, linAccZv, Time);
+          double linearAccMagnitude = linearAccX_Write*linearAccX_Write + linearAccY_Write*linearAccY_Write + linearAccZ_Write*linearAccZ_Write;
+          linearAccMPS95TimeTrace[plot_counter] = sqrt(linearAccMagnitude);
+        }
         if (writeField) {
           FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
           if (computeInjuryFlag) {
@@ -387,6 +408,7 @@ int main(int argc, char **argv) {
     CustomPlot();
   }
   FILE_LOG_MASTER(INFO, "End of Iterative Loop");
+  mpsArraySize = plot_counter + 1;
 
   WriteOutputFile();
   if (computeInjuryFlag) {
@@ -427,6 +449,10 @@ int main(int argc, char **argv) {
   }
   free1DArray(elementMPS);
   free1DArray(initialVolume);
+
+  free1DArray(mps95TimeTrace);
+  free1DArray(linearAccMPS95TimeTrace);
+  free1DArray(angularAccMPS95TimeTrace);
 
   if (rankForCustomPlot) {
     MPI_File_close(&outputFilePtr);
@@ -1631,6 +1657,39 @@ void WriteOutputFile() {
     writer->write(output, &oFile);
   }
   FILE_LOG_MASTER(INFO, "Json output files written");
+
+  // Write basic info that does not require any computation
+  if (world_rank == 0) {
+    Json::Value mps95TimeTraceJson;
+    Json::Value vecTime(Json::arrayValue);
+    Json::Value vecMPS95(Json::arrayValue);
+    Json::Value vecLinearAcc(Json::arrayValue);
+    Json::Value vecAngularAcc(Json::arrayValue);
+
+    vecTime.resize(mpsArraySize);
+    vecMPS95.resize(mpsArraySize);
+    vecLinearAcc.resize(mpsArraySize);
+    vecAngularAcc.resize(mpsArraySize);
+    for (int i = 0; i < mpsArraySize; ++i) {
+      vecTime[i] = stepTime[i];
+      vecMPS95[i] = mps95TimeTrace[i];
+      vecLinearAcc[i] = linearAccMPS95TimeTrace[i];
+      vecAngularAcc[i] = angularAccMPS95TimeTrace[i];
+    }
+
+    mps95TimeTraceJson["time"] = vecTime;
+    mps95TimeTraceJson["MPS95"] = vecMPS95;
+    mps95TimeTraceJson["linear-acceleration"] = vecLinearAcc;
+    mps95TimeTraceJson["angular-acceleration"] = vecAngularAcc;
+
+    Json::StreamWriterBuilder builder;
+    builder["commentStyle"] = "None";
+    builder["indentation"] = "  ";
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+    std::ofstream oFile(uid + "_mpsTimeTrace.json");
+    writer->write(mps95TimeTraceJson, &oFile);
+  }
+  FILE_LOG_MASTER(INFO, "MPS time trace written as Json file");
 }
 
 void InitInjuryCriteria(void) {
@@ -1706,6 +1765,12 @@ void InitInjuryCriteria(void) {
     volumePart[i] = 0.0;
   }
   computePartVolume(volumePart, initialVolume);
+  // Allocate variables for MPS95 time trace
+  if (world_rank == 0) {
+    mps95TimeTrace = (double*)malloc(MAXPLOTSTEPS*sizeof(double));
+    linearAccMPS95TimeTrace = (double*)malloc(MAXPLOTSTEPS*sizeof(double));
+    angularAccMPS95TimeTrace = (double*)malloc(MAXPLOTSTEPS*sizeof(double));
+  }
 }
 
 void CalculateInjuryCriteria(void) {
@@ -1742,7 +1807,7 @@ void CalculateInjuryCriteria(void) {
     // Compute maxPSxSR
     // Compute principal strain rate using first order backaward distance
     PSR = (currentStrainMaxElem - PS_Old[j]) / dt;
-    // TODO(Anil) : Sould absolute value be used for PSR ?
+    // TODO(Anil) : Should absolute value be used for PSR ?
     PSxSR = currentStrainMaxElem * PSR;
     if (maxValue[2] < PSxSR) {
       maxValue[2] = PSxSR;
@@ -1772,7 +1837,7 @@ void CalculateInjuryCriteria(void) {
   // }
 
   // Compute 95 percentile MPS and corresponding element list
-  double MPS95 = compute95thPercentileValue(PS_Old, nElementsInjury);
+  MPS95 = compute95thPercentileValue(PS_Old, nElementsInjury);
   if (MPS95 > percentileValue[0]) {
     memset(percentileElements[0], 0, nElementsInjury * sizeof(int));
     percentileValue[0] = MPS95;
