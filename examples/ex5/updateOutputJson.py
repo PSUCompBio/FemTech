@@ -95,13 +95,16 @@ if (not 'compute-injury-criteria' in inputJson['simulation']) or inputJson['simu
         meshType = 'coarse'
     else:
         meshType = 'fine'
-    cellDataFile = meshType + '_cellcentres.txt'
+    if 'female' in meshFileParts:
+        meshSuffix = 'female'
+    else:
+        meshSuffix = 'male'
+    cellDataFile = meshType + '_cellcentresandvol_'+ meshSuffix +'.txt'
 
     # Populate region from cell centres file
     maxInjuryMetrics = ["principal-max-strain", "principal-min-strain",
-            "maximum-shear-strain", "maximum-PSxSR"];
-    threshInjuryMetrics = ["CSDM-10", "CSDM-15", "CSDM-30", "CSDM-5", "CSDM-3",
-            "MPS-95"];
+            "maximum-shear-strain", "maximum-PSxSR", "principal-max-pressure"];
+    threshInjuryMetrics = ["CSDM-10", "CSDM-15", "CSDM-30", "CSDM-5", "CSDM-3"];
 
     # Loop over metric with single element output
     for metric in maxInjuryMetrics:
@@ -110,7 +113,8 @@ if (not 'compute-injury-criteria' in inputJson['simulation']) or inputJson['simu
         outputJson[metric]["brain-region"] = maxLine[4]
         # overwrite location with femtech-reference co-ordinate
         outputJson[metric]["location"] = \
-                [float(maxLine[1]), float(maxLine[2]), float(maxLine[3])]
+                [float('%.3g' % float(maxLine[1])), float('%.3g' % float(maxLine[2])), \
+                            float('%.3g' % float(maxLine[3]))]
         outputJson[metric].pop("global-element-id", None)
 
     # Loop over metric with multiple element output
@@ -122,19 +126,19 @@ if (not 'compute-injury-criteria' in inputJson['simulation']) or inputJson['simu
             outputJsonMetric[part] = []
         for loc in maxLocation:
             maxLine = linecache.getline(cellDataFile, int(loc)).split()
-            outputJsonMetric[maxLine[4]].append([float(maxLine[1]), \
-                    float(maxLine[2]), float(maxLine[3])])
+            outputJsonMetric[maxLine[4]].append([float('%.3g' % float(maxLine[1])), \
+                    float('%.3g' % float(maxLine[2])), float('%.3g' % float(maxLine[3]))])
         outputJsonMetric.pop("global-element-id", None)
         with open(jsonOutputFileMetric, 'w') as outfile:
             json.dump(outputJsonMetric, outfile, indent = 2, sort_keys=False)
 
 # Add max quantities 
 if not pressureSimulation:
-    outputJson["max-linear-acc-g"] = maxG
+    outputJson["max-linear-acc-g"] = float('%.3g' % maxG)
     if computeAngAcc:
-        outputJson["max-angular-acc-rads2"] = maxT
+        outputJson["max-angular-acc-rads2"] = float('%.3g' % maxT)
     if computeAngVel:
-        outputJson["max-angular-vel-rads"] = maxAV
+        outputJson["max-angular-vel-rads"] = float('%.3g' % maxAV)
 
 if 'output-nodes' in inputJson['simulation'] or 'output-elements' in inputJson['simulation']:
     # Open plot column file 
@@ -195,13 +199,56 @@ if (not 'compute-injury-criteria' in inputJson['simulation']) or inputJson['simu
     for part in partList:
         outputJson["region-wise-mps"][part] = 0.0
 
+    # Create and write MPS-95.json
+    outputJsonMetric = {}
+    outputJsonMetric["time"] = outputJson["MPS-95"]["time"]
+    outputJsonMetric["value"] = outputJson["MPS-95"]["value"]
+    for part in partList:
+        outputJsonMetric[part] = []
+
     with open('MPSfile.dat') as mpsFile, open(cellDataFile) as regionFile:
         for mpsLine, cellDataLine in zip(mpsFile, regionFile):
-            part = cellDataLine.split()[4]
+            mpsLineSplit = cellDataLine.split();
+            part = mpsLineSplit[4]
             if part != 'skull' and part != 'csf':
                 mpsValue = float(mpsLine.split(',')[1])
                 if mpsValue > outputJson["region-wise-mps"][part]:
-                    outputJson["region-wise-mps"][part] = mpsValue
+                    outputJson["region-wise-mps"][part] = float('%.3g' % mpsValue)
+                if mpsValue >= outputJsonMetric["value"]:
+                    outputJsonMetric[part].append([float('%.3g' % float(mpsLineSplit[1])), \
+                    float('%.3g' % float(mpsLineSplit[2])), float('%.3g' % float(mpsLineSplit[3]))])
+    jsonOutputFileMPS95 = 'MPS-95.json'
+    with open(jsonOutputFileMPS95, 'w') as outfile:
+        json.dump(outputJsonMetric, outfile, indent = 2, sort_keys=False)
+
+# Include region wise MPr values to output.json
+if (not 'compute-injury-criteria' in inputJson['simulation']) or inputJson['simulation']['compute-injury-criteria']:
+    outputJson["region-wise-mpr"] = {}
+    # Set all region MPr value to zero
+    for part in partList:
+        outputJson["region-wise-mpr"][part] = 0.0
+
+    # Create and write MPr-95.json
+    outputJsonMetric = {}
+    outputJsonMetric["time"] = outputJson["MPr-95"]["time"]
+    outputJsonMetric["value"] = outputJson["MPr-95"]["value"]
+    for part in partList:
+        outputJsonMetric[part] = []
+
+    with open('MPrFile.dat') as mprFile, open(cellDataFile) as regionFile:
+        for mprLine, cellDataLine in zip(mprFile, regionFile):
+            mprLineSplit = cellDataLine.split();
+            part = mprLineSplit[4]
+            if part != 'skull' and part != 'csf':
+                mprValue = float(mprLine.split(',')[1])
+                if mprValue > outputJson["region-wise-mpr"][part]:
+                    outputJson["region-wise-mpr"][part] = float('%.3g' % mprValue)
+                if mprValue >= outputJsonMetric["value"]:
+                    outputJsonMetric[part].append([float('%.3g' % float(mprLineSplit[1])), \
+                    float('%.3g' % float(mprLineSplit[2])), float('%.3g' % float(mprLineSplit[3]))])
+    jsonOutputFileMPr95 = 'MPr-95.json'
+    with open(jsonOutputFileMPr95, 'w') as outfile:
+        json.dump(outputJsonMetric, outfile, indent = 2, sort_keys=False)
 
 # print(outputJson)
 # jstr = json.dumps(outputJson, indent = 2, sort_keys=False)

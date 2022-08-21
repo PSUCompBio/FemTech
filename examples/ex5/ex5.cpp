@@ -31,6 +31,7 @@ void WriteOutputFile();
 void CalculateInjuryCriteria(void);
 void TransformMesh(const Json::Value &jsonInput);
 void WriteMPS(void);
+void WriteMPr(void);
 
 /* Global Variables/Parameters */
 double Time = 0.0, dt, tInitial;
@@ -73,12 +74,13 @@ double *outputElemStress;
  * 2. Maximum principal strain times strain rate
  * 3. Minimum principal strain
  * */
-const int maxQuantities = 4;
+const int maxQuantities = 5;
 const std::string maxOutput[maxQuantities] = {
     "principal-max-strain", "maximum-shear-strain", "maximum-PSxSR",
-    "principal-min-strain"};
+    "principal-min-strain", "principal-max-pressure"};
 const MPI_Op outputOperator[maxQuantities] = {MPI_MAXLOC, MPI_MAXLOC,
-                                              MPI_MAXLOC, MPI_MINLOC};
+                                              MPI_MAXLOC, MPI_MINLOC,
+                                              MPI_MAXLOC};
 
 double maxValue[maxQuantities], maxTime[maxQuantities];
 int maxElem[maxQuantities];
@@ -87,11 +89,11 @@ int maxElem[maxQuantities];
 /* 0. MPS - 95 Percentile
  * 1. MPSxSR - 95 Percentile
  */
-const int percentileQuantities = 2;
+const int percentileQuantities = 3;
 int *percentileElements[percentileQuantities];
 double percentileTime[percentileQuantities];
 double percentileValue[percentileQuantities];
-const std::string percentileTag[percentileQuantities] = {"MPS-95", "MPSxSR-95"};
+const std::string percentileTag[percentileQuantities] = {"MPS-95", "MPSxSR-95", "MPr-95"};
 /* Threshold variables */
 /* 0. MPS > 3
  * 1. MPS > 5
@@ -109,9 +111,12 @@ const std::string thresholdTag[threshQuantities] = {
 /* Variables for maximum Principal Strain times Strain Rate */
 double *PS_Old = NULL;
 double *PSxSRArray = NULL;
+double *pressureElem = NULL;
 /* Store MPS, volume of each element */
 double *elementMPS = NULL;
 double *initialVolume = NULL;
+/* Store MPr */
+double *elementMPr = NULL;
 
 int nElementsInjury = 0, *elementIDInjury = NULL;
 // part ID to exclude from injury computation
@@ -413,6 +418,7 @@ int main(int argc, char **argv) {
   WriteOutputFile();
   if (computeInjuryFlag) {
     WriteMPS();
+    WriteMPr();
   }
 
   // Free local boundary condition related arrays
@@ -439,6 +445,7 @@ int main(int argc, char **argv) {
   free1DArray(outputElemList);
   // Free variables used for injury criteria
   free1DArray(PS_Old);
+  free1DArray(pressureElem);
   free1DArray(elementIDInjury);
   free1DArray(PSxSRArray);
   for (int i = 0; i < threshQuantities; ++i) {
@@ -448,6 +455,7 @@ int main(int argc, char **argv) {
     free1DArray(percentileElements[i]);
   }
   free1DArray(elementMPS);
+  free1DArray(elementMPr);
   free1DArray(initialVolume);
 
   free1DArray(mps95TimeTrace);
@@ -1557,16 +1565,13 @@ void WriteOutputFile() {
       }
     }
     // Create list to write to output.json
-    const int outputJsonCount = csdmCount + 1;
+    const int outputJsonCount = csdmCount;
     std::string jsonOutputTag[outputJsonCount];
     int *outputJsonArray[outputJsonCount];
     for (int i = 0; i < csdmCount; ++i) {
       jsonOutputTag[i] = thresholdTag[i];
       outputJsonArray[i] = thresholdElements[i];
     }
-    // Write MPS-95 elements
-    jsonOutputTag[csdmCount] = percentileTag[0];
-    outputJsonArray[csdmCount] = percentileElements[0];
 
     int *countPerProc, *cumCountPerProc, *fullElemList;
     if (world_rank == 0) {
@@ -1619,12 +1624,12 @@ void WriteOutputFile() {
           elementList[j] = fullElemList[j];
         }
         free(fullElemList);
-        // output[jsonOutputTag[i]]["global-element-id"] = elementList;
         Json::Value outputThreshold;
         outputThreshold["global-element-id"] = elementList;
         Json::StreamWriterBuilder builder;
         builder["commentStyle"] = "None";
         builder["indentation"] = "  ";
+        builder.settings_["precision"] = 4;
         std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
         std::ofstream oFile(jsonOutputTag[i] + ".json");
 
@@ -1644,6 +1649,7 @@ void WriteOutputFile() {
       free(countPerProc);
       free(cumCountPerProc);
     }
+    // Write MPS95 value instead of MPS value for better post processing
     output[maxOutput[0]]["value"] = percentileValue[0];
   }
 
@@ -1652,6 +1658,7 @@ void WriteOutputFile() {
     Json::StreamWriterBuilder builder;
     builder["commentStyle"] = "None";
     builder["indentation"] = "  ";
+    builder.settings_["precision"] = 4;
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
     std::ofstream oFile(uid + "_output.json");
     writer->write(output, &oFile);
@@ -1685,6 +1692,7 @@ void WriteOutputFile() {
     Json::StreamWriterBuilder builder;
     builder["commentStyle"] = "None";
     builder["indentation"] = "  ";
+    builder.settings_["precision"] = 4;
     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
     std::ofstream oFile(uid + "_mpsTimeTrace.json");
     writer->write(mps95TimeTraceJson, &oFile);
@@ -1735,13 +1743,18 @@ void InitInjuryCriteria(void) {
   }
   // Write percentile values
   for (int i = 0; i < percentileQuantities; ++i) {
-    percentileElements[i] = (int *)calloc(nElementsInjury, sizeof(int));
+    // Using element list only for MPS-95, to write to paraview
+    if (i == 0) {
+      percentileElements[i] = (int *)calloc(nElementsInjury, sizeof(int));
+    }
     percentileTime[i] = 0.0;
     percentileValue[i] = 0.0;
   }
   PS_Old = (double *)calloc(nElementsInjury, sizeof(double));
   PSxSRArray = (double *)calloc(nElementsInjury, sizeof(double));
+  pressureElem = (double *)calloc(nElementsInjury, sizeof(double));
   elementMPS = (double *)calloc(nelements, sizeof(double));
+  elementMPr = (double *)calloc(nelements, sizeof(double));
   initialVolume = (double *)calloc(nelements, sizeof(double));
 
   // Array to output to Paraview
@@ -1749,12 +1762,7 @@ void InitInjuryCriteria(void) {
   for (int i = 0; i < threshQuantities; ++i) {
     outputDataArray[i] = thresholdElements[i];
   }
-  // for (int i = 0; i < percentileQuantities; ++i) {
-  //   outputDataArray[threshQuantities + i] =
-  //       percentileElements[i];
-  // }
-  outputDataArray[threshQuantities] =
-    percentileElements[0]; // Write MPS-95 to paraview
+  outputDataArray[threshQuantities] = percentileElements[0]; // Write MPS-95 to paraview
   // Percentile Values
   // Write MPS-95-Value
   outputDoubleArray[0] = PS_Old;
@@ -1831,36 +1839,53 @@ void CalculateInjuryCriteria(void) {
     if (currentStrainMaxElem > elementMPS[i]) {
       elementMPS[i] = currentStrainMaxElem;
     }
+    // compute and store element pressure quantities
+    double elementPressure = CalculateElementPressure(i);
+    pressureElem[j] = elementPressure;
+    if (elementPressure > elementMPr[i]) {
+      elementMPr[i] = elementPressure;
+    }
+    if (maxValue[4] < elementPressure) {
+      maxValue[4] = elementPressure;
+      maxElem[4] = i;
+      maxTime[4] = Time;
+    }
   } // For loop over elements included for injury
-  // if (maxValue[0] > 0.4) {
-  //   exceedFlag = true;
-  // }
 
   // Compute 95 percentile MPS and corresponding element list
   MPS95 = compute95thPercentileValue(PS_Old, nElementsInjury);
   if (MPS95 > percentileValue[0]) {
-    memset(percentileElements[0], 0, nElementsInjury * sizeof(int));
     percentileValue[0] = MPS95;
     percentileTime[0] = Time;
-    for (int j = 0; j < nElementsInjury; j++) {
-      if (PS_Old[j] >= MPS95) {
-        percentileElements[0][j] = 1;
-      }
+  }
+  // Store instantaneous elements with MPS > MPS95
+  // Global MPS95 element list is computed from MPS text file
+  // Used to plot in paraview
+  memset(percentileElements[0], 0, nElementsInjury * sizeof(int));
+  for (int j = 0; j < nElementsInjury; j++) {
+    if (PS_Old[j] >= MPS95) {
+      percentileElements[0][j] = 1;
     }
+  }
+  // Compute 95 percentile maximum pressure 
+  double MPr95 = compute95thPercentileValue(pressureElem, nElementsInjury);
+  if (MPr95 > percentileValue[2]) {
+    percentileValue[2] = MPr95;
+    percentileTime[2] = Time;
   }
 
   // Compute 95 percentile MPSxSR and corresponding element list
   double MPSxSR95 = compute95thPercentileValue(PSxSRArray, nElementsInjury);
   if (MPSxSR95 > percentileValue[1]) {
-    memset(percentileElements[1], 0, nElementsInjury * sizeof(int));
+    // memset(percentileElements[1], 0, nElementsInjury * sizeof(int));
     percentileValue[1] = MPSxSR95;
     percentileTime[1] = Time;
-    int count = 0;
-    for (int j = 0; j < nElementsInjury; j++) {
-      if (PSxSRArray[j] >= MPSxSR95) {
-        percentileElements[1][j] = 1;
-      }
-    }
+    // TODO(Anil) MPSxSR95 may only be representitive
+    // for (int j = 0; j < nElementsInjury; j++) {
+    //   if (PSxSRArray[j] >= MPSxSR95) {
+    //     percentileElements[1][j] = 1;
+    //   }
+    // }
   }
 }
 
@@ -2048,5 +2073,41 @@ void WriteMPS(void) {
 
   MPI_File_close(&mpsFilePtr);
   FILE_LOG_MASTER(INFO, "MPS values written to file");
+  return;
+}
+
+void WriteMPr(void) {
+  MPI_File mpsFilePtr;
+  MPI_Info infoin;
+  MPI_Info_create(&infoin);
+  MPI_Info_set(infoin, "access_style", "write_once,random");
+  char fileName[] = "MPrFile.dat";
+
+  int err;
+  err = MPI_File_open(MPI_COMM_WORLD, fileName, MPI_MODE_EXCL|MPI_MODE_WRONLY|MPI_MODE_CREATE, infoin, &mpsFilePtr);
+  if (err != MPI_SUCCESS) {
+    if (world_rank == 0) {
+      MPI_File_delete(fileName, MPI_INFO_NULL);
+    }
+    err = MPI_File_open(MPI_COMM_WORLD, fileName, MPI_MODE_EXCL|MPI_MODE_WRONLY|MPI_MODE_CREATE, infoin, &mpsFilePtr);
+    if (err != MPI_SUCCESS) {
+      FILE_LOG_SINGLE(ERROR, "Unable to open MPr file");
+      return;
+    }
+  }
+
+  const unsigned int lineSize = 50;
+  char s2[lineSize+1], s3[lineSize+1];
+  unsigned int offset = 0;
+
+  for (unsigned int i = 0; i < nelements; ++i) {
+    offset = (global_eid[i]-1)*lineSize;
+    sprintf(s2, "%06d, %14.5e, %14.5e\n", global_eid[i], elementMPr[i], initialVolume[i]);
+    sprintf(s3, "%50s", s2);
+    MPI_File_write_at(mpsFilePtr, offset, s3, lineSize, MPI_CHAR, MPI_STATUS_IGNORE);
+  }
+
+  MPI_File_close(&mpsFilePtr);
+  FILE_LOG_MASTER(INFO, "MPr values written to file");
   return;
 }

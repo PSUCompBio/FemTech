@@ -10,6 +10,7 @@ Set(elements_src
     CharacteristicLength/CalculateCharacteristicLength_C3D8.cpp
     ElementCalculations/CalculateStrain.cpp
     ElementCalculations/CalculateElementStress.cpp
+    ElementCalculations/CalculateElementPressure.cpp
     CenterOfMass/CalculateCentroidAndVolume.cpp
     CenterOfMass/CalculateCentroid_C3D4.cpp
     CenterOfMass/CalculateCentroidAndVolume_C3D8.cpp
