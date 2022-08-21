@@ -14,7 +14,6 @@ jsonInputFile = sys.argv[1]
 inputJson = json.loads(open(jsonInputFile).read())
 uid = inputJson["event_id"]
 jsonOutputFile = uid + '_output.json'
-linearAcc = inputJson['simulation']['linear-acceleration']
 
 computeAngAcc = False
 if 'angular-acceleration' in inputJson['simulation']:
@@ -31,6 +30,7 @@ if 'pressure' in inputJson['simulation']:
     pressureSimulation = True
 
 if not pressureSimulation:
+    linearAcc = inputJson['simulation']['linear-acceleration']
     # Check if time array is present, common for all accelerations 
     if 'time-all' in inputJson['simulation']:
         maxG = np.max(np.sqrt(np.array(linearAcc['xv'])**2+np.array(linearAcc['yv'])**2+np.array(linearAcc['zv'])**2))/9.81
@@ -86,6 +86,9 @@ if not pressureSimulation:
                 maxT = np.sqrt(np.array(angularAcc[0])**2+np.array(angularAcc[1])**2+np.array(angularAcc[2])**2)
             else:
                 maxT = np.fabs(angularAcc)
+else: # pressure simulation
+    pressureJson = inputJson['simulation']['pressure']
+    maxP = np.max(np.abs(np.array(pressureJson['head'])+np.array(pressureJson['shoulder'])+np.array(pressureJson['chest'])))/3.0
 
 outputJson = json.loads(open(jsonOutputFile).read())
 
@@ -139,6 +142,8 @@ if not pressureSimulation:
         outputJson["max-angular-acc-rads2"] = float('%.3g' % maxT)
     if computeAngVel:
         outputJson["max-angular-vel-rads"] = float('%.3g' % maxAV)
+else:
+    outputJson["max-pressure"] = float('%.3g' % maxP)
 
 if 'output-nodes' in inputJson['simulation'] or 'output-elements' in inputJson['simulation']:
     # Open plot column file 
