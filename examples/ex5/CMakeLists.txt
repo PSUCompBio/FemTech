@@ -13,6 +13,7 @@ endif(ENABLE_MPI)
 
 file(INSTALL fine_brain.inp DESTINATION .)
 file(INSTALL coarse_brain.inp DESTINATION .)
+file(INSTALL coarse_cellcentresandvol.txt DESTINATION .)
 file(INSTALL materials.dat DESTINATION .)
 file(INSTALL input.json DESTINATION .)
 file(INSTALL input_test_p1.json DESTINATION .)

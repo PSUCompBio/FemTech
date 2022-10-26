@@ -56,6 +56,8 @@ extern double *mass;        /*mass matrix*/
 extern double *stiffness;        /*stiffness matrix*/
 extern double *rhs;              /*to store rhs matrix equation (implicit) */
 extern char **ElementType;	/* element type, e.g. C3D8 */
+extern int *region_array; /*name of region the element belongs to*/
+extern int mel, sel, cel, fel, pel, oel, tel; /*number of elements in each region*/
 
 extern double *C; /*Stores C matrix for isotropic elastic material */
 extern double *gaussWeights;

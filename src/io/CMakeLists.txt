@@ -1,5 +1,6 @@
 Set(io_src
     input/ReadInputFile.cpp
+    input/ReadRegions.cpp
     output/WriteVTU.cpp
 		output/WritePVD.cpp
     output/FreeArrays.cpp

@@ -32,6 +32,7 @@ void CalculateInjuryCriteria(void);
 void TransformMesh(const Json::Value &jsonInput);
 void WriteMPS(void);
 void WriteMPr(void);
+void WriteRegionalMPS(double mpsregion[]);
 
 /* Global Variables/Parameters */
 double Time = 0.0, dt, tInitial;
@@ -75,6 +76,7 @@ double *outputElemStress;
  * 3. Minimum principal strain
  * */
 const int maxQuantities = 5;
+const int regions = 7;
 const std::string maxOutput[maxQuantities] = {
     "principal-max-strain", "maximum-shear-strain", "maximum-PSxSR",
     "principal-min-strain", "principal-max-pressure"};
@@ -93,6 +95,7 @@ const int percentileQuantities = 3;
 int *percentileElements[percentileQuantities];
 double percentileTime[percentileQuantities];
 double percentileValue[percentileQuantities];
+double regionpercentileValue[regions+1];
 const std::string percentileTag[percentileQuantities] = {"MPS-95", "MPSxSR-95", "MPr-95"};
 /* Threshold variables */
 /* 0. MPS > 3
@@ -117,6 +120,15 @@ double *elementMPS = NULL;
 double *initialVolume = NULL;
 /* Store MPr */
 double *elementMPr = NULL;
+
+/*Variables for regional MPS*/
+double *PS_Old_msc = NULL;
+double *PS_Old_stem = NULL;
+double *PS_Old_cerebellum = NULL;
+double *PS_Old_frontal = NULL;
+double *PS_Old_parietal = NULL;
+double *PS_Old_occipital = NULL;
+double *PS_Old_temporal = NULL;
 
 int nElementsInjury = 0, *elementIDInjury = NULL;
 // part ID to exclude from injury computation
@@ -197,6 +209,7 @@ int main(int argc, char **argv) {
   FILE_LOG_MASTER(INFO, "Reading Mesh File : %s", meshFile.c_str());
   // Read Input Mesh file and equally partition elements among processes
   ReadInputFile(meshFile.c_str());
+
   size_t lastindex = meshFile.find_last_of(".");
   outputFileName = meshFile.substr(0, lastindex) + "_" + uid;
   // Read material properties before mesh partition to estimate
@@ -204,7 +217,7 @@ int main(int argc, char **argv) {
   ReadMaterials();
 
   PartitionMesh();
-
+  ReadRegions(meshFile.c_str());
   AllocateArrays();
   TransformMesh(simulationJson);
   InitCustomPlot(simulationJson);
@@ -224,6 +237,8 @@ int main(int argc, char **argv) {
       WriteVTU(outputFileName.c_str(), plot_counter, outputDataArray, outputCount,
               outputNames, elementIDInjury, nElementsInjury, outputDoubleArray,
               outputDoubleCount, outputDoubleNames);
+      if(world_rank==0)
+          WriteRegionalMPS(regionpercentileValue);
     } else {
       WriteVTU(outputFileName.c_str(), plot_counter);
     }
@@ -355,7 +370,8 @@ int main(int argc, char **argv) {
           double linearAccZ_Write = interpolateLinear(linAccZSize, linAccZt, linAccZv, Time);
           double linearAccMagnitude = linearAccX_Write*linearAccX_Write + linearAccY_Write*linearAccY_Write + linearAccZ_Write*linearAccZ_Write;
           linearAccMPS95TimeTrace[plot_counter] = sqrt(linearAccMagnitude);
-        }
+	  WriteRegionalMPS(regionpercentileValue);        
+	}
         if (writeField) {
           FILE_LOG(INFO, "------ Plot %d: WriteVTU", plot_counter);
           if (computeInjuryFlag) {
@@ -365,8 +381,9 @@ int main(int argc, char **argv) {
           } else {
             WriteVTU(outputFileName.c_str(), plot_counter);
           }
-          WritePVD(outputFileName.c_str(), plot_counter);
-        }
+          WritePVD(outputFileName.c_str(), plot_counter);      
+	}
+//printf("%.10f %.10f %d\n", regionpercentileValue[0], regionpercentileTime[0], world_rank);  
       }
     }
     stableDt = StableTimeStep();
@@ -437,6 +454,20 @@ int main(int argc, char **argv) {
   free1DArray(outputElemList);
   // Free variables used for injury criteria
   free1DArray(PS_Old);
+  if(mel!=0)
+    free1DArray(PS_Old_msc);
+  if(sel!=0)
+    free1DArray(PS_Old_stem);
+  if(cel!=0)
+    free1DArray(PS_Old_cerebellum);
+  if(fel!=0)
+    free1DArray(PS_Old_frontal);
+  if(pel!=0)
+    free1DArray(PS_Old_parietal);
+  if(oel!=0)
+    free1DArray(PS_Old_occipital);
+  if(tel!=0)
+    free1DArray(PS_Old_temporal);
   free1DArray(pressureElem);
   free1DArray(elementIDInjury);
   free1DArray(PSxSRArray);
@@ -446,6 +477,9 @@ int main(int argc, char **argv) {
   for (int i = 0; i < percentileQuantities; ++i) {
     free1DArray(percentileElements[i]);
   }
+//  for (int i = 0; i < regions; ++i) {
+//    free1DArray(regionpercentileElements[i]);
+//  }
   free1DArray(elementMPS);
   free1DArray(elementMPr);
   free1DArray(initialVolume);
@@ -457,6 +491,7 @@ int main(int argc, char **argv) {
   if (rankForCustomPlot) {
     MPI_File_close(&outputFilePtr);
   }
+
   FinalizeFemTech();
   return 0;
 }
@@ -1713,6 +1748,7 @@ void InitInjuryCriteria(void) {
       nElementsInjury += 1;
     }
   }
+
   elementIDInjury = (int *)malloc(nElementsInjury * sizeof(int));
   int count = 0;
   for (int i = 0; i < nelements; i++) {
@@ -1742,7 +1778,18 @@ void InitInjuryCriteria(void) {
     percentileTime[i] = 0.0;
     percentileValue[i] = 0.0;
   }
+  for (int i = 0; i < regions+1; ++i) {
+    regionpercentileValue[i] = 0.0;
+  }
+
   PS_Old = (double *)calloc(nElementsInjury, sizeof(double));
+  PS_Old_msc = (double *)calloc(mel, sizeof(double));
+  PS_Old_stem = (double *)calloc(sel, sizeof(double));
+  PS_Old_cerebellum = (double *)calloc(cel, sizeof(double));
+  PS_Old_frontal = (double *)calloc(fel, sizeof(double));
+  PS_Old_parietal = (double *)calloc(pel, sizeof(double));
+  PS_Old_occipital = (double *)calloc(oel, sizeof(double));
+  PS_Old_temporal = (double *)calloc(tel, sizeof(double));
   PSxSRArray = (double *)calloc(nElementsInjury, sizeof(double));
   pressureElem = (double *)calloc(nElementsInjury, sizeof(double));
   elementMPS = (double *)calloc(nelements, sizeof(double));
@@ -1776,9 +1823,16 @@ void InitInjuryCriteria(void) {
 void CalculateInjuryCriteria(void) {
   double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
   double PSR = 0.0, PSxSR = 0.0;
-
+  int m = 0, s = 0, c = 0, f = 0, p = 0, o = 0, t = 0;
   for (int j = 0; j < nElementsInjury; j++) {
     int i = elementIDInjury[j];
+    int regionname = region_array[i];
+//	for (int k = 0; k < nelements; k++)
+//	    if(global_eid[i] == region_array[k*2]){
+//		regionname = region_array[k*2+1];
+//		break;}
+//printf("%d %d %d %d %d\n", j, i, global_eid[i], regionname, world_rank);
+//break;
     CalculateMaximumPrincipalStrain(
         i, &currentStrainMaxElem, &currentStrainMinElem, &currentShearMaxElem);
     if (maxValue[0] < currentStrainMaxElem) {
@@ -1804,6 +1858,37 @@ void CalculateInjuryCriteria(void) {
         }
       }
     }
+
+    switch(regionname){
+	case 3:{
+		PS_Old_msc[m] = currentStrainMaxElem;
+		m++;
+		break;}
+	case 4:{
+		PS_Old_stem[s] = currentStrainMaxElem;
+		s++;
+		break;}
+	case 5:{
+		PS_Old_cerebellum[c] = currentStrainMaxElem;
+		c++;
+		break;}
+	case 6:{
+		PS_Old_frontal[f] = currentStrainMaxElem;
+		f++;
+		break;}
+	case 7:{
+		PS_Old_parietal[p] = currentStrainMaxElem;
+		p++;
+		break;}
+	case 8:{
+		PS_Old_occipital[o] = currentStrainMaxElem;
+		o++;
+		break;}
+	case 9:{
+		PS_Old_temporal[t] = currentStrainMaxElem;
+		t++;
+		break;}
+	}
     // Compute maxPSxSR
     // Compute principal strain rate using first order backaward distance
     PSR = (currentStrainMaxElem - PS_Old[j]) / dt;
@@ -1850,6 +1935,21 @@ void CalculateInjuryCriteria(void) {
     percentileValue[0] = MPS95;
     percentileTime[0] = Time;
   }
+  regionpercentileValue[0] = Time;
+  MPS95 = compute95thPercentileValue(PS_Old_msc, mel);
+    regionpercentileValue[1] = MPS95;
+  MPS95 = compute95thPercentileValue(PS_Old_stem, sel);
+    regionpercentileValue[2] = MPS95;
+  MPS95 = compute95thPercentileValue(PS_Old_cerebellum, cel);
+    regionpercentileValue[3] = MPS95;
+  MPS95 = compute95thPercentileValue(PS_Old_frontal, fel);
+    regionpercentileValue[4] = MPS95;
+  MPS95 = compute95thPercentileValue(PS_Old_parietal, pel);
+    regionpercentileValue[5] = MPS95;
+  MPS95 = compute95thPercentileValue(PS_Old_occipital, oel);
+    regionpercentileValue[6] = MPS95;
+  MPS95 = compute95thPercentileValue(PS_Old_temporal, tel);
+    regionpercentileValue[7] = MPS95;
   // Store instantaneous elements with MPS > MPS95
   // Global MPS95 element list is computed from MPS text file
   // Used to plot in paraview
@@ -2101,5 +2201,20 @@ void WriteMPr(void) {
 
   MPI_File_close(&mpsFilePtr);
   FILE_LOG_MASTER(INFO, "MPr values written to file");
+  return;
+}
+
+void WriteRegionalMPS(double regionMPS[]) {
+    FILE *fregion;  
+    if(Time==0){
+    fregion = fopen("regionMPSfile.dat", "w");
+    fprintf(fregion, "Time MSC Stem Cerebellum Frontal Parietal Occipital Temporal\n");
+    fprintf(fregion, "%f %f %f %f %f %f %f %f\n", regionMPS[0], regionMPS[1], regionMPS[2], regionMPS[3], regionMPS[4], regionMPS[5], regionMPS[6], regionMPS[7]);
+    fclose(fregion);
+    }
+    else{
+    fregion = fopen("regionMPSfile.dat", "a");
+    fprintf(fregion, "%f %f %f %f %f %f %f %f\n", regionMPS[0], regionMPS[1], regionMPS[2], regionMPS[3], regionMPS[4], regionMPS[5], regionMPS[6], regionMPS[7]);
+    fclose(fregion);}
   return;
 }
