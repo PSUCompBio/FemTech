@@ -1642,7 +1642,7 @@ void WriteOutputFile() {
       free(cumCountPerProc);
     }
     // Write MPS95 value instead of MPS value for better post processing
-    output[maxOutput[0]]["value"] = percentileValue[0];
+    // output[maxOutput[0]]["value"] = percentileValue[0];
   }
 
   // Write output to file
