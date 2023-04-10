@@ -19,7 +19,7 @@ int plotElemID = 0;
 double Time, dt, tInitial = 0.0;
 int nSteps;
 
-double dynamicDamping = 0.01;
+double dynamicDamping = 0.00;
 // 0.2 : Very bad stress, displacement match
 // 0.002 : Works for Ogden material model
 double ExplicitTimeStepReduction = 0.7;
@@ -34,8 +34,8 @@ bool ExplicitDynamic = true;
 bool reducedIntegration = true;
 
 // Parameters of simple tension test
-double tMax = 1.00;  // max simulation time in seconds
-double dMax = 0.005; // max displacment in meters
+double tMax = 10;  // max simulation time in seconds
+double dMax = 10; // max displacment in meters
 // double dMax = -0.002; // max displacment in meters
 
 int main(int argc, char **argv) {
@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
 
     /** Step - 11 Checking* Energy Balance */
     CheckEnergy(Time, writeFlag);
-    
+ 
     // int writeFlag = time_step_counter % nsteps_plot;
     if (writeFlag) {
       CustomPlot();
@@ -217,25 +217,17 @@ void ApplyVelocityBoundaryConditions(double) {
   int index;
 
   for (int i = 0; i < nNodes; i++) {
-    // if x value = 0, constrain node to x plane (0-direction)
-    index = ndim * i;
-    if (fabs(coordinates[index] - 0.0) < tol) {
-      velocities_half[index] = 0.0;
-    }
-    // if y coordinate = 0, constrain node to y plane (1-direction)
+    // if y value = 0, constrain nodes
     index = ndim * i + 1;
     if (fabs(coordinates[index] - 0.0) < tol) {
-      velocities_half[index] = 0.0;
+      velocities_half[index-1] = 0;
+      velocities_half[index] = 0;
+      velocities_half[index+1] = 0;
     }
-    // if z coordinate = 0, constrain node to z plane (2-direction)
-    index = ndim * i + 2;
-    if (fabs(coordinates[index] - 0.0) < tol) {
-      velocities_half[index] = 0.0;
-    }
-    // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
+    // if y coordinate = 100, apply disp
     index = ndim * i + 1;
-    if (fabs(coordinates[index] - 0.005) < tol) {
-      velocities_half[index] = dMax / tMax;
+    if (fabs(coordinates[index] - 100) < tol) {
+      velocities_half[index] = dMax/tMax;
     }
   }
   FILE_LOG_MASTER(INFO, "Time = %10.5E, Applied Velocity = %10.5E", Time,
@@ -261,24 +253,16 @@ void ApplyVelocityBoundaryConditionsVE(double t) {
   }
 
   for (int i = 0; i < nNodes; i++) {
-    // if x value = 0, constrain node to x plane (0-direction)
-    index = ndim * i + 0;
-    if (fabs(coordinates[index] - 0.0) < tol) {
-      velocities_half[index] = 0.0;
-    }
-    // if y coordinate = 0, constrain node to y plane (1-direction)
+    // if y value = 0, constrain nodes
     index = ndim * i + 1;
     if (fabs(coordinates[index] - 0.0) < tol) {
-      velocities_half[index] = 0.0;
+      velocities_half[index-1] = 0;
+      velocities_half[index] = 0;
+      velocities_half[index+1] = 0;
     }
-    // if z coordinate = 0, constrain node to z plane (2-direction)
-    index = ndim * i + 2;
-    if (fabs(coordinates[index] - 0.0) < tol) {
-      velocities_half[index] = 0.0;
-    }
-    // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
+    // if y coordinate = 100, apply disp
     index = ndim * i + 1;
-    if (fabs(coordinates[index] - 0.005) < tol) {
+    if (fabs(coordinates[index] - 100) < tol) {
       velocities_half[index] = nVel;
     }
   }
@@ -291,25 +275,17 @@ void InitVelocityBoundaryConditions() {
   double tol = 1e-5;
   int index;
   for (int i = 0; i < nNodes; i++) {
-    // if x value = 0, constrain node to x plane (0-direction)
-    index = ndim * i;
-    if (fabs(coordinates[index] - 0.0) < tol) {
-      boundary[index] = 1;
-    }
-    // if y coordinate = 0, constrain node to y plane (1-direction)
+    // if y = 0, constrain nodes
     index = ndim * i + 1;
     if (fabs(coordinates[index] - 0.0) < tol) {
-      boundary[index] = 1;
+	boundary[index+1] = 1;      
+        boundary[index] = 1;      
+	boundary[index-1] = 1;
     }
-    // if z coordinate = 0, constrain node to z plane (2-direction)
-    index = ndim * i + 2;
-    if (fabs(coordinates[index] - 0.0) < tol) {
-      boundary[index] = 1;
-    }
-    // if y coordinate = 1, apply disp. to node = 0.1 (1-direction)
+    // if y coordinate = 100, apply disp
     index = ndim * i + 1;
-    if (fabs(coordinates[index] - 0.005) < tol) {
-      boundary[index] = 1;
+    if (fabs(coordinates[index] - 100) < tol) {
+	boundary[index] = 1;      
     }
   }
   return;

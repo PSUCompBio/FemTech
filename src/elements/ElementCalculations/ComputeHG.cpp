@@ -2,7 +2,7 @@
 
 #include "blas.h"
 
-void ComputeHG(int e, double *force) {
+void ComputeHG(int e, double *force, double *force_hg) {
 	const int L[32] = {1, 1,-1,-1,-1,-1,1,1,1,-1,-1,1,-1,1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,-1,1,-1,1};
 	double gamma[32];
 	double temp[12];
@@ -80,8 +80,8 @@ void ComputeHG(int e, double *force) {
 		force[ndim*j+0] += HGforce[ndim*j+0];
 		force[ndim*j+1] += HGforce[ndim*j+1];
 		force[ndim*j+2] += HGforce[ndim*j+2];
-		//f_hg[connectivity[i+j]*ndim + 0] += HGforce[ndim*j+0];
-		//f_hg[connectivity[i+j]*ndim + 1] += HGforce[ndim*j+1];
-		//f_hg[connectivity[i+j]*ndim + 2] += HGforce[ndim*j+2];	
+		force_hg[ndim*j+0] += HGforce[ndim*j+0];
+		force_hg[ndim*j+1] += HGforce[ndim*j+1];
+		force_hg[ndim*j+2] += HGforce[ndim*j+2];	
 		}
 }

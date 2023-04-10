@@ -3,7 +3,7 @@
 void CheckEnergy(double time, bool writeFlag) {
   static double Wint_n = 0.0;
   static double Wext_n = 0.0;
-
+  static double Whg_n = 0.0;
   /* Energy Calculations are based on Belytschko et al. book
                  Section 6.2.3 Energy Balance */
 
@@ -11,6 +11,7 @@ void CheckEnergy(double time, bool writeFlag) {
   /* Calculate Kinetic Energy */
   double sum_Wint_n = 0.0;
   double sum_Wext_n = 0.0;
+  double sum_Whg_n = 0.0;
   double delta_d = 0.0;
   double WKE = 0.0;
 
@@ -49,24 +50,29 @@ void CheckEnergy(double time, bool writeFlag) {
           sum_Wint_n += delta_d * (fi_prev[indexJ] + fi[indexJ]); /* equ 6.2.14 */
         // }
         sum_Wext_n += delta_d * (fe_prev[indexJ] + fe[indexJ]); /* equ 6.2.15 */
+	sum_Whg_n += delta_d * (f_hgprev[indexJ] + f_hg[indexJ]);
       }
     }
   }
   WKE *= 0.5;
   sum_Wint_n *= 0.5;
   sum_Wext_n *= 0.5;
+  sum_Whg_n *= 0.5;
 
-  double WKE_Total = 0.0, Wint_n_total = 0.0, Wext_n_total = 0.0;
+  double WKE_Total = 0.0, Wint_n_total = 0.0, Wext_n_total = 0.0, Whg_n_total = 0.0;
   MPI_Reduce(&WKE, &WKE_Total, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
   MPI_Reduce(&sum_Wint_n, &Wint_n_total, 1, MPI_DOUBLE, MPI_SUM, 0,
              MPI_COMM_WORLD);
   MPI_Reduce(&sum_Wext_n, &Wext_n_total, 1, MPI_DOUBLE, MPI_SUM, 0,
              MPI_COMM_WORLD);
+  MPI_Reduce(&sum_Whg_n, &Whg_n_total, 1, MPI_DOUBLE, MPI_SUM, 0,
+             MPI_COMM_WORLD);
 
   if (world_rank == 0) {
     Wint_n += Wint_n_total;
     Wext_n += Wext_n_total;
-    double total = fabs(WKE_Total + Wint_n - Wext_n);
+    Whg_n += Whg_n_total;
+    double total = fabs(WKE_Total + Wint_n - Wext_n + Whg_n);
     // FILE_LOG_SINGLE(WARNING, "Internal Work : %15.9e", Wint_n);
     // FILE_LOG_SINGLE(WARNING, "External Work : %15.9e", Wext_n);
     // FILE_LOG_SINGLE(WARNING, "Kinetic Energy : %15.9e", WKE_Total);
@@ -87,8 +93,8 @@ void CheckEnergy(double time, bool writeFlag) {
       //     total, max, total * 100.0 / max);
     }
     if (writeFlag) {
-      fprintf(energyFile, "%12.6e %12.6e  %12.6e  %12.6e %12.6e\n", time,
-              Wint_n, Wext_n, WKE_Total, total);
+      fprintf(energyFile, "%12.6e %12.6e  %12.6e  %12.6e %12.6e %12.6e\n", time,
+              Wint_n, Wext_n, WKE_Total, total, Whg_n);
     }
-  }
+  } 
 }

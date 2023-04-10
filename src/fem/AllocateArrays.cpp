@@ -141,7 +141,7 @@ void AllocateArrays() {
     std::string energyFileName = "energy.dat"; 
     energyFile = fopen(energyFileName.c_str(), "w");
     fprintf(energyFile, "# Energy for FEM\n");
-    fprintf(energyFile, "# Time  Winternal   Wexternal   WKE   total\n");
+    fprintf(energyFile, "# Time  Winternal   Wexternal   WKE   total WHG\n");
 
     stepTime = (double*)malloc((MAXPLOTSTEPS)*sizeof(double));
     if (!stepTime) {
