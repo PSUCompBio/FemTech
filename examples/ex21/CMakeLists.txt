@@ -18,6 +18,7 @@ file(INSTALL pressureInput.json DESTINATION .)
 file(INSTALL README.md DESTINATION .)
 file(INSTALL pressureBC.json DESTINATION .)
 file(INSTALL mapPressureBCtoScaledMesh.py DESTINATION .)
+file(INSTALL pressureToNodeIDMap.json DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
 
