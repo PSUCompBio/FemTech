@@ -7,7 +7,6 @@ void MassElementMatrix(double *Me, int e) {
   int bColSize = nShapeFunctions[e]*ndim;
   // Size of local mass matrix [nShapeFunctions*ndim x nShapeFunctions*ndim]
   int mLocalSize = bColSize*bColSize;
-
   //TODO(Anil) remove allocations inside the loop
   double *MeGQ = (double*)calloc(mLocalSize, sizeof(double));
   // Column size of N matrix
@@ -40,7 +39,7 @@ void MassElementMatrix(double *Me, int e) {
     }
     // Compute elemental mass metrix for a single Gauss Quadrature point MeGQ = N^T N
     dgemm_(chy, chn, &nColSize, &nColSize, &ndim, &one, N, &ndim, \
-        N, &ndim, &zero, MeGQ, &nColSize);
+        N, &ndim, &zero, MeGQ, &nColSize); 
     // TODO(Anil) Gauss weights and det J product can be combined in shape
     // function
     int wIndex = gpPtr[e]+k;
@@ -124,8 +123,17 @@ void updateMassMatrixNeighbour(void) {
   FILE_LOGArraySingle(DEBUGLOGIGNORE, mass, nDOF, "Lumped Mass After Exchange");
 }
 
+double MassFiber(int e){
+	double fibermass, fibervol;
+        double rhofiber = properties[MAXMATPARAMS * pid[e]];
+	fibervol = CalculateVolume_T3D2(e);
+	fibermass = fibervol*rhofiber;
+        return fibermass/8;
+}
+
 void AssembleLumpedMass(void) {
   // Create global mass matrix
+  //nDOF = (nNodes-nembednodes)*ndim;
   mass = (double*)calloc(nDOF, sizeof(double));
   if (!mass) {
     FILE_LOG_SINGLE(ERROR, "Allocation of mass matrix failed");
@@ -149,6 +157,7 @@ void AssembleLumpedMass(void) {
         mass[gIndex*ndim+k] += Me[l*ndim+k];
       }
     }
+     
     free(Me);
   }
   FILE_LOGArraySingle(DEBUGLOGIGNORE, mass, nDOF, "Lumped Mass");

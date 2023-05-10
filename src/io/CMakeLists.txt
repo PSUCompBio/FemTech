@@ -10,6 +10,7 @@ Set(io_src
     input/ReadJSON.cpp
     InitFinalizeFemTech.cpp
     parallel_log.cpp
+    input/ReadMapping.cpp
     )
 
 add_library(io OBJECT ${io_src})

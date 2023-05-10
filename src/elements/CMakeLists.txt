@@ -14,6 +14,7 @@ Set(elements_src
     CenterOfMass/CalculateCentroidAndVolume.cpp
     CenterOfMass/CalculateCentroid_C3D4.cpp
     CenterOfMass/CalculateCentroidAndVolume_C3D8.cpp
+    CenterOfMass/CalculateVolume_T3D2.cpp
     )
 
 add_library(elements OBJECT ${elements_src})

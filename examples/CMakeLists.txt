@@ -19,6 +19,7 @@ option (EXAMPLE18  "Full Brain model validation" OFF)
 option (EXAMPLE19  "3D Cuboid Shear Test" OFF)
 option (EXAMPLE20  "3D Cuboid Traction BC Test" OFF)
 option (EXAMPLE21  "3D Brain Sim Pressure" OFF)
+option (EXAMPLE22  "1 element cube with embedded fiber" OFF)
 option (Benchmarking-Parallel  "Parallel-Benchmarks" OFF)
 option (hourglass  "Hourglassing Test Case" OFF)
 
@@ -107,6 +108,10 @@ endif (EXAMPLE20)
 if (EXAMPLE21)
 	add_subdirectory(ex21)
 endif (EXAMPLE21)
+
+if (EXAMPLE22)
+	add_subdirectory(ex22)
+endif (EXAMPLE22)
 
 if (Benchmarking-Parallel)
 	add_subdirectory(Benchmarking-Parallel)

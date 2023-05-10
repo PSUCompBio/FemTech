@@ -274,7 +274,7 @@ bool ReadAbaqus(const char *FileName) {
         FILE_LOG_SINGLE(ERROR, "Failed to initialize 'coordinates' array");
         FILE_LOG_SINGLE(ERROR, "nnodes = %d, ConnectivitySize = %d, ndim = %d", nNodes, ConnectivitySize, ndim);
     }
-    
+
     fclose(File);
     return nNodes == ConnectivitySize;
 }

@@ -17,11 +17,16 @@ int *global_eid;
 char **ElementType;
 int nPIDglobal = 0;
 int nPID = 0;
+int *nodeconstrain;
+int nembednodes = 0;
+int nembedel = 0;
+int *embedinfo;
 
 //-------------------------------------------------------------------------------------------
 int StrCmpCI(const char *str1, const char *str2);
 bool ReadLsDyna(const char *FileName);
 bool ReadAbaqus(const char *FileName);
+void AssignHostandEmbedNodes();
 //-------------------------------------------------------------------------------------------
 void ReadInputFile(const char *FileName) {
   // Checking MPI variables validity
@@ -64,7 +69,11 @@ void ReadInputFile(const char *FileName) {
     MPI_Allreduce(MPI_IN_PLACE, &globalPIDmax, 1, MPI_INT, MPI_MAX,
                   MPI_COMM_WORLD);
     nPIDglobal = globalPIDmax;
-    nDOF = nNodes * ndim;
+    nodeconstrain = (int*)calloc(nNodes,sizeof(int));
+    if(embed){
+      AssignHostandEmbedNodes();
+    }
+    embedinfo = (int*)calloc(nembedel, sizeof(int));
 
     FILE_LOGArrayInt(DEBUGLOGIGNORE, sortedPID, nPID, \
         "Number of local pid : %d, global : %d", nPID, nPIDglobal);
@@ -172,4 +181,22 @@ int LineToArray(
     i = i + 1;
   }
   return Result;
+}
+//-------------------------------------------------------------------------------------------
+/*
+Determines which nodes belong to the embedded elements
+*/
+void AssignHostandEmbedNodes(){
+  for(int i=0; i<nelements; i++){
+      if (strcmp(ElementType[i], "T3D2") == 0){
+		nodeconstrain[connectivity[eptr[i]]] = 1;
+		nodeconstrain[connectivity[eptr[i]+1]] = 1;
+	//	elconstrain[i] = 1;
+	//	nembednodes += 2;	
+		nembedel += 1;
+		}	
+	}
+  for(int i=0; i<nNodes; i++){
+	nembednodes += nodeconstrain[i];
+  }
 }

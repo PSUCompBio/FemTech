@@ -26,6 +26,9 @@ void FreeArrays() {
 	free1DArray(accelerations_prev);
 	free1DArray(boundary);
 	free1DArray(velocities_half);
+  free1DArray(embedinfo);
+  free1DArray(embedNC);
+  free1DArray(nodeconstrain);
   free1DArray(fe);
   free1DArray(fe_prev);
   free1DArray(fi);

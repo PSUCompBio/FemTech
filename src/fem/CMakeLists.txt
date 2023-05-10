@@ -7,6 +7,7 @@ Set(fem_src
 		ShapeFunctions/ShapeFunction_C3D8.cpp
 		ShapeFunctions/ShapeFunction_C3D4.cpp
 		ShapeFunctions/ShapeFunction_T3D2.cpp
+		ShapeFunctions/FindNaturalCoord.cpp
 		Mass/Mass3D.cpp
 		Stiffness/Stiffness3D.cpp
     Solver/SteadyImplicit.cpp
@@ -15,6 +16,7 @@ Set(fem_src
 		SolidMechanics/GetForce.cpp
 		SolidMechanics/GetForce_3D.cpp
 		SolidMechanics/CalculateAcclerations.cpp
+		SolidMechanics/CalculateEmbedDisp.cpp
 		SolidMechanics/CalculateFR.cpp
 		SolidMechanics/StressUpdate.cpp
 		SolidMechanics/InternalForceUpdate.cpp

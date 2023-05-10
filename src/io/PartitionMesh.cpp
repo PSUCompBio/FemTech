@@ -500,6 +500,7 @@ void updateConnectivityGlobalToLocal(void) {
   }
 
   // Reoder co-ordinates
+
   double *newCoordinates = (double *)malloc(ndim * nNodes * sizeof(double));
   for (int j = 0; j < nNodes; ++j) {
     int i;

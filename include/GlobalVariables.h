@@ -18,6 +18,7 @@ const double huge = 1e20;
 
 extern double dynamicDamping;
 extern bool reducedIntegration;
+static bool embed = false;
 
 extern std::string uid; /* Simulation unique id */
 extern int nparts;
@@ -56,6 +57,10 @@ extern double *mass;        /*mass matrix*/
 extern double *stiffness;        /*stiffness matrix*/
 extern double *rhs;              /*to store rhs matrix equation (implicit) */
 extern char **ElementType;	/* element type, e.g. C3D8 */
+extern int nembednodes; /*number of embedded nodes*/
+extern int nembedel; /*number of embedded elements*/
+extern int *embedinfo; /*mapping of embed elements to host elements*/
+extern double *embedNC;
 
 extern double *C; /*Stores C matrix for isotropic elastic material */
 extern double *gaussWeights;
@@ -73,6 +78,9 @@ extern double *accelerations;
 extern bool ImplicitStatic;
 extern bool ImplicitDynamic;
 extern bool ExplicitDynamic;
+
+extern int *nodeconstrain;/*if 0, node belongs to host element, if 1 node belongs to embedded element*/
+//extern int *elconstrain;/*if 0, element is host, if 1 element is embedded*/
 
 extern double *fe; /*external forces for current step - used in engery calculation*/
 extern double *fe_prev; /*external forces for previous step - used in engery calculation*/
