@@ -32,6 +32,7 @@ bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 bool reducedIntegration = true;
+bool embed = false;
 
 
 // Parameters of simple tension test
@@ -43,10 +44,13 @@ int main(int argc, char **argv) {
   // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   InitFemTechWoInput(argc, argv);
 
+  if(argc==3){
+    embed=true;
+  }
+
   ReadInputFile(argv[1]);
 
-  if(argc==3){
-    embed = true; //fiber
+  if(embed){
     ReadMapping(argv[2]);
     }
 
@@ -171,10 +175,16 @@ int main(int argc, char **argv) {
 
     // update displacements for all nodes, including where velocity bc is set
     for (int i = 0; i < nDOF; i++) {
-	if(nodeconstrain[i]==0)
-      	   displacements[i] = displacements[i] + dt * velocities_half[i];
-	else 
-	   CalculateEmbedDisp(i);
+	if(embed){
+	   int embedid = int(i/3);
+		if(nodeconstrain[embedid]==-1){
+	      	   displacements[i] = displacements[i] + dt * velocities_half[i];
+			}
+		else {
+		   CalculateEmbedDisp(i);
+		    accelerations[i] = 0;}
+	}
+	else displacements[i] = displacements[i] + dt * velocities_half[i];
     }
 
     /* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
@@ -183,7 +193,14 @@ int main(int argc, char **argv) {
     /* Step - 9 from Belytschko Box 6.1 - Calculate Accelerations */
     CalculateAccelerations(); // Calculating the new accelerations from total
                               // nodal forces.
-
+   if(embed){ 
+   	for (int i = 0; i < nDOF; i++) {
+	   int embedid = int(i/3);
+		if(nodeconstrain[embedid]!=-1){
+	      	   accelerations[i] = 0;
+			}
+	}
+    }
     /** Step- 10 - Second Partial Update of Nodal Velocities */
     for (int i = 0; i < nDOF; i++) {
       velocities[i] = velocities_half[i] + dtby2 * accelerations[i];

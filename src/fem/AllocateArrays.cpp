@@ -150,13 +150,13 @@ void AllocateArrays() {
       FILE_LOG_SINGLE(ERROR, "Error in allocating stepTime array");
       TerminateFemTech(12);
     }
-
+    if (embed) {
     embedNC = (double*)calloc(nNodes*3,sizeof(double));
     if (!embedNC) {
       FILE_LOG_SINGLE(ERROR, "Error in allocating embedded natural coordinates");
       TerminateFemTech(12);
     }
-
+    }
     // Allocations for material temporary computation
     // By default initialize mat1 and mat2
     // If HGO, Linear Elastic or Ogden material model present, allocate mat3 and mat4

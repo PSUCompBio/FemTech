@@ -18,7 +18,7 @@ const double huge = 1e20;
 
 extern double dynamicDamping;
 extern bool reducedIntegration;
-static bool embed = false;
+extern bool embed;
 
 extern std::string uid; /* Simulation unique id */
 extern int nparts;

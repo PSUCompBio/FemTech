@@ -69,11 +69,12 @@ void ReadInputFile(const char *FileName) {
     MPI_Allreduce(MPI_IN_PLACE, &globalPIDmax, 1, MPI_INT, MPI_MAX,
                   MPI_COMM_WORLD);
     nPIDglobal = globalPIDmax;
-    nodeconstrain = (int*)calloc(nNodes,sizeof(int));
     if(embed){
+      nodeconstrain = (int*)calloc(nNodes,sizeof(int));
       AssignHostandEmbedNodes();
+      embedinfo = (int*)calloc(nembedel, sizeof(int));
     }
-    embedinfo = (int*)calloc(nembedel, sizeof(int));
+
 
     FILE_LOGArrayInt(DEBUGLOGIGNORE, sortedPID, nPID, \
         "Number of local pid : %d, global : %d", nPID, nPIDglobal);
@@ -195,6 +196,14 @@ void AssignHostandEmbedNodes(){
 	//	nembednodes += 2;	
 		nembedel += 1;
 		}	
+      else {nodeconstrain[connectivity[eptr[i]]] = -1;
+	    nodeconstrain[connectivity[eptr[i]+1]] = -1;
+	    nodeconstrain[connectivity[eptr[i]+2]] = -1;
+	    nodeconstrain[connectivity[eptr[i]+3]] = -1;
+	    nodeconstrain[connectivity[eptr[i]+4]] = -1;
+	    nodeconstrain[connectivity[eptr[i]+5]] = -1;
+	    nodeconstrain[connectivity[eptr[i]+6]] = -1;
+	    nodeconstrain[connectivity[eptr[i]+7]] = -1;}
 	}
   for(int i=0; i<nNodes; i++){
 	nembednodes += nodeconstrain[i];

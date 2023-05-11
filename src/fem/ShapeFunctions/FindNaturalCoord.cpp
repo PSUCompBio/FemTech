@@ -9,7 +9,7 @@ void FindNaturalCoord(){
   double DN1Dchi, DN2Dchi, DN3Dchi, DN4Dchi, DN5Dchi, DN6Dchi, DN7Dchi, DN8Dchi, DN1Deta, DN2Deta, DN3Deta, DN4Deta, DN5Deta, DN6Deta, DN7Deta, DN8Deta, DN1Diota, DN2Diota, DN3Diota, DN4Diota, DN5Diota, DN6Diota, DN7Diota, DN8Diota;
   int n_host = nelements - nembedel; 
   for(int i = 0; i<nNodes; i++){
-     if(nodeconstrain[i]!=0){
+     if(nodeconstrain[i]!=-1){
 	hostel = nodeconstrain[i];	
 	a[0] = coordinates[i + 0];
 	a[1] = coordinates[i + 1];

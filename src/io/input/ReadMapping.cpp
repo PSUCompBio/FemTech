@@ -21,8 +21,8 @@ void ReadMapping(const char *FileName) {
     }
   while (fscanf(File, "%*d\t%d", &hostid)!=EOF){
 	embedinfo[id] = hostid-1;
-	nodeconstrain[connectivity[eptr[id]]] = hostid-1;
-	nodeconstrain[connectivity[eptr[id]+1]] = hostid-1;
+	nodeconstrain[connectivity[eptr[id+nelements-nembedel]]] = hostid-1;
+	nodeconstrain[connectivity[eptr[id+nelements-nembedel]+1]] = hostid-1;
 	id++;
 	}
   }
