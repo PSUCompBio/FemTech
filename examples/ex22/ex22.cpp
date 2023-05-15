@@ -51,12 +51,14 @@ int main(int argc, char **argv) {
   ReadInputFile(argv[1]);
 
   if(embed){
+   if(world_rank==0)
     ReadMapping(argv[2]);
     }
 
   ReadMaterials();
 
   PartitionMesh();
+
 
   AllocateArrays();
 
@@ -181,8 +183,9 @@ int main(int argc, char **argv) {
 	      	   displacements[i] = displacements[i] + dt * velocities_half[i];
 			}
 		else {
-		   CalculateEmbedDisp(i);
-		    accelerations[i] = 0;}
+		   int dirn = i%3;
+		   CalculateEmbedDisp(embedid,dirn);		
+		}
 	}
 	else displacements[i] = displacements[i] + dt * velocities_half[i];
     }

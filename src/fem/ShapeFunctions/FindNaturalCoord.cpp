@@ -3,17 +3,18 @@
 void FindNaturalCoord(){
    // Purpose : Compute chi, eta, iota for fiber nodes
   int hostel;
-  double a[3], xs[9], f[3], J_Inv[9], detJembed, error[3], maxerror, maxerrortemp, incr[3];
-  double tol = 0.000001;
+  double a[3], xs[9], f[3], J_Inv[9], detJembed, error[3], maxerrortemp, incr[3];
+  double tol = 1e-6;
   double N1, N2, N3, N4, N5, N6, N7, N8;
   double DN1Dchi, DN2Dchi, DN3Dchi, DN4Dchi, DN5Dchi, DN6Dchi, DN7Dchi, DN8Dchi, DN1Deta, DN2Deta, DN3Deta, DN4Deta, DN5Deta, DN6Deta, DN7Deta, DN8Deta, DN1Diota, DN2Diota, DN3Diota, DN4Diota, DN5Diota, DN6Diota, DN7Diota, DN8Diota;
   int n_host = nelements - nembedel; 
   for(int i = 0; i<nNodes; i++){
+    double maxerror = 1;
      if(nodeconstrain[i]!=-1){
-	hostel = nodeconstrain[i];	
-	a[0] = coordinates[i + 0];
-	a[1] = coordinates[i + 1];
-	a[2] = coordinates[i + 2]; 
+	hostel = nodeconstrain[i];
+	a[0] = coordinates[i*ndim + 0];
+	a[1] = coordinates[i*ndim + 1];
+	a[2] = coordinates[i*ndim + 2]; 
 	double chi, eta, iota, chinew, etanew, iotanew;
 	chi =  0.1;
 	eta =  0.1;
@@ -63,17 +64,17 @@ void FindNaturalCoord(){
 		//compute the Jacobian
 
 		for (int j = 0; j<ndim; j++){
-			xs[0+j*ndim] = DN1Dchi*coordinates[ndim*connectivity[hostel+0] + j] + DN2Dchi*coordinates[ndim*connectivity[hostel+1] + j] + DN3Dchi*coordinates[ndim*connectivity[hostel+2] + j]
-				+ DN4Dchi*coordinates[ndim*connectivity[hostel+3] + j] + DN5Dchi*coordinates[ndim*connectivity[hostel+4] + j] + DN6Dchi*coordinates[ndim*connectivity[hostel+5] + j]
-				+ DN7Dchi*coordinates[ndim*connectivity[hostel+6] + j] + DN8Dchi*coordinates[ndim*connectivity[hostel+7] + j];
+			xs[j+0*ndim] = DN1Dchi*coordinates[ndim*connectivity[eptr[hostel]+0] + j] + DN2Dchi*coordinates[ndim*connectivity[eptr[hostel]+1] + j] + DN3Dchi*coordinates[ndim*connectivity[eptr[hostel]+2] + j]
+				+ DN4Dchi*coordinates[ndim*connectivity[eptr[hostel]+3] + j] + DN5Dchi*coordinates[ndim*connectivity[eptr[hostel]+4] + j] + DN6Dchi*coordinates[ndim*connectivity[eptr[hostel]+5] + j]
+				+ DN7Dchi*coordinates[ndim*connectivity[eptr[hostel]+6] + j] + DN8Dchi*coordinates[ndim*connectivity[eptr[hostel]+7] + j];
 
-			xs[1+j*ndim] = DN1Deta*coordinates[ndim*connectivity[hostel+0] + j] + DN2Deta*coordinates[ndim*connectivity[hostel+1] + j] + DN3Deta*coordinates[ndim*connectivity[hostel+2] + j]
-				+ DN4Deta*coordinates[ndim*connectivity[hostel+3] + j] + DN5Deta*coordinates[ndim*connectivity[hostel+4] + j] + DN6Deta*coordinates[ndim*connectivity[hostel+5] + j]
-				+ DN7Deta*coordinates[ndim*connectivity[hostel+6] + j] + DN8Deta*coordinates[ndim*connectivity[hostel+7] + j];
+			xs[j+1*ndim] = DN1Deta*coordinates[ndim*connectivity[eptr[hostel]+0] + j] + DN2Deta*coordinates[ndim*connectivity[eptr[hostel]+1] + j] + DN3Deta*coordinates[ndim*connectivity[eptr[hostel]+2] + j]
+				+ DN4Deta*coordinates[ndim*connectivity[eptr[hostel]+3] + j] + DN5Deta*coordinates[ndim*connectivity[eptr[hostel]+4] + j] + DN6Deta*coordinates[ndim*connectivity[eptr[hostel]+5] + j]
+				+ DN7Deta*coordinates[ndim*connectivity[eptr[hostel]+6] + j] + DN8Deta*coordinates[ndim*connectivity[eptr[hostel]+7] + j];
 
-			xs[2+j*ndim] = DN1Diota*coordinates[ndim*connectivity[hostel+0] + j] + DN2Diota*coordinates[ndim*connectivity[hostel+1] + j] + DN3Diota*coordinates[ndim*connectivity[hostel+2] + j]
-				+ DN4Diota*coordinates[ndim*connectivity[hostel+3] + j] + DN5Diota*coordinates[ndim*connectivity[hostel+4] + j] + DN6Diota*coordinates[ndim*connectivity[hostel+5] + j]
-				+ DN7Diota*coordinates[ndim*connectivity[hostel+6] + j] + DN8Diota*coordinates[ndim*connectivity[hostel+7] + j];
+			xs[j+2*ndim] = DN1Diota*coordinates[ndim*connectivity[eptr[hostel]+0] + j] + DN2Diota*coordinates[ndim*connectivity[eptr[hostel]+1] + j] + DN3Diota*coordinates[ndim*connectivity[eptr[hostel]+2] + j]
+				+ DN4Diota*coordinates[ndim*connectivity[eptr[hostel]+3] + j] + DN5Diota*coordinates[ndim*connectivity[eptr[hostel]+4] + j] + DN6Diota*coordinates[ndim*connectivity[eptr[hostel]+5] + j]
+				+ DN7Diota*coordinates[ndim*connectivity[eptr[hostel]+6] + j] + DN8Diota*coordinates[ndim*connectivity[eptr[hostel]+7] + j];
 			}
 
 	  	detJembed = inverse3x3Matrix(xs, J_Inv);
@@ -81,9 +82,9 @@ void FindNaturalCoord(){
 		//compute f = N*x-a
 	  
 	  	for(int j=0; j<ndim; j++){
-			  f[j] = N1*coordinates[ndim*connectivity[hostel+0] + j] + N2*coordinates[ndim*connectivity[hostel+1] + j] + N3*coordinates[ndim*connectivity[hostel+2] + j] +
-				 N4*coordinates[ndim*connectivity[hostel+3] + j] + N5*coordinates[ndim*connectivity[hostel+4] + j] + N6*coordinates[ndim*connectivity[hostel+5] + j] + 
-				 N7*coordinates[ndim*connectivity[hostel+6] + j] + N8*coordinates[ndim*connectivity[hostel+7] + j] - a[j];
+			  f[j] = N1*coordinates[ndim*connectivity[eptr[hostel]+0] + j] + N2*coordinates[ndim*connectivity[eptr[hostel]+1] + j] + N3*coordinates[ndim*connectivity[eptr[hostel]+2] + j] +
+				 N4*coordinates[ndim*connectivity[eptr[hostel]+3] + j] + N5*coordinates[ndim*connectivity[eptr[hostel]+4] + j] + N6*coordinates[ndim*connectivity[eptr[hostel]+5] + j] + 
+				 N7*coordinates[ndim*connectivity[eptr[hostel]+6] + j] + N8*coordinates[ndim*connectivity[eptr[hostel]+7] + j] - a[j];
 		}
 
 		//compute increment
@@ -109,9 +110,9 @@ void FindNaturalCoord(){
 		N8 = ((1 - chi)*(1 + eta)*(1 + iota)) / 8;
 
 		for(int j=0; j<ndim; j++){
-			error[j] = N1*coordinates[ndim*connectivity[hostel+0] + j] + N2*coordinates[ndim*connectivity[hostel+1] + j] + N3*coordinates[ndim*connectivity[hostel+2] + j] +
-				N4*coordinates[ndim*connectivity[hostel+3] + j] + N5*coordinates[ndim*connectivity[hostel+4] + j] + N6*coordinates[ndim*connectivity[hostel+5] + j] + 
-				N7*coordinates[ndim*connectivity[hostel+6] + j] + N8*coordinates[ndim*connectivity[hostel+7] + j] - a[j];
+			error[j] = N1*coordinates[ndim*connectivity[eptr[hostel]+0] + j] + N2*coordinates[ndim*connectivity[eptr[hostel]+1] + j] + N3*coordinates[ndim*connectivity[eptr[hostel]+2] + j] +
+				N4*coordinates[ndim*connectivity[eptr[hostel]+3] + j] + N5*coordinates[ndim*connectivity[eptr[hostel]+4] + j] + N6*coordinates[ndim*connectivity[eptr[hostel]+5] + j] + 
+				N7*coordinates[ndim*connectivity[eptr[hostel]+6] + j] + N8*coordinates[ndim*connectivity[eptr[hostel]+7] + j] - a[j];
 			}
 		maxerrortemp = abs(error[0])>abs(error[1])?abs(error[0]):abs(error[1]);
 		maxerror = maxerrortemp>abs(error[2])?maxerrortemp:abs(error[2]);
@@ -119,6 +120,10 @@ void FindNaturalCoord(){
   embedNC[i*ndim+0] = chi;
   embedNC[i*ndim+1] = eta;
   embedNC[i*ndim+2] = iota;
+  for(int j = 0; j<ndim; j++){
+	if(abs(embedNC[i*ndim+j])<1e-12)
+		embedNC[i*ndim+j] = 0.0;
+	}
     }
   }
   return;

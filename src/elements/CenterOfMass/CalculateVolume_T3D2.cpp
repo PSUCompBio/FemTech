@@ -13,6 +13,5 @@ double CalculateVolume_T3D2(int e) {
   }
   length = std::abs(elementCoordinates[1]-elementCoordinates[0]);
   volume = area*length;
-printf("hello\n");
   return volume;
 }

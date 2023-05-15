@@ -59,7 +59,7 @@ void GetForce_3D();
 double StableTimeStep();
 double CalculateTimeStep(int e);
 void CalculateAccelerations();
-void CalculateEmbedDisp(int nodedof);
+void CalculateEmbedDisp(int embedid, int dirn);
 
 void CalculateFR();
 

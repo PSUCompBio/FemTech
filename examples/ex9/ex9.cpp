@@ -32,6 +32,7 @@ bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 bool reducedIntegration = true;
+bool embed = false;
 
 // Parameters of simple tension test
 double tMax = 1.00;  // max simulation time in seconds
