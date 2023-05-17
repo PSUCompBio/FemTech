@@ -9,6 +9,7 @@ void ApplyVelocityBoundaryConditionsVE(double);
 void InitVelocityBoundaryConditions();
 void CustomPlot();
 void InitCustomPlot();
+void AssignHostandEmbedNodes();
 
 // Global parameters to output
 bool writeNodeOP = false;
@@ -34,6 +35,10 @@ bool ExplicitDynamic = true;
 bool reducedIntegration = true;
 bool embed = false;
 
+int *nodeconstrain;
+int nembednodes = 0;
+int nembedel = 0;
+int *embedinfo;
 
 // Parameters of simple tension test
 double tMax = 1.00;  // max simulation time in seconds
@@ -50,15 +55,21 @@ int main(int argc, char **argv) {
 
   ReadInputFile(argv[1]);
 
-  if(embed){
-   if(world_rank==0)
-    ReadMapping(argv[2]);
-    }
-
+//  if(embed){
+//    ReadMapping(argv[2]);
+//    }
+//printf("%d %d %d %d %d %d %d %d %d\n", connectivity[eptr[1]], connectivity[eptr[1]+1], connectivity[eptr[1]+2], connectivity[eptr[1]+3], connectivity[eptr[1]+4], connectivity[eptr[1]+5], connectivity[eptr[1]+6], connectivity[eptr[1]+7], world_rank);
   ReadMaterials();
 
   PartitionMesh();
 
+  if(embed){
+    nodeconstrain = (int*)calloc(nNodes,sizeof(int));
+    AssignHostandEmbedNodes();
+    embedinfo = (int*)calloc(nembedel, sizeof(int));
+    ReadMapping(argv[2]);
+    }
+//printf("%d %d %d %d %d %d %d %d %d\n", connectivity[eptr[1]], connectivity[eptr[1]+1], connectivity[eptr[1]+2], connectivity[eptr[1]+3], connectivity[eptr[1]+4], connectivity[eptr[1]+5], connectivity[eptr[1]+6], connectivity[eptr[1]+7], world_rank);
 
   AllocateArrays();
 
@@ -443,4 +454,31 @@ void CustomPlot() {
   return;
 }
 
+//-------------------------------------------------------------------------------------------
+/*
+Determines which nodes belong to the embedded elements
+*/
+void AssignHostandEmbedNodes(){
+  for(int i=0; i<nelements; i++){
+      if (strcmp(ElementType[i], "T3D2") == 0){
+		nodeconstrain[connectivity[eptr[i]]] = 1;
+		nodeconstrain[connectivity[eptr[i]+1]] = 1;
+	//	elconstrain[i] = 1;
+	//	nembednodes += 2;	
+		nembedel += 1;
+		}	
+      else {nodeconstrain[connectivity[eptr[i]]] = -1;
+	    nodeconstrain[connectivity[eptr[i]+1]] = -1;
+	    nodeconstrain[connectivity[eptr[i]+2]] = -1;
+	    nodeconstrain[connectivity[eptr[i]+3]] = -1;
+	    nodeconstrain[connectivity[eptr[i]+4]] = -1;
+	    nodeconstrain[connectivity[eptr[i]+5]] = -1;
+	    nodeconstrain[connectivity[eptr[i]+6]] = -1;
+	    nodeconstrain[connectivity[eptr[i]+7]] = -1;}	
+  }
+  for(int i=0; i<nNodes; i++){
+	nembednodes += nodeconstrain[i];
+  }
+return;
+}
 
