@@ -12,11 +12,11 @@ void WriteVTU(const char* FileName, int step, int** intCellData /*= NULL*/, \
 	FILE *fp;
 	int i,j;
 	char s[ARR_SIZE];
-  char outfile[ARR_SIZE] = {0};
+	char outfile[ARR_SIZE] = {0};
 	char paths[ARR_SIZE] = {0};
 	char paths2[ARR_SIZE] = {0};
 	char outfileP[ARR_SIZE] = {0};
-  char outfileP2[ARR_SIZE] = {0};
+	char outfileP2[ARR_SIZE] = {0};
 
 	if (strlen(FileName) < ARR_SIZE) {
 	    strcpy(outfile, FileName);

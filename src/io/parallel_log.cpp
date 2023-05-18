@@ -5,8 +5,15 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <sys/time.h>
-#include <time.h>
+
+//#include <sys/time.h>
+//#include <sys/time.h> Does not work on Windows
+#include <ctime>
+// This is for Windows build 
+#include "winsock.h"
+#include <Windows.h>
+#include <stdint.h>
+
 
 #include "mpi.h"
 
@@ -16,16 +23,39 @@ char s1[256];
 char s2[256];
 va_list arg;
 
+int gettimeofday(struct timeval* tp, struct timezone* tzp)
+{
+    // Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
+    // This magic number is the number of 100 nanosecond intervals since January 1, 1601 (UTC)
+    // until 00:00:00 January 1, 1970 
+    static const uint64_t EPOCH = ((uint64_t)116444736000000000ULL);
+
+    SYSTEMTIME  system_time;
+    FILETIME    file_time;
+    uint64_t    time;
+
+    GetSystemTime(&system_time);
+    SystemTimeToFileTime(&system_time, &file_time);
+    time = ((uint64_t)file_time.dwLowDateTime);
+    time += ((uint64_t)file_time.dwHighDateTime) << 32;
+
+    tp->tv_sec = (long)((time - EPOCH) / 10000000L);
+    tp->tv_usec = (long)(system_time.wMilliseconds * 1000);
+    return 0;
+}
+
+
+
 void levelToString(enum logLevel level, char* result) {
-	static const char* const buffer[] = {"ERROR  ", "WARNING", "INFO   ", "DEBUG  ", "DEBUG  "};
-  char bufferTime[11];
-  time_t t;
-  time(&t);
-  tm r;
-  strftime(bufferTime, sizeof(buffer), "%X", localtime_r(&t, &r));
-  struct timeval tv;
-  gettimeofday(&tv, 0);
-  sprintf(result, "-%s.%03ld %s", bufferTime, (long)tv.tv_usec / 1000, buffer[level]); 
+    static const char* const buffer[] = { "ERROR  ", "WARNING", "INFO   ", "DEBUG  ", "DEBUG  " };
+    char bufferTime[11];
+    time_t t;
+    time(&t);
+    tm r;
+    strftime(bufferTime, sizeof(buffer), "%X", localtime(&t));
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+    sprintf(result, "-%s.%03ld %s", bufferTime, (long)tv.tv_usec / 1000, buffer[level]);
 }
 
 void initLog(const char *outFileName) {

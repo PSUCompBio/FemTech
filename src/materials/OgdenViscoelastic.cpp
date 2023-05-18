@@ -69,15 +69,20 @@ void OgdenViscoelastic(int e, int gp) {
       F_element_gp, &ndim, &zero, Cmat, &ndim);
 
   // Compute eigen values and eigenvectors of C
-  double cEigenValue[ndim];
-  double dWork[workSize];
+   //double cEigenValue[ndim];
+  double* cEigenValue = new double[ndim];
+  //double dWork[workSize];
+  double* dWork = new double[workSize];
   dsyev_(jobzV, uploU, &ndim, Cmat, &ndim, cEigenValue, dWork, &workSize, &info);
   // Cmat now contains the eigen vectors of C
 
   // Correct Eigen Values for numerical inaccuracy
-  double delat01 = fabs(cEigenValue[0] - cEigenValue[1]);
-  double delat12 = fabs(cEigenValue[1] - cEigenValue[2]);
-  double delat02 = fabs(cEigenValue[0] - cEigenValue[2]);
+  //double delat01 = fabs(cEigenValue[0] - cEigenValue[1]);
+  //double delat12 = fabs(cEigenValue[1] - cEigenValue[2]);
+  //double delat02 = fabs(cEigenValue[0] - cEigenValue[2]);
+  long double delat01 = fabsl(cEigenValue[0] - cEigenValue[1]);
+  long double delat12 = fabsl(cEigenValue[1] - cEigenValue[2]);
+  long double delat02 = fabsl(cEigenValue[0] - cEigenValue[2]);
 
   const double eigenTol = 1e-12;
   if (delat01 < eigenTol) cEigenValue[1] = cEigenValue[0];
@@ -90,8 +95,10 @@ void OgdenViscoelastic(int e, int gp) {
 
   // Compute parameters derived from the eigen value required for stress
   // computations
-  double eigenPower[ndim*nTerm];
-  double eigenPowerSum[nTerm];
+  //double eigenPower[ndim*nTerm];
+  double* eigenPower = new double[ndim * nTerm];
+  //double eigenPowerSum[nTerm];
+  double* eigenPowerSum = new double[nTerm];
   for (int j = 0; j < nTerm; ++j) {
     eigenPowerSum[j] = 0.0;
   }

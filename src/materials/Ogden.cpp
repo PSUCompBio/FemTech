@@ -53,15 +53,17 @@ void Ogden(int e, int gp) {
   dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
           F_element_gp, &ndim, &zero, b, &ndim);
   // Compute eigen values and eigenvectors of B
-  double cEigenValue[ndim];
-  double dWork[workSize];
+  //double cEigenValue[ndim];
+  double* cEigenValue = new double[ndim];
+  //double dWork[workSize];
+  double* dWork = new double[workSize];
   dsyev_(jobzV, uploU, &ndim, b, &ndim, cEigenValue, dWork, &workSize, &info);
   // b now contains the eigen vectors of b
 
   // Correct Eigen Values for numerical inaccuracy
-  double delat01 = fabs(cEigenValue[0] - cEigenValue[1]);
-  double delat12 = fabs(cEigenValue[1] - cEigenValue[2]);
-  double delat02 = fabs(cEigenValue[0] - cEigenValue[2]);
+  long double delat01 = fabsl(cEigenValue[0] - cEigenValue[1]);
+  long double delat12 = fabsl(cEigenValue[1] - cEigenValue[2]);
+  long double delat02 = fabsl(cEigenValue[0] - cEigenValue[2]);
 
   const double eigenTol = 1e-12;
   if (delat01 < eigenTol) cEigenValue[1] = cEigenValue[0];
@@ -72,8 +74,10 @@ void Ogden(int e, int gp) {
   const double Jm13 = pow(J, -1.0/3.0);
   const double invJ = 1.0/J;
 
-  double eigenPower[ndim*nTerm];
-  double eigenPowerSum[nTerm];
+  //double eigenPower[ndim*nTerm];
+  double* eigenPower = new double[ndim * nTerm];
+  //double eigenPowerSum[nTerm];
+  double* eigenPowerSum = new double[nTerm];
   for (int j = 0; j < nTerm; ++j) {
     eigenPowerSum[j] = 0.0;
   }

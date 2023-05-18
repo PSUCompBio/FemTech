@@ -9,6 +9,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 					   x, y, z
   */
 	double chi, eta, iota;
+	double* xs;
 	chi =  Chi[ndim*gp + 0];
 	eta =  Chi[ndim*gp + 1];
 	iota = Chi[ndim*gp + 2];
@@ -73,7 +74,8 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 	// The redeclaration needs to find memory and will cut down
 	// on speed.
   // xs = dX_j/dXi_k = X_Ij*dN_I/dXi_k
-	double xs[ndim2];
+  //double xs[ndim * ndim];
+  xs = new double[ndim * ndim];
   // int index = eptr[e];
 	// for (int j = 0; j < ndim; j++) {
 	// 	xs[0+j*ndim] = (coordinates[ndim*connectivity[index+1] + j] - coordinates[ndim*connectivity[index+0] + j]) * dshp[dsptr[e] + gp * g*ndim + ndim * 1 + 0]

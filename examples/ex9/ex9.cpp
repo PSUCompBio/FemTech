@@ -1,7 +1,5 @@
 #include "FemTech.h"
-
 #include <assert.h>
-// #include <fenv.h>
 
 /*Delare Functions*/
 void ApplyVelocityBoundaryConditions(double);

@@ -50,7 +50,8 @@ void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ){
 	//  x14 y14 z14
 	//  x24 y24 z24
 	//  x34 y34 z34
-	double xs[ndim*ndim];
+	//double xs[ ndim * ndim ];
+	double* xs = new double[ndim * ndim];
 	int x = 0, y = 1, z = 2;
 	int node1 = 0, node2 = 1, node3 = 2, node4 = 3;
 	int index=eptr[e];

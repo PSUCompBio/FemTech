@@ -2,13 +2,22 @@ SET(ex9_src ex9.cpp)
 
 ADD_EXECUTABLE(ex9 ${ex9_src})
 
-if(ENABLE_MPI)
+if(ENABLE_MPI AND NOT WIN32)
   LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/third-party/parmetis-4.0.3/libparmetis)
   TARGET_LINK_LIBRARIES(ex9 FemTech parmetis ${lapackblas_libraries})
-else()
+elseif(NOT ENABLE_MPI AND NOT WIN32)
   LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib)
   TARGET_LINK_LIBRARIES(ex9 FemTech)
-endif(ENABLE_MPI)
+elseif(ENABLE_MPI AND WIN32)
+LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/third-party/parmetis-4.0.3/libparmetis)
+	target_link_libraries(ex9 FemTech parmetis Blas Lapack ${MPI_LIBRARIES})
+	# copy dlls to build directory
+	file(COPY ${CMAKE_SOURCE_DIR}/lib/libcblas.dll DESTINATION ${CMAKE_BINARY_DIR}/examples/ex9)
+	file(COPY ${CMAKE_SOURCE_DIR}/lib/libblas.dll DESTINATION ${CMAKE_BINARY_DIR}/examples/ex9)
+	file(COPY ${CMAKE_SOURCE_DIR}/lib/liblapack.dll DESTINATION ${CMAKE_BINARY_DIR}/examples/ex9)
+	file(COPY ${CMAKE_SOURCE_DIR}/lib/liblapacke.dll DESTINATION ${CMAKE_BINARY_DIR}/examples/ex9)
+endif()
+
 
 file(INSTALL 1-elt-cube.k DESTINATION .)
 file(INSTALL materials.dat DESTINATION .)
@@ -24,8 +33,9 @@ file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/results/vtu)
 # Define debugger options when working with windows & visual studio generator
 # We set them here but could be passed as options if required
 # We use a template for the same, replacing the options we need
-if(WIN32 AND MSVC)
-	set( DEBUG_COMMAND "C:\\Program Files\\Microsoft MPI\\Bin\\mpiexec.exe" )
-	set( DEBUG_COMMAND_ARGUMENTS "-n 1 \"$(TargetPath)\" 1-elt-cube.k" )
-	configure_file( template.vcxproj.user.in ${CMAKE_BINARY_DIR}/examples/ex9/ex9.vcxproj.user @ONLY )
-endif()
+#if(WIN32 AND MSVC)
+#	set( DEBUG_COMMAND "C:\\Program Files\\Microsoft MPI\\Bin\\mpiexec.exe" )
+#	set( DEBUG_COMMAND_ARGUMENTS "-n 1 \"$(TargetPath)\" 1-elt-cube.k" )
+#	configure_file( template.vcxproj.user.in ${CMAKE_BINARY_DIR}/examples/ex9/ex9.vcxproj.user @ONLY )
+#endif()
+

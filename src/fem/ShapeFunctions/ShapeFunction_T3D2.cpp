@@ -44,7 +44,8 @@ void ShapeFunction_T3D2(int e, int gp, double *Chi, double *detJ){
 	//  x14 y14 z14
 	//  x24 y24 z24
 	//  x34 y34 z34
-	double xs[ndim*ndim];
+	//double xs[ndim*ndim];
+	 double* xs = new double[ndim * ndim];
 
 	// // first row
 	// xs[0]=coordinates[ndim*connectivity[index+node1]+x] - coordinates[ndim*connectivity[index+node4]+x];

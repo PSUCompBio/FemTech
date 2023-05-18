@@ -90,8 +90,10 @@ if(ENABLE_MPI)
 	include_directories(third-party/parmetis-4.0.3/metis/include)
 endif(ENABLE_MPI)
 
-#Compiler and Linker parameters common to all compilers
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wshadow")
+if(NOT WIN32)
+	#Compiler and Linker parameters common to all compilers
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wshadow")
+endif()
 
 #Get git related parameters
 execute_process(
@@ -137,20 +139,34 @@ include_directories(${source_dir})
 #============================================================================
 # BLAS/Lapack
 #==============================================================================
-find_package(BLAS REQUIRED)
-find_package(LAPACK REQUIRED)
-if(LAPACK_FOUND)
-  message("Found Lapack")
-  message("Lapack link library is ${LAPACK_LIBRARIES}")
+if(NOT WIN32)
+	find_package(BLAS REQUIRED)
+	find_package(LAPACK REQUIRED)
+	if(LAPACK_FOUND)
+	  message("Found Lapack")
+	  message("Lapack link library is ${LAPACK_LIBRARIES}")
+	endif()
+	if(BLAS_FOUND)
+	  message("Found BLAS")
+	  message("BLAS link library is ${BLAS_LIBRARIES}")
+	endif()
+	if(LAPACK_FOUND AND BLAS_FOUND)
+	   set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
+	endif()
+elseif(WIN32)
+	add_library(Blas SHARED IMPORTED)
+	set_target_properties(Blas PROPERTIES
+		IMPORTED_LOCATION "C:/Users/rhk12/Documents/lapack-3.10.1/build/bin/libblas.dll"
+		IMPORTED_IMPLIB "C:/Users/rhk12/Documents/lapack-3.10.1/build/lib/libblas.lib"
+		INTERFACE_INCLUDE_DIRECTORIES "C:/Users/rhk12/Documents/lapack-3.10.1/build/include"
+	)
+	add_library(Lapack SHARED IMPORTED)
+	set_target_properties(Lapack PROPERTIES
+		IMPORTED_LOCATION "C:/Users/rhk12/Documents/lapack-3.10.1/build/bin/liblapack.dll"
+		IMPORTED_IMPLIB "C:/Users/rhk12/Documents/lapack-3.10.1/build/lib/liblapack.lib"
+		INTERFACE_INCLUDE_DIRECTORIES "C:/Users/rhk12/Documents/lapack-3.10.1/build/include"
+	)
 endif()
-if(BLAS_FOUND)
-  message("Found BLAS")
-  message("BLAS link library is ${BLAS_LIBRARIES}")
-endif()
-if(LAPACK_FOUND AND BLAS_FOUND)
-   set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
-endif()
-#=============================================================================
 
 
 ADD_SUBDIRECTORY (src)

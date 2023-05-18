@@ -11,6 +11,7 @@
 #tmp/**/*
 .vs
 out
+CMakeSettings.json 
 obj
 build*
 debug-build*
