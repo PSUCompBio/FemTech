@@ -6,6 +6,7 @@
 int nparts = 0;
 int nelements = 0;    // number of elements in processor
 int nallelements = 0; // number of all elements in mesh
+int nallelementsnoembed = 0; // number of host elements in mesh
 int nNodes = 0;
 int ndim = 0;
 int nDOF = 0;

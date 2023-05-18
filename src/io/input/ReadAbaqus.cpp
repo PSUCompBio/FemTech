@@ -90,15 +90,23 @@ bool ReadAbaqus(const char *FileName) {
     }
 
     // Determining number/count of elements processor will hold
-    nelements = nallelements / world_size;
+    nallelementsnoembed = nallelements - nembedel; //only partitioning on host elements
+    nelements = nallelementsnoembed / world_size;
     if (world_rank == world_size - 1) {
-        nelements += (nallelements % world_size);
+        nelements += (nallelementsnoembed % world_size);
     }
 
     // Fixing range of lines (in elements section of mesh file) from which processor will read its own elements
-    const int From = world_rank * (nallelements / world_size);
+    const int From = world_rank * (nallelementsnoembed / world_size);
     const int To = From + nelements - 1;
     
+   for(int i = 0; i<nembedel; i++){
+	if(embedinfo[i]>=From && embedinfo[i]<=To){
+	nelements = nelements + 1;
+	embedproc[i] = 1;
+	}
+   }
+
     // Creating and initializing "eptr" and "ElementType" array, and determining size of "connectivity" array
     const int ELSETNAME_SIZE = 80;
     ElementType = (char **)malloc(nelements * sizeof(char *));
@@ -133,7 +141,7 @@ bool ReadAbaqus(const char *FileName) {
                 if (n == 0) {
                     break;
                 }
-                if (i >= From && i <= To) {
+                if ((i >= From && i <= To)||embedproc[i-nallelementsnoembed]==1) {
                     j = j + 1;
                     eptr[j] = eptr[j - 1] + n;
                     ConnectivitySize = ConnectivitySize + n;
@@ -198,7 +206,7 @@ bool ReadAbaqus(const char *FileName) {
                 if (n == 0) {
                     break;
                 }
-                if (i >= From && i <= To) {
+                if ((i >= From && i <= To||embedproc[i-nallelementsnoembed]==1)) {
                   global_eid[eIndex] = Nodes[0];
                   eIndex = eIndex + 1;
                     for (int k = 1; k < n; k++) {

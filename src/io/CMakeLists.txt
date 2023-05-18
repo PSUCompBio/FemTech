@@ -11,6 +11,7 @@ Set(io_src
     InitFinalizeFemTech.cpp
     parallel_log.cpp
     input/ReadMapping.cpp
+    input/ParseMapping.cpp
     )
 
 add_library(io OBJECT ${io_src})

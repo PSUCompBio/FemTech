@@ -24,6 +24,7 @@ int LineToArray(const bool IntOrFloat, const bool CheckLastVal, \
     const char *Delim = " \t", void **Array = NULL);
 void ReadInputFile(const char *FileName);
 void ReadMapping(const char *FileName);
+void ParseMapping(const char *FileName);
 void PartitionMesh();
 void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWeights);
 void ShapeFunctions();

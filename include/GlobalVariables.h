@@ -24,6 +24,7 @@ extern std::string uid; /* Simulation unique id */
 extern int nparts;
 extern int nelements;
 extern int nallelements;
+extern int nallelementsnoembed;
 extern int nNodes;
 extern int ndim;
 extern int nDOF;
@@ -59,8 +60,10 @@ extern double *rhs;              /*to store rhs matrix equation (implicit) */
 extern char **ElementType;	/* element type, e.g. C3D8 */
 extern int nembednodes; /*number of embedded nodes*/
 extern int nembedel; /*number of embedded elements*/
-extern int *embedinfo; /*mapping of embed elements to host elements*/
+extern int *embedinfo; /*mapping of host elements that contain embedded elements*/
+extern int *embedelID; /*list of embedded elements*/
 extern double *embedNC;
+extern int *embedproc;
 
 extern double *C; /*Stores C matrix for isotropic elastic material */
 extern double *gaussWeights;

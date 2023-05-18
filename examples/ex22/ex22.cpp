@@ -36,9 +36,8 @@ bool reducedIntegration = true;
 bool embed = false;
 
 int *nodeconstrain;
-int nembednodes = 0;
-int nembedel = 0;
-int *embedinfo;
+//int nembedel = 0;
+//int *embedinfo;
 
 // Parameters of simple tension test
 double tMax = 1.00;  // max simulation time in seconds
@@ -51,25 +50,24 @@ int main(int argc, char **argv) {
 
   if(argc==3){
     embed=true;
+    ParseMapping(argv[2]);
   }
 
   ReadInputFile(argv[1]);
 
-//  if(embed){
-//    ReadMapping(argv[2]);
-//    }
-//printf("%d %d %d %d %d %d %d %d %d\n", connectivity[eptr[1]], connectivity[eptr[1]+1], connectivity[eptr[1]+2], connectivity[eptr[1]+3], connectivity[eptr[1]+4], connectivity[eptr[1]+5], connectivity[eptr[1]+6], connectivity[eptr[1]+7], world_rank);
   ReadMaterials();
 
   PartitionMesh();
-
+  for(int i=0; i<nelements; i++){
+      printf("%d %d\n", global_eid[i], world_rank);}
   if(embed){
     nodeconstrain = (int*)calloc(nNodes,sizeof(int));
     AssignHostandEmbedNodes();
-    embedinfo = (int*)calloc(nembedel, sizeof(int));
-    ReadMapping(argv[2]);
+    //ReadMapping(argv[2]);
     }
-//printf("%d %d %d %d %d %d %d %d %d\n", connectivity[eptr[1]], connectivity[eptr[1]+1], connectivity[eptr[1]+2], connectivity[eptr[1]+3], connectivity[eptr[1]+4], connectivity[eptr[1]+5], connectivity[eptr[1]+6], connectivity[eptr[1]+7], world_rank);
+
+//for(int i =0; i<nNodes; i++)
+//	printf("%d %d\n", nodeconstrain[i], world_rank);
 
   AllocateArrays();
 
@@ -460,13 +458,16 @@ Determines which nodes belong to the embedded elements
 */
 void AssignHostandEmbedNodes(){
   for(int i=0; i<nelements; i++){
+    //  printf("%d %d\n", global_eid[i], world_rank);
       if (strcmp(ElementType[i], "T3D2") == 0){
-		nodeconstrain[connectivity[eptr[i]]] = 1;
-		nodeconstrain[connectivity[eptr[i]+1]] = 1;
-	//	elconstrain[i] = 1;
-	//	nembednodes += 2;	
-		nembedel += 1;
-		}	
+	for(int j=0; j<nembedel; j++){
+	    if(embedelID[j]+1==global_eid[i]){
+		nodeconstrain[connectivity[eptr[i]]] = embedinfo[j];
+		nodeconstrain[connectivity[eptr[i]+1]] = embedinfo[j];
+		//printf("%d %d\n", nodeconstrain[connectivity[eptr[i]]], world_rank);
+		}
+	    }
+	}	
       else {nodeconstrain[connectivity[eptr[i]]] = -1;
 	    nodeconstrain[connectivity[eptr[i]+1]] = -1;
 	    nodeconstrain[connectivity[eptr[i]+2]] = -1;
@@ -475,9 +476,6 @@ void AssignHostandEmbedNodes(){
 	    nodeconstrain[connectivity[eptr[i]+5]] = -1;
 	    nodeconstrain[connectivity[eptr[i]+6]] = -1;
 	    nodeconstrain[connectivity[eptr[i]+7]] = -1;}	
-  }
-  for(int i=0; i<nNodes; i++){
-	nembednodes += nodeconstrain[i];
   }
 return;
 }
