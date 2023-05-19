@@ -54,12 +54,16 @@ int main(int argc, char **argv) {
   }
 
   ReadInputFile(argv[1]);
-
+ 
   ReadMaterials();
 
   PartitionMesh();
-  for(int i=0; i<nelements; i++){
-      printf("%d %d\n", global_eid[i], world_rank);}
+
+ //add code to read fibers and reassign arrays
+
+ //printf("%d %d\n", nelements, world_rank);
+ //  for(int i=0; i<nelements; i++){
+  //    printf("%d %d\n", global_eid[i], world_rank);}
   if(embed){
     nodeconstrain = (int*)calloc(nNodes,sizeof(int));
     AssignHostandEmbedNodes();

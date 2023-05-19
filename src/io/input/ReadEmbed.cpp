@@ -23,7 +23,7 @@ static void Free2DimArray(void **Array, const int Size);
 static bool IsNodeSection(char *Line, FILE *File);
 static bool IsElementSection(char *Line, FILE *File, char *Type = NULL, char *ElSetName = NULL);
 //-------------------------------------------------------------------------------------------
-bool ReadAbaqus(const char *FileName) {
+bool ReadEmbed(const char *FileName) {
     // Checking if mesh file can be opened or not
     FILE *File;
     if ((File = fopen(FileName, "rb")) == NULL) {
@@ -90,7 +90,7 @@ bool ReadAbaqus(const char *FileName) {
     }
 
     // Determining number/count of elements processor will hold
-    nallelementsnoembed = nallelements - nembedel; //only partitioning on host elements
+/*    nallelementsnoembed = nallelements - nembedel; //only partitioning on host elements
     nelements = nallelementsnoembed / world_size;
     if (world_rank == world_size - 1) {
         nelements += (nallelementsnoembed % world_size);
@@ -98,18 +98,21 @@ bool ReadAbaqus(const char *FileName) {
 
     // Fixing range of lines (in elements section of mesh file) from which processor will read its own elements
     const int From = world_rank * (nallelementsnoembed / world_size);
-    const int To = From + nelements - 1;
-    
- /*  for(int i = 0; i<nembedel; i++){
-	if(embedinfo[i]>=From && embedinfo[i]<=To){
-	nelements = nelements + 1;
-	embedproc[i] = 1;
+    const int To = From + nelements - 1;*/
+  int nelementsold = nelements;  
+  
+   for(int i = 0; i<nembedel; i++){
+	for(int j = 0; j<nelements; j++){
+	    if(embedinfo[i]==global_eid[j]){
+		nelements = nelements + 1;
+		embedproc[i] = 1;
+		}
 	}
-   }*/
+   }
 
     // Creating and initializing "eptr" and "ElementType" array, and determining size of "connectivity" array
     const int ELSETNAME_SIZE = 80;
-    ElementType = (char **)malloc(nelements * sizeof(char *));
+    char **ElementType_temp = (char **)malloc(nelements * sizeof(char *));
     char **ElSetNames = (char **)malloc(nelements * sizeof(char *));
     for (int i = 0; i < nelements; i++) {
         ElementType[i] = (char *)calloc(MAX_ELEMENT_TYPE_SIZE, sizeof(char));
@@ -119,12 +122,15 @@ bool ReadAbaqus(const char *FileName) {
     for (int i = 0; i < ElSetsCount; i++) {
         UniqueElSetNames[i] = (char *)calloc(ELSETNAME_SIZE, sizeof(char));
     }
-    eptr = (int *)calloc(nelements + 1, sizeof(int));
-    int i = 0, j = 0, pi = 0, ConnectivitySize = 0, UniqueElSetsCount = 0;
+    int *eptr_temp = (int *)calloc(nelements + 1, sizeof(int));
+
+    memcpy(eptr_temp, eptr, (nelementsold + 1)*sizeof(int));
+    memcpy(ElementType_temp, Element_Type, (nelementsold)*sizeof(char));
+
+    int i = 0, j = nelementsold, pi = 0, ConnectivitySize = noldelements*8, UniqueElSetsCount = 0;
     char Type[MAX_FILE_LINE] = {0}, ElSetName[MAX_FILE_LINE] = {0};
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (IsElementSection(Line, File, Type, ElSetName)) {
-
             ElSetName[ELSETNAME_SIZE - 1] = 0;
             bool Found = false;
             for (int k = 0; !Found && k < ElSetsCount; k++) {
@@ -142,14 +148,11 @@ bool ReadAbaqus(const char *FileName) {
                     break;
                 }
            //     if ((i >= From && i <= To)||embedproc[i-nallelementsnoembed]==1) {
-		if (i >= From && i <= To) {
+		if ((n==2)&&(embedproc[i-nallelementsnoembed]==1)) {
                     j = j + 1;
-                    eptr[j] = eptr[j - 1] + n;
+                    eptr_temp[j] = eptr_temp[j - 1] + n;
                     ConnectivitySize = ConnectivitySize + n;
                     Type[MAX_ELEMENT_TYPE_SIZE - 1] = 0;
-                    if (!strcmp(Type, "C3D8") && reducedIntegration) {
-                      strncpy(Type, "C3D8R", MAX_ELEMENT_TYPE_SIZE);
-                    }
                     strcpy(ElementType[pi], Type);
                     strcpy(ElSetNames[pi], ElSetName);
                     pi = pi + 1;
@@ -192,12 +195,14 @@ bool ReadAbaqus(const char *FileName) {
     Free2DimArray((void **)ElSetNames, nelements);
     Free2DimArray((void **)UniqueElSetNames, ElSetsCount);
 
-    global_eid = (int *)malloc(nelements*sizeof(int));
+    global_eid_temp = (int *)malloc(nelements*sizeof(int));
+    memcpy(global_eid_temp, global_eid, (nelementsold)*sizeof(int));
 
     // Creating and initializing "connectivity" array for processor
-    connectivity = (int *)calloc(ConnectivitySize, sizeof(int));
-    i = 0, j = 0;
-    int eIndex = 0;
+    connectivity_temp = (int *)calloc(ConnectivitySize, sizeof(int));
+    memcpy(connectivity_temp, connectivity, (noldelements*8)*sizeof(int));
+    i = 0, j = noldelements*8;
+    int eIndex = noldelements;
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (IsElementSection(Line, File)) {
             long LastValidElemDataLinePos = -1;
@@ -208,7 +213,7 @@ bool ReadAbaqus(const char *FileName) {
                     break;
                 }
           //      if ((i >= From && i <= To||embedproc[i-nallelementsnoembed]==1)) {
-                if (i >= From && i <= To) {
+                if ((n==2)&&(embedproc[i-nallelementsnoembed]==1)) {
                   global_eid[eIndex] = Nodes[0];
                   eIndex = eIndex + 1;
                     for (int k = 1; k < n; k++) {
@@ -277,6 +282,10 @@ bool ReadAbaqus(const char *FileName) {
     }
     free(UniqueConnCoordinates);
     free(UniqueConnectivity);
+    free(ElementType_temp):
+    free(eptr_temp);
+    free(global_eid_temp);
+    free(connectivity_temp);
     
     // Checking if "coordinates" array is OK
     if (nNodes != ConnectivitySize) {
