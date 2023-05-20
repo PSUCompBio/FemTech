@@ -21,7 +21,7 @@ for i in np.arange(0, nNodes):
     elem = pressureMap[i]
     nodeID[i] = int(elem['nodeID'])
     pressureID = int(elem['pressureID'])
-    pressureVec[i] = float(pressureJson[pressureID]['pressure_value'])
+    pressureVec[i] = float(pressureJson[pressureID]['pressure'])
 
 print(nodeID)
 print(pressureVec)
