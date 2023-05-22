@@ -59,6 +59,7 @@ int main(int argc, char **argv) {
 
   PartitionMesh();
 
+  ReadEmbed(argv[1]);
  //add code to read fibers and reassign arrays
 
  //printf("%d %d\n", nelements, world_rank);

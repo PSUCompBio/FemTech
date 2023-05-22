@@ -5,14 +5,14 @@
 #ifdef _WIN32
 #include <string.h>
 
-int StrCmpCI(const char *str1, const char *str2) {
+int StrCmpCIembed(const char *str1, const char *str2) {
     return stricmp(str1, str2);
 }
 
 #else
 #include <strings.h>
 
-int StrCmpCI(const char *str1, const char *str2) {
+int StrCmpCIembed(const char *str1, const char *str2) {
     return strcasecmp(str1, str2);
 }
 
@@ -23,12 +23,12 @@ static void Free2DimArray(void **Array, const int Size);
 static bool IsNodeSection(char *Line, FILE *File);
 static bool IsElementSection(char *Line, FILE *File, char *Type = NULL, char *ElSetName = NULL);
 //-------------------------------------------------------------------------------------------
-bool ReadEmbed(const char *FileName) {
+void ReadEmbed(const char *FileName) {
     // Checking if mesh file can be opened or not
     FILE *File;
     if ((File = fopen(FileName, "rb")) == NULL) {
         FILE_LOG_SINGLE(ERROR, "Cannot open input mesh file");
-        return false;
+        return;
     }
     
     // Counting number of elements in elements section, number of nodes in nodes section of mesh file
@@ -71,7 +71,6 @@ bool ReadEmbed(const char *FileName) {
             CurrentPos = ftell(File);
         }
     }
-    
     // Checking if elements and nodes were found in mesh file
     // And checking if we can be back to elements section in the file
     int fseeked = 0;
@@ -86,7 +85,7 @@ bool ReadEmbed(const char *FileName) {
         if (fseeked != 0) {
             FILE_LOG_SINGLE(ERROR, "'fseek()' call for ElementsSectionPos failed");
         }
-        return false;
+        return;
     }
 
     // Determining number/count of elements processor will hold
@@ -100,10 +99,9 @@ bool ReadEmbed(const char *FileName) {
     const int From = world_rank * (nallelementsnoembed / world_size);
     const int To = From + nelements - 1;*/
   int nelementsold = nelements;  
-  
    for(int i = 0; i<nembedel; i++){
-	for(int j = 0; j<nelements; j++){
-	    if(embedinfo[i]==global_eid[j]){
+	for(int j = 0; j<nelementsold; j++){
+	    if(embedinfo[i]==global_eid[j]-1){
 		nelements = nelements + 1;
 		embedproc[i] = 1;
 		}
@@ -125,9 +123,10 @@ bool ReadEmbed(const char *FileName) {
     int *eptr_temp = (int *)calloc(nelements + 1, sizeof(int));
 
     memcpy(eptr_temp, eptr, (nelementsold + 1)*sizeof(int));
-    memcpy(ElementType_temp, Element_Type, (nelementsold)*sizeof(char));
+    memcpy(ElementType_temp, ElementType, (nelementsold)*sizeof(char));
 
-    int i = 0, j = nelementsold, pi = 0, ConnectivitySize = noldelements*8, UniqueElSetsCount = 0;
+
+    int i = 0, j = nelementsold, pi = 0, ConnectivitySize = nelementsold*8, UniqueElSetsCount = 0;
     char Type[MAX_FILE_LINE] = {0}, ElSetName[MAX_FILE_LINE] = {0};
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (IsElementSection(Line, File, Type, ElSetName)) {
@@ -167,9 +166,11 @@ bool ReadEmbed(const char *FileName) {
         }
     }
 
+//	printf("%d %d\n", eptr[nelements], world_rank);
+
     // Checking if calculated size of connectivity array is valid
     // And checking if we can be back to elements section of mesh file
-    if (ConnectivitySize != eptr[nelements] || fseek(File, ElementsSectionPos, SEEK_SET) != 0) {
+    if (ConnectivitySize != eptr_temp[nelements] || fseek(File, ElementsSectionPos, SEEK_SET) != 0) {
         fclose(File);
         FreeArrays();
         Free2DimArray((void **)ElSetNames, nelements);
@@ -180,7 +181,7 @@ bool ReadEmbed(const char *FileName) {
         else {
             FILE_LOG_SINGLE(ERROR, "'fseek()' call for ElementsSectionPos failed");
         }
-        return false;
+        return;
     }
 
     // Creating and initializing "pid" array
@@ -195,14 +196,14 @@ bool ReadEmbed(const char *FileName) {
     Free2DimArray((void **)ElSetNames, nelements);
     Free2DimArray((void **)UniqueElSetNames, ElSetsCount);
 
-    global_eid_temp = (int *)malloc(nelements*sizeof(int));
+    int *global_eid_temp = (int *)malloc(nelements*sizeof(int));
     memcpy(global_eid_temp, global_eid, (nelementsold)*sizeof(int));
 
     // Creating and initializing "connectivity" array for processor
-    connectivity_temp = (int *)calloc(ConnectivitySize, sizeof(int));
-    memcpy(connectivity_temp, connectivity, (noldelements*8)*sizeof(int));
-    i = 0, j = noldelements*8;
-    int eIndex = noldelements;
+    int *connectivity_temp = (int *)calloc(ConnectivitySize, sizeof(int));
+    memcpy(connectivity_temp, connectivity, (nelementsold*8)*sizeof(int));
+    i = 0, j = nelementsold*8;
+    int eIndex = nelementsold;
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (IsElementSection(Line, File)) {
             long LastValidElemDataLinePos = -1;
@@ -213,11 +214,11 @@ bool ReadEmbed(const char *FileName) {
                     break;
                 }
           //      if ((i >= From && i <= To||embedproc[i-nallelementsnoembed]==1)) {
-                if ((n==2)&&(embedproc[i-nallelementsnoembed]==1)) {
-                  global_eid[eIndex] = Nodes[0];
+                if ((n-1==2)&&(embedproc[i-nallelementsnoembed]==1)) {
+                  global_eid_temp[eIndex] = Nodes[0];
                   eIndex = eIndex + 1;
                     for (int k = 1; k < n; k++) {
-                        connectivity[j] = Nodes[k] - 1;
+                        connectivity_temp[j] = Nodes[k] - 1;
                         j = j + 1;
                     }
                 }
@@ -238,12 +239,12 @@ bool ReadEmbed(const char *FileName) {
         fclose(File);
         FreeArrays();
         FILE_LOG_SINGLE(ERROR, "'fseek()' call for NodesSectionPos failed");
-        return false;
+        return;
     }
-       
+
     // Initializing "coordinates" array
     int *UniqueConnectivity = (int *)malloc(ConnectivitySize * sizeof(int));
-    memcpy(UniqueConnectivity, connectivity, ConnectivitySize * sizeof(int));
+    memcpy(UniqueConnectivity, connectivity_temp, ConnectivitySize * sizeof(int));
     qsort(UniqueConnectivity, ConnectivitySize, sizeof(int), compare);
     const int UniqueConnectivitySize = unique(UniqueConnectivity, ConnectivitySize);
     const int csize = ndim * sizeof(double);
@@ -271,31 +272,43 @@ bool ReadEmbed(const char *FileName) {
         }
     }
     nNodes = 0;
-    coordinates = (double *)malloc(ConnectivitySize * csize);
-    for (int i1 = 0; i1 < ConnectivitySize; i1++) {
-        const int *p = (const int *)bsearch(&connectivity[i1], UniqueConnectivity, UniqueConnectivitySize, sizeof(int), compare);
-        if (p != NULL) {
-            const int I = p - UniqueConnectivity;
-            memcpy(&coordinates[i1 * ndim], &UniqueConnCoordinates[I * ndim], csize);
+    double *coordinates_temp = (double *)malloc(UniqueConnectivitySize * csize);
+    memcpy(coordinates_temp, coordinates, nDOF*sizeof(double));
+    for (int i1 = nDOF/3; i1 < UniqueConnectivitySize; i1++) {
+        const int *p = (const int *)bsearch(&connectivity_temp[i1], UniqueConnectivity, UniqueConnectivitySize, sizeof(int), compare);
+	//const int *p = (const int *)UniqueConnectivity[i1];
+	// if (p != NULL) {
+         //   const int I = p - UniqueConnectivity;
+            memcpy(&coordinates_temp[i1 * ndim], &UniqueConnCoordinates[i1 * ndim], csize);
             nNodes = nNodes + 1;
-        }
+      //  }
     }
+int tempsize = UniqueConnectivitySize-nDOF/3;
+int *renumberConnectivity = (int *)malloc(tempsize * sizeof(int));
+for(int i2 = nDOF/3, j2=1; i2<UniqueConnectivitySize; i2++,j2++){
+	renumberConnectivity[j2-1] = UniqueConnectivity[nDOF/3-1]+j2;
+//search for unique conn id and replace with renumconnectivity
+}
+for(int j2=0; j2<tempsize; j2++)
+	printf("%d %d\n", renumberConnectivity[j2], world_rank);
+    nDOF = UniqueConnectivitySize*3;
     free(UniqueConnCoordinates);
     free(UniqueConnectivity);
-    free(ElementType_temp):
+    free(ElementType_temp);
     free(eptr_temp);
     free(global_eid_temp);
     free(connectivity_temp);
+    free(coordinates_temp);
     
     // Checking if "coordinates" array is OK
-    if (nNodes != ConnectivitySize) {
+    /*if (nNodes != ConnectivitySize) {
         FreeArrays();
         FILE_LOG_SINGLE(ERROR, "Failed to initialize 'coordinates' array");
         FILE_LOG_SINGLE(ERROR, "nnodes = %d, ConnectivitySize = %d, ndim = %d", nNodes, ConnectivitySize, ndim);
-    }
+    }*/
 
     fclose(File);
-    return nNodes == ConnectivitySize;
+    return;
 }
 //-------------------------------------------------------------------------------------------
 static char **LineToTokens(const char *Line, int *Size) {
@@ -383,7 +396,7 @@ static bool IsNodeSection(char *Line, FILE *File) {
     int Size;
     char **Tokens = LineToTokens(Line, &Size);
     if (Size >= 2) {
-        Result = strcmp(Tokens[0], "*") == 0 && StrCmpCI(Tokens[1], "NODE") == 0;
+        Result = strcmp(Tokens[0], "*") == 0 && StrCmpCIembed(Tokens[1], "NODE") == 0;
     }
     if (Result && Size > 2) {
         Result = strcmp(Tokens[2], ",") == 0;
@@ -402,19 +415,19 @@ static bool IsElementSection(char *Line, FILE *File, char *Type, char *ElSetName
     int Size;
     char **Tokens = LineToTokens(Line, &Size);
     if (Size > 2) {
-        Result = strcmp(Tokens[0], "*") == 0 && StrCmpCI(Tokens[1], "ELEMENT") == 0 && strcmp(Tokens[2], ",") == 0;
+        Result = strcmp(Tokens[0], "*") == 0 && StrCmpCIembed(Tokens[1], "ELEMENT") == 0 && strcmp(Tokens[2], ",") == 0;
     }
     if (Result) {
         Result = false;
         do {
             for (int i = 0; i < Size; i++) {
-                if (!Result && StrCmpCI(Tokens[i], "TYPE") == 0) {
+                if (!Result && StrCmpCIembed(Tokens[i], "TYPE") == 0) {
                     Result = (i + 2) < Size && strcmp(Tokens[i + 1], "=") == 0 && strlen(Tokens[i + 2]) > 0;
                     if (Result && Type != NULL) {
                         strcpy(Type, Tokens[i + 2]);
                     }
                 }
-                if (StrCmpCI(Tokens[i], "ELSET") == 0 && (i + 2) < Size && strcmp(Tokens[i + 1], "=") == 0) {
+                if (StrCmpCIembed(Tokens[i], "ELSET") == 0 && (i + 2) < Size && strcmp(Tokens[i + 1], "=") == 0) {
                     if (ElSetName != NULL) {
                         strcpy(ElSetName, Tokens[i + 2]);
                     }

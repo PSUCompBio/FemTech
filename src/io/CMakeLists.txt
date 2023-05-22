@@ -12,6 +12,7 @@ Set(io_src
     parallel_log.cpp
     input/ReadMapping.cpp
     input/ParseMapping.cpp
+    input/ReadEmbed.cpp
     )
 
 add_library(io OBJECT ${io_src})
