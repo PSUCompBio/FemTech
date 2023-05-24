@@ -14,8 +14,8 @@ ExternalProject_Add(
 
 ExternalProject_Add(
   Boost
-  URL_MD5 8f053b09122f9f06733d92b2c77fd188
-  URL "${CMAKE_CURRENT_SOURCE_DIR}/boost_1_72_0.zip"
+  URL_MD5 1dd9dcddf3849bb0f1cb6fb0efd0b80d
+  URL "${CMAKE_CURRENT_SOURCE_DIR}/boost_1_82_0.zip"
   BUILD_IN_SOURCE 1
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
