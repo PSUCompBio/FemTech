@@ -44,6 +44,8 @@ void PartitionMesh() {
   idx_t wgtflag = 2;      // we don't use weights
   idx_t numflag = 0;      // we are using C-style arrays
   idx_t ncommonnodes = 2; // number of nodes elements must have in common
+  if(embed)
+	nallelements = nallelementsnoembed;
   if (nallelements == 2) {
     FILE_LOG(WARNING, "PartitionMesh.cpp: nallelements = 2 so ncommonnodes set to 8 (for "
            "parmetis)");

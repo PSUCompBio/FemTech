@@ -65,14 +65,19 @@ int main(int argc, char **argv) {
  //printf("%d %d\n", nelements, world_rank);
  //  for(int i=0; i<nelements; i++){
   //    printf("%d %d\n", global_eid[i], world_rank);}
+
   if(embed){
     nodeconstrain = (int*)calloc(nNodes,sizeof(int));
     AssignHostandEmbedNodes();
     //ReadMapping(argv[2]);
     }
+ // for(int i=0; i<nelements; i++){
+   // printf("%d %d\n", global_eid[i], world_rank);
+	//}
 
-//for(int i =0; i<nNodes; i++)
-//	printf("%d %d\n", nodeconstrain[i], world_rank);
+ //  for(int i=0; i<nNodes; i++){
+   //   printf("%d %d %d\n", i, nodeconstrain[i], world_rank);}
+
 
   AllocateArrays();
 
@@ -463,13 +468,13 @@ Determines which nodes belong to the embedded elements
 */
 void AssignHostandEmbedNodes(){
   for(int i=0; i<nelements; i++){
-    //  printf("%d %d\n", global_eid[i], world_rank);
+//printf("%d %d %d\n", i, eptr[i], world_rank);
+     // printf("%d %d\n", global_eid[i], world_rank);
       if (strcmp(ElementType[i], "T3D2") == 0){
 	for(int j=0; j<nembedel; j++){
 	    if(embedelID[j]+1==global_eid[i]){
 		nodeconstrain[connectivity[eptr[i]]] = embedinfo[j];
 		nodeconstrain[connectivity[eptr[i]+1]] = embedinfo[j];
-		//printf("%d %d\n", nodeconstrain[connectivity[eptr[i]]], world_rank);
 		}
 	    }
 	}	

@@ -87,17 +87,6 @@ void ReadEmbed(const char *FileName) {
         }
         return;
     }
-
-    // Determining number/count of elements processor will hold
-/*    nallelementsnoembed = nallelements - nembedel; //only partitioning on host elements
-    nelements = nallelementsnoembed / world_size;
-    if (world_rank == world_size - 1) {
-        nelements += (nallelementsnoembed % world_size);
-    }
-
-    // Fixing range of lines (in elements section of mesh file) from which processor will read its own elements
-    const int From = world_rank * (nallelementsnoembed / world_size);
-    const int To = From + nelements - 1;*/
   int nelementsold = nelements;  
    for(int i = 0; i<nembedel; i++){
 	for(int j = 0; j<nelementsold; j++){
@@ -111,10 +100,10 @@ void ReadEmbed(const char *FileName) {
     // Creating and initializing "eptr" and "ElementType" array, and determining size of "connectivity" array
     const int ELSETNAME_SIZE = 80;
     char **ElementType_temp = (char **)malloc(nelements * sizeof(char *));
-    char **ElSetNames = (char **)malloc(nelements * sizeof(char *));
+    char **ElSetNames_temp = (char **)malloc(nelements * sizeof(char *));
     for (int i = 0; i < nelements; i++) {
-        ElementType[i] = (char *)calloc(MAX_ELEMENT_TYPE_SIZE, sizeof(char));
-        ElSetNames[i] = (char *)calloc(ELSETNAME_SIZE, sizeof(char));
+        ElementType_temp[i] = (char *)calloc(MAX_ELEMENT_TYPE_SIZE, sizeof(char));
+        ElSetNames_temp[i] = (char *)calloc(ELSETNAME_SIZE, sizeof(char));
     }
     char **UniqueElSetNames = (char **)malloc(ElSetsCount * sizeof(char *));
     for (int i = 0; i < ElSetsCount; i++) {
@@ -123,10 +112,13 @@ void ReadEmbed(const char *FileName) {
     int *eptr_temp = (int *)calloc(nelements + 1, sizeof(int));
 
     memcpy(eptr_temp, eptr, (nelementsold + 1)*sizeof(int));
-    memcpy(ElementType_temp, ElementType, (nelementsold)*sizeof(char));
 
+    for (int i = 0; i < nelementsold; i++) {
+	memcpy(ElementType_temp[i], ElementType[i], MAX_ELEMENT_TYPE_SIZE*sizeof(char));
+    }
+    
 
-    int i = 0, j = nelementsold, pi = 0, ConnectivitySize = nelementsold*8, UniqueElSetsCount = 0;
+    int i = 0, j = nelementsold, pi = nelementsold, ConnectivitySize = nelementsold*8, UniqueElSetsCount = 0;
     char Type[MAX_FILE_LINE] = {0}, ElSetName[MAX_FILE_LINE] = {0};
     while (fgets(Line, sizeof(Line), File) != NULL) {
         if (IsElementSection(Line, File, Type, ElSetName)) {
@@ -146,14 +138,13 @@ void ReadEmbed(const char *FileName) {
                 if (n == 0) {
                     break;
                 }
-           //     if ((i >= From && i <= To)||embedproc[i-nallelementsnoembed]==1) {
 		if ((n==2)&&(embedproc[i-nallelementsnoembed]==1)) {
                     j = j + 1;
                     eptr_temp[j] = eptr_temp[j - 1] + n;
                     ConnectivitySize = ConnectivitySize + n;
                     Type[MAX_ELEMENT_TYPE_SIZE - 1] = 0;
-                    strcpy(ElementType[pi], Type);
-                    strcpy(ElSetNames[pi], ElSetName);
+                    strcpy(ElementType_temp[pi], Type);
+                    strcpy(ElSetNames_temp[pi], ElSetName);
                     pi = pi + 1;
                 }
                 i = i + 1;
@@ -173,7 +164,7 @@ void ReadEmbed(const char *FileName) {
     if (ConnectivitySize != eptr_temp[nelements] || fseek(File, ElementsSectionPos, SEEK_SET) != 0) {
         fclose(File);
         FreeArrays();
-        Free2DimArray((void **)ElSetNames, nelements);
+        Free2DimArray((void **)ElSetNames_temp, nelements);
         Free2DimArray((void **)UniqueElSetNames, ElSetsCount);
         if (ConnectivitySize != eptr[nelements]) {
             FILE_LOG_SINGLE(ERROR, "Size of 'eind' array is not valid");
@@ -185,15 +176,16 @@ void ReadEmbed(const char *FileName) {
     }
 
     // Creating and initializing "pid" array
-    pid = (int *)calloc(nelements, sizeof(int));
+    int *pid_temp = (int *)calloc(nelements, sizeof(int));
+    memcpy(pid_temp, pid, nelementsold*sizeof(int));
     for (int i1 = 0; i1 < UniqueElSetsCount; i1++) {
-        for (int j1 = 0; j1 < nelements; j1++) {
-            if (strcmp(UniqueElSetNames[i1], ElSetNames[j1]) == 0) {
-                pid[j1] = i1;
+        for (int j1 = nelementsold; j1 < nelements; j1++) {
+            if (strcmp(UniqueElSetNames[i1], ElSetNames_temp[j1]) == 0) {
+                pid_temp[j1] = i1;
             }
         }
     }
-    Free2DimArray((void **)ElSetNames, nelements);
+    Free2DimArray((void **)ElSetNames_temp, nelements);
     Free2DimArray((void **)UniqueElSetNames, ElSetsCount);
 
     int *global_eid_temp = (int *)malloc(nelements*sizeof(int));
@@ -213,7 +205,6 @@ void ReadEmbed(const char *FileName) {
                 if (n == 0) {
                     break;
                 }
-          //      if ((i >= From && i <= To||embedproc[i-nallelementsnoembed]==1)) {
                 if ((n-1==2)&&(embedproc[i-nallelementsnoembed]==1)) {
                   global_eid_temp[eIndex] = Nodes[0];
                   eIndex = eIndex + 1;
@@ -271,44 +262,72 @@ void ReadEmbed(const char *FileName) {
             break;
         }
     }
-    nNodes = 0;
+
     double *coordinates_temp = (double *)malloc(UniqueConnectivitySize * csize);
     memcpy(coordinates_temp, coordinates, nDOF*sizeof(double));
     for (int i1 = nDOF/3; i1 < UniqueConnectivitySize; i1++) {
         const int *p = (const int *)bsearch(&connectivity_temp[i1], UniqueConnectivity, UniqueConnectivitySize, sizeof(int), compare);
-	//const int *p = (const int *)UniqueConnectivity[i1];
-	// if (p != NULL) {
-         //   const int I = p - UniqueConnectivity;
             memcpy(&coordinates_temp[i1 * ndim], &UniqueConnCoordinates[i1 * ndim], csize);
-            nNodes = nNodes + 1;
-      //  }
     }
-int tempsize = UniqueConnectivitySize-nDOF/3;
-int *renumberConnectivity = (int *)malloc(tempsize * sizeof(int));
-for(int i2 = nDOF/3, j2=1; i2<UniqueConnectivitySize; i2++,j2++){
-	renumberConnectivity[j2-1] = UniqueConnectivity[nDOF/3-1]+j2;
-//search for unique conn id and replace with renumconnectivity
-}
-for(int j2=0; j2<tempsize; j2++)
-	printf("%d %d\n", renumberConnectivity[j2], world_rank);
-    nDOF = UniqueConnectivitySize*3;
-    free(UniqueConnCoordinates);
-    free(UniqueConnectivity);
-    free(ElementType_temp);
-    free(eptr_temp);
-    free(global_eid_temp);
-    free(connectivity_temp);
-    free(coordinates_temp);
-    
-    // Checking if "coordinates" array is OK
-    /*if (nNodes != ConnectivitySize) {
-        FreeArrays();
-        FILE_LOG_SINGLE(ERROR, "Failed to initialize 'coordinates' array");
-        FILE_LOG_SINGLE(ERROR, "nnodes = %d, ConnectivitySize = %d, ndim = %d", nNodes, ConnectivitySize, ndim);
-    }*/
+	int tempsize = UniqueConnectivitySize-nDOF/3;
+	int *renumberConnectivity = (int *)malloc(tempsize * sizeof(int));
+	for(int i2 = nDOF/3, j2=1; i2<UniqueConnectivitySize; i2++,j2++){
+		renumberConnectivity[j2-1] = UniqueConnectivity[nDOF/3-1]+j2;
+	}
+	for(int i2=0; i2<ConnectivitySize; i2++){
+		for(int j2=0; j2<tempsize; j2++){
+			if(connectivity_temp[i2]==UniqueConnectivity[nDOF/3+j2]){
+		  	  	connectivity_temp[i2]=renumberConnectivity[j2];	
+			}
+		}
+	}
 
-    fclose(File);
-    return;
+//delete original arrays, recreate them and copy new info into arrays
+  if (ElementType != NULL) {
+    for (int i3 = 0; i3 < nelementsold; i3++){
+        free(ElementType[i3]);
+    }
+  }
+    free(eptr);
+    free(global_eid);
+    free(connectivity);
+    free(coordinates);
+    free(pid);
+
+
+  ElementType = (char **)malloc(nelements * sizeof(char *));
+  for (int i3 = 0; i3 < nelements; i3++) {
+        ElementType[i3] = (char *)calloc(MAX_ELEMENT_TYPE_SIZE, sizeof(char));
+  }
+  eptr = (int *)calloc(nelements + 1, sizeof(int));
+  global_eid = (int *)malloc(nelements*sizeof(int));
+  connectivity = (int *)calloc(ConnectivitySize, sizeof(int));
+  coordinates = (double *)malloc(UniqueConnectivitySize * csize);
+  pid = (int *)malloc(nelements*sizeof(int));
+  for (int i3 = 0; i3 < nelements; i3++) {
+	memcpy(ElementType[i3], ElementType_temp[i3], MAX_ELEMENT_TYPE_SIZE*sizeof(char));
+  } 
+  memcpy(eptr, eptr_temp, (nelements+1)* sizeof(int));
+  memcpy(global_eid, global_eid_temp, nelements* sizeof(int));
+  memcpy(connectivity, connectivity_temp, ConnectivitySize* sizeof(int));
+  memcpy(coordinates, coordinates_temp, UniqueConnectivitySize* csize);
+  memcpy(pid, pid_temp, nelements* sizeof(int));
+  nDOF = UniqueConnectivitySize*3;
+  nNodes = UniqueConnectivitySize;
+  free(UniqueConnCoordinates);
+  free(UniqueConnectivity);
+  if (ElementType != NULL) {
+    for (int i3 = 0; i3 < nelements; i3++){
+        free(ElementType_temp[i3]);
+    }
+  }	
+  free(eptr_temp);
+  free(global_eid_temp);
+  free(connectivity_temp);
+  free(coordinates_temp);
+  free(pid_temp);
+  fclose(File);
+  return;
 }
 //-------------------------------------------------------------------------------------------
 static char **LineToTokens(const char *Line, int *Size) {
