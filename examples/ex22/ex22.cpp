@@ -202,8 +202,10 @@ int main(int argc, char **argv) {
 	      	   displacements[i] = displacements[i] + dt * velocities_half[i];
 			}
 		else {
-		   int dirn = i%3;
-		   CalculateEmbedDisp(embedid,dirn);		
+		   if(writeFlag){
+			   int dirn = i%3;
+			   CalculateEmbedDisp(embedid,dirn);	
+		   }	
 		}
 	}
 	else displacements[i] = displacements[i] + dt * velocities_half[i];
