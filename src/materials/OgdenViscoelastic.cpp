@@ -195,6 +195,10 @@ void OgdenViscoelastic(int e, int gp) {
   }
   free(gi);
   free(ti);
+  delete[]cEigenValue;/*Drupal*/
+  delete[]dWork;/*Drupal*/
+  delete[]eigenPower;/*Drupal*/
+  delete[]eigenPowerSum;/*Drupal*/
 
 #ifdef DEBUG
   FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Element ID = %d, gp = %d", e, gp);

@@ -9,8 +9,8 @@ double CalculateWaveSpeed(const unsigned int partID) {
   const unsigned int matID = materialID[partID];
 
   // Variables required inside switch
-  double lambda, mu, K, muI, viscoEffect;
-  unsigned int nTerm, nPronyL;
+  double lambda =0, mu = 0, K = 0, muI = 0, viscoEffect = 0;/*Drupal*/
+  unsigned int nTerm =0, nPronyL=0;/*Drupal*/
   switch (matID) {
     case 0 : // Rigid-body motion
              break;

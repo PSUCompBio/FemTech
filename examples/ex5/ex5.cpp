@@ -1037,8 +1037,9 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
   }
   // Convert angular to linear frame
   if (!jsonInput["angular-to-linear-frame"].empty()) {
-    double factor[ndim];
-    int index[ndim];
+   // double factor[ndim];
+    double *factor = new double[ndim];/*Drupal*/
+    int *index = new int[ndim];/*Drupal*/
     for (int i = 0; i < ndim; ++i) {
       index[i] = -10;
       std::string tr = jsonInput["angular-to-linear-frame"][i].asString();
@@ -1113,17 +1114,20 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
     if (angularVelPrescribed) {
       // Transforming individual values rather than pointer rotation for
       // readability
-      double velSize[ndim];
+      double* velSize = new double[ndim];/*Drupal*/
       velSize[index[0]] = angVelXSize;
       velSize[index[1]] = angVelYSize;
       velSize[index[2]] = angVelZSize;
-      double *angVelTNew[ndim], *angVelVNew[ndim];
-      angVelTNew[0] = (double *)malloc(velSize[0] * sizeof(double));
-      angVelVNew[0] = (double *)malloc(velSize[0] * sizeof(double));
-      angVelTNew[1] = (double *)malloc(velSize[1] * sizeof(double));
-      angVelVNew[1] = (double *)malloc(velSize[1] * sizeof(double));
-      angVelTNew[2] = (double *)malloc(velSize[2] * sizeof(double));
-      angVelVNew[2] = (double *)malloc(velSize[2] * sizeof(double));
+    //  double *angVelTNew[ndim], *angVelVNew[ndim];
+      double** angVelTNew = new double*[ndim];/*Drupal*/
+      double** angVelVNew = new double*[ndim];/*Drupal*/
+
+      angVelTNew[0] = new double[velSize[0] * sizeof(double)];
+      angVelVNew[0] = new double[velSize[0] * sizeof(double)];
+      angVelTNew[1] = new double[velSize[1] * sizeof(double)];
+      angVelVNew[1] = new double[velSize[1] * sizeof(double)];
+      angVelTNew[2] = new double[velSize[2] * sizeof(double)];
+      angVelVNew[2] = new double[velSize[2] * sizeof(double)];
 
       int transformedIndex = index[0];
       for (int i = 0; i < angVelXSize; ++i) {
@@ -1156,20 +1160,29 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
       angVelYv = angVelVNew[1];
       angVelZt = angVelTNew[2];
       angVelZv = angVelVNew[2];
+
+      delete[] velSize;/*Drupal*/
+      for (int i = 0; i < ndim; i++) {
+          delete[] angVelTNew[i];/*Drupal*/
+          delete[] angVelVNew[i];/*Drupal*/
+      }
+      delete[] angVelTNew;/*Drupal*/
+      delete[] angVelVNew;/*Drupal*/
     } else {
-      double accSize[ndim];
+      double *accSize = new double[ndim];/*Drupal*/
       // Transforming individual values rather than pointer rotation for
       // readability
       accSize[index[0]] = angAccXSize;
       accSize[index[1]] = angAccYSize;
       accSize[index[2]] = angAccZSize;
-      double *angAccTNew[ndim], *angAccVNew[ndim];
-      angAccTNew[0] = (double *)malloc(accSize[0] * sizeof(double));
-      angAccVNew[0] = (double *)malloc(accSize[0] * sizeof(double));
-      angAccTNew[1] = (double *)malloc(accSize[1] * sizeof(double));
-      angAccVNew[1] = (double *)malloc(accSize[1] * sizeof(double));
-      angAccTNew[2] = (double *)malloc(accSize[2] * sizeof(double));
-      angAccVNew[2] = (double *)malloc(accSize[2] * sizeof(double));
+      double** angAccTNew =new double*[ndim];/*Drupal*/
+      double** angAccVNew =new double*[ndim];/*Drupal*/
+      angAccTNew[0] = new double(accSize[0] * sizeof(double));
+      angAccVNew[0] = new double(accSize[0] * sizeof(double));
+      angAccTNew[1] = new double(accSize[1] * sizeof(double));
+      angAccVNew[1] = new double(accSize[1] * sizeof(double));
+      angAccTNew[2] = new double(accSize[2] * sizeof(double));
+      angAccVNew[2] = new double(accSize[2] * sizeof(double));
 
       int transformedIndex = index[0];
       for (int i = 0; i < angAccXSize; ++i) {
@@ -1202,7 +1215,18 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
       angAccYv = angAccVNew[1];
       angAccZt = angAccTNew[2];
       angAccZv = angAccVNew[2];
+    
+      delete[] accSize;/*Drupal*/
+      for (int i = 0; i < ndim; i++) {
+          delete[] angAccTNew[i];/*Drupal*/
+          delete[] angAccVNew[i];/*Drupal*/
+      }
+      delete[] angAccTNew;/*Drupal*/
+      delete[] angAccVNew;/*Drupal*/
+      /*Drupal*/
     }
+    delete[] factor;/*Drupal*/
+    delete[] index;/*Drupal*/
   }
 
 
@@ -1494,8 +1518,10 @@ void WriteOutputFile() {
     }
 
     // Compute the volume of all parts
-    double volumePart[nPIDglobal];
-    double elementVolume[nelements]; // For MPS computation
+    //double volumePart[volumePart];
+    double* volumePart = new double[nPIDglobal];/*Drupal*/
+   // double elementVolume[nelements]; // For MPS computation
+    double* elementVolume = new double[nelements];/*Drupal*/
     for (int i = 0; i < nPIDglobal; ++i) {
       volumePart[i] = 0.0;
     }
@@ -1643,6 +1669,8 @@ void WriteOutputFile() {
     }
     // Write MPS95 value instead of MPS value for better post processing
     // output[maxOutput[0]]["value"] = percentileValue[0];
+    delete[] volumePart;/*Drupal*/
+    delete[] elementVolume;/*Drupal*/
   }
 
   // Write output to file
@@ -1760,7 +1788,8 @@ void InitInjuryCriteria(void) {
   outputDoubleArray[0] = PS_Old;
 
   // Compute the initial volume of elements for MPS file
-  double volumePart[nPIDglobal];
+  //double volumePart[nPIDglobal];
+  double* volumePart = new double[nPIDglobal];/*Drupal*/
   for (int i = 0; i < nPIDglobal; ++i) {
     volumePart[i] = 0.0;
   }
@@ -1771,6 +1800,7 @@ void InitInjuryCriteria(void) {
     linearAccMPS95TimeTrace = (double*)malloc(MAXPLOTSTEPS*sizeof(double));
     angularAccMPS95TimeTrace = (double*)malloc(MAXPLOTSTEPS*sizeof(double));
   }
+  delete[] volumePart;/*Drupal*/
 }
 
 void CalculateInjuryCriteria(void) {
@@ -1911,8 +1941,10 @@ void TransformMesh(const Json::Value &jsonInput) {
     FILE_LOG_MASTER(INFO, "Angular sensor data about center of mass");
   }
   if (!jsonInput["mesh-transformation"].empty()) {
-    double factor[ndim];
-    int index[ndim];
+    //double factor[ndim];
+    double* factor = new double[ndim];/*Drupal*/
+    //int index[ndim];
+    double* index = new double[ndim];/*Drupal*/
     for (int i = 0; i < ndim; ++i) {
       index[i] = -10;
       std::string tr = jsonInput["mesh-transformation"][i].asString();
@@ -1982,7 +2014,8 @@ void TransformMesh(const Json::Value &jsonInput) {
       TerminateFemTech(12);
     }
     // Transform center of mass
-    double coordTemp[ndim];
+   // double coordTemp[ndim];
+    double* coordTemp = new double[ndim];/*Drupal*/
     // Transform center of mass based on the transformation
     for (int i = 0; i < ndim; ++i) {
       int transformedIndex = index[i];
@@ -2011,10 +2044,14 @@ void TransformMesh(const Json::Value &jsonInput) {
         coordinates[i + ndim * j] = coordTemp[i] - cordAngularSensor[i];
       }
     }
+   
     // Get center of mass wrt angular sensor position
     for (int i = 0; i < ndim; ++i) {
       cm[i] = cm[i] - cordAngularSensor[i];
     }
+    delete[] coordTemp;/*Drupal*/
+    delete[] factor;/*Drupal*/
+    delete[] index;/*Drupal*/
   } else {
     // Subtract angular sensor position from co-ordinates
     for (int j = 0; j < nNodes; ++j) {

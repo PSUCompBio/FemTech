@@ -130,6 +130,11 @@ void Ogden(int e, int gp) {
   // in voigt notation, sigma12
   sigma_nLocal[5] = sigma_e[3];
 
+  delete[]cEigenValue;/*Drupal*/
+  delete[]dWork;/*Drupal*/
+  delete[]eigenPower;/*Drupal*/
+  delete[]eigenPowerSum;/*Drupal*/
+
 #ifdef DEBUG
   FILE_LOG_SINGLE(DEBUGLOGIGNORE, "Element ID = %d, gp = %d", e, gp);
   for(int i=0;i<6;i++){
