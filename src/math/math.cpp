@@ -168,8 +168,8 @@ void quaternionRotate(double *v, double *R, double *Rinv, double* vp) {
 double compute95thPercentileValueBruteForce(double* dataArray, int localSize) {
   // Compute total size
   int totalSize = 0;
-  double *fullData;
-  int *recvCount, *recvDisplacement;
+  double *fullData = NULL;/*Drupal*/
+  int *recvCount = NULL, *recvDisplacement = NULL;/*Drupal*/
   // Calculate the total size
   MPI_Reduce(&localSize, &totalSize, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
   if (world_rank == 0) {

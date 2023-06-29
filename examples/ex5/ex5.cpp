@@ -1591,7 +1591,7 @@ void WriteOutputFile() {
       outputJsonArray[i] = thresholdElements[i];
     }
 
-    int *countPerProc, *cumCountPerProc, *fullElemList;
+    int *countPerProc = NULL, *cumCountPerProc = NULL, *fullElemList = NULL;/*Drupal*/
     if (world_rank == 0) {
       countPerProc = (int *)malloc(world_size * sizeof(int));
       cumCountPerProc = (int *)malloc(world_size * sizeof(int));
