@@ -137,5 +137,7 @@ void ShapeFunction_C3D8(int e, int gp, double *Chi, double *detJ){
 
   FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, xs, ndim, ndim, "---- XS Matrix ----")
   FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, J_Inv, ndim, ndim, "---- JInv Matrix ----")
+
+  delete[]xs;/*Drupal*/
   return;
 }

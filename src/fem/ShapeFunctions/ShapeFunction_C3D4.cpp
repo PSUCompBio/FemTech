@@ -85,6 +85,7 @@ void ShapeFunction_C3D4(int e, int gp, double *Chi, double *detJ){
     dshp[baseIndex] = c1;
     dshp[baseIndex+1] = c2;
     dshp[baseIndex+2] = c3;
+	delete[]xs;/*Drupal*/
   }
 	//for debugging can be removed...
   FILE_LOGMatrix_SINGLE(DEBUGLOGIGNORE, J_Inv, ndim, ndim, "J Inv in e = %d, gp = %d", e, gp);

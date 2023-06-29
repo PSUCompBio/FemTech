@@ -85,5 +85,6 @@ void ShapeFunction_T3D2(int e, int gp, double *Chi, double *detJ){
 	// 	printf("%8.4e %8.4e %8.4e\n", J_Inv[2], J_Inv[5], J_Inv[8]);
 	// 	printf("\n");
 	// }
+   delete[]xs;/*Drupal*/
    return;
 }
