@@ -9,9 +9,11 @@
 //#include <sys/time.h>
 //#include <sys/time.h> Does not work on Windows
 #include <ctime>
-// This is for Windows build 
+// This is for Windows build
+#ifdef _WIN32
 #include "winsock.h"
 #include <Windows.h>
+#endif
 #include <stdint.h>
 
 
