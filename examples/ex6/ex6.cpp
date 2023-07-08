@@ -5,6 +5,10 @@
 bool ImplicitDynamic = true;
 bool ExplicitDynamic = false;
 
+/*Drupal*/
+bool reducedIntegration = true;
+double tInitial = 0.000, Time = 0.0;
+
 int main(int argc, char **argv){
   
 	// Initialize the MPI environment
