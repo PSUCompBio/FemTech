@@ -155,16 +155,17 @@ if(NOT WIN32)
 	endif()
 elseif(WIN32)
 	add_library(Blas SHARED IMPORTED)
+	message("Lapack library Path is $ENV{LAPACK}")
 	set_target_properties(Blas PROPERTIES
-		IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/lib/libblas.dll
-		IMPORTED_IMPLIB ${CMAKE_SOURCE_DIR}/lib/libblas.lib
-		INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/include
+		IMPORTED_LOCATION $ENV{LAPACK}/bin/libblas.dll
+		IMPORTED_IMPLIB $ENV{LAPACK}/lib/libblas.lib
+		INTERFACE_INCLUDE_DIRECTORIES $ENV{LAPACK}/include
 	)
 	add_library(Lapack SHARED IMPORTED)
 	set_target_properties(Lapack PROPERTIES
-		IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/lib/liblapack.dll
-		IMPORTED_IMPLIB ${CMAKE_SOURCE_DIR}/lib/liblapack.lib
-		INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/include
+		IMPORTED_LOCATION $ENV{LAPACK}/bin/liblapack.dll
+		IMPORTED_IMPLIB $ENV{LAPACK}/lib/liblapack.lib
+		INTERFACE_INCLUDE_DIRECTORIES $ENV{LAPACK}/include
 	)
 endif()
 
