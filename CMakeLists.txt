@@ -154,18 +154,27 @@ if(NOT WIN32)
 	   set(lapackblas_libraries ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
 	endif()
 elseif(WIN32)
+
+	# Prompt user for LAPACK variable
+	set(LAPACK "" CACHE PATH "Path to LAPACK library")
+
+	# Check if LAPACK variable is empty
+	if(NOT LAPACK)
+		message(FATAL_ERROR "LAPACK variable not provided. Please specify the path to the LAPACK library.")
+	endif()
+
 	add_library(Blas SHARED IMPORTED)
-	message("Lapack library Path is $ENV{LAPACK}")
+	message("Lapack library Path is ${LAPACK}")
 	set_target_properties(Blas PROPERTIES
-		IMPORTED_LOCATION $ENV{LAPACK}/bin/libblas.dll
-		IMPORTED_IMPLIB $ENV{LAPACK}/lib/libblas.lib
-		INTERFACE_INCLUDE_DIRECTORIES $ENV{LAPACK}/include
+		IMPORTED_LOCATION ${LAPACK}/bin/libblas.dll
+		IMPORTED_IMPLIB ${LAPACK}/lib/libblas.lib
+		INTERFACE_INCLUDE_DIRECTORIES ${LAPACK}/include
 	)
 	add_library(Lapack SHARED IMPORTED)
 	set_target_properties(Lapack PROPERTIES
-		IMPORTED_LOCATION $ENV{LAPACK}/bin/liblapack.dll
-		IMPORTED_IMPLIB $ENV{LAPACK}/lib/liblapack.lib
-		INTERFACE_INCLUDE_DIRECTORIES $ENV{LAPACK}/include
+		IMPORTED_LOCATION ${LAPACK}/bin/liblapack.dll
+		IMPORTED_IMPLIB ${LAPACK}/lib/liblapack.lib
+		INTERFACE_INCLUDE_DIRECTORIES ${LAPACK}/include
 	)
 endif()
 
