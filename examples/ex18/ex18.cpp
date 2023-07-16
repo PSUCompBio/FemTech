@@ -1023,8 +1023,10 @@ void TransformMesh(const Json::Value& jsonInput) {
     FILE_LOG_MASTER(INFO, "Brain+Skull Center of Mass used : (%15.9e, %15.9e, %15.9e)", cm[0], cm[1], cm[2]);
   }
   if (!jsonInput["mesh-transformation"].empty()) {
-    double factor[ndim];
-    int index[ndim];
+
+    double* factor = new double[ndim];/*Drupal*/
+    int* index = new int[ndim];/*Drupal*/
+
     for (int i = 0; i < ndim; ++i) {
       index[i] = -10;
       std::string tr = jsonInput["mesh-transformation"][i].asString();
@@ -1080,7 +1082,7 @@ void TransformMesh(const Json::Value& jsonInput) {
       TerminateFemTech(12);
     }
     // Transform center of mass
-    double coordTemp[ndim];
+    double* coordTemp = new double[ndim];/*Drupal*/
     // Transform center of mass based on the transformation
     for (int i = 0; i < ndim; ++i) {
       int transformedIndex = index[i];
@@ -1101,6 +1103,9 @@ void TransformMesh(const Json::Value& jsonInput) {
         coordinates[i + ndim*j] = coordTemp[i] - cm[i];
       }
     }
+    delete[] factor;
+    delete[] index;
+    delete[] coordTemp;
   } else {
     // Subtract center of mass from co-ordinates
     for (int j = 0; j < nNodes; ++j) {
@@ -1110,5 +1115,6 @@ void TransformMesh(const Json::Value& jsonInput) {
     }
   }
   // Ensure rest of the code is executed after the mesh transformation
+
   MPI_Barrier(MPI_COMM_WORLD);
 }

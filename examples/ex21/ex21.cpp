@@ -945,8 +945,10 @@ void WriteOutputFile() {
     }
 
     // Compute the volume of all parts
-    double volumePart[nPIDglobal];
-    double elementVolume[nelements]; // For MPS computation
+
+    double* volumePart = new double[nPIDglobal];/*Drupal*/
+    double* elementVolume = new double[nPIDglobal];/*Drupal*/ // For MPS computation
+
     for (int i = 0; i < nPIDglobal; ++i) {
       volumePart[i] = 0.0;
     }
@@ -1094,6 +1096,9 @@ void WriteOutputFile() {
     }
     // Write MPS95 value instead of MPS value for better post processing
     output[maxOutput[0]]["value"] = percentileValue[0];
+
+    delete[] volumePart; 
+    delete[] elementVolume;
   }
 
   // Write output to file
@@ -1207,7 +1212,9 @@ void InitInjuryCriteria(void) {
   outputDoubleArray[0] = PS_Old;
 
   // Compute the initial volume of elements for MPS file
-  double volumePart[nPIDglobal];
+
+  double* volumePart = new double[nPIDglobal];/*Drupal*/
+
   for (int i = 0; i < nPIDglobal; ++i) {
     volumePart[i] = 0.0;
   }
@@ -1217,6 +1224,8 @@ void InitInjuryCriteria(void) {
     mps95TimeTrace = (double*)malloc(MAXPLOTSTEPS*sizeof(double));
     pressureMPS95TimeTrace = (double*)malloc(MAXPLOTSTEPS*sizeof(double));
   }
+
+  delete[] volumePart;
 }
 
 void CalculateInjuryCriteria(void) {

@@ -69,6 +69,10 @@ void computeDerivatives(const state_type &y, state_type &ydot, const double t);
 state_type yInt, ydotInt;
 double cm[3];
 
+/*Drupal*/
+bool reducedIntegration = true;
+double tInitial = 0.000, dynamicDamping = 0.000;
+
 int main(int argc, char **argv) {
   // Initialize FemTech including logfile and MPI
   Json::Value inputJson = InitFemTech(argc, argv);
@@ -732,7 +736,7 @@ void CalculateInjuryCriterions(void) {
   double currentStrainMaxElem, currentStrainMinElem, currentShearMaxElem;
   double currentStrainMax = 0.0, currentStrainMin = 0.0, currentShearMax = 0.0;
   for (int i = 0; i < nelements; i++) {
-    CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, &currentStrainMinElem);
+    CalculateMaximumPrincipalStrain(i, &currentStrainMaxElem, &currentStrainMinElem, &currentShearMaxElem);
     currentShearMaxElem = currentStrainMaxElem-currentStrainMinElem;
     if (currentStrainMax < currentStrainMaxElem) {
       currentStrainMax = currentStrainMaxElem;

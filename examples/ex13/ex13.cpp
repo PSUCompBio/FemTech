@@ -14,6 +14,10 @@ bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 
+/*Drupal*/
+bool reducedIntegration = true;
+double tInitial = 0.000, dynamicDamping = 0.000;
+
 int main(int argc, char **argv) {
   InitFemTechWoInput(argc, argv);
 
