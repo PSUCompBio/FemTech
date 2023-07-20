@@ -7,6 +7,8 @@ double *velocities;
 double *velocities_half;
 double *accelerations;
 double *Eavg;
+double *E_rate;
+double *stxstrate;
 double *fe;
 double *fe_prev;
 double *fi;
@@ -76,6 +78,16 @@ void AllocateArrays() {
     Eavg = (double*)calloc(nelements*ndim*ndim, sizeof(double));
     if (!Eavg) {
       FILE_LOG_SINGLE(ERROR, "Error in allocating Eavg array");
+      TerminateFemTech(12);
+    }
+    E_rate = (double*)calloc(nelements, sizeof(double));
+    if (!E_rate) {
+      FILE_LOG_SINGLE(ERROR, "Error in allocating E_rate array");
+      TerminateFemTech(12);
+    }
+    stxstrate = (double*)calloc(nelements, sizeof(double));
+    if (!stxstrate) {
+      FILE_LOG_SINGLE(ERROR, "Error in allocating stxstrate array");
       TerminateFemTech(12);
     }
 		fe = (double*)calloc(nDOF, sizeof(double)); // External Nodal force vector

@@ -40,6 +40,7 @@ bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
 bool ExplicitDynamic = true;
 bool reducedIntegration = true;
+bool embed = false;
 
 double dynamicDamping = 0.000;
 double ExplicitTimeStepReduction = 0.8;

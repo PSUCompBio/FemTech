@@ -201,7 +201,7 @@ void WriteVTU(const char* FileName, int step, int** intCellData /*= NULL*/, \
         fprintf(fp, "\t\t\t\t\t%d\n", data[count]);
         count = count + 1;
       } else {
-        fprintf(fp, "\t\t\t\t\t%d\n", 0);
+	fprintf(fp, "\t\t\t\t\t%d\n", 0);
       }
     }
     assert(count == mapCount);
@@ -216,7 +216,18 @@ void WriteVTU(const char* FileName, int step, int** intCellData /*= NULL*/, \
       if(i == mapping[count]) {
         fprintf(fp, "\t\t\t\t\t%10.8e\n", data[count]);
         count = count + 1;
-      } else {
+      } 
+	else if (strcmp(ElementType[i], "T3D2") == 0){
+	     if (strcmp(dpDataNames[c], "MPS-95-Value") == 0){
+        	fprintf(fp, "\t\t\t\t\t%.32f\n", Eavg[i*ndim*ndim]);}
+	     else if (strcmp(dpDataNames[c], "MPSR") == 0){
+		fprintf(fp, "\t\t\t\t\t%.32f\n", E_rate[i]);}
+	     else if (strcmp(dpDataNames[c], "PSxSR") == 0){
+		fprintf(fp, "\t\t\t\t\t%.32f\n", stxstrate[i]);}
+	     else {
+		fprintf(fp, "\t\t\t\t\t%10.8e\n", 0.0);}
+      } 
+	else {
         fprintf(fp, "\t\t\t\t\t%10.8e\n", 0.0);
       }
     }

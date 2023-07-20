@@ -29,7 +29,6 @@ void FreeArrays() {
   if (embed){
 	free1DArray(embedinfo);
 	free1DArray(embedNC);
-	free1DArray(nodeconstrain);
 	free1DArray(embedelID);
 	free1DArray(embedproc);
   }
@@ -55,6 +54,8 @@ void FreeArrays() {
 	free1DArray(detF);
 	free1DArray(invF);
 	free1DArray(Eavg);
+	free1DArray(E_rate);
+	free1DArray(stxstrate);
 	free1DArray(detFptr);
 	free1DArray(InternalsPtr);
 	free1DArray(internals);

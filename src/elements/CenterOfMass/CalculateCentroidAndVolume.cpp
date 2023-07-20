@@ -19,7 +19,7 @@ double CalculateCentroidAndVolume(int e, double *cm) {
       }
       volume = volumeTetrahedron(coord);
     } else {
-      FILE_LOG_SINGLE(ERROR, "Unknown Element Type Encountered");
+      FILE_LOG_SINGLE(ERROR, "Unknown Element Type Encountered C&V");
       TerminateFemTech(3);
     }
   }
@@ -60,7 +60,7 @@ double calculateVolume(int e) {
       }
       volume = volumeTetrahedron(coord);
     } else {
-      FILE_LOG_SINGLE(ERROR, "Unknown Element Type Encountered");
+      FILE_LOG_SINGLE(ERROR, "Unknown Element Type Encountered V");
       TerminateFemTech(3);
     }
   }

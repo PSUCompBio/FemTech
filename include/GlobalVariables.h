@@ -104,6 +104,8 @@ extern double *detF; /*determinate of F for all gauss points */
 extern double *invF; /*Inverse of F for all gauss points */
 // extern double *pk2; #<{(|PK2 Stress |)}>#
 extern double *Eavg; /*Green Lagrange Strain Tensor Averaged */
+extern double *E_rate; /* max principal strain rate */
+extern double *stxstrate; /* principal strain times strain rate */
 
 extern int *materialID; /* material id for each element */
 extern double *properties; /* holds material parameters for each element */

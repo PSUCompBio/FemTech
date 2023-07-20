@@ -61,7 +61,7 @@ int *boundaryID = NULL;
 int boundarySize;
 double peakTime, tMax;
 bool writeField = true;
-bool computeInjuryFlag = false;
+bool computeInjuryFlag = true;
 /* Global variables for output */
 int *outputNodeList;
 int outputNodeCount = 0;
@@ -114,6 +114,7 @@ const std::string thresholdTag[threshQuantities] = {
 
 /* Variables for maximum Principal Strain times Strain Rate */
 double *PS_Old = NULL;
+double *strain_rate = NULL;
 double *PSxSRArray = NULL;
 double *pressureElem = NULL;
 /* Store MPS, volume of each element */
@@ -124,9 +125,9 @@ double *elementMPr = NULL;
 
 int nElementsInjury = 0, *elementIDInjury = NULL;
 // part ID to exclude from injury computation
-// 0 : Skull, 1 : CSF
-const int injuryExcludePIDCount = 2;
-const int injuryExcludePID[injuryExcludePIDCount] = {0, 1};
+// 0 : Skull, 1 : CSF, 10 : Fiber
+const int injuryExcludePIDCount = 3;
+const int injuryExcludePID[injuryExcludePIDCount] = {0, 1, 10};
 
 // Variables to write injury criterion to Paraview output
 const int outputCount = 8;
@@ -134,9 +135,9 @@ int *outputDataArray[outputCount];
 const char *outputNames[outputCount] = {"CSDM-3", "CSDM-5",  "CSDM-10",  "CSDM-15",
                                         "CSDM-30", "MPSR-120", "MPSxSR-28",
                                         "MPS-95"};
-const int outputDoubleCount = 1;
+const int outputDoubleCount = 3;
 double *outputDoubleArray[outputDoubleCount];
-const char *outputDoubleNames[outputDoubleCount] = {"MPS-95-Value"};
+const char *outputDoubleNames[outputDoubleCount] = {"MPS-95-Value", "MPSR", "PSxSR"};
 
 const int csdmCount = 5;
 const double csdmLimits[csdmCount] = {0.03, 0.05, 0.1, 0.15, 0.3};
@@ -231,6 +232,9 @@ int main(int argc, char **argv) {
   AllocateArrays();
  // TransformMesh(simulationJson);
   InitCustomPlot(simulationJson);
+  if (computeInjuryFlag) {
+    InitInjuryCriteria();
+  }
 
   // Initial settings for BC evaluations
   // Used if initial velocity and acceleration BC is to be set.
@@ -249,28 +253,29 @@ int main(int argc, char **argv) {
     }
     WritePVD(outputFileName.c_str(), plot_counter);
   }
-printf("plot %d\n", world_rank);
+
   stepTime[plot_counter] = Time;
   if (computeInjuryFlag && (world_rank == 0)) {
     mps95TimeTrace[plot_counter] = 0.0;
     linearAccMPS95TimeTrace[plot_counter] = sqrt(linAccXv[0]*linAccXv[0]+linAccYv[0]*linAccYv[0]+linAccZv[0]*linAccZv[0]);
     angularAccMPS95TimeTrace[plot_counter] = sqrt(angAccXv[0]*angAccXv[0]+angAccYv[0]*angAccYv[0]+angAccZv[0]*angAccZv[0]);
   }
-  if (computeInjuryFlag) {
-    InitInjuryCriteria();
-  }
 
   if(embed){
 	FindNaturalCoord();	
 	}
+
+//printf("location 6 %d\n", world_rank);
   int time_step_counter = 0;
   /** Central Difference Method - Beta and Gamma */
   // double beta = 0;
   // double gamma = 0.5;
 
   ShapeFunctions();
+
   /*  Step-1: Calculate the mass matrix similar to that of belytschko. */
   AssembleLumpedMass();
+
   // Needs to be after shapefunctions
   CustomPlot();
 
@@ -285,7 +290,7 @@ printf("plot %d\n", world_rank);
   // In GetForce for viscoelastic material dt is required, hence we compute dt
   // prior to getforce to avoid special treatment of getforce at Time = 0
   // GetForce(); // Calculating the force term.
-
+FILE_LOG_MASTER(INFO, "Loc 1");
   /* Step-3: Calculate accelerations */
   // CalculateAccelerations();
   for (int i = 0; i < nDOF; i++) {
@@ -328,7 +333,6 @@ printf("plot %d\n", world_rank);
         velocities_half[i] = velocities[i] + dtby2 * accelerations[i];
       }
     }
-
     // Store old displacements and accelerations for energy computation
     memcpy(displacements_prev, displacements, nDOF * sizeof(double));
     memcpy(accelerations_prev, accelerations, nDOF * sizeof(double));
@@ -336,16 +340,17 @@ printf("plot %d\n", world_rank);
     memcpy(fi_prev, fi, nDOF * sizeof(double));
     memcpy(fe_prev, fe, nDOF * sizeof(double));
     memcpy(f_hgprev, f_hg, nDOF * sizeof(double));
-
+    int writeFlag = time_step_counter % nsteps_plot;
     // update displacements for all nodes, including where velocity bc is set
     for (int i = 0; i < nDOF; i++) {
 	if(embed){
 	   int embedid = int(i/3);
 		if(nodeconstrain[embedid]==-1){
 	      	   displacements[i] = displacements[i] + dt * velocities_half[i];
+			//printf("%d %d\n", i, world_rank);
 			}
 		else {
-		   if(writeField){
+		   if(writeFlag){
 			   int dirn = i%3;
 			   CalculateEmbedDisp(embedid,dirn);	
 		   }	
@@ -353,13 +358,13 @@ printf("plot %d\n", world_rank);
 	}
 	else displacements[i] = displacements[i] + dt * velocities_half[i];
     }
-
     /* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
     GetForce(); // Calculating the force term.
     /* Step - 9 from Belytschko Box 6.1 - Calculate Accelerations */
     CalculateAccelerations(); // Calculating the new accelerations from total
                               // nodal forces.
-   if(embed){ 
+   if(embed){
+	if(writeFlag) 
    	for (int i = 0; i < nDOF; i++) {
 	   int embedid = int(i/3);
 		if(nodeconstrain[embedid]!=-1){
@@ -367,20 +372,24 @@ printf("plot %d\n", world_rank);
 			}
 	}
     }
-
     /** Step- 10 - Second Partial Update of Nodal Velocities */
     for (int i = 0; i < nDOF; i++) {
       velocities[i] = velocities_half[i] + dtby2 * accelerations[i];
     }
 
     /** Step - 11 Checking* Energy Balance */
-    int writeFlag = time_step_counter % nsteps_plot;
+
     int writeFileFlag = time_step_counter % nsteps_write;
     CheckEnergy(Time, writeFlag);
 
     if (computeInjuryFlag) {
+	if(writeFlag)
       CalculateInjuryCriteria();
     }
+    if(embed){
+	if(writeFlag)
+		CalculateStrainandStrainRateFiber();	
+	}
     if (writeFileFlag == 0) {
       CustomPlot();
     }
@@ -485,9 +494,11 @@ printf("plot %d\n", world_rank);
   free1DArray(outputElemList);
   // Free variables used for injury criteria
   free1DArray(PS_Old);
+  free1DArray(strain_rate);
   free1DArray(pressureElem);
   free1DArray(elementIDInjury);
   free1DArray(PSxSRArray);
+  free1DArray(nodeconstrain);
   for (int i = 0; i < threshQuantities; ++i) {
     free1DArray(thresholdElements[i]);
   }
@@ -501,6 +512,7 @@ printf("plot %d\n", world_rank);
   free1DArray(mps95TimeTrace);
   free1DArray(linearAccMPS95TimeTrace);
   free1DArray(angularAccMPS95TimeTrace);
+  free1DArray(nodeconstrain);
 
   if (rankForCustomPlot) {
     MPI_File_close(&outputFilePtr);
@@ -1761,6 +1773,7 @@ void InitInjuryCriteria(void) {
       nElementsInjury += 1;
     }
   }
+
   elementIDInjury = (int *)malloc(nElementsInjury * sizeof(int));
   int count = 0;
   for (int i = 0; i < nelements; i++) {
@@ -1791,6 +1804,7 @@ void InitInjuryCriteria(void) {
     percentileValue[i] = 0.0;
   }
   PS_Old = (double *)calloc(nElementsInjury, sizeof(double));
+  strain_rate = (double *)calloc(nElementsInjury, sizeof(double));
   PSxSRArray = (double *)calloc(nElementsInjury, sizeof(double));
   pressureElem = (double *)calloc(nElementsInjury, sizeof(double));
   elementMPS = (double *)calloc(nelements, sizeof(double));
@@ -1806,13 +1820,17 @@ void InitInjuryCriteria(void) {
   // Percentile Values
   // Write MPS-95-Value
   outputDoubleArray[0] = PS_Old;
+  outputDoubleArray[1] = strain_rate;
+  outputDoubleArray[2] = stxstrate;
 
   // Compute the initial volume of elements for MPS file
   double volumePart[nPIDglobal];
   for (int i = 0; i < nPIDglobal; ++i) {
     volumePart[i] = 0.0;
   }
+
   computePartVolume(volumePart, initialVolume);
+
   // Allocate variables for MPS95 time trace
   if (world_rank == 0) {
     mps95TimeTrace = (double*)malloc(MAXPLOTSTEPS*sizeof(double));
@@ -1855,8 +1873,10 @@ void CalculateInjuryCriteria(void) {
     // Compute maxPSxSR
     // Compute principal strain rate using first order backaward distance
     PSR = (currentStrainMaxElem - PS_Old[j]) / dt;
+    E_rate[i] = PSR;
     // TODO(Anil) : Should absolute value be used for PSR ?
     PSxSR = currentStrainMaxElem * PSR;
+    stxstrate[i] = PSxSR;
     if (maxValue[2] < PSxSR) {
       maxValue[2] = PSxSR;
       maxElem[2] = i;
@@ -1875,6 +1895,7 @@ void CalculateInjuryCriteria(void) {
       }
     }
     PS_Old[j] = currentStrainMaxElem;
+    strain_rate[j] = PSR;
     PSxSRArray[j] = PSxSR;
     if (currentStrainMaxElem > elementMPS[i]) {
       elementMPS[i] = currentStrainMaxElem;
