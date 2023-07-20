@@ -11,7 +11,7 @@ else()
   TARGET_LINK_LIBRARIES(ex23 FemTech)
 endif(ENABLE_MPI)
 
-file(INSTALL brainfibers.inp DESTINATION .)
+file(INSTALL brainfiber.inp DESTINATION .)
 file(INSTALL brainfibermap.txt DESTINATION .)
 file(INSTALL fiber_test.json DESTINATION .)
 file(INSTALL materials.dat DESTINATION .)
