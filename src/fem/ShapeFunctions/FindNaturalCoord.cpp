@@ -11,10 +11,11 @@ void FindNaturalCoord(){
   for(int i = 0; i<nNodes; i++){
     double maxerror = 1;
      if(nodeconstrain[i]!=-1){
-	int hostelglobal = nodeconstrain[i];
-	for(int j1 = 0; j1<nelements; j1++){
-		if(hostelglobal+1==global_eid[j1]){
-			hostel = j1;
+//	int hostelglobal = nodeconstrain[i];
+//	for(int j1 = 0; j1<nelements; j1++){
+//		if(hostelglobal+1==global_eid[j1]){
+//			hostel = j1;
+			hostel = nodeconstrain[i];
 			a[0] = coordinates[i*ndim + 0];
 			a[1] = coordinates[i*ndim + 1];
 			a[2] = coordinates[i*ndim + 2]; 
@@ -112,9 +113,9 @@ void FindNaturalCoord(){
 			if(abs(embedNC[i*ndim+j])<1e-12)
 				embedNC[i*ndim+j] = 0.0;
 			}
-		  break;
-		  }
-	    }
+//		  break;
+//		  }
+//	    }
        }
   }
   return;

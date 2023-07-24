@@ -235,7 +235,16 @@ int main(int argc, char **argv) {
   if (computeInjuryFlag) {
     InitInjuryCriteria();
   }
-
+  for(int i = 0; i<nNodes; i++){
+     if(nodeconstrain[i]!=-1){
+	int hostelglobal = nodeconstrain[i];
+	for(int j1 = 0; j1<nelements; j1++){
+		if(hostelglobal+1==global_eid[j1]){
+			nodeconstrain[i] = j1;
+		}
+	}
+    }
+  }
   // Initial settings for BC evaluations
   // Used if initial velocity and acceleration BC is to be set.
   tInitial = InitBoundaryCondition(simulationJson);
@@ -290,7 +299,6 @@ int main(int argc, char **argv) {
   // In GetForce for viscoelastic material dt is required, hence we compute dt
   // prior to getforce to avoid special treatment of getforce at Time = 0
   // GetForce(); // Calculating the force term.
-FILE_LOG_MASTER(INFO, "Loc 1");
   /* Step-3: Calculate accelerations */
   // CalculateAccelerations();
   for (int i = 0; i < nDOF; i++) {
@@ -363,7 +371,7 @@ FILE_LOG_MASTER(INFO, "Loc 1");
     /* Step - 9 from Belytschko Box 6.1 - Calculate Accelerations */
     CalculateAccelerations(); // Calculating the new accelerations from total
                               // nodal forces.
-   if(embed){
+/*   if(embed){
 	if(writeFlag) 
    	for (int i = 0; i < nDOF; i++) {
 	   int embedid = int(i/3);
@@ -371,7 +379,7 @@ FILE_LOG_MASTER(INFO, "Loc 1");
 	      	   accelerations[i] = 0;
 			}
 	}
-    }
+    }*/
     /** Step- 10 - Second Partial Update of Nodal Velocities */
     for (int i = 0; i < nDOF; i++) {
       velocities[i] = velocities_half[i] + dtby2 * accelerations[i];
@@ -512,7 +520,6 @@ FILE_LOG_MASTER(INFO, "Loc 1");
   free1DArray(mps95TimeTrace);
   free1DArray(linearAccMPS95TimeTrace);
   free1DArray(angularAccMPS95TimeTrace);
-  free1DArray(nodeconstrain);
 
   if (rankForCustomPlot) {
     MPI_File_close(&outputFilePtr);
@@ -1820,7 +1827,7 @@ void InitInjuryCriteria(void) {
   // Percentile Values
   // Write MPS-95-Value
   outputDoubleArray[0] = PS_Old;
-  outputDoubleArray[1] = strain_rate;
+  outputDoubleArray[1] = E_rate;
   outputDoubleArray[2] = stxstrate;
 
   // Compute the initial volume of elements for MPS file

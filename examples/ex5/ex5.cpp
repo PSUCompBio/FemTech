@@ -131,9 +131,9 @@ int *outputDataArray[outputCount];
 const char *outputNames[outputCount] = {"CSDM-3", "CSDM-5",  "CSDM-10",  "CSDM-15",
                                         "CSDM-30", "MPSR-120", "MPSxSR-28",
                                         "MPS-95"};
-const int outputDoubleCount = 1;
+const int outputDoubleCount = 3;
 double *outputDoubleArray[outputDoubleCount];
-const char *outputDoubleNames[outputDoubleCount] = {"MPS-95-Value"};
+const char *outputDoubleNames[outputDoubleCount] = {"MPS-95-Value", "MPSR", "PSxSR"};
 
 const int csdmCount = 5;
 const double csdmLimits[csdmCount] = {0.03, 0.05, 0.1, 0.15, 0.3};
@@ -1760,6 +1760,8 @@ void InitInjuryCriteria(void) {
   // Percentile Values
   // Write MPS-95-Value
   outputDoubleArray[0] = PS_Old;
+  outputDoubleArray[1] = E_rate;
+  outputDoubleArray[2] = stxstrate;
 
   // Compute the initial volume of elements for MPS file
   double volumePart[nPIDglobal];
@@ -1809,8 +1811,10 @@ void CalculateInjuryCriteria(void) {
     // Compute maxPSxSR
     // Compute principal strain rate using first order backaward distance
     PSR = (currentStrainMaxElem - PS_Old[j]) / dt;
+    E_rate[i] = PSR;
     // TODO(Anil) : Should absolute value be used for PSR ?
     PSxSR = currentStrainMaxElem * PSR;
+    stxstrate[i] = PSxSR;
     if (maxValue[2] < PSxSR) {
       maxValue[2] = PSxSR;
       maxElem[2] = i;
