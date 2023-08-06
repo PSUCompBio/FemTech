@@ -152,3 +152,81 @@ if not pressureSimulation:
         plt.savefig("updated_simulation_"+mesh+"_"+uid+".%04d.png"%fileCount,
                 bbox_inches='tight', dpi = 252)
         plt.close()
+else: # Pressure simulation
+    timeArray = simulationJson["pressure"]["time"]
+    traceName = [];
+    traceValues = [];
+    maxY = -np.inf;
+    minY = np.inf;
+    if 'head' in simulationJson["pressure"]:
+        traceName.append('head')
+        tr = simulationJson["pressure"]['head']
+        headTrace = np.interp(tArray, timeArray, tr)
+        minY = min(minY, min(headTrace));
+        maxY = max(minY, max(headTrace));
+        traceValues.append(headTrace)
+
+    if 'chest' in simulationJson["pressure"]:
+        traceName.append('chest')
+        tr = simulationJson["pressure"]['chest']
+        chestTrace = np.interp(tArray, timeArray, tr)
+        minY = min(minY, min(chestTrace));
+        maxY = max(minY, max(chestTrace));
+        traceValues.append(chestTrace)
+
+    if 'shoulder' in simulationJson["pressure"]:
+        traceName.append('shoulder')
+        tr = simulationJson["pressure"]['shoulder']
+        shoulderTrace = np.interp(tArray, timeArray, tr)
+        minY = min(minY, min(shoulderTrace));
+        maxY = max(minY, max(shoulderTrace));
+        traceValues.append(shoulderTrace)
+
+    tMin = min(tArray);
+    tMax = max(tArray);
+    minY = minY/1000;
+    maxY = maxY/1000;
+
+    for fileCount in range(count1):
+        figure = plt.figure(figsize=(11,8))
+        endIdx = fileCount*nRes+1
+        tt = tArray[:endIdx]
+
+        for i in range(len(traceName)):
+            traceType = traceName[i];
+            tr = simulationJson["pressure"][traceType]
+            plt.plot(tt, traceValues[i][:endIdx]/1000, label=traceType.title())
+        axs = plt.gca();
+        axs.set_xlim(tMin, tMax);
+        axs.set_ylim(minY, maxY);
+        axs.set_xlabel("time [msec]")
+        axs.set_ylabel("pressure [kPa]")
+        axs.set_facecolor((.80, .80, .80))
+        axs.grid(True)
+        axs.legend(loc='best')
+        plt.savefig("updated_simulation_"+mesh+"_"+uid+".%04d.png"%fileCount,
+                bbox_inches='tight')
+        plt.close()
+
+# Upload VTU file corresponding to max MPS
+if 'savePeakVTK' in inputJson:
+    if inputJson["savePeakVTK"] == "true":
+        # Get max MPS value
+        outputJsonFile = uid+"_output.json"
+        outputJson = json.loads(open(outputJsonFile).read())
+        maxMPSTime = outputJson["MPS-95"]["time"]*1000
+        diff = np.abs(tArrayRaw-maxMPSTime)
+        minIndex = np.argmin(diff)
+        mainFile = mesh+"_"+uid+".%04d.pvtu"%minIndex
+        mainFilePath = 'results/'+mainFile
+        f = open("vtuUploadFileList.txt", "x")
+        f.write(mainFile+"\n")
+
+        tree = ET.parse(mainFilePath)
+        root = tree.getroot()
+
+        for elem in tree.iter():
+            if (elem.tag=="Piece"):
+                subFile = elem.attrib["Source"]
+                f.write(subFile+"\n")
+        f.close()

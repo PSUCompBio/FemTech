@@ -23,9 +23,6 @@ for i in np.arange(0, nNodes):
     pressureID = int(elem['pressureID'])
     pressureVec[i] = float(pressureJson[pressureID]['pressure'])
 
-print(nodeID)
-print(pressureVec)
-
 jsonObject = []
 for i in np.arange(0, nNodes):
     elem = {}
