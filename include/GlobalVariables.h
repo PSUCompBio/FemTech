@@ -18,11 +18,13 @@ const double huge = 1e20;
 
 extern double dynamicDamping;
 extern bool reducedIntegration;
+extern bool embed;
 
 extern std::string uid; /* Simulation unique id */
 extern int nparts;
 extern int nelements;
 extern int nallelements;
+extern int nallelementsnoembed;
 extern int nNodes;
 extern int ndim;
 extern int nDOF;
@@ -56,6 +58,12 @@ extern double *mass;        /*mass matrix*/
 extern double *stiffness;        /*stiffness matrix*/
 extern double *rhs;              /*to store rhs matrix equation (implicit) */
 extern char **ElementType;	/* element type, e.g. C3D8 */
+extern int nembednodes; /*number of embedded nodes*/
+extern int nembedel; /*number of embedded elements*/
+extern int *embedinfo; /*mapping of host elements that contain embedded elements*/
+extern int *embedelID; /*list of embedded elements*/
+extern double *embedNC;
+extern int *embedproc;
 
 extern double *C; /*Stores C matrix for isotropic elastic material */
 extern double *gaussWeights;
@@ -73,6 +81,9 @@ extern double *accelerations;
 extern bool ImplicitStatic;
 extern bool ImplicitDynamic;
 extern bool ExplicitDynamic;
+
+extern int *nodeconstrain;/*if 0, node belongs to host element, if 1 node belongs to embedded element*/
+//extern int *elconstrain;/*if 0, element is host, if 1 element is embedded*/
 
 extern double *fe; /*external forces for current step - used in engery calculation*/
 extern double *fe_prev; /*external forces for previous step - used in engery calculation*/
@@ -93,6 +104,8 @@ extern double *detF; /*determinate of F for all gauss points */
 extern double *invF; /*Inverse of F for all gauss points */
 // extern double *pk2; #<{(|PK2 Stress |)}>#
 extern double *Eavg; /*Green Lagrange Strain Tensor Averaged */
+extern double *E_rate; /* max principal strain rate */
+extern double *stxstrate; /* principal strain times strain rate */
 
 extern int *materialID; /* material id for each element */
 extern double *properties; /* holds material parameters for each element */

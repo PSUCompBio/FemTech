@@ -48,6 +48,9 @@ const double tStart = 0.0;
 const double tPeak = 3.0/1000.0;
 const double tEnd = 4.0/1000.0;
 
+bool embed = false; /*Drupal*/
+int* nodeconstrain = NULL;
+
 const unsigned int fixedBCNodeCount = 117;
 const unsigned int fixedBCNode[fixedBCNodeCount] = {
   3134, 3137, 3142, 2740, 2727, 2975, 2976, 2978,

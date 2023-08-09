@@ -7,6 +7,7 @@ bool ExplicitDynamic = false;
 
 double Time = 0.0, tInitial = 0.0; /*Drupal*/
 bool reducedIntegration = true;
+bool embed = false;
 
 int main(int argc, char **argv){
   

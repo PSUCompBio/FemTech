@@ -5,6 +5,7 @@
 bool ImplicitDynamic = true;
 bool ExplicitDynamic = false;
 bool reducedIntegration = true;
+bool embed = false;/*Drupal*/
 
 double Time = 0.0;
 double tInitial = 0.0;

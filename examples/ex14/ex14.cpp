@@ -36,6 +36,9 @@ double FailureTimeStep = 1e-11;
 double MaxTimeStep = 1e-5;
 int nPlotSteps = 50;
 
+bool embed = false; /*Drupal*/
+int* nodeconstrain = NULL;
+
 /* Global variables used only in this file */
 int nodeIDtoPlot;
 bool rankForCustomPlot;

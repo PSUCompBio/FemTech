@@ -19,6 +19,8 @@ bool ExplicitDynamic = true;
 bool reducedIntegration = true;
 
 double dynamicDamping = 0.01;
+bool embed = false; /*Drupal*/
+int* nodeconstrain = NULL;
 
 int main(int argc, char **argv) {
   InitFemTechWoInput(argc, argv);

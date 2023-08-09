@@ -222,6 +222,7 @@ void ReadMaterials() {
     }
     checkFullRead[partID] = true;
   }
+
   fclose(File);
   // Check if all parts have corresponding material properties
   for (int i = 0; i < nPIDglobal; ++i) {

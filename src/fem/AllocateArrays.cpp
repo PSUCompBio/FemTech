@@ -7,6 +7,8 @@ double *velocities;
 double *velocities_half;
 double *accelerations;
 double *Eavg;
+double *E_rate;
+double *stxstrate;
 double *fe;
 double *fe_prev;
 double *fi;
@@ -22,6 +24,8 @@ double *f_hgprev;
 double *displacements_prev;
 double *accelerations_prev;
 double *stepTime;
+double *embedNC;
+
 // Used to compute stress by files in materials folder
 double *mat1, *mat2, *mat3, *mat4;
 
@@ -74,6 +78,16 @@ void AllocateArrays() {
     Eavg = (double*)calloc(nelements*ndim*ndim, sizeof(double));
     if (!Eavg) {
       FILE_LOG_SINGLE(ERROR, "Error in allocating Eavg array");
+      TerminateFemTech(12);
+    }
+    E_rate = (double*)calloc(nelements, sizeof(double));
+    if (!E_rate) {
+      FILE_LOG_SINGLE(ERROR, "Error in allocating E_rate array");
+      TerminateFemTech(12);
+    }
+    stxstrate = (double*)calloc(nelements, sizeof(double));
+    if (!stxstrate) {
+      FILE_LOG_SINGLE(ERROR, "Error in allocating stxstrate array");
       TerminateFemTech(12);
     }
 		fe = (double*)calloc(nDOF, sizeof(double)); // External Nodal force vector
@@ -141,12 +155,19 @@ void AllocateArrays() {
     std::string energyFileName = "energy.dat"; 
     energyFile = fopen(energyFileName.c_str(), "w");
     fprintf(energyFile, "# Energy for FEM\n");
-    fprintf(energyFile, "# Time  Winternal   Wexternal   WKE   total\n");
+    fprintf(energyFile, "# Time  Winternal   Wexternal   WKE   total WHG\n");
 
     stepTime = (double*)malloc((MAXPLOTSTEPS)*sizeof(double));
     if (!stepTime) {
       FILE_LOG_SINGLE(ERROR, "Error in allocating stepTime array");
       TerminateFemTech(12);
+    }
+    if (embed) {
+    embedNC = (double*)calloc(nNodes*3,sizeof(double));
+    if (!embedNC) {
+      FILE_LOG_SINGLE(ERROR, "Error in allocating embedded natural coordinates");
+      TerminateFemTech(12);
+    }
     }
     // Allocations for material temporary computation
     // By default initialize mat1 and mat2

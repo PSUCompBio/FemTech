@@ -31,10 +31,14 @@ void computePartVolume(double *volume, double *elemVolume) {
   int pide;
   double volumeE;
   for (int i = 0; i < nelements; ++i) {
+    if(pid[i]==10)
+	continue;
+    else{
     volumeE = calculateVolume(i);
     pide = pid[i];
     volume[pide] = volume[pide] + volumeE;
     elemVolume[i] = volumeE;
+    }
   }
   MPI_Allreduce(MPI_IN_PLACE, volume, nPIDglobal, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 }

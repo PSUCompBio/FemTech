@@ -6,8 +6,15 @@
 
 double CalculateTimeStep(int e) {
 	double dtElem;
+	double le;
  	// characteristic element length
-  double le = CalculateCharacteristicLength(e);
+	if(embed){
+	  if (strcmp(ElementType[e], "T3D2") != 0){
+	    le = CalculateCharacteristicLength(e);	
+	  }
+	} else{
+  	  le = CalculateCharacteristicLength(e);
+	}
 	//wave speed of material
   int pide = pid[e];
 	double ce = waveSpeed[pide];

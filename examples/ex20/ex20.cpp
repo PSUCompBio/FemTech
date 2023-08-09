@@ -20,6 +20,9 @@ bool ExplicitDynamic = true;
 bool reducedIntegration = true;
 double tInitial = 0.000, dynamicDamping = 0.000;
 
+bool embed = false; /*Drupal*/
+int* nodeconstrain = NULL;
+
 double MaxTimeStep = 1e-5;
 
 int main(int argc, char **argv) {

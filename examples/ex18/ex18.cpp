@@ -60,6 +60,9 @@ int output_size, output_rank;
 double *outputNodeRigidDisp;
 double *outputElemStress;
 
+bool embed = false; /*Drupal*/
+int* nodeconstrain = NULL;
+
 /* Variables to compute maximim and minimum strain */
 double maxStrain = 0.0, minStrain = 0.0, maxShear = 0.0;
 int maxElem = 0, minElem = 0, shearElem = 0;

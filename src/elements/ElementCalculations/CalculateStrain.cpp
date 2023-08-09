@@ -80,18 +80,56 @@ void CalculateStrain() {
     Eavg[i] = 0.0;
   }
   for (int elm = 0; elm < nelements; ++elm) {
-    double *E = &Eavg[elm*matSize];
-    const int countGP = GaussPoints[elm];
-    double preFactor = 0.5/((double)countGP);
-    for(int gp = 0; gp < countGP; ++gp) {
-      int index = fptr[elm] + matSize * gp;
-      double *F_element_gp = &(F[index]);
-      // Compute Green-Lagrange Tensor: E= (1/2)*(F^T*F - I)
-      dgemm_(chy, chn, &ndim, &ndim, &ndim, &preFactor, F_element_gp, &ndim,
-            F_element_gp, &ndim, &one, E, &ndim);
-    }
-    E[0] -= 0.5;
-    E[4] -= 0.5;
-    E[8] -= 0.5;
+  double *E = &Eavg[elm*matSize];
+    if (strcmp(ElementType[elm], "T3D2") == 0){
+	double newlengthx = (coordinates[ndim*connectivity[eptr[elm]]+0]+displacements[ndim*connectivity[eptr[elm]]+0]-coordinates[ndim*connectivity[eptr[elm]+1]+0]-displacements[ndim*connectivity[eptr[elm]+1]+0]);
+	double newlengthy = (coordinates[ndim*connectivity[eptr[elm]]+1]+displacements[ndim*connectivity[eptr[elm]]+1]-coordinates[ndim*connectivity[eptr[elm]+1]+1]-displacements[ndim*connectivity[eptr[elm]+1]+1]);
+	double newlengthz = (coordinates[ndim*connectivity[eptr[elm]]+2]+displacements[ndim*connectivity[eptr[elm]]+2]-coordinates[ndim*connectivity[eptr[elm]+1]+2]-displacements[ndim*connectivity[eptr[elm]+1]+2]);
+	double oldlengthx = (coordinates[ndim*connectivity[eptr[elm]]+0]-coordinates[ndim*connectivity[eptr[elm]+1]+0]);
+	double oldlengthy = (coordinates[ndim*connectivity[eptr[elm]]+1]-coordinates[ndim*connectivity[eptr[elm]+1]+1]);
+	double oldlengthz = (coordinates[ndim*connectivity[eptr[elm]]+2]-coordinates[ndim*connectivity[eptr[elm]+1]+2]);
+	double newlength = newlengthx*newlengthx + newlengthy*newlengthy + newlengthz*newlengthz;
+	double oldlength = oldlengthx*oldlengthx + oldlengthy*oldlengthy + oldlengthz*oldlengthz;
+	E[0] = (newlength-oldlength)/2*oldlength;
+	}
+    else{  
+	const int countGP = GaussPoints[elm];
+	double preFactor = 0.5/((double)countGP);
+	for(int gp = 0; gp < countGP; ++gp) {
+	  int index = fptr[elm] + matSize * gp;
+	  double *F_element_gp = &(F[index]);
+	  // Compute Green-Lagrange Tensor: E= (1/2)*(F^T*F - I)
+	  dgemm_(chy, chn, &ndim, &ndim, &ndim, &preFactor, F_element_gp, &ndim,
+	     F_element_gp, &ndim, &one, E, &ndim);
+	   }
+	  E[0] -= 0.5;
+	  E[4] -= 0.5;
+	  E[8] -= 0.5;
+	}
   }
+}
+
+void CalculateStrainandStrainRateFiber() {
+  const int matSize = ndim*ndim;
+  double Eold;
+//  for (int i = 0; i < matSize*nelements; ++i) {
+//    Eavg[i] = 0.0;
+//  }
+  for (int elm = 0; elm < nelements; ++elm) {
+  double *E = &Eavg[elm*matSize];
+    if (strcmp(ElementType[elm], "T3D2") == 0){
+	double newlengthx = (coordinates[ndim*connectivity[eptr[elm]]+0]+displacements[ndim*connectivity[eptr[elm]]+0]-coordinates[ndim*connectivity[eptr[elm]+1]+0]-displacements[ndim*connectivity[eptr[elm]+1]+0]);
+	double newlengthy = (coordinates[ndim*connectivity[eptr[elm]]+1]+displacements[ndim*connectivity[eptr[elm]]+1]-coordinates[ndim*connectivity[eptr[elm]+1]+1]-displacements[ndim*connectivity[eptr[elm]+1]+1]);
+	double newlengthz = (coordinates[ndim*connectivity[eptr[elm]]+2]+displacements[ndim*connectivity[eptr[elm]]+2]-coordinates[ndim*connectivity[eptr[elm]+1]+2]-displacements[ndim*connectivity[eptr[elm]+1]+2]);
+	double oldlengthx = (coordinates[ndim*connectivity[eptr[elm]]+0]-coordinates[ndim*connectivity[eptr[elm]+1]+0]);
+	double oldlengthy = (coordinates[ndim*connectivity[eptr[elm]]+1]-coordinates[ndim*connectivity[eptr[elm]+1]+1]);
+	double oldlengthz = (coordinates[ndim*connectivity[eptr[elm]]+2]-coordinates[ndim*connectivity[eptr[elm]+1]+2]);
+	double newlength = newlengthx*newlengthx + newlengthy*newlengthy + newlengthz*newlengthz;
+	double oldlength = oldlengthx*oldlengthx + oldlengthy*oldlengthy + oldlengthz*oldlengthz;
+	Eold = E[0];
+	E[0] = (newlength-oldlength)/2*oldlength;
+	E_rate[elm] = (E[0]-Eold)/dt;
+	stxstrate[elm] = E[0]*E_rate[elm];
+	}
+    }
 }

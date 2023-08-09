@@ -27,6 +27,9 @@ bool reducedIntegration = true;
 double tMax = 1.00;  // max simulation time in seconds
 double dMax = 0.001; // max displacment in meters
 
+bool embed = false; /*Drupal*/
+int* nodeconstrain = NULL;
+
 int main(int argc, char **argv) {
   // feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
   InitFemTechWoInput(argc, argv);

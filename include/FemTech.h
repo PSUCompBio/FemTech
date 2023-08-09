@@ -23,6 +23,9 @@ int LineToArray(const bool IntOrFloat, const bool CheckLastVal, \
     const int ColumnToStart, const int ColumnCount, const char *ConstLine, \
     const char *Delim = " \t", void **Array = NULL);
 void ReadInputFile(const char *FileName);
+void ReadMapping(const char *FileName);
+void ParseMapping(const char *FileName);
+void ReadEmbed(const char *FileName);
 void PartitionMesh();
 void GaussQuadrature3D(int element, int nGaussPoint, double *Chi,double *GaussWeights);
 void ShapeFunctions();
@@ -32,6 +35,8 @@ void ShapeFunction_T3D2(int e, int gp, double *Chi, double *detJ);
 void CreateLinearElasticityCMatrix();
 void ReadBoundaryCondition(void);
 void AllocateArrays();
+
+void FindNaturalCoord();
 
 void Assembly(char *operation);
 void StiffnessElementMatrix(double* Ke, int e);
@@ -56,12 +61,14 @@ void GetForce_3D();
 double StableTimeStep();
 double CalculateTimeStep(int e);
 void CalculateAccelerations();
+void CalculateEmbedDisp(int embedid, int dirn);
 
 void CalculateFR();
 
 void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
     double *currentStrainMin, double *currentShearMax);
 void CalculateStrain();
+void CalculateStrainandStrainRateFiber();
 void CalculateElementStress(unsigned int e, double* stress);
 double CalculateElementPressure(unsigned int e);
 void CalculateDeformationGradient(int e, int gp);
@@ -121,6 +128,7 @@ double CalculateCharacteristicLength_C3D8(int e);
 void GetBodyCenterofMass(double *cm);
 double CalculateCentroidAndVolume(int e, double *cm);
 double CalculateCentroidAndVolume_C3D8(int e, double *cm);
+double CalculateVolume_T3D2(int e);
 void CalculateCentroid_C3D4(int e, double *cm);
 
 void updateMassMatrixNeighbour(void);
@@ -145,6 +153,6 @@ void TerminateFemTech(int errorCode);
 /* Functions for updated Lagrangian formulation */
 void CalculateF_XiAndInverse(int e, int gp);
 void ComputeH(int e, int gp, double *H);
-void ComputeHG(int e, double *F);
+void ComputeHG(int e, double *F, double *FHG);
 void InternalForceUpdateUL(int e, int gp, double *force);
 #endif

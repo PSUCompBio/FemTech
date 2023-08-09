@@ -6,6 +6,7 @@
 int nparts = 0;
 int nelements = 0;    // number of elements in processor
 int nallelements = 0; // number of all elements in mesh
+int nallelementsnoembed = 0; // number of host elements in mesh
 int nNodes = 0;
 int ndim = 0;
 int nDOF = 0;
@@ -17,11 +18,16 @@ int *global_eid;
 char **ElementType;
 int nPIDglobal = 0;
 int nPID = 0;
+//int *nodeconstrain;
+//int nembednodes = 0;
+//int nembedel = 0;
+//int *embedinfo;
 
 //-------------------------------------------------------------------------------------------
 int StrCmpCI(const char *str1, const char *str2);
 bool ReadLsDyna(const char *FileName);
 bool ReadAbaqus(const char *FileName);
+void AssignHostandEmbedNodes();
 //-------------------------------------------------------------------------------------------
 void ReadInputFile(const char *FileName) {
   // Checking MPI variables validity
@@ -64,8 +70,6 @@ void ReadInputFile(const char *FileName) {
     MPI_Allreduce(MPI_IN_PLACE, &globalPIDmax, 1, MPI_INT, MPI_MAX,
                   MPI_COMM_WORLD);
     nPIDglobal = globalPIDmax;
-    nDOF = nNodes * ndim;
-
     FILE_LOGArrayInt(DEBUGLOGIGNORE, sortedPID, nPID, \
         "Number of local pid : %d, global : %d", nPID, nPIDglobal);
 
@@ -173,3 +177,4 @@ int LineToArray(
   }
   return Result;
 }
+
