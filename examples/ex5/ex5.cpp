@@ -34,7 +34,7 @@ void WriteMPS(void);
 void WriteMPr(void);
 
 /* Global Variables/Parameters */
-double Time = 0.0, dt, tInitial;
+double Time = 0.0, dt, tInitial, prev_time = 0.0;
 int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;

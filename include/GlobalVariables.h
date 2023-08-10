@@ -125,6 +125,7 @@ extern double Time;
 extern double dt;
 extern double tInitial;
 extern double *stepTime;
+extern double prev_time;
 
 // Variables to keep store the communication patterns between processes
 // Implemented in PartitionMesh.cpp

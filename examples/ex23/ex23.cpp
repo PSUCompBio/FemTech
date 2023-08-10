@@ -35,7 +35,7 @@ void WriteMPr(void);
 void AssignHostandEmbedNodes();
 
 /* Global Variables/Parameters */
-double Time = 0.0, dt, tInitial;
+double Time = 0.0, dt, tInitial, prev_time = 0.0;
 int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
@@ -241,6 +241,7 @@ int main(int argc, char **argv) {
 	for(int j1 = 0; j1<nelements; j1++){
 		if(hostelglobal+1==global_eid[j1]){
 			nodeconstrain[i] = j1;
+			break;
 		}
 	}
     }
@@ -358,7 +359,7 @@ int main(int argc, char **argv) {
 			//printf("%d %d\n", i, world_rank);
 			}
 		else {
-		   if(writeFlag){
+		   if(writeFlag==0){
 			   int dirn = i%3;
 			   CalculateEmbedDisp(embedid,dirn);	
 		   }	
@@ -395,7 +396,7 @@ int main(int argc, char **argv) {
       CalculateInjuryCriteria();
     }
     if(embed){
-	if(writeFlag)
+	if(writeFlag==0)
 		CalculateStrainandStrainRateFiber();	
 	}
     if (writeFileFlag == 0) {

@@ -93,6 +93,7 @@ void ReadEmbed(const char *FileName) {
 	    if(embedinfo[i]==global_eid[j]-1){
 		nelements = nelements + 1;
 		embedproc[i] = 1;
+		break;
 		}
 	}
    }
