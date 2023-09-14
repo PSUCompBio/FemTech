@@ -67,6 +67,9 @@ void ReadInputFile(const char *FileName) {
     qsort(sortedPID, nelements, sizeof(int), compare);
     nPID = unique(sortedPID, nelements);
     int globalPIDmax = sortedPID[nPID - 1] + 1;
+    if(embed){
+	globalPIDmax = globalPIDmax + 1;
+    }
     MPI_Allreduce(MPI_IN_PLACE, &globalPIDmax, 1, MPI_INT, MPI_MAX,
                   MPI_COMM_WORLD);
     nPIDglobal = globalPIDmax;

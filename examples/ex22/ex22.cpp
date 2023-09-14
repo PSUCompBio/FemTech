@@ -59,7 +59,8 @@ int main(int argc, char **argv) {
 
   PartitionMesh();
 
-  ReadEmbed(argv[1]);
+  if(embed)
+    ReadEmbed(argv[1]);
  //add code to read fibers and reassign arrays
 
  //printf("%d %d\n", nelements, world_rank);
@@ -215,8 +216,11 @@ int main(int argc, char **argv) {
     GetForce(); // Calculating the force term.
 
     /* Step - 9 from Belytschko Box 6.1 - Calculate Accelerations */
-    CalculateAccelerations(); // Calculating the new accelerations from total
+	if(embed){
+	  CalculateEmbedAccelerations();} // Calculating the new accelerations from total
                               // nodal forces.
+	else
+	  CalculateAccelerations();
   /* if(embed){ 
    	for (int i = 0; i < nDOF; i++) {
 	   int embedid = int(i/3);

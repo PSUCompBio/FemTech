@@ -16,7 +16,8 @@ double StableTimeStep() {
   }
 
 	for (int i = 0; i < nelements; ++i) {
-    if (materialID[pid[i]] != 0) {
+    if (materialID[pid[i]] != 0)
+	if(pid[i] != 10) {
       dtElem = CalculateTimeStep(i);
       if (dtElem < dtMin){
         dtMin = dtElem;
@@ -37,7 +38,8 @@ double StableTimeStep() {
     // on log before termination
     for (int i = 0; i < nelements; ++i) {
       // materialID = 0 => Rigid element
-      if (materialID[pid[i]] != 0) {
+      if (materialID[pid[i]] != 0) 
+	if(pid[i] != 10) {
         dtElem = CalculateTimeStep(i);
         if (dtElem < FailureTimeStep) {
 		      FILE_LOG_SINGLE(ERROR, "Small timestep detected in element number : %8d, dt = %15.9e, wave speed = %15.9e", global_eid[i], dtElem, waveSpeed[i]);

@@ -31,8 +31,9 @@ void computePartVolume(double *volume, double *elemVolume) {
   int pide;
   double volumeE;
   for (int i = 0; i < nelements; ++i) {
-    if(pid[i]==10)
-	continue;
+    if(pid[i]==10){
+	elemVolume[i] = 0.0;
+	volume[10] = 0.0;}
     else{
     volumeE = calculateVolume(i);
     pide = pid[i];

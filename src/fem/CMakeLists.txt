@@ -16,6 +16,7 @@ Set(fem_src
 		SolidMechanics/GetForce.cpp
 		SolidMechanics/GetForce_3D.cpp
 		SolidMechanics/CalculateAcclerations.cpp
+		SolidMechanics/CalculateEmbedAccelerations.cpp
 		SolidMechanics/CalculateEmbedDisp.cpp
 		SolidMechanics/CalculateFR.cpp
 		SolidMechanics/StressUpdate.cpp
