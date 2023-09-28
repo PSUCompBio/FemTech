@@ -217,7 +217,7 @@ void WriteVTU(const char* FileName, int step, int** intCellData /*= NULL*/, \
         fprintf(fp, "\t\t\t\t\t%10.8e\n", data[count]);
         count = count + 1;
       } 
-	else if (strcmp(ElementType[i], "T3D2") == 0){
+/*	else if (strcmp(ElementType[i], "T3D2") == 0){
 	     if (strcmp(dpDataNames[c], "MPS-95-Value") == 0){
         	fprintf(fp, "\t\t\t\t\t%.32f\n", Eavg[i*ndim*ndim]);}
 	     else if (strcmp(dpDataNames[c], "MPSR") == 0){
@@ -226,7 +226,7 @@ void WriteVTU(const char* FileName, int step, int** intCellData /*= NULL*/, \
 		fprintf(fp, "\t\t\t\t\t%.32f\n", stxstrate[i]);}
 	     else {
 		fprintf(fp, "\t\t\t\t\t%10.8e\n", 0.0);}
-      } 
+      } */
 	else {
         fprintf(fp, "\t\t\t\t\t%10.8e\n", 0.0);
       }

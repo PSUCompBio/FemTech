@@ -7,18 +7,19 @@
 double CalculateTimeStep(int e) {
 	double dtElem;
 	double le;
+  int pide = pid[e];
+	double ce = waveSpeed[pide]; //wavespeed
  	// characteristic element length
 	if(embed){
 	  if (strcmp(ElementType[e], "T3D2") != 0){
-	    le = CalculateCharacteristicLength(e);	
+	    le = CalculateCharacteristicLength(e);
+	    dtElem = le/ce;
 	  }
+	  else dtElem = 10; //to ensure that the timestep is not affected by fibers
 	} else{
   	  le = CalculateCharacteristicLength(e);
+	  dtElem = le/ce;
 	}
-	//wave speed of material
-  int pide = pid[e];
-	double ce = waveSpeed[pide];
-	dtElem = le/ce;
   // FILE_LOG_MASTER(WARNING, "Ce : %3.3e, Le : %3.3e, dt = %3.3e", ce, le, dtElem);
 	return dtElem;
 }

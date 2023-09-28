@@ -35,7 +35,7 @@ void WriteMPr(void);
 void AssignHostandEmbedNodes();
 
 /* Global Variables/Parameters */
-double Time = 0.0, dt, tInitial;
+double Time = 0.0, dt, tInitial, prev_time = 0.0;
 int nSteps;
 bool ImplicitStatic = false;
 bool ImplicitDynamic = false;
@@ -126,8 +126,8 @@ double *elementMPr = NULL;
 int nElementsInjury = 0, *elementIDInjury = NULL;
 // part ID to exclude from injury computation
 // 0 : Skull, 1 : CSF, 10 : Fiber
-const int injuryExcludePIDCount = 3;
-const int injuryExcludePID[injuryExcludePIDCount] = {0, 1, 10};
+const int injuryExcludePIDCount = 2;
+const int injuryExcludePID[injuryExcludePIDCount] = { 0, 1 };
 
 // Variables to write injury criterion to Paraview output
 const int outputCount = 8;
@@ -137,7 +137,7 @@ const char *outputNames[outputCount] = {"CSDM-3", "CSDM-5",  "CSDM-10",  "CSDM-1
                                         "MPS-95"};
 const int outputDoubleCount = 3;
 double *outputDoubleArray[outputDoubleCount];
-const char *outputDoubleNames[outputDoubleCount] = {"MPS-95-Value", "MPSR", "PSxSR"};
+const char* outputDoubleNames[outputDoubleCount] = { "MPS-Value", "MPSR", "PSxSR" };
 
 const int csdmCount = 5;
 const double csdmLimits[csdmCount] = {0.03, 0.05, 0.1, 0.15, 0.3};
@@ -241,6 +241,7 @@ int main(int argc, char **argv) {
 	for(int j1 = 0; j1<nelements; j1++){
 		if(hostelglobal+1==global_eid[j1]){
 			nodeconstrain[i] = j1;
+            break;
 		}
 	}
     }
@@ -274,7 +275,6 @@ int main(int argc, char **argv) {
 	FindNaturalCoord();	
 	}
 
-//printf("location 6 %d\n", world_rank);
   int time_step_counter = 0;
   /** Central Difference Method - Beta and Gamma */
   // double beta = 0;
@@ -358,10 +358,10 @@ int main(int argc, char **argv) {
 			//printf("%d %d\n", i, world_rank);
 			}
 		else {
-		   if(writeFlag){
+		 //  if(writeFlag==0){
 			   int dirn = i%3;
 			   CalculateEmbedDisp(embedid,dirn);	
-		   }	
+		   //}	
 		}
 	}
 	else displacements[i] = displacements[i] + dt * velocities_half[i];
@@ -369,8 +369,11 @@ int main(int argc, char **argv) {
     /* Step - 8 from Belytschko Box 6.1 - Calculate net nodal force*/
     GetForce(); // Calculating the force term.
     /* Step - 9 from Belytschko Box 6.1 - Calculate Accelerations */
-    CalculateAccelerations(); // Calculating the new accelerations from total
-                              // nodal forces.
+    if (embed)
+        CalculateEmbedAccelerations(); // Calculating the new accelerations from total
+    // nodal forces.
+    else
+        CalculateAccelerations();
 /*   if(embed){
 	if(writeFlag) 
    	for (int i = 0; i < nDOF; i++) {
@@ -394,10 +397,10 @@ int main(int argc, char **argv) {
 	if(writeFlag)
       CalculateInjuryCriteria();
     }
-    if(embed){
-	if(writeFlag)
+    /*if (embed) {
+	    if(writeFlag==0)
 		CalculateStrainandStrainRateFiber();	
-	}
+	}*/
     if (writeFileFlag == 0) {
       CustomPlot();
     }
@@ -1857,8 +1860,8 @@ void InitInjuryCriteria(void) {
   // Percentile Values
   // Write MPS-95-Value
   outputDoubleArray[0] = PS_Old;
-  outputDoubleArray[1] = E_rate;
-  outputDoubleArray[2] = stxstrate;
+  outputDoubleArray[1] = strain_rate;
+  outputDoubleArray[2] = PSxSRArray;
 
   // Compute the initial volume of elements for MPS file
   double* volumePart = new double[nPIDglobal];/*Drupal*/
@@ -1884,8 +1887,18 @@ void CalculateInjuryCriteria(void) {
 
   for (int j = 0; j < nElementsInjury; j++) {
     int i = elementIDInjury[j];
-    CalculateMaximumPrincipalStrain(
-        i, &currentStrainMaxElem, &currentStrainMinElem, &currentShearMaxElem);
+    //right now we are calculating injury metrics for fibers are every time step, in the future we can reduce this
+    if (pid[i] == 10) 
+    {
+        CalculateStrainandStrainRateFiber(i, &currentStrainMaxElem);
+        currentStrainMinElem = 0;
+        currentShearMaxElem = 0;
+    }
+    else 
+    {
+        CalculateMaximumPrincipalStrain(
+            i, &currentStrainMaxElem, &currentStrainMinElem, &currentShearMaxElem);
+    }
     if (maxValue[0] < currentStrainMaxElem) {
       maxValue[0] = currentStrainMaxElem;
       maxElem[0] = i;
@@ -1940,8 +1953,17 @@ void CalculateInjuryCriteria(void) {
       elementMPS[i] = currentStrainMaxElem;
     }
     // compute and store element pressure quantities
-    double elementPressure = CalculateElementPressure(i);
-    pressureElem[j] = elementPressure;
+    double elementPressure;
+    if (pid[i] == 10) 
+    {
+        elementPressure = 0.0;
+        pressureElem[j] = 0.0;
+    }
+    else 
+    {
+        elementPressure = CalculateElementPressure(i);
+        pressureElem[j] = elementPressure;
+    }
     if (elementPressure > elementMPr[i]) {
       elementMPr[i] = elementPressure;
     }

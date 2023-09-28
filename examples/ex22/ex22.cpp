@@ -17,7 +17,7 @@ bool writeElementOP = false;
 int plotNodeID = 0;
 int plotElemID = 0;
 
-double Time, dt, tInitial = 0.0;
+double Time, dt, tInitial = 0.0, prev_time = 0.0;
 int nSteps;
 
 double dynamicDamping = 0.01;
@@ -59,7 +59,8 @@ int main(int argc, char **argv) {
 
   PartitionMesh();
 
-  ReadEmbed(argv[1]);
+  if (embed)
+    ReadEmbed(argv[1]);
  //add code to read fibers and reassign arrays
 
  //printf("%d %d\n", nelements, world_rank);
@@ -202,7 +203,7 @@ int main(int argc, char **argv) {
 	      	   displacements[i] = displacements[i] + dt * velocities_half[i];
 			}
 		else {
-		   if(writeFlag){
+		   if(writeFlag==0){
 			   int dirn = i%3;
 			   CalculateEmbedDisp(embedid,dirn);	
 		   }	
@@ -215,16 +216,20 @@ int main(int argc, char **argv) {
     GetForce(); // Calculating the force term.
 
     /* Step - 9 from Belytschko Box 6.1 - Calculate Accelerations */
-    CalculateAccelerations(); // Calculating the new accelerations from total
-                              // nodal forces.
-   if(embed){ 
+	if (embed) 
+    {
+	    CalculateEmbedAccelerations();
+	} // Calculating the new accelerations from total // nodal forces.
+    else
+        CalculateAccelerations();
+   /*if (embed) {
    	for (int i = 0; i < nDOF; i++) {
 	   int embedid = int(i/3);
 		if(nodeconstrain[embedid]!=-1){
 	      	   accelerations[i] = 0;
 			}
 	}
-    }
+    }*/
     /** Step- 10 - Second Partial Update of Nodal Velocities */
     for (int i = 0; i < nDOF; i++) {
       velocities[i] = velocities_half[i] + dtby2 * accelerations[i];

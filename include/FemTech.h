@@ -61,6 +61,7 @@ void GetForce_3D();
 double StableTimeStep();
 double CalculateTimeStep(int e);
 void CalculateAccelerations();
+void CalculateEmbedAccelerations();
 void CalculateEmbedDisp(int embedid, int dirn);
 
 void CalculateFR();
@@ -68,7 +69,7 @@ void CalculateFR();
 void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
     double *currentStrainMin, double *currentShearMax);
 void CalculateStrain();
-void CalculateStrainandStrainRateFiber();
+void CalculateStrainandStrainRateFiber(int elm, double* currentStrainMax);
 void CalculateElementStress(unsigned int e, double* stress);
 double CalculateElementPressure(unsigned int e);
 void CalculateDeformationGradient(int e, int gp);

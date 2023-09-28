@@ -109,27 +109,32 @@ void CalculateStrain() {
   }
 }
 
-void CalculateStrainandStrainRateFiber() {
+void CalculateStrainandStrainRateFiber(int elm, double *maxstrain) {
   const int matSize = ndim*ndim;
   double Eold;
 //  for (int i = 0; i < matSize*nelements; ++i) {
-//    Eavg[i] = 0.0;
+//   Eavg[i] = 0.0;
 //  }
-  for (int elm = 0; elm < nelements; ++elm) {
+//  for (int elm = 0; elm < nelements; ++elm) {
   double *E = &Eavg[elm*matSize];
-    if (strcmp(ElementType[elm], "T3D2") == 0){
+  //  if (strcmp(ElementType[elm], "T3D2") == 0){
 	double newlengthx = (coordinates[ndim*connectivity[eptr[elm]]+0]+displacements[ndim*connectivity[eptr[elm]]+0]-coordinates[ndim*connectivity[eptr[elm]+1]+0]-displacements[ndim*connectivity[eptr[elm]+1]+0]);
 	double newlengthy = (coordinates[ndim*connectivity[eptr[elm]]+1]+displacements[ndim*connectivity[eptr[elm]]+1]-coordinates[ndim*connectivity[eptr[elm]+1]+1]-displacements[ndim*connectivity[eptr[elm]+1]+1]);
 	double newlengthz = (coordinates[ndim*connectivity[eptr[elm]]+2]+displacements[ndim*connectivity[eptr[elm]]+2]-coordinates[ndim*connectivity[eptr[elm]+1]+2]-displacements[ndim*connectivity[eptr[elm]+1]+2]);
 	double oldlengthx = (coordinates[ndim*connectivity[eptr[elm]]+0]-coordinates[ndim*connectivity[eptr[elm]+1]+0]);
 	double oldlengthy = (coordinates[ndim*connectivity[eptr[elm]]+1]-coordinates[ndim*connectivity[eptr[elm]+1]+1]);
 	double oldlengthz = (coordinates[ndim*connectivity[eptr[elm]]+2]-coordinates[ndim*connectivity[eptr[elm]+1]+2]);
-	double newlength = newlengthx*newlengthx + newlengthy*newlengthy + newlengthz*newlengthz;
-	double oldlength = oldlengthx*oldlengthx + oldlengthy*oldlengthy + oldlengthz*oldlengthz;
+	double newlength = sqrt(newlengthx*newlengthx + newlengthy*newlengthy + newlengthz*newlengthz);
+	double oldlength = sqrt(oldlengthx*oldlengthx + oldlengthy*oldlengthy + oldlengthz*oldlengthz);
 	Eold = E[0];
-	E[0] = (newlength-oldlength)/2*oldlength;
-	E_rate[elm] = (E[0]-Eold)/dt;
-	stxstrate[elm] = E[0]*E_rate[elm];
-	}
-    }
+	//E[0] = (newlength-oldlength)/2*oldlength;
+	if(oldlength<1e-3)
+	  *maxstrain = 0;
+	else
+	  *maxstrain = (newlength-oldlength)/oldlength + 0.5*(newlength-oldlength)*(newlength-oldlength)/(oldlength*oldlength);
+	//E_rate[elm] = (E[0]-Eold)/(Time-prev_time);
+	//stxstrate[elm] = E[0]*E_rate[elm];
+//	}
+ //   }
+  //prev_time = Time;
 }
