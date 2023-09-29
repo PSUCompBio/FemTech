@@ -39,19 +39,22 @@ double FailureTimeStep = 1e-8; // Set for max runtime of around 5 hrs on aws
 double MaxTimeStep = 1e-5;
 int nPlotSteps = 50;
 int nWriteSteps = 100;
+bool embed = false;/*Drupal*/
 
 /* Hard coded BC nodes */
-unsigned int pressureBCNodeCount = 0;
-unsigned int *pressureBCNode = NULL;
-double *pressureBCValue = NULL;
-const double tStart = 0.0;
-const double tPeak = 3.0/1000.0;
-const double tEnd = 4.0/1000.0;
-
-bool embed = false; /*Drupal*/
-int* nodeconstrain = NULL;
-
+const unsigned int pressureBCNodeCount = 72;
 const unsigned int fixedBCNodeCount = 117;
+const unsigned int pressureBCNode[pressureBCNodeCount] = {
+  5577, 2059, 5571, 2066, 2065, 2058, 5005, 5011,
+  2259, 1470, 1461, 1885, 5000, 5003, 5009, 5019,
+  5022, 2260, 1482, 1480, 1469, 1460, 1456, 1458,
+  1884, 5002, 5001, 5004, 5010, 5018, 5020, 1479,
+  1478, 1468, 1459, 1457, 4992, 5181, 5021, 5023,
+  5028, 1489, 1483, 1481, 1646, 1443, 4991, 4993,
+  1770, 1445, 1444, 5030, 5029, 5031, 2563, 1492,
+  1491, 1490, 4989, 4980, 4979, 4988, 4981, 4990,
+  1649, 1769, 1433, 1442, 1432, 1440, 1431, 1441
+};
 const unsigned int fixedBCNode[fixedBCNodeCount] = {
   3134, 3137, 3142, 2740, 2727, 2975, 2976, 2978,
   2980, 2983, 2985, 6414, 6413, 6412, 6411, 6410,
@@ -164,12 +167,8 @@ const int csdmCount = 5;
 const double csdmLimits[csdmCount] = {0.03, 0.05, 0.1, 0.15, 0.3};
 
 /* Variables used to store pressure BC values */
-const int timeTraceBCSize = 3;
-double timeTraceBC[timeTraceBCSize] = {
-  tStart, tPeak, tEnd
-};
-double pressureTraceBC[timeTraceBCSize];
-
+int timeTraceBCSize;
+double *timeTraceBC, *pressureTraceBC;
 std::string outputFileName;
 
 /* Variable to store MPS-95 time trace */
@@ -186,8 +185,7 @@ int main(int argc, char **argv) {
 
   std::string meshFile = simulationJson["mesh"].asString();
   // Convert maximum time to seconds
-  // tMax = simulationJson["maximum-time"].asDouble() / 1000.0;
-  tMax = tEnd;
+  tMax = simulationJson["maximum-time"].asDouble() / 1000.0;
   if (!simulationJson["write-vtu"].empty()) {
     writeField = simulationJson["write-vtu"].asBool();
   }
@@ -415,8 +413,8 @@ int main(int argc, char **argv) {
 
   // Free local boundary condition related arrays
   free1DArray(staticBoundaryID);
-  free1DArray(pressureBCNode);
-  free1DArray(pressureBCValue);
+  free1DArray(timeTraceBC);
+  free1DArray(pressureTraceBC);
   free1DArray(outputNodeList);
   free1DArray(outputElemList);
   // Free variables used for injury criteria
@@ -455,11 +453,9 @@ void ApplyPressureBoundaryConditions() {
   // Normal assumed to be in +z direction
   // Apply pressure BC using f external
   double tLocal = Time + dt;
+  double localPressure = interpolateLinear(timeTraceBCSize, timeTraceBC, \
+      pressureTraceBC, tLocal);
   for (int i = 0; i < pressureBoundarySize; i++) {
-    // TODO: remove the below lines and store them globally
-    double pressureLocal[3] = {0.0, pressureBoundaryValueLocal[i], 0.0};
-    double localPressure = interpolateLinear(timeTraceBCSize, timeTraceBC, \
-        pressureLocal, tLocal);
     int index = pressureBoundaryID[i] * ndim;
     fe[index + 2] = localPressure * pressureNodalArea[i];
   }
@@ -663,22 +659,71 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
   double startTime = 0.0;
   // Read input JSON for pressure data
   if (!jsonInput["pressure"].empty()) {
-    const Json::Value jsonInputValues = getConfig("pressureBC.json");
-    pressureBCNodeCount = jsonInputValues.size();
-    pressureBCNode = (unsigned int*)malloc(pressureBCNodeCount*sizeof(int));
-    pressureBCValue = (double*)malloc(pressureBCNodeCount*sizeof(double));
-    double meanPressure = 0.0;
-    for (int i = 0; i < pressureBCNodeCount; ++i) {
-      Json::Value elm = jsonInputValues[i];
-      pressureBCNode[i] = elm["nodeID"].asInt();
-      pressureBCValue[i] = elm["pressure"].asDouble();
-      meanPressure += pressureBCValue[i];
+    const Json::Value jsonPressure = jsonInput["pressure"];
+    if (!jsonPressure["time"].empty()) {
+      timeTraceBCSize = jsonPressure["time"].size();
+    } else{
+      FILE_LOG_SINGLE(ERROR, "Pressure-time array absent");
+      TerminateFemTech(12);
     }
-    meanPressure /= pressureBCNodeCount;
-    pressureTraceBC[1] = meanPressure;
-    pressureTraceBC[0] = 0.0;
-    pressureTraceBC[2] = 0.0;
+    timeTraceBC = (double*)malloc(sizeof(double) * timeTraceBCSize);
+    jsonToArray(timeTraceBC, jsonPressure["time"]);
 
+    pressureTraceBC = (double*)malloc(sizeof(double) * timeTraceBCSize);
+    if (!jsonPressure["average"].empty()) {
+      unsigned int pressureTraceSize = 0;
+      pressureTraceSize = jsonPressure["average"].size();
+      assert(pressureTraceSize == timeTraceBCSize);
+
+      jsonToArray(pressureTraceBC, jsonPressure["average"]);
+    } else {
+      if (!jsonPressure["head"].empty()) {
+        unsigned int pressureTrace1Size = 0;
+        pressureTrace1Size = jsonPressure["head"].size();
+        assert(pressureTrace1Size == timeTraceBCSize);
+      } else{
+        FILE_LOG_SINGLE(ERROR, "Head pressure trace absent");
+        TerminateFemTech(12);
+      }
+      if (!jsonPressure["shoulder"].empty()) {
+        unsigned int pressureTrace2Size = 0;
+        pressureTrace2Size = jsonPressure["shoulder"].size();
+        assert(pressureTrace2Size == timeTraceBCSize);
+      } else{
+        FILE_LOG_SINGLE(ERROR, "Shoulder pressure trace absent");
+        TerminateFemTech(12);
+      }
+      if (!jsonPressure["chest"].empty()) {
+        unsigned int pressureTrace3Size = 0;
+        pressureTrace3Size = jsonPressure["chest"].size();
+        assert(pressureTrace3Size == timeTraceBCSize);
+      } else{
+        FILE_LOG_SINGLE(ERROR, "Chest pressure trace absent");
+        TerminateFemTech(12);
+      }
+      double *pressureTrace1 = (double*)malloc(sizeof(double) * timeTraceBCSize);
+      double *pressureTrace2 = (double*)malloc(sizeof(double) * timeTraceBCSize);
+      double *pressureTrace3 = (double*)malloc(sizeof(double) * timeTraceBCSize);
+
+      jsonToArray(pressureTrace1, jsonPressure["head"]);
+      jsonToArray(pressureTrace2, jsonPressure["shoulder"]);
+      jsonToArray(pressureTrace3, jsonPressure["chest"]);
+
+      // Average over the three pressure sensor values to arrive at pressure to be
+      // applied on the fore-head
+      for (unsigned int i = 0; i < timeTraceBCSize; ++i) {
+        pressureTraceBC[i] = (pressureTrace1[i] + pressureTrace2[i] + pressureTrace3[i])/3.0;
+      }
+
+      free(pressureTrace1);
+      free(pressureTrace2);
+      free(pressureTrace3);
+    }
+
+    // Convert time from milli-seconds to seconds
+    for (int i = 0; i < timeTraceBCSize; ++i) {
+      timeTraceBC[i] = 0.001 * timeTraceBC[i];
+    }
     startTime = timeTraceBC[0];
   } else { 
     FILE_LOG_MASTER(ERROR, "Pressure BC time traces absent in the input file");
@@ -745,11 +790,6 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
     FILE_LOG_SINGLE(ERROR, "Unable to alocate pressureBoundaryID");
     TerminateFemTech(12);
   }
-  pressureBoundaryValueLocal = (double*)malloc(pressureBoundarySize * sizeof(double));
-  if (pressureBoundaryValueLocal == NULL) {
-    FILE_LOG_SINGLE(ERROR, "Unable to alocate pressureBoundaryValueLocal");
-    TerminateFemTech(12);
-  }
   // pressure boundary size will be <= pressureBCNodeCount due to the parallel mesh
   // partitioning
   // Store all nodes to prescribe pressure BC
@@ -759,7 +799,6 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
     for (int j = 0; j < nNodes; ++j) {
       if (globalNodeID[j] == nodeItem) {
         pressureBoundaryID[nodePtr] = j; // Store all rigid nodes
-        pressureBoundaryValueLocal[nodePtr] = pressureBCValue[i]; // Store peak pressure value
         nodePtr = nodePtr + 1;
       }
     }
@@ -950,7 +989,7 @@ void WriteOutputFile() {
     // Compute the volume of all parts
 
     double* volumePart = new double[nPIDglobal];/*Drupal*/
-    double* elementVolume = new double[nPIDglobal];/*Drupal*/ // For MPS computation
+    double* elementVolume = new double[nelements];/*Drupal*/ // For MPS computation
 
     for (int i = 0; i < nPIDglobal; ++i) {
       volumePart[i] = 0.0;

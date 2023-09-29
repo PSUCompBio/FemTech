@@ -1592,7 +1592,7 @@ void WriteOutputFile() {
 
     // Compute the volume of all parts
     double* volumePart = new double[nPIDglobal];/*Drupal*/
-    double* elementVolume = new double[nPIDglobal];/*Drupal*/ // For MPS computation
+    double* elementVolume = new double[nelements];/*Drupal*/ // For MPS computation
     for (int i = 0; i < nPIDglobal; ++i) {
       volumePart[i] = 0.0;
     }
