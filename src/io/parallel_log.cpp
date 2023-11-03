@@ -32,7 +32,7 @@ int gettimeofday(struct timeval* tp, struct timezone* tzp)
     // until 00:00:00 January 1, 1970 
     static const uint64_t EPOCH = ((uint64_t)116444736000000000ULL);
 
-    SYSTEMTIME  system_time;
+/*    SYSTEMTIME  system_time;
     FILETIME    file_time;
     uint64_t    time;
 
@@ -43,6 +43,38 @@ int gettimeofday(struct timeval* tp, struct timezone* tzp)
 
     tp->tv_sec = (long)((time - EPOCH) / 10000000L);
     tp->tv_usec = (long)(system_time.wMilliseconds * 1000);
+    return 0;
+    */
+ #ifdef _WIN32 // Windows-specific code
+    FILETIME file_time;
+    GetSystemTimeAsFileTime(&file_time);
+    
+    ULARGE_INTEGER uli;
+    uli.LowPart = file_time.dwLowDateTime;
+    uli.HighPart = file_time.dwHighDateTime;
+    uint64_t time = uli.QuadPart;
+    
+    struct timeval tv; // Renamed from tp to tv
+    tv.tv_sec = (long)((time - EPOCH) / 10000000L);
+    tv.tv_usec = (long)((time - EPOCH) % 10000000L);
+
+    // Windows-specific code here
+
+    #else // Code for non-Windows platforms (like Linux)
+    struct timeval tv; // Renamed from tp to tv
+    struct timespec ts;
+
+    // Get the current time using clock_gettime on Linux
+    clock_gettime(CLOCK_REALTIME, &ts);
+
+    // Convert timespec to timeval
+    tv.tv_sec = ts.tv_sec;
+    tv.tv_usec = ts.tv_nsec / 1000;
+
+    // Linux-specific code here
+
+    #endif
+
     return 0;
 }
 

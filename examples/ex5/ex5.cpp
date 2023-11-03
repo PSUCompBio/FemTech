@@ -1117,20 +1117,40 @@ double InitBoundaryCondition(const Json::Value &jsonInput) {
     if (angularVelPrescribed) {
       // Transforming individual values rather than pointer rotation for
       // readability
-      double* velSize = new double[ndim];/*Drupal*/
+      /*Drupal Windows Code*/
+    //   double* velSize = new double[ndim];/*Drupal*/
+    //   velSize[index[0]] = angVelXSize;
+    //   velSize[index[1]] = angVelYSize;
+    //   velSize[index[2]] = angVelZSize;
+    // //  double *angVelTNew[ndim], *angVelVNew[ndim];
+    //   double** angVelTNew = new double*[ndim];/*Drupal*/
+    //   double** angVelVNew = new double*[ndim];/*Drupal*/
+
+    //   angVelTNew[0] = new double[velSize[0] * sizeof(double)];
+    //   angVelVNew[0] = new double[velSize[0] * sizeof(double)];
+    //   angVelTNew[1] = new double[velSize[1] * sizeof(double)];
+    //   angVelVNew[1] = new double[velSize[1] * sizeof(double)];
+    //   angVelTNew[2] = new double[velSize[2] * sizeof(double)];
+    //   angVelVNew[2] = new double[velSize[2] * sizeof(double)];
+    /*Drupal Windows Code End*/ 
+
+    /*Drupal Linux Issue*/
+      double* velSize = new double[ndim];
+
       velSize[index[0]] = angVelXSize;
       velSize[index[1]] = angVelYSize;
       velSize[index[2]] = angVelZSize;
-    //  double *angVelTNew[ndim], *angVelVNew[ndim];
-      double** angVelTNew = new double*[ndim];/*Drupal*/
-      double** angVelVNew = new double*[ndim];/*Drupal*/
 
-      angVelTNew[0] = new double[velSize[0] * sizeof(double)];
-      angVelVNew[0] = new double[velSize[0] * sizeof(double)];
-      angVelTNew[1] = new double[velSize[1] * sizeof(double)];
-      angVelVNew[1] = new double[velSize[1] * sizeof(double)];
-      angVelTNew[2] = new double[velSize[2] * sizeof(double)];
-      angVelVNew[2] = new double[velSize[2] * sizeof(double)];
+      double** angVelTNew = new double*[ndim];
+      double** angVelVNew = new double*[ndim];
+
+      angVelTNew[0] = new double[static_cast<int>(velSize[0])];
+      angVelVNew[0] = new double[static_cast<int>(velSize[0])];
+      angVelTNew[1] = new double[static_cast<int>(velSize[1])];
+      angVelVNew[1] = new double[static_cast<int>(velSize[1])];
+      angVelTNew[2] = new double[static_cast<int>(velSize[2])];
+      angVelVNew[2] = new double[static_cast<int>(velSize[2])];
+      /*Drupal Linux Issue Resolved*/
 
       int transformedIndex = index[0];
       for (int i = 0; i < angVelXSize; ++i) {
