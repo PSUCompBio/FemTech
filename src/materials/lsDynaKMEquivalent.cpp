@@ -1,5 +1,9 @@
 #include "FemTech.h"
 #include "blas.h"
+// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+#include "matrix_operations.h"
+#endif
 
 /* three-dimensional compressible neo-Hookean model with one term prony series
  * equivalent to LS-Dyna implementation of KM model (MAT_061) with FO=0, ie Maxwell model.
@@ -46,8 +50,12 @@ void lsDynaKMEquivalent(int e, int gp) {
       }
     }
     // Compute H H^T and add to bmI
-    dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, H, &ndim,
-           H, &ndim, &one, bmI, &ndim);
+    // Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+    FEMTECH_dgemm_(chn, chy, ndim, ndim, ndim, one, H, ndim, H, ndim, one, bmI, ndim);
+#else
+    dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, H, &ndim, H, &ndim, &one, bmI, &ndim);
+#endif
     // Compute and store F = H + I
     double * const F_element_gp = &(F[index]);
     for (unsigned int i = 0; i < ndim2; ++i) {

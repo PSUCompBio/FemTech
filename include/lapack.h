@@ -1,3 +1,5 @@
+// Drupal : Check if the operating system is not Windows
+#ifndef _WIN32
 #ifndef INCLUDE_LAPACK_H_
 #define INCLUDE_LAPACK_H_
 
@@ -27,3 +29,4 @@ extern "C" {
 }
 
 #endif // INCLUDE_LAPACK_H_
+#endif // _WIN32

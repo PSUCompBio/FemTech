@@ -2,6 +2,11 @@
 
 #include "blas.h"
 
+// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+#include "matrix_operations.h"
+#endif
+
 void MassElementMatrix(double *Me, int e) {
   // number of shape functions * ndim
   int bColSize = nShapeFunctions[e]*ndim;
@@ -38,8 +43,14 @@ void MassElementMatrix(double *Me, int e) {
       N[NindexStart+8] = Ni;
     }
     // Compute elemental mass metrix for a single Gauss Quadrature point MeGQ = N^T N
-    dgemm_(chy, chn, &nColSize, &nColSize, &ndim, &one, N, &ndim, \
-        N, &ndim, &zero, MeGQ, &nColSize); 
+    // Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+	FEMTECH_dgemm_(chy, chn, nColSize, nColSize, ndim, one, N, ndim, \
+		N, ndim, zero, MeGQ, nColSize);
+#else
+	 dgemm_(chy, chn, &nColSize, &nColSize, &ndim, &one, N, &ndim, \
+		N, &ndim, &zero, MeGQ, &nColSize);
+#endif
     // TODO(Anil) Gauss weights and det J product can be combined in shape
     // function
     int wIndex = gpPtr[e]+k;

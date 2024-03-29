@@ -1,5 +1,9 @@
 #include "FemTech.h"
 #include "blas.h"
+// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+#include "matrix_operations.h"
+#endif
 
 #include <stdlib.h>
 
@@ -60,8 +64,12 @@ void HGOIsotropicViscoelastic(int e, int gp) {
   // Compute the left elastic Cauchy-Green tensor B = F*F^T
   const unsigned int matSize = ndim * ndim;
   double *Bmat = mat1;
-  dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
-        F_element_gp, &ndim, &zero, Bmat, &ndim);
+  // Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+  FEMTECH_dgemm_(chn, chy, ndim, ndim, ndim, one, F_element_gp, ndim, F_element_gp, ndim, zero, Bmat, ndim);
+#else
+  dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim, F_element_gp, &ndim, &zero, Bmat, &ndim);
+#endif
   // Compute trace of B
   const double traceB = Bmat[0] + Bmat[4] + Bmat[8];
   // Calculate first invarient of the isochoric Cauchy-Green deformation tensor
@@ -95,27 +103,40 @@ void HGOIsotropicViscoelastic(int e, int gp) {
   double *S = mat4;
   InverseF(e, gp, fInv);
   // Compute F^{-1}*\sigma
-  dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim,
-           Bmat, &ndim, &zero, STemp, &ndim);
+  // Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+  FEMTECH_dgemm_(chn, chn, ndim, ndim, ndim, one, fInv, ndim, Bmat, ndim, zero, STemp, ndim);
   // Compute J F^{-1}*\sigma F^{-T}
-  dgemm_(chn, chy, &ndim, &ndim, &ndim, &J, STemp, &ndim,
-           fInv, &ndim, &zero, S, &ndim);
+  FEMTECH_dgemm_(chn, chy, ndim, ndim, ndim, J, STemp, ndim, fInv, ndim, zero, S, ndim);
   // Compute the right elastic Cauchy-Green tensor C = F^T*F
   // Reuse temperory variable mat1 to compute C
-  double *Cmat = mat1;
-  dgemm_(chy, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
-        F_element_gp, &ndim, &zero, Cmat, &ndim);
+  double* Cmat = mat1;
+  FEMTECH_dgemm_(chy, chn, ndim, ndim, ndim, one, F_element_gp, ndim, F_element_gp, ndim, zero, Cmat, ndim);
+#else
+  dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, fInv, &ndim, Bmat, &ndim, &zero, STemp, &ndim);
+  // Compute J F^{-1}*\sigma F^{-T}
+  dgemm_(chn, chy, &ndim, &ndim, &ndim, &J, STemp, &ndim, fInv, &ndim, &zero, S, &ndim);
+  // Compute the right elastic Cauchy-Green tensor C = F^T*F
+  // Reuse temperory variable mat1 to compute C
+  double* Cmat = mat1;
+  dgemm_(chy, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim, F_element_gp, &ndim, &zero, Cmat, &ndim);
+#endif
+
   // compute the double dot product C:S
   double SddC = 0.0;
   for (int i = 0; i < matSize; ++i) {
-    SddC += Cmat[i]*S[i];
+      SddC += Cmat[i]*S[i];
   }
   // Compute isochoric part : Sic = 1/3(C:S)inv(C)
   SddC = SddC/3.0;
   // Compute Inverse of C, inv(C) = inv(F)*inv(F)^T
   double* Sic = mat3; // Reuse mat3 for storing isochoric part of S
-  dgemm_(chn, chy, &ndim, &ndim, &ndim, &SddC, fInv, &ndim,
-        fInv, &ndim, &zero, Sic, &ndim);
+  // Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+  FEMTECH_dgemm_(chn, chy, ndim, ndim, ndim, SddC, fInv, ndim, fInv, ndim, zero, Sic, ndim);
+#else
+  dgemm_(chn, chy, &ndim, &ndim, &ndim, &SddC, fInv, &ndim, fInv, &ndim, &zero, Sic, &ndim);
+#endif
   double *Sdev = mat1; // Reuse mat1 to store deviatoric part of S
   for (int i = 0; i < matSize; ++i) {
     Sdev[i] = S[i]-Sic[i];

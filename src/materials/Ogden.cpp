@@ -1,6 +1,10 @@
 #include "FemTech.h"
 #include "blas.h"
 #include "lapack.h"
+// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+#include "matrix_operations.h"
+#endif
 
 #include <stdlib.h>
 #include <math.h>
@@ -50,14 +54,23 @@ void Ogden(int e, int gp) {
   F_element_gp[8] = F_element_gp[8] + 1.0;
   double *b = mat2;
   // Compute F F^T and store to b 
-  dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
-          F_element_gp, &ndim, &zero, b, &ndim);
+  // Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+  FEMTECH_dgemm_(chn, chy, ndim, ndim, ndim, one, F_element_gp, ndim, F_element_gp, ndim, zero, b, ndim);
+#else
+  dgemm_(chn, chy, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim, F_element_gp, &ndim, &zero, b, &ndim);
+#endif
   // Compute eigen values and eigenvectors of B
-  //double cEigenValue[ndim];
+  /*double cEigenValue[ndim];*/
   double* cEigenValue = new double[ndim];
   //double dWork[workSize];
   double* dWork = new double[workSize];
+  // Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+  FEMTECH_dsyev_(jobzV, uploU, &ndim, b, &ndim, cEigenValue, dWork, &workSize, &info);
+#else
   dsyev_(jobzV, uploU, &ndim, b, &ndim, cEigenValue, dWork, &workSize, &info);
+#endif
   // b now contains the eigen vectors of b
 
   // Correct Eigen Values for numerical inaccuracy
@@ -76,9 +89,9 @@ void Ogden(int e, int gp) {
 
   //double eigenPower[ndim*nTerm];
   double* eigenPower = new double[ndim * nTerm];
-  //double eigenPowerSum[nTerm];
+   //double eigenPowerSum[nTerm];
   double* eigenPowerSum = new double[nTerm];
-  for (int j = 0; j < nTerm; ++j) {
+ for (int j = 0; j < nTerm; ++j) {
     eigenPowerSum[j] = 0.0;
   }
   for (int i = 0; i < ndim; ++i) {

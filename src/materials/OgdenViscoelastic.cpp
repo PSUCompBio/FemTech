@@ -1,6 +1,10 @@
 #include "FemTech.h"
 #include "blas.h"
 #include "lapack.h"
+// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+#include "matrix_operations.h"
+#endif
 
 #include <stdlib.h>
 
@@ -65,15 +69,23 @@ void OgdenViscoelastic(int e, int gp) {
   
   double *Cmat = mat2;
   // compute C = F^T F
-  dgemm_(chy, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
-      F_element_gp, &ndim, &zero, Cmat, &ndim);
-
+  // Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+  FEMTECH_dgemm_(chy, chn, ndim, ndim, ndim, one, F_element_gp, ndim, F_element_gp, ndim, zero, Cmat, ndim);
+#else
+  dgemm_(chy, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim, F_element_gp, &ndim, &zero, Cmat, &ndim);
+#endif
   // Compute eigen values and eigenvectors of C
    //double cEigenValue[ndim];
   double* cEigenValue = new double[ndim];
   //double dWork[workSize];
   double* dWork = new double[workSize];
+  // Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+  FEMTECH_dsyev_(jobzV, uploU, &ndim, Cmat, &ndim, cEigenValue, dWork, &workSize, &info);
+#else
   dsyev_(jobzV, uploU, &ndim, Cmat, &ndim, cEigenValue, dWork, &workSize, &info);
+#endif
   // Cmat now contains the eigen vectors of C
 
   // Correct Eigen Values for numerical inaccuracy
@@ -160,12 +172,16 @@ void OgdenViscoelastic(int e, int gp) {
   double* sigma = mat1; // Reuse mat1 as H is nolonger required
   double* sigmaTemp = mat2; // Reuse mat2 as eigen Vectors of C is nolonger required
   // Compute F (dev S) 
-  dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim,
-      Sdev, &ndim, &zero, sigmaTemp, &ndim);
+  // Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+  FEMTECH_dgemm_(chn, chn, ndim, ndim, ndim, one, F_element_gp, ndim, Sdev, ndim, zero, sigmaTemp, ndim);
   // Compute (F (dev S) F^T)/J
-  dgemm_(chn, chy, &ndim, &ndim, &ndim, &invJ, sigmaTemp, &ndim,
-      F_element_gp, &ndim, &zero, sigma, &ndim);
-
+  FEMTECH_dgemm_(chn, chy, ndim, ndim, ndim, invJ, sigmaTemp, ndim, F_element_gp, ndim, zero, sigma, ndim);
+#else
+  dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, F_element_gp, &ndim, Sdev, &ndim, &zero, sigmaTemp, &ndim);
+  // Compute (F (dev S) F^T)/J
+  dgemm_(chn, chy, &ndim, &ndim, &ndim, &invJ, sigmaTemp, &ndim, F_element_gp, &ndim, &zero, sigma, &ndim);
+#endif
   const double volum = invJ*K*(J-1.0); 
   // Compute sigma
   double* sigma_e = sigma;

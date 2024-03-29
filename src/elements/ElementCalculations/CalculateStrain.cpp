@@ -1,5 +1,9 @@
 #include "FemTech.h"
 #include "blas.h"
+// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+#include "matrix_operations.h"
+#endif
 
 #include <math.h>
 
@@ -19,8 +23,15 @@ void CalculateMaximumPrincipalStrain(int elm, double* currentStrainMax, \
     int index = fptr[elm] + matSize * gp;
     double *F_element_gp = &(F[index]);
     // Compute Green-Lagrange Tensor: E= (1/2)*(F^T*F - I)
-    dgemm_(chy, chn, &ndim, &ndim, &ndim, &preFactor, F_element_gp, &ndim,
-           F_element_gp, &ndim, &one, E, &ndim);
+	// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+	FEMTECH_dgemm_(chy, chn, ndim, ndim, ndim, preFactor, F_element_gp, ndim,
+		F_element_gp, ndim, one, E, ndim);
+#else
+	dgemm_(chy, chn, &ndim, &ndim, &ndim, &preFactor, F_element_gp, &ndim,
+		F_element_gp, &ndim, &one, E, &ndim);
+#endif
+	
   }
   E[0] -= 0.5;
   E[4] -= 0.5;
@@ -99,8 +110,15 @@ void CalculateStrain() {
 	  int index = fptr[elm] + matSize * gp;
 	  double *F_element_gp = &(F[index]);
 	  // Compute Green-Lagrange Tensor: E= (1/2)*(F^T*F - I)
+	  // Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+	  FEMTECH_dgemm_(chy, chn, ndim, ndim, ndim, preFactor, F_element_gp, ndim,
+		  F_element_gp, ndim, one, E, ndim);
+#else
 	  dgemm_(chy, chn, &ndim, &ndim, &ndim, &preFactor, F_element_gp, &ndim,
-	     F_element_gp, &ndim, &one, E, &ndim);
+		  F_element_gp, &ndim, &one, E, &ndim);
+#endif
+
 	   }
 	  E[0] -= 0.5;
 	  E[4] -= 0.5;

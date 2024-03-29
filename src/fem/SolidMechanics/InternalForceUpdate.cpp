@@ -1,5 +1,9 @@
 #include "FemTech.h"
 #include "blas.h"
+// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+#include "matrix_operations.h"
+#endif
 
 void InternalForceUpdate(int e, int gp, double *force) {
   int cSize = 6;
@@ -15,8 +19,14 @@ void InternalForceUpdate(int e, int gp, double *force) {
   }
   double* sigma = &(sigma_n[sigmaptr[e]+6*gp]);
   // Compute B^T*sigma^n
-  dgemv_(chy, &cSize, &bColSize, &one, B, &cSize, sigma, \
-      &oneI, &zero, fintGQ, &oneI);
+// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+  FEMTECH_dgemv_(chy, cSize, bColSize, one, B, cSize, sigma, oneI, zero, fintGQ, oneI);
+#else
+  dgemv_(chy, &cSize, &bColSize, &one, B, &cSize, sigma, &oneI, &zero, fintGQ, &oneI);
+#endif
+
+  
   // Add to fint
   int wIndex = gpPtr[e]+gp;
   // Following Belytschko equation 4.9.22

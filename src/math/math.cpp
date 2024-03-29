@@ -1,6 +1,10 @@
 #include "FemTech.h"
 #include "blas.h"
 #include "lapack.h"
+// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+#include "matrix_operations.h"
+#endif
 
 #include <algorithm>
 #include <vector>
@@ -396,7 +400,12 @@ void test95Percentile(void) {
 
 // Computes mat = mat + \alpha*(x*x^T)
 void dyadic(const double* const vector, const double preFactor, double * const mat) {
-  dger_(&ndim, &ndim, &preFactor, vector, &oneI, vector, &oneI, mat, &ndim);
+    // Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+    FEMTECH_dger_(&ndim, &ndim, &preFactor, vector, &oneI, vector, &oneI, mat, &ndim);
+#else
+    dger_(&ndim, &ndim, &preFactor, vector, &oneI, vector, &oneI, mat, &ndim);
+#endif
 }
 
 // Compute B = A * A^T

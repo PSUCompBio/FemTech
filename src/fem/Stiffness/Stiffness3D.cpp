@@ -1,5 +1,9 @@
 #include "FemTech.h"
 #include "blas.h"
+// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+#include "matrix_operations.h"
+#endif
 
 void StiffnessElementMatrix(double* Ke, int e) {
 	int Csize = 6;
@@ -41,11 +45,18 @@ void StiffnessElementMatrix(double* Ke, int e) {
       B[BindexStart+11] = dNdx;
     }
     // Compute B^T C
-    dgemm_(chy, chn, &bColSize, &Csize, &Csize, &one, B, &Csize, \
-        C, &Csize, &zero, BtC, &bColSize);
-    // Compute B^T C B
-    dgemm_(chn, chn, &bColSize, &bColSize, &Csize, &one, BtC, &bColSize, \
-        B, &Csize, &zero, KeGQ, &bColSize);
+	// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+	FEMTECH_dgemm_(chy, chn, bColSize, Csize, Csize, one, B, Csize, C, Csize, zero, BtC, bColSize);
+	// Compute B^T C B
+	FEMTECH_dgemm_(chn, chn, bColSize, bColSize, Csize, one, BtC, bColSize, B, Csize, zero, KeGQ, bColSize);
+#else
+	dgemm_(chy, chn, &bColSize, &Csize, &Csize, &one, B, &Csize, C, &Csize, &zero, BtC, &bColSize);
+	// Compute B^T C B
+	dgemm_(chn, chn, &bColSize, &bColSize, &Csize, &one, BtC, &bColSize, B, &Csize, &zero, KeGQ, &bColSize);
+#endif
+    
+    
     int wIndex = gpPtr[e]+k;
     const double preFactor = gaussWeights[wIndex]*detJacobian[wIndex];
     // Ke = \Sum_j w_j (B^T C B Det(J))_j

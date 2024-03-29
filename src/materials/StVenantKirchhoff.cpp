@@ -1,5 +1,9 @@
 #include "FemTech.h"
 #include "blas.h"
+// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+#include "matrix_operations.h"
+#endif
 
 // St. Venant-Kirchhoff
 // Evaluates the PK2 stress tensor
@@ -24,9 +28,12 @@ void StVenantKirchhoff(int e, int gp) {
     }
     // Compute 0.5*H^T H and add to E
     double half = 0.5;
-    dgemm_(chy, chn, &ndim, &ndim, &ndim, &half, H, &ndim,
-           H, &ndim, &one, E, &ndim);
-
+    // Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+    FEMTECH_dgemm_(chy, chn, ndim, ndim, ndim, half, H, ndim, H, ndim, one, E, ndim);
+#else
+    dgemm_(chy, chn, &ndim, &ndim, &ndim, &half, H, &ndim, H, &ndim, &one, E, &ndim);
+#endif
     // Compute 2nd Piola-Kirchhoff Stress
     // S = lambda*tr(E)*I+2*mu*E
     double traceE = E[0] + E[4] + E[8];
@@ -51,11 +58,14 @@ void StVenantKirchhoff(int e, int gp) {
     double *sigma = mat2;
     double Jinv = 1.0/det3x3Matrix(F_element_gp);
     // Compute F S F^T
-    dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, H, &ndim,
-           S, &ndim, &zero, sigmaTemp, &ndim);
-    dgemm_(chn, chy, &ndim, &ndim, &ndim, &Jinv, sigmaTemp, &ndim,
-           H, &ndim, &zero, sigma, &ndim);
-
+    // Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+    FEMTECH_dgemm_(chn, chn, ndim, ndim, ndim, one, H, ndim, S, ndim, zero, sigmaTemp, ndim);
+    FEMTECH_dgemm_(chn, chy, ndim, ndim, ndim, Jinv, sigmaTemp, ndim, H, ndim, zero, sigma, ndim);
+#else
+    dgemm_(chn, chn, &ndim, &ndim, &ndim, &one, H, &ndim, S, &ndim, &zero, sigmaTemp, &ndim);
+    dgemm_(chn, chy, &ndim, &ndim, &ndim, &Jinv, sigmaTemp, &ndim, H, &ndim, &zero, sigma, &ndim);
+#endif
     // Get location of array to store Cauchy values
     double * sigma_nLocal = &(sigma_n[sigmaptr[e]+6*gp]);
 		// 6 values saved per gauss point for 3d

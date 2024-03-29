@@ -1,5 +1,9 @@
 #include "FemTech.h"
 #include "blas.h"
+// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+#include "matrix_operations.h"
+#endif
 
 void ModifyMassAndStiffnessMatrix();
 void ComputeUnsteadyRHS(const int n, const int nMaxT, double* displacementFinal, \
@@ -36,7 +40,13 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double deltaT, \
   // LU decompose modified stiffness matrix
   int *pivot = (int*)malloc(matSize*sizeof(int));
   int info;
-  dgetrf_(&matSize, &matSize, stiffness, &matSize, pivot, &info); 
+
+  // Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+  FEMTECH_dgetrf_(&matSize, &matSize, stiffness, &matSize, pivot, &info);
+#else
+  dgetrf_(&matSize, &matSize, stiffness, &matSize, pivot, &info);
+#endif
   if (info) {
     FILE_LOG_SINGLE(ERROR, "LU Decomposition and solution failed with info code %d", info);
   }
@@ -49,7 +59,12 @@ void SolveUnsteadyNewmarkImplicit(double beta, double gamma, double deltaT, \
     memcpy(displacementsOld, displacements, nDOF*sizeof(double));
     ComputeUnsteadyRHS(n, nMaxT, displacementFinal, a, b, c);
 
-    dgetrs_(chn, &matSize, &oneI, stiffness, &matSize, pivot, rhs, &matSize, &info);
+	// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+	FEMTECH_dgetrs_(chn, &matSize, &oneI, stiffness, &matSize, pivot, rhs, &matSize, &info);
+#else
+	dgetrs_(chn, &matSize, &oneI, stiffness, &matSize, pivot, rhs, &matSize, &info);
+#endif
     if (info) {
       FILE_LOG_SINGLE(ERROR, "Matrix Solution failed during back substitution with info code %d", info);
     }
@@ -195,8 +210,13 @@ void ComputeUnsteadyRHS(const int n, const int nMaxT, double* displacementFinal,
   }
   // Compute M times rhsTn
   double *rhs2 = (double*)malloc(nRHS*sizeof(double));
+  // Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+  FEMTECH_dgemv_(chn, nRHS, nDOF, one, mass, nRHS, rhsTn, oneI, zero, rhs2, oneI);
+#else
   dgemv_(chn, &nRHS, &nDOF, &one, mass, &nRHS, rhsTn, &oneI, &zero, rhs2, &oneI);
-  // Set displacement at specified dofs from bc
+#endif
+ // Set displacement at specified dofs from bc
   for (int i = 0; i < nDOF; ++i) {
     if(boundary[i] == 1) {
       displacements[i] = ((double)n/(double)nMaxT)*displacementFinal[i];

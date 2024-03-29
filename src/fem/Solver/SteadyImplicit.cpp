@@ -1,5 +1,9 @@
 #include "FemTech.h"
 #include "blas.h"
+// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+#include "matrix_operations.h"
+#endif
 
 void SolveSteadyImplicit(void) {
   int matSize = nDOF-nSpecifiedDispBC;
@@ -7,7 +11,13 @@ void SolveSteadyImplicit(void) {
   int* pivot = (int*)malloc(matSize*sizeof(int));
   int info;
   // Solve K u = f directly by using LU Decomposition
+// Drupal : Check if the operating system is Windows
+#ifdef _WIN32
+  FEMTECH_dgesv_(&matSize, &oneI, stiffness, &matSize, pivot, rhs, &matSize, &info);
+#else
   dgesv_(&matSize, &oneI, stiffness, &matSize, pivot, rhs, &matSize, &info);
+#endif
+
   if (info) {
     FILE_LOG_SINGLE(ERROR, "LU Decomposition and solution failed with info code %d", info);
   }
