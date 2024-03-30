@@ -10,12 +10,7 @@ elseif(NOT ENABLE_MPI AND NOT WIN32)
   TARGET_LINK_LIBRARIES(ex1 FemTech)
 elseif(ENABLE_MPI AND WIN32)
 LINK_DIRECTORIES(${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/third-party/parmetis-4.0.3/libparmetis)
-	target_link_libraries(ex1 FemTech parmetis Blas Lapack ${MPI_LIBRARIES})
-	# copy dlls to build directory
-	file(COPY ${LAPACK}/bin/libcblas.dll DESTINATION ${CMAKE_BINARY_DIR}/examples/ex1)
-	file(COPY ${LAPACK}/bin/libblas.dll DESTINATION ${CMAKE_BINARY_DIR}/examples/ex1)
-	file(COPY ${LAPACK}/bin/liblapack.dll DESTINATION ${CMAKE_BINARY_DIR}/examples/ex1)
-	file(COPY ${LAPACK}/bin/liblapacke.dll DESTINATION ${CMAKE_BINARY_DIR}/examples/ex1)
+	target_link_libraries(ex1 FemTech parmetis ${MPI_LIBRARIES})
 endif()
 
 # NOTE: once Cmake release version 3.13 the following

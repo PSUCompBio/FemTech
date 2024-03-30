@@ -159,9 +159,12 @@ elseif(WIN32)
 	set(LAPACK "" CACHE PATH "Path to LAPACK library")
 
 	# Check if LAPACK variable is empty
+# Drupal
+if(NOT WIN32)
 	if(NOT LAPACK)
 		message(FATAL_ERROR "LAPACK variable not provided. Please specify the path to the LAPACK library.")
 	endif()
+endif()
 
 	add_library(Blas SHARED IMPORTED)
 	message("Lapack library Path is ${LAPACK}")
