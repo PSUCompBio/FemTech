@@ -82,6 +82,18 @@ int main(int argc, char **argv) {
 
   AllocateArrays();
 
+  for(int i = 0; i<nNodes; i++){
+     if(nodeconstrain[i]!=-1){
+	int hostelglobal = nodeconstrain[i];
+	for(int j1 = 0; j1<nelements; j1++){
+		if(hostelglobal+1==global_eid[j1]){
+			nodeconstrain[i] = j1;
+			break;
+		}
+	}
+    }
+  }
+
   if(embed){
 	FindNaturalCoord();	
 	}

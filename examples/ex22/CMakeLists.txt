@@ -12,6 +12,8 @@ endif(ENABLE_MPI)
 
 file(INSTALL embeddedmesh.inp DESTINATION .)
 file(INSTALL mapping.txt DESTINATION .)
+file(INSTALL embeddedmeshparallel.inp DESTINATION .)
+file(INSTALL mappingparallel.txt DESTINATION .)
 file(INSTALL materials.dat DESTINATION .)
 file(INSTALL compareResults.py DESTINATION .)
 file(INSTALL gnuplot.script DESTINATION .)

@@ -88,9 +88,10 @@ void CalculateStrain() {
 	double oldlengthx = (coordinates[ndim*connectivity[eptr[elm]]+0]-coordinates[ndim*connectivity[eptr[elm]+1]+0]);
 	double oldlengthy = (coordinates[ndim*connectivity[eptr[elm]]+1]-coordinates[ndim*connectivity[eptr[elm]+1]+1]);
 	double oldlengthz = (coordinates[ndim*connectivity[eptr[elm]]+2]-coordinates[ndim*connectivity[eptr[elm]+1]+2]);
-	double newlength = newlengthx*newlengthx + newlengthy*newlengthy + newlengthz*newlengthz;
-	double oldlength = oldlengthx*oldlengthx + oldlengthy*oldlengthy + oldlengthz*oldlengthz;
-	E[0] = (newlength-oldlength)/2*oldlength;
+	double newlength = sqrt(newlengthx*newlengthx + newlengthy*newlengthy + newlengthz*newlengthz);
+	double oldlength = sqrt(oldlengthx*oldlengthx + oldlengthy*oldlengthy + oldlengthz*oldlengthz);
+	//E[0] = (newlength-oldlength)/2*oldlength;
+	E[0] = (newlength-oldlength)/oldlength + 0.5*(newlength-oldlength)*(newlength-oldlength)/(oldlength*oldlength);
 	}
     else{  
 	const int countGP = GaussPoints[elm];

@@ -230,7 +230,7 @@ int main(int argc, char **argv) {
     //ReadMapping(argv[2]);
     }
   AllocateArrays();
- // TransformMesh(simulationJson);
+  TransformMesh(simulationJson);
   InitCustomPlot(simulationJson);
   if (computeInjuryFlag) {
     InitInjuryCriteria();
